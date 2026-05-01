@@ -19,8 +19,9 @@ def main():
     app.setApplicationVersion('1.0')
     
     try:
-        app.setStyleSheet(open('mathlab/ui/styles.qss').read())
-    except:
+        stylesheet_path = os.path.join(os.path.dirname(__file__), 'ui', 'styles.qss')
+        app.setStyleSheet(open(stylesheet_path).read())
+    except Exception:
         pass
     
     window = MainWindow()

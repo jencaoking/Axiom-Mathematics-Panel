@@ -98,6 +98,39 @@ class Circle(GeometricObject):
     def to_latex(self):
         return rf'Circle({self.name})'
 
+class Polygon(GeometricObject):
+    def __init__(self, obj_id, name, point_ids):
+        super().__init__(obj_id, name, 'Polygon')
+        self.point_ids = point_ids
+        self.depends_on = point_ids.copy()
+        self.points = []
+    
+    def update_coordinates(self, engine):
+        self.points = []
+        for point_id in self.point_ids:
+            point = engine.objects.get(point_id)
+            if point:
+                self.points.append((point.coordinates['x'], point.coordinates['y']))
+        self.coordinates = {'points': self.points}
+    
+    def to_latex(self):
+        return rf'Polygon({self.name})'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['point_ids'] = self.point_ids
+        data['points'] = self.points
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(data['id'], data['name'], data.get('point_ids', []))
+        obj.coordinates = data['coordinates']
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.points = data.get('points', [])
+        return obj
+
 class DAG:
     def __init__(self):
         self.graph = defaultdict(list)
@@ -113,10 +146,13 @@ class DAG:
         for neighbors in self.graph.values():
             if node in neighbors:
                 neighbors.remove(node)
-        del self.graph[node]
-        for parent in self.reverse_graph[node]:
-            self.graph[parent].remove(node)
-        del self.reverse_graph[node]
+        if node in self.graph:
+            del self.graph[node]
+        if node in self.reverse_graph:
+            for parent in self.reverse_graph[node]:
+                if parent in self.graph and node in self.graph[parent]:
+                    self.graph[parent].remove(node)
+            del self.reverse_graph[node]
     
     def get_dependencies(self, node):
         visited = set()
@@ -207,6 +243,22 @@ class GeometryEngine:
         self._notify('object_added', circle.serialize())
         return obj_id
     
+    def add_polygon(self, point_ids, name=None):
+        for point_id in point_ids:
+            if point_id not in self.objects:
+                raise ValueError(f'Point {point_id} not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Polygon')
+        polygon = Polygon(obj_id, name, point_ids)
+        self.objects[obj_id] = polygon
+        for point_id in point_ids:
+            self.dependencies.add_edge(point_id, obj_id)
+        polygon.update_coordinates(self)
+        self._notify('object_added', polygon.serialize())
+        return obj_id
+    
     def remove_object(self, obj_id):
         if obj_id not in self.objects:
             return
@@ -256,21 +308,85 @@ class GeometryEngine:
     
     def solve_constraints(self):
         from scipy.optimize import fsolve
-        equations = []
+        import numpy as np
+        
         variables = []
+        var_to_idx = {}
+        equations = []
+        
+        points = self.get_objects_by_type('Point')
+        
+        for point in points:
+            x_sym = symbols(f'x_{point.id}')
+            y_sym = symbols(f'y_{point.id}')
+            var_to_idx[(point.id, 'x')] = len(variables)
+            var_to_idx[(point.id, 'y')] = len(variables) + 1
+            variables.extend([x_sym, y_sym])
         
         for obj in self.objects.values():
             for constraint in obj.constraints:
-                equations.append(constraint)
+                if isinstance(constraint, str):
+                    try:
+                        exec(f'from sympy import *\neq = {constraint}', globals())
+                        equations.append(eq)
+                    except:
+                        pass
+                else:
+                    equations.append(constraint)
         
-        if equations:
-            try:
-                result = fsolve(lambda x: [eq.subs(dict(zip(variables, x))) for eq in equations], 
-                               [0.0] * len(variables))
-                return result
-            except:
-                return None
-        return None
+        if not equations or not variables:
+            return None
+        
+        def objective(x):
+            result = []
+            var_dict = {}
+            for i, var in enumerate(variables):
+                var_dict[var] = x[i]
+            
+            for eq in equations:
+                try:
+                    val = float(eq.subs(var_dict).evalf())
+                    result.append(val)
+                except:
+                    result.append(0.0)
+            
+            return np.array(result)
+        
+        initial_guess = []
+        for point in points:
+            initial_guess.append(point.coordinates.get('x', 0.0))
+            initial_guess.append(point.coordinates.get('y', 0.0))
+        
+        try:
+            result = fsolve(objective, np.array(initial_guess))
+            
+            for point in points:
+                x_idx = var_to_idx.get((point.id, 'x'))
+                y_idx = var_to_idx.get((point.id, 'y'))
+                if x_idx is not None and y_idx is not None:
+                    self.update_point(point.id, x=result[x_idx], y=result[y_idx])
+            
+            return {'success': True, 'solution': result.tolist()}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def add_constraint(self, obj_id, constraint):
+        if obj_id not in self.objects:
+            return {'success': False, 'error': 'Object not found'}
+        
+        obj = self.objects[obj_id]
+        obj.constraints.append(constraint)
+        return {'success': True}
+    
+    def remove_constraint(self, obj_id, constraint):
+        if obj_id not in self.objects:
+            return {'success': False, 'error': 'Object not found'}
+        
+        obj = self.objects[obj_id]
+        if constraint in obj.constraints:
+            obj.constraints.remove(constraint)
+            return {'success': True}
+        return {'success': False, 'error': 'Constraint not found'}
     
     def serialize_all(self):
         return {

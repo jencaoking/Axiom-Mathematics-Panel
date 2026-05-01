@@ -3,10 +3,20 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import mean_squared_error
-import torch
-import torch.nn as nn
-import onnxruntime as ort
 import os
+
+try:
+    import torch
+    import torch.nn as nn
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+
+try:
+    import onnxruntime as ort
+    ONNX_AVAILABLE = True
+except ImportError:
+    ONNX_AVAILABLE = False
 
 class AIManager:
     def __init__(self):
@@ -14,7 +24,11 @@ class AIManager:
         self.sandbox = None
         
     def load_onnx_model(self, model_path, model_name):
+        if not ONNX_AVAILABLE:
+            return {'success': False, 'error': 'ONNX Runtime not available'}
+        
         try:
+            import onnxruntime as ort
             session = ort.InferenceSession(model_path)
             self.models[model_name] = {
                 'session': session,
@@ -109,8 +123,14 @@ class AIManager:
         }
     
     def fit_neural_network(self, points, epochs=100, hidden_size=10):
+        if not TORCH_AVAILABLE:
+            return {'success': False, 'error': 'PyTorch not available'}
+        
         if len(points) < 2:
             return {'success': False, 'error': 'Need at least 2 points'}
+        
+        import torch
+        import torch.nn as nn
         
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
@@ -190,6 +210,9 @@ class AIManager:
         }
     
     def recognize_digit(self, image_data):
+        if not ONNX_AVAILABLE:
+            return {'success': False, 'error': 'ONNX Runtime not available'}
+        
         if 'mnist' not in self.models:
             return {'success': False, 'error': 'MNIST model not loaded'}
         

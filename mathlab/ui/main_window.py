@@ -134,60 +134,64 @@ class MainWindow(QMainWindow):
     
     def setup_toolbar(self):
         self.toolbar = QToolBar('Main Toolbar')
-        self.toolbar.setIconSize(QSize(24, 24))
+        self.toolbar.setIconSize(QSize(32, 32))
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         
-        self.select_tool = QToolButton()
-        self.select_tool.setText('Select')
-        self.select_tool.setCheckable(True)
-        self.select_tool.setChecked(True)
+        self.select_action = QAction('Select', self)
+        self.select_action.setCheckable(True)
+        self.select_action.setChecked(True)
         
-        self.point_tool = QToolButton()
-        self.point_tool.setText('Point')
-        self.point_tool.setCheckable(True)
+        self.point_action = QAction('Point', self)
+        self.point_action.setCheckable(True)
         
-        self.segment_tool = QToolButton()
-        self.segment_tool.setText('Segment')
-        self.segment_tool.setCheckable(True)
+        self.segment_action = QAction('Segment', self)
+        self.segment_action.setCheckable(True)
         
-        self.circle_tool = QToolButton()
-        self.circle_tool.setText('Circle')
-        self.circle_tool.setCheckable(True)
+        self.circle_action = QAction('Circle', self)
+        self.circle_action.setCheckable(True)
         
-        self.polygon_tool = QToolButton()
-        self.polygon_tool.setText('Polygon')
-        self.polygon_tool.setCheckable(True)
+        self.polygon_action = QAction('Polygon', self)
+        self.polygon_action.setCheckable(True)
         
-        self.pan_tool = QToolButton()
-        self.pan_tool.setText('Pan')
-        self.pan_tool.setCheckable(True)
+        self.pan_action = QAction('Pan', self)
+        self.pan_action.setCheckable(True)
         
-        self.zoom_in_tool = QToolButton()
-        self.zoom_in_tool.setText('Zoom In')
+        self.zoom_in_action = QAction('Zoom In', self)
+        self.zoom_out_action = QAction('Zoom Out', self)
         
-        self.zoom_out_tool = QToolButton()
-        self.zoom_out_tool.setText('Zoom Out')
+        self.tool_actions = [
+            self.select_action, self.point_action, self.segment_action,
+            self.circle_action, self.polygon_action, self.pan_action
+        ]
         
-        tool_group = [self.select_tool, self.point_tool, self.segment_tool, 
-                      self.circle_tool, self.polygon_tool, self.pan_tool]
-        
-        for tool in tool_group:
-            self.toolbar.addWidget(tool)
-            tool.clicked.connect(self.on_tool_selected)
+        self.toolbar.addAction(self.select_action)
+        self.toolbar.addAction(self.point_action)
+        self.toolbar.addAction(self.segment_action)
+        self.toolbar.addAction(self.circle_action)
+        self.toolbar.addAction(self.polygon_action)
+        self.toolbar.addAction(self.pan_action)
         
         self.toolbar.addSeparator()
         
-        self.toolbar.addWidget(self.zoom_in_tool)
-        self.toolbar.addWidget(self.zoom_out_tool)
+        self.toolbar.addAction(self.zoom_in_action)
+        self.toolbar.addAction(self.zoom_out_action)
         
         self.toolbar.addSeparator()
         
         self.command_bar = CommandBar()
         self.toolbar.addWidget(self.command_bar)
         
-        self.addToolBar(self.toolbar)
+        self.addToolBar(Qt.TopToolBarArea, self.toolbar)
         
-        self.zoom_in_tool.clicked.connect(self.on_zoom_in)
-        self.zoom_out_tool.clicked.connect(self.on_zoom_out)
+        self.select_action.triggered.connect(lambda: self.on_action_selected('select'))
+        self.point_action.triggered.connect(lambda: self.on_action_selected('point'))
+        self.segment_action.triggered.connect(lambda: self.on_action_selected('segment'))
+        self.circle_action.triggered.connect(lambda: self.on_action_selected('circle'))
+        self.polygon_action.triggered.connect(lambda: self.on_action_selected('polygon'))
+        self.pan_action.triggered.connect(lambda: self.on_action_selected('pan'))
+        
+        self.zoom_in_action.triggered.connect(self.on_zoom_in)
+        self.zoom_out_action.triggered.connect(self.on_zoom_out)
     
     def setup_docks(self):
         self.algebra_panel = AlgebraPanel(self)
@@ -221,27 +225,23 @@ class MainWindow(QMainWindow):
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
     
-    def on_tool_selected(self):
-        sender = self.sender()
+    def on_action_selected(self, tool_name):
+        for action in self.tool_actions:
+            action.setChecked(False)
         
-        tools = [self.select_tool, self.point_tool, self.segment_tool, 
-                 self.circle_tool, self.polygon_tool, self.pan_tool]
+        action_map = {
+            'select': self.select_action,
+            'point': self.point_action,
+            'segment': self.segment_action,
+            'circle': self.circle_action,
+            'polygon': self.polygon_action,
+            'pan': self.pan_action
+        }
         
-        for tool in tools:
-            tool.setChecked(tool == sender)
+        if tool_name in action_map:
+            action_map[tool_name].setChecked(True)
         
-        if sender == self.select_tool:
-            self.central_widget.set_tool('select')
-        elif sender == self.point_tool:
-            self.central_widget.set_tool('point')
-        elif sender == self.segment_tool:
-            self.central_widget.set_tool('segment')
-        elif sender == self.circle_tool:
-            self.central_widget.set_tool('circle')
-        elif sender == self.polygon_tool:
-            self.central_widget.set_tool('polygon')
-        elif sender == self.pan_tool:
-            self.central_widget.set_tool('pan')
+        self.central_widget.set_tool(tool_name)
     
     def on_zoom_in(self):
         self.central_widget.scale(1.2, 1.2)
@@ -263,23 +263,21 @@ class MainWindow(QMainWindow):
         self.central_widget.select_object(obj_id)
     
     def on_object_deleted(self, obj_id):
-        self.central_widget.remove_object(obj_id)
-        self.algebra_panel.remove_object(obj_id)
+        if hasattr(self, 'geometry_engine'):
+            self.geometry_engine.remove_object(obj_id)
+        else:
+            self.central_widget.remove_object(obj_id)
+            self.algebra_panel.remove_object(obj_id)
     
     def on_console_command(self, command):
-        result = {'success': True, 'output': '', 'error': '', 'more': False}
-        
         if command == '%clear':
             self.central_widget.clear_canvas()
             self.algebra_panel.clear()
-            result['output'] = 'Canvas cleared'
+            result = {'success': True, 'output': 'Canvas cleared', 'error': '', 'more': False}
+        elif hasattr(self, 'python_repl'):
+            result = self.python_repl.execute(command)
         else:
-            try:
-                exec(command, globals())
-                result['output'] = 'Command executed'
-            except Exception as e:
-                result['error'] = str(e)
-                result['success'] = False
+            result = {'success': False, 'output': '', 'error': 'Python REPL not initialized', 'more': False}
         
         self.console.display_result(result)
     
