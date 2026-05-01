@@ -44,7 +44,8 @@
         "type": "类型",
         "coordinates": "坐标",
         "x": "X",
-        "y": "Y"
+        "y": "Y",
+        "radius": "半径"
     },
     "console": {
         "title": "控制台",

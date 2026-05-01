@@ -44,7 +44,8 @@
         "type": "Type",
         "coordinates": "Coordinates",
         "x": "X",
-        "y": "Y"
+        "y": "Y",
+        "radius": "Radius"
     },
     "console": {
         "title": "Console",

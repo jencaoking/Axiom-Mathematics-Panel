@@ -36,7 +36,7 @@ class PropertiesPanel(QDockWidget):
         self.form_layout.addRow(t('properties_panel.type') + ':', self.type_label)
         self.form_layout.addRow(t('properties_panel.x') + ':', self.x_spin)
         self.form_layout.addRow(t('properties_panel.y') + ':', self.y_spin)
-        self.form_layout.addRow('Radius:', self.radius_spin)
+        self.form_layout.addRow(t('properties_panel.radius') + ':', self.radius_spin)
         
         self.apply_button = QPushButton(t('dialogs.apply'))
         self.apply_button.clicked.connect(self.on_apply)
