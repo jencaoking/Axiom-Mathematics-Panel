@@ -1,7 +1,7 @@
 from sympy import (
     symbols, Symbol, Eq, solve, simplify, expand, factor,
     diff, integrate, limit, latex, sin, cos, tan, log, exp,
-    sqrt, pi, Rational, Function, Derivative, Integral
+    sqrt, pi, Rational, Function, Derivative, Integral, sympify
 )
 
 class CASProvider:
@@ -15,21 +15,12 @@ class CASProvider:
     
     def parse_expression(self, expr_str):
         try:
-            local_ns = {k: v for k, v in self.symbols_cache.items()}
-            result = eval(expr_str, {"__builtins__": {}}, local_ns)
+            result = sympify(expr_str, locals=self.symbols_cache)
+            for symbol in result.free_symbols:
+                self.symbols_cache[str(symbol)] = symbol
             return result
-        except Exception as e:
-            try:
-                import re
-                found_symbols = re.findall(r'[a-zA-Z_]\w*', expr_str)
-                for sym_name in found_symbols:
-                    if sym_name not in self.symbols_cache and sym_name not in dir(__builtins__):
-                        self.symbols_cache[sym_name] = Symbol(sym_name)
-                local_ns = {k: v for k, v in self.symbols_cache.items()}
-                result = eval(expr_str, {"__builtins__": {}}, local_ns)
-                return result
-            except Exception:
-                return None
+        except Exception:
+            return None
     
     def simplify(self, expr_str):
         expr = self.parse_expression(expr_str)
@@ -67,8 +58,11 @@ class CASProvider:
     def solve_equation(self, equation_str, variable='x'):
         try:
             x = self._get_symbol(variable)
-            eq = Eq(eval(equation_str.replace('=', '-')), 0)
+            left_expr = sympify(equation_str.replace('=', '-'), locals=self.symbols_cache)
+            eq = Eq(left_expr, 0)
             solutions = solve(eq, x)
+            for symbol in left_expr.free_symbols:
+                self.symbols_cache[str(symbol)] = symbol
             return {
                 "success": True,
                 "solutions": [latex(s) for s in solutions],
