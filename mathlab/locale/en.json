@@ -1,0 +1,104 @@
+{
+    "main_window": {
+        "title": "MathLab - Interactive Mathematics",
+        "new_project": "New Project",
+        "open_project": "Open Project",
+        "save_project": "Save Project",
+        "save_as": "Save As...",
+        "export_png": "Export as PNG",
+        "export_svg": "Export as SVG",
+        "export_latex": "Export as LaTeX",
+        "exit": "Exit",
+        "undo": "Undo",
+        "redo": "Redo",
+        "delete": "Delete",
+        "algebra_panel": "Algebra Panel",
+        "properties_panel": "Properties Panel",
+        "console": "Console",
+        "algorithm_visualization": "Algorithm Visualization",
+        "ai_tools": "AI Tools",
+        "theme": "Theme...",
+        "geometry_tools": "Geometry Tools",
+        "algebra_tools": "Algebra Tools",
+        "about": "About MathLab",
+        "tutorial": "Tutorial",
+        "select": "Select",
+        "point": "Point",
+        "segment": "Segment",
+        "circle": "Circle",
+        "polygon": "Polygon",
+        "pan": "Pan",
+        "zoom_in": "Zoom In",
+        "zoom_out": "Zoom Out"
+    },
+    "algebra_panel": {
+        "title": "Algebra",
+        "new_point": "New Point",
+        "no_objects": "No objects",
+        "delete_selected": "Delete Selected"
+    },
+    "properties_panel": {
+        "title": "Properties",
+        "no_selection": "No selection",
+        "name": "Name",
+        "type": "Type",
+        "coordinates": "Coordinates",
+        "x": "X",
+        "y": "Y"
+    },
+    "console": {
+        "title": "Console",
+        "prompt": ">>> ",
+        "execute": "Execute",
+        "clear": "Clear",
+        "error": "Error",
+        "success": "Success"
+    },
+    "ai_tools": {
+        "title": "AI Tools",
+        "generate_code": "Generate Code",
+        "explain": "Explain",
+        "solve": "Solve",
+        "hint": "Hint",
+        "loading": "Loading..."
+    },
+    "dialogs": {
+        "error": "Error",
+        "warning": "Warning",
+        "information": "Information",
+        "confirm": "Confirm",
+        "invalid_command": "Invalid command: {0}",
+        "failed_to_open": "Failed to open project: {0}",
+        "failed_to_save": "Failed to save project: {0}",
+        "failed_to_export": "Failed to export: {0}",
+        "select_theme": "Select Theme",
+        "choose_theme": "Choose a theme:",
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "about_title": "About MathLab",
+        "about_text": "MathLab - Interactive Mathematics and AI Teaching Software\n\nVersion 1.0\n\nA powerful tool for learning mathematics and AI concepts through interactive visualization."
+    },
+    "status_bar": {
+        "opened": "Opened: {0}",
+        "saved": "Saved: {0}",
+        "exported": "Exported: {0}",
+        "exported_svg": "Exported SVG: {0}",
+        "exported_latex": "Exported LaTeX: {0}",
+        "canvas_cleared": "Canvas cleared"
+    },
+    "geometry": {
+        "new_point": "New Point",
+        "point": "Point",
+        "segment": "Segment",
+        "circle": "Circle",
+        "polygon": "Polygon"
+    },
+    "commands": {
+        "clear_canvas": "Clear canvas",
+        "canvas_cleared": "Canvas cleared"
+    },
+    "errors": {
+        "invalid_expression": "Invalid expression",
+        "python_repl_not_initialized": "Python REPL not initialized"
+    }
+}

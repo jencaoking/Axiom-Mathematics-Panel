@@ -4,12 +4,17 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Qt
 
+try:
+    from ..utils.i18n_manager import t
+except ImportError:
+    from utils.i18n_manager import t
+
 class PropertiesPanel(QDockWidget):
     property_changed = Signal(str, str, object)
     object_renamed = Signal(str, str)
     
     def __init__(self, parent=None):
-        super().__init__('Properties', parent)
+        super().__init__(t('properties_panel.title'), parent)
         self.setAllowedAreas(Qt.RightDockWidgetArea)
         
         self.widget = QWidget()
@@ -27,13 +32,13 @@ class PropertiesPanel(QDockWidget):
         self.y_spin.setRange(-1000, 1000)
         self.radius_spin.setRange(0.1, 1000)
         
-        self.form_layout.addRow('Name:', self.name_edit)
-        self.form_layout.addRow('Type:', self.type_label)
-        self.form_layout.addRow('X:', self.x_spin)
-        self.form_layout.addRow('Y:', self.y_spin)
+        self.form_layout.addRow(t('properties_panel.name') + ':', self.name_edit)
+        self.form_layout.addRow(t('properties_panel.type') + ':', self.type_label)
+        self.form_layout.addRow(t('properties_panel.x') + ':', self.x_spin)
+        self.form_layout.addRow(t('properties_panel.y') + ':', self.y_spin)
         self.form_layout.addRow('Radius:', self.radius_spin)
         
-        self.apply_button = QPushButton('Apply Changes')
+        self.apply_button = QPushButton(t('dialogs.apply'))
         self.apply_button.clicked.connect(self.on_apply)
         
         self.layout.addLayout(self.form_layout)

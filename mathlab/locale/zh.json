@@ -1,0 +1,104 @@
+{
+    "main_window": {
+        "title": "MathLab - 交互式数学",
+        "new_project": "新建项目",
+        "open_project": "打开项目",
+        "save_project": "保存项目",
+        "save_as": "另存为...",
+        "export_png": "导出为 PNG",
+        "export_svg": "导出为 SVG",
+        "export_latex": "导出为 LaTeX",
+        "exit": "退出",
+        "undo": "撤销",
+        "redo": "重做",
+        "delete": "删除",
+        "algebra_panel": "代数面板",
+        "properties_panel": "属性面板",
+        "console": "控制台",
+        "algorithm_visualization": "算法可视化",
+        "ai_tools": "AI 工具",
+        "theme": "主题...",
+        "geometry_tools": "几何工具",
+        "algebra_tools": "代数工具",
+        "about": "关于 MathLab",
+        "tutorial": "教程",
+        "select": "选择",
+        "point": "点",
+        "segment": "线段",
+        "circle": "圆",
+        "polygon": "多边形",
+        "pan": "平移",
+        "zoom_in": "放大",
+        "zoom_out": "缩小"
+    },
+    "algebra_panel": {
+        "title": "代数",
+        "new_point": "新点",
+        "no_objects": "无对象",
+        "delete_selected": "删除选中"
+    },
+    "properties_panel": {
+        "title": "属性",
+        "no_selection": "未选择",
+        "name": "名称",
+        "type": "类型",
+        "coordinates": "坐标",
+        "x": "X",
+        "y": "Y"
+    },
+    "console": {
+        "title": "控制台",
+        "prompt": ">>> ",
+        "execute": "执行",
+        "clear": "清空",
+        "error": "错误",
+        "success": "成功"
+    },
+    "ai_tools": {
+        "title": "AI 工具",
+        "generate_code": "生成代码",
+        "explain": "解释",
+        "solve": "求解",
+        "hint": "提示",
+        "loading": "加载中..."
+    },
+    "dialogs": {
+        "error": "错误",
+        "warning": "警告",
+        "information": "信息",
+        "confirm": "确认",
+        "invalid_command": "无效命令: {0}",
+        "failed_to_open": "打开项目失败: {0}",
+        "failed_to_save": "保存项目失败: {0}",
+        "failed_to_export": "导出失败: {0}",
+        "select_theme": "选择主题",
+        "choose_theme": "选择主题:",
+        "apply": "应用",
+        "cancel": "取消",
+        "about_title": "关于 MathLab",
+        "about_text": "MathLab - 交互式数学与 AI 教学软件\n\n版本 1.0\n\n一个通过交互式可视化学习数学和 AI 概念的强大工具。"
+    },
+    "status_bar": {
+        "opened": "已打开: {0}",
+        "saved": "已保存: {0}",
+        "exported": "已导出: {0}",
+        "exported_svg": "已导出 SVG: {0}",
+        "exported_latex": "已导出 LaTeX: {0}",
+        "canvas_cleared": "画布已清空"
+    },
+    "geometry": {
+        "new_point": "新点",
+        "point": "点",
+        "segment": "线段",
+        "circle": "圆",
+        "polygon": "多边形"
+    },
+    "commands": {
+        "clear_canvas": "清空画布",
+        "canvas_cleared": "画布已清空"
+    },
+    "errors": {
+        "invalid_expression": "无效表达式",
+        "python_repl_not_initialized": "Python REPL 未初始化"
+    }
+}

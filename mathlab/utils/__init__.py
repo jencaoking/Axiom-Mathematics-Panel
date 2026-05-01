@@ -11,6 +11,9 @@ from .latex_renderer import (
 from .theme_manager import (
     THEMES, set_theme, get_current_theme, get_theme_colors
 )
+from .i18n_manager import (
+    I18nManager, get_i18n, t, SUPPORTED_LANGUAGES
+)
 
 __all__ = [
     'lerp', 'clamp', 'distance', 'midpoint', 'normalize_vector',
@@ -19,5 +22,6 @@ __all__ = [
     'format_circle', 'format_line', 'format_angle',
     'format_polygon', 'format_equation', 'format_solution',
     'export_canvas_to_latex',
-    'THEMES', 'set_theme', 'get_current_theme', 'get_theme_colors'
+    'THEMES', 'set_theme', 'get_current_theme', 'get_theme_colors',
+    'I18nManager', 'get_i18n', 't', 'SUPPORTED_LANGUAGES'
 ]

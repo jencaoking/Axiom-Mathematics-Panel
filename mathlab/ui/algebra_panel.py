@@ -5,13 +5,18 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, Signal
 
+try:
+    from ..utils.i18n_manager import t
+except ImportError:
+    from utils.i18n_manager import t
+
 class AlgebraPanel(QDockWidget):
     object_selected = Signal(str)
     object_renamed = Signal(str, str)
     object_deleted = Signal(str)
     
     def __init__(self, parent=None):
-        super().__init__('Algebra', parent)
+        super().__init__(t('algebra_panel.title'), parent)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         
         self.tree_widget = QTreeWidget()

@@ -60,7 +60,6 @@ def execute_sandboxed(code, timeout=5):
         '__spec__': None,
         '__loader__': None,
         '__annotations__': {},
-        '__builtins__': create_safe_builtins(),
     }
     
     top_level_modules = {m.split('.')[0] for m in SAFE_MODULES}

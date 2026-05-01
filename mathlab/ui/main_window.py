@@ -27,10 +27,15 @@ try:
 except ImportError:
     from utils.theme_manager import THEMES, set_theme, get_current_theme
 
+try:
+    from ..utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+except ImportError:
+    from utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('MathLab - Interactive Mathematics')
+        self.setWindowTitle(t('main_window.title'))
         self.setGeometry(100, 100, 1200, 800)
         
         self.setup_ui()
@@ -52,14 +57,14 @@ class MainWindow(QMainWindow):
         menu_bar = QMenuBar(self)
         
         file_menu = QMenu('File', self)
-        new_action = QAction('New Project', self)
-        open_action = QAction('Open Project', self)
-        save_action = QAction('Save Project', self)
-        save_as_action = QAction('Save As...', self)
-        export_png_action = QAction('Export as PNG', self)
-        export_svg_action = QAction('Export as SVG', self)
-        export_latex_action = QAction('Export as LaTeX', self)
-        exit_action = QAction('Exit', self)
+        new_action = QAction(t('main_window.new_project'), self)
+        open_action = QAction(t('main_window.open_project'), self)
+        save_action = QAction(t('main_window.save_project'), self)
+        save_as_action = QAction(t('main_window.save_as'), self)
+        export_png_action = QAction(t('main_window.export_png'), self)
+        export_svg_action = QAction(t('main_window.export_svg'), self)
+        export_latex_action = QAction(t('main_window.export_latex'), self)
+        exit_action = QAction(t('main_window.exit'), self)
         
         file_menu.addAction(new_action)
         file_menu.addAction(open_action)
@@ -73,9 +78,9 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
         
         edit_menu = QMenu('Edit', self)
-        undo_action = QAction('Undo', self)
-        redo_action = QAction('Redo', self)
-        delete_action = QAction('Delete', self)
+        undo_action = QAction(t('main_window.undo'), self)
+        redo_action = QAction(t('main_window.redo'), self)
+        delete_action = QAction(t('main_window.delete'), self)
         
         edit_menu.addAction(undo_action)
         edit_menu.addAction(redo_action)
@@ -83,25 +88,27 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(delete_action)
         
         view_menu = QMenu('View', self)
-        algebra_panel_action = QAction('Algebra Panel', self)
+        algebra_panel_action = QAction(t('main_window.algebra_panel'), self)
         algebra_panel_action.setCheckable(True)
         algebra_panel_action.setChecked(True)
         
-        properties_panel_action = QAction('Properties Panel', self)
+        properties_panel_action = QAction(t('main_window.properties_panel'), self)
         properties_panel_action.setCheckable(True)
         properties_panel_action.setChecked(True)
         
-        console_action = QAction('Console', self)
+        console_action = QAction(t('main_window.console'), self)
         console_action.setCheckable(True)
         console_action.setChecked(True)
         
-        algo_vis_action = QAction('Algorithm Visualization', self)
+        algo_vis_action = QAction(t('main_window.algorithm_visualization'), self)
         algo_vis_action.setCheckable(True)
         
-        ai_tools_action = QAction('AI Tools', self)
+        ai_tools_action = QAction(t('main_window.ai_tools'), self)
         ai_tools_action.setCheckable(True)
         
-        theme_action = QAction('Theme...', self)
+        theme_action = QAction(t('main_window.theme'), self)
+        
+        language_action = QAction('Language...', self)
         
         view_menu.addAction(algebra_panel_action)
         view_menu.addAction(properties_panel_action)
@@ -110,19 +117,20 @@ class MainWindow(QMainWindow):
         view_menu.addAction(ai_tools_action)
         view_menu.addSeparator()
         view_menu.addAction(theme_action)
+        view_menu.addAction(language_action)
         
         tools_menu = QMenu('Tools', self)
-        geometry_tool_action = QAction('Geometry Tools', self)
-        algebra_tool_action = QAction('Algebra Tools', self)
-        ai_tool_action = QAction('AI Tools', self)
+        geometry_tool_action = QAction(t('main_window.geometry_tools'), self)
+        algebra_tool_action = QAction(t('main_window.algebra_tools'), self)
+        ai_tool_action = QAction(t('main_window.ai_tools'), self)
         
         tools_menu.addAction(geometry_tool_action)
         tools_menu.addAction(algebra_tool_action)
         tools_menu.addAction(ai_tool_action)
         
         help_menu = QMenu('Help', self)
-        about_action = QAction('About MathLab', self)
-        tutorial_action = QAction('Tutorial', self)
+        about_action = QAction(t('main_window.about'), self)
+        tutorial_action = QAction(t('main_window.tutorial'), self)
         
         help_menu.addAction(tutorial_action)
         help_menu.addAction(about_action)
@@ -151,6 +159,7 @@ class MainWindow(QMainWindow):
         ai_tools_action.triggered.connect(self.toggle_ai_tools_panel)
         
         theme_action.triggered.connect(self.show_theme_dialog)
+        language_action.triggered.connect(self.show_language_dialog)
         
         about_action.triggered.connect(self.show_about)
     
@@ -159,27 +168,27 @@ class MainWindow(QMainWindow):
         self.toolbar.setIconSize(QSize(32, 32))
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         
-        self.select_action = QAction('Select', self)
+        self.select_action = QAction(t('main_window.select'), self)
         self.select_action.setCheckable(True)
         self.select_action.setChecked(True)
         
-        self.point_action = QAction('Point', self)
+        self.point_action = QAction(t('main_window.point'), self)
         self.point_action.setCheckable(True)
         
-        self.segment_action = QAction('Segment', self)
+        self.segment_action = QAction(t('main_window.segment'), self)
         self.segment_action.setCheckable(True)
         
-        self.circle_action = QAction('Circle', self)
+        self.circle_action = QAction(t('main_window.circle'), self)
         self.circle_action.setCheckable(True)
         
-        self.polygon_action = QAction('Polygon', self)
+        self.polygon_action = QAction(t('main_window.polygon'), self)
         self.polygon_action.setCheckable(True)
         
-        self.pan_action = QAction('Pan', self)
+        self.pan_action = QAction(t('main_window.pan'), self)
         self.pan_action.setCheckable(True)
         
-        self.zoom_in_action = QAction('Zoom In', self)
-        self.zoom_out_action = QAction('Zoom Out', self)
+        self.zoom_in_action = QAction(t('main_window.zoom_in'), self)
+        self.zoom_out_action = QAction(t('main_window.zoom_out'), self)
         
         self.tool_actions = [
             self.select_action, self.point_action, self.segment_action,
@@ -484,21 +493,17 @@ class MainWindow(QMainWindow):
             self.ai_tools_panel.raise_()
     
     def show_about(self):
-        QMessageBox.about(self, 'About MathLab',
-            'MathLab - Interactive Mathematics and AI Teaching Software\n\n'
-            'Version 1.0\n\n'
-            'A powerful tool for learning mathematics and AI concepts through interactive visualization.'
-        )
+        QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))
 
     def show_theme_dialog(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('Select Theme')
+        dialog.setWindowTitle(t('dialogs.select_theme'))
         dialog.setModal(True)
         dialog.setMinimumWidth(300)
 
         layout = QVBoxLayout(dialog)
 
-        label = QLabel('Choose a theme:')
+        label = QLabel(t('dialogs.choose_theme'))
         layout.addWidget(label)
 
         combo = QComboBox()
@@ -511,8 +516,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(combo)
 
         button_layout = QHBoxLayout()
-        ok_button = QPushButton('Apply')
-        cancel_button = QPushButton('Cancel')
+        ok_button = QPushButton(t('dialogs.apply'))
+        cancel_button = QPushButton(t('dialogs.cancel'))
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
@@ -526,3 +531,44 @@ class MainWindow(QMainWindow):
         cancel_button.clicked.connect(dialog.reject)
 
         dialog.exec()
+    
+    def show_language_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Language')
+        dialog.setModal(True)
+        dialog.setMinimumWidth(300)
+
+        layout = QVBoxLayout(dialog)
+
+        label = QLabel('Choose language:')
+        layout.addWidget(label)
+
+        combo = QComboBox()
+        current_lang = get_i18n().get_language()
+        for lang_code, lang_name in SUPPORTED_LANGUAGES.items():
+            combo.addItem(lang_name, lang_code)
+            if lang_code == current_lang:
+                combo.setCurrentIndex(combo.count() - 1)
+
+        layout.addWidget(combo)
+
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton(t('dialogs.apply'))
+        cancel_button = QPushButton(t('dialogs.cancel'))
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        def on_apply():
+            selected_lang = combo.currentData()
+            get_i18n().set_language(selected_lang)
+            self.retranslate_ui()
+            dialog.accept()
+
+        ok_button.clicked.connect(on_apply)
+        cancel_button.clicked.connect(dialog.reject)
+
+        dialog.exec()
+    
+    def retranslate_ui(self):
+        self.setWindowTitle(t('main_window.title'))
