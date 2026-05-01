@@ -16,11 +16,11 @@ class GeometryCanvas(QGraphicsView):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.scene = QGraphicsScene(self)
-        self.setScene(self.scene)
+        self.scene_obj = QGraphicsScene(self)
+        self.setScene(self.scene_obj)
         
         self.setRenderHint(QPainter.Antialiasing)
-        self.setDragMode(QGraphicsView.RubberBandDrag)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         
         self.init_grid()
@@ -44,21 +44,21 @@ class GeometryCanvas(QGraphicsView):
         self.preview_item = None
         
     def init_grid(self):
-        self.scene.setBackgroundBrush(QColor('#ffffff'))
+        self.scene_obj.setBackgroundBrush(QColor('#ffffff'))
         
         grid_pen = QPen(QColor('#d3e4fe'), 0.5)
         grid_pen.setStyle(Qt.DashLine)
         
         for i in range(-100, 101):
             x = i * 20
-            self.scene.addLine(x, -1000, x, 1000, grid_pen)
-            self.scene.addLine(-1000, x, 1000, x, grid_pen)
+            self.scene_obj.addLine(x, -1000, x, 1000, grid_pen)
+            self.scene_obj.addLine(-1000, x, 1000, x, grid_pen)
         
         origin_pen = QPen(QColor('#737686'), 1)
-        self.scene.addLine(0, -1000, 0, 1000, origin_pen)
-        self.scene.addLine(-1000, 0, 1000, 0, origin_pen)
+        self.scene_obj.addLine(0, -1000, 0, 1000, origin_pen)
+        self.scene_obj.addLine(-1000, 0, 1000, 0, origin_pen)
         
-        self.scene.setSceneRect(-500, -500, 1000, 1000)
+        self.scene_obj.setSceneRect(-500, -500, 1000, 1000)
     
     def wheelEvent(self, event):
         zoom_in_factor = 1.1
@@ -83,6 +83,10 @@ class GeometryCanvas(QGraphicsView):
     
     def mousePressEvent(self, event):
         scene_pos = self.mapToScene(event.pos())
+        
+        if self.current_tool == 'select':
+            super().mousePressEvent(event)
+            return
         
         if event.button() == Qt.RightButton and self.current_tool == 'polygon' and len(self.drawing_points) >= 3:
             self.add_polygon()
@@ -138,7 +142,7 @@ class GeometryCanvas(QGraphicsView):
         point_item.setFlags(QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable)
         point_item.setZValue(10)
         
-        self.scene.addItem(point_item)
+        self.scene_obj.addItem(point_item)
         self.point_items[point_item] = {'x': x, 'y': y}
         
         self.point_added.emit(x, y)
@@ -152,7 +156,7 @@ class GeometryCanvas(QGraphicsView):
         segment_item.setPen(QPen(QColor('#4b41e1'), 2))
         segment_item.setFlags(QGraphicsItem.ItemIsSelectable)
         
-        self.scene.addItem(segment_item)
+        self.scene_obj.addItem(segment_item)
         self.segment_items[segment_item] = {'p1': p1, 'p2': p2}
     
     def add_circle(self, center, radius):
@@ -165,7 +169,7 @@ class GeometryCanvas(QGraphicsView):
         circle_item.setBrush(QBrush(Qt.NoBrush))
         circle_item.setFlags(QGraphicsItem.ItemIsSelectable)
         
-        self.scene.addItem(circle_item)
+        self.scene_obj.addItem(circle_item)
         self.circle_items[circle_item] = {'cx': cx, 'cy': cy, 'r': radius}
     
     def add_polygon(self):
@@ -181,7 +185,7 @@ class GeometryCanvas(QGraphicsView):
         polygon_item.setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
         polygon_item.setFlags(QGraphicsItem.ItemIsSelectable)
         
-        self.scene.addItem(polygon_item)
+        self.scene_obj.addItem(polygon_item)
         self.polygon_items[polygon_item] = {'points': self.drawing_points.copy()}
         self.drawing_points.clear()
         
@@ -194,11 +198,11 @@ class GeometryCanvas(QGraphicsView):
         
         p1 = self.drawing_points[0]
         if hasattr(self, 'preview_item') and self.preview_item:
-            self.scene.removeItem(self.preview_item)
+            self.scene_obj.removeItem(self.preview_item)
         
         self.preview_item = QGraphicsLineItem(p1[0], p1[1], scene_pos.x(), scene_pos.y())
         self.preview_item.setPen(QPen(QColor('#4b41e1'), 2, Qt.DashLine))
-        self.scene.addItem(self.preview_item)
+        self.scene_obj.addItem(self.preview_item)
     
     def update_circle_preview(self, scene_pos):
         if len(self.drawing_points) != 1:
@@ -210,19 +214,19 @@ class GeometryCanvas(QGraphicsView):
         radius = (dx**2 + dy**2)**0.5
         
         if hasattr(self, 'preview_item') and self.preview_item:
-            self.scene.removeItem(self.preview_item)
+            self.scene_obj.removeItem(self.preview_item)
         
         self.preview_item = QGraphicsEllipseItem(cx - radius, cy - radius, radius * 2, radius * 2)
         self.preview_item.setPen(QPen(QColor('#006058'), 2, Qt.DashLine))
         self.preview_item.setBrush(QBrush(Qt.NoBrush))
-        self.scene.addItem(self.preview_item)
+        self.scene_obj.addItem(self.preview_item)
     
     def update_polygon_preview(self, scene_pos=None):
         if len(self.drawing_points) < 1:
             return
         
         if hasattr(self, 'preview_item') and self.preview_item:
-            self.scene.removeItem(self.preview_item)
+            self.scene_obj.removeItem(self.preview_item)
         
         polygon = QPolygonF()
         for point in self.drawing_points:
@@ -234,10 +238,10 @@ class GeometryCanvas(QGraphicsView):
         self.preview_item = QGraphicsPolygonItem(polygon)
         self.preview_item.setPen(QPen(QColor('#9333ea'), 2, Qt.DashLine))
         self.preview_item.setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
-        self.scene.addItem(self.preview_item)
+        self.scene_obj.addItem(self.preview_item)
     
     def clear_canvas(self):
-        self.scene.clear()
+        self.scene_obj.clear()
         self.init_grid()
         self.point_items.clear()
         self.segment_items.clear()
@@ -266,8 +270,8 @@ class GeometryCanvas(QGraphicsView):
             text_item.setDefaultTextColor(QColor('#0b1c30'))
             text_item.setZValue(11)
             
-            self.scene.addItem(point_item)
-            self.scene.addItem(text_item)
+            self.scene_obj.addItem(point_item)
+            self.scene_obj.addItem(text_item)
             
             self.object_map[obj_id] = {'point': point_item, 'text': text_item}
         
@@ -281,7 +285,7 @@ class GeometryCanvas(QGraphicsView):
             segment_item.setPen(QPen(QColor('#4b41e1'), 2))
             segment_item.setFlags(QGraphicsItem.ItemIsSelectable)
             
-            self.scene.addItem(segment_item)
+            self.scene_obj.addItem(segment_item)
             self.object_map[obj_id] = {'segment': segment_item}
         
         elif obj_type == 'Circle':
@@ -294,7 +298,7 @@ class GeometryCanvas(QGraphicsView):
             circle_item.setBrush(QBrush(Qt.NoBrush))
             circle_item.setFlags(QGraphicsItem.ItemIsSelectable)
             
-            self.scene.addItem(circle_item)
+            self.scene_obj.addItem(circle_item)
             self.object_map[obj_id] = {'circle': circle_item}
         
         elif obj_type == 'Polygon':
@@ -310,7 +314,7 @@ class GeometryCanvas(QGraphicsView):
             polygon_item.setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
             polygon_item.setFlags(QGraphicsItem.ItemIsSelectable)
             
-            self.scene.addItem(polygon_item)
+            self.scene_obj.addItem(polygon_item)
             self.object_map[obj_id] = {'polygon': polygon_item}
     
     def update_object(self, obj_id, obj_data):
@@ -352,7 +356,7 @@ class GeometryCanvas(QGraphicsView):
         if obj_id in self.object_map:
             obj_info = self.object_map[obj_id]
             for item in obj_info.values():
-                self.scene.removeItem(item)
+                self.scene_obj.removeItem(item)
             del self.object_map[obj_id]
     
     def select_object(self, obj_id):

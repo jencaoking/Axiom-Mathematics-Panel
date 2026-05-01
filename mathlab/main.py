@@ -20,7 +20,8 @@ def main():
     
     try:
         stylesheet_path = os.path.join(os.path.dirname(__file__), 'ui', 'styles.qss')
-        app.setStyleSheet(open(stylesheet_path).read())
+        with open(stylesheet_path, 'r', encoding='utf-8') as f:
+            app.setStyleSheet(f.read())
     except Exception:
         pass
     

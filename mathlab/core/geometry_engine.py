@@ -277,26 +277,17 @@ class GeometryEngine:
         
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
-            del self.objects[dep_id]
+            if dep_id in self.objects:
+                self.dependencies.remove_node(dep_id)
+                self._notify('object_removed', dep_id)
+                del self.objects[dep_id]
         
         self.dependencies.remove_node(obj_id)
         obj_name = self.objects[obj_id].name
         obj_type = self.objects[obj_id].type
         del self.objects[obj_id]
 
-        type_prefix = obj_type.lower()[:3]
-        try:
-            max_num = 0
-            for k in self.objects.keys():
-                if k.startswith(type_prefix):
-                    try:
-                        num = int(k[len(type_prefix)+1:])
-                        max_num = max(max_num, num)
-                    except (ValueError, IndexError):
-                        pass
-            self.name_counter[obj_type] = max_num
-        except Exception:
-            pass
+        self.name_counter[obj_type] = max(0, self.name_counter[obj_type] - 1)
 
         self._notify('object_removed', obj_id)
     
