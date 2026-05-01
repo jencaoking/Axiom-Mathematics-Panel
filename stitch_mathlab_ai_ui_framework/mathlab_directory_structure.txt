@@ -1,0 +1,20 @@
+# MathLab Project Structure
+
+mathlab/
+├── main.py                 # Entry point, MainWindow implementation
+├── ui/
+│   ├── __init__.py
+│   ├── main_window.py      # QMainWindow with toolbars, menus, and docking
+│   ├── canvas.py           # GeometryCanvas (QGraphicsView)
+│   ├── algebra.py          # AlgebraPanel (QTreeWidget)
+│   ├── console.py          # PythonConsole (QPlainTextEdit/REPL)
+│   ├── properties.py       # PropertiesPanel (QFormLayout/ScrollArea)
+│   ├── algovis.py          # AlgoVisPanel (Controls + Visualization)
+│   └── styles.qss          # Qt Style Sheets for themes
+├── core/                   # (Assumed Backend - Not implemented)
+│   ├── engine.py
+│   ├── python_runner.py
+│   └── signals.py          # Shared signal definitions
+└── resources/
+    ├── icons/              # SVG icons
+    └── resources.qrc       # Qt Resource file

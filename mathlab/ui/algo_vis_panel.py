@@ -1,0 +1,398 @@
+from PySide6.QtWidgets import (
+    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
+    QComboBox, QPushButton, QSpinBox, QLabel,
+    QGraphicsView, QGraphicsScene, QGraphicsRectItem,
+    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem,
+    QSlider
+)
+from PySide6.QtGui import QPen, QBrush, QColor, QFont, QPainter
+from PySide6.QtCore import Qt, Signal, Slot, QTimer
+
+class AlgoVisPanel(QDockWidget):
+    algorithm_selected = Signal(str, dict)
+    
+    def __init__(self, parent=None):
+        super().__init__('Algorithm Visualization', parent)
+        self.setAllowedAreas(Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
+        
+        self.widget = QWidget()
+        self.layout = QVBoxLayout(self.widget)
+        
+        self.algorithm_combo = QComboBox()
+        self.algorithm_combo.addItems([
+            'Bubble Sort', 'Quick Sort', 'Binary Search',
+            'BFS', 'DFS', 'Dijkstra', 'Convex Hull', 'K-means'
+        ])
+        
+        self.params_layout = QHBoxLayout()
+        self.params_layout.addWidget(QLabel('Array Size:'))
+        self.array_size_spin = QSpinBox()
+        self.array_size_spin.setRange(5, 20)
+        self.array_size_spin.setValue(8)
+        self.params_layout.addWidget(self.array_size_spin)
+        
+        self.params_layout.addWidget(QLabel('Clusters:'))
+        self.clusters_spin = QSpinBox()
+        self.clusters_spin.setRange(2, 10)
+        self.clusters_spin.setValue(3)
+        self.params_layout.addWidget(self.clusters_spin)
+        
+        self.load_button = QPushButton('Load Algorithm')
+        self.load_button.clicked.connect(self.on_load_algorithm)
+        
+        self.control_layout = QHBoxLayout()
+        self.play_button = QPushButton('Play')
+        self.pause_button = QPushButton('Pause')
+        self.step_button = QPushButton('Step')
+        self.reset_button = QPushButton('Reset')
+        self.fast_forward_button = QPushButton('Fast Forward')
+        
+        self.control_layout.addWidget(self.play_button)
+        self.control_layout.addWidget(self.pause_button)
+        self.control_layout.addWidget(self.step_button)
+        self.control_layout.addWidget(self.reset_button)
+        self.control_layout.addWidget(self.fast_forward_button)
+        
+        self.speed_slider = QSlider(Qt.Horizontal)
+        self.speed_slider.setRange(1, 10)
+        self.speed_slider.setValue(5)
+        
+        self.status_label = QLabel('Status: Ready')
+        
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.view.setRenderHint(QPainter.Antialiasing)
+        self.view.setMinimumHeight(200)
+        
+        self.layout.addWidget(self.algorithm_combo)
+        self.layout.addLayout(self.params_layout)
+        self.layout.addWidget(self.load_button)
+        self.layout.addLayout(self.control_layout)
+        self.layout.addWidget(QLabel('Animation Speed:'))
+        self.layout.addWidget(self.speed_slider)
+        self.layout.addWidget(self.status_label)
+        self.layout.addWidget(self.view)
+        
+        self.setWidget(self.widget)
+        
+        self.timer = QTimer()
+        self.timer.setInterval(500)
+        self.timer.timeout.connect(self.on_timer)
+        
+        self.is_playing = False
+        self.current_state = None
+        
+        self.play_button.clicked.connect(self.on_play)
+        self.pause_button.clicked.connect(self.on_pause)
+        self.step_button.clicked.connect(self.on_step)
+        self.reset_button.clicked.connect(self.on_reset)
+        self.speed_slider.valueChanged.connect(self.on_speed_changed)
+    
+    def on_load_algorithm(self):
+        algorithm_name = self.algorithm_combo.currentText().lower().replace(' ', '_')
+        
+        params = {}
+        if algorithm_name in ['bubble_sort', 'quick_sort']:
+            params['arr'] = [i for i in range(self.array_size_spin.value(), 0, -1)]
+        elif algorithm_name == 'kmeans':
+            params['k'] = self.clusters_spin.value()
+        
+        self.algorithm_selected.emit(algorithm_name, params)
+        self.status_label.setText('Status: Algorithm loaded')
+    
+    def on_play(self):
+        self.is_playing = True
+        self.timer.start()
+    
+    def on_pause(self):
+        self.is_playing = False
+        self.timer.stop()
+    
+    def on_step(self):
+        self.timer.stop()
+        self.is_playing = False
+        self.algorithm_selected.emit('step', {})
+    
+    def on_reset(self):
+        self.on_pause()
+        self.algorithm_selected.emit('reset', {})
+        self.scene.clear()
+        self.status_label.setText('Status: Ready')
+    
+    def on_speed_changed(self, value):
+        self.timer.setInterval(int(500 / value))
+    
+    def on_timer(self):
+        self.algorithm_selected.emit('step', {})
+    
+    def update_visualization(self, state):
+        if state is None:
+            self.status_label.setText('Status: Animation complete')
+            self.on_pause()
+            return
+        
+        self.current_state = state
+        self.scene.clear()
+        
+        self.status_label.setText(f"Status: {state.get('description', '')}")
+        
+        state_type = state.get('type')
+        
+        if state_type == 'sorting':
+            self.draw_sorting(state)
+        elif state_type == 'search':
+            self.draw_search(state)
+        elif state_type == 'graph':
+            self.draw_graph(state)
+        elif state_type == 'shortest_path':
+            self.draw_shortest_path(state)
+        elif state_type == 'convex_hull':
+            self.draw_convex_hull(state)
+        elif state_type == 'clustering':
+            self.draw_clustering(state)
+    
+    def draw_sorting(self, state):
+        arr = state.get('array', [])
+        comparing = state.get('comparing', [])
+        swapping = state.get('swapping', [])
+        sorted_indices = state.get('sorted', [])
+        
+        if not arr:
+            return
+        
+        max_val = max(arr) if arr else 1
+        bar_width = 40
+        bar_spacing = 10
+        start_x = 50
+        start_y = 200
+        
+        for i, val in enumerate(arr):
+            x = start_x + i * (bar_width + bar_spacing)
+            height = (val / max_val) * 150
+            
+            color = QColor('#d3e4fe')
+            
+            if i in comparing:
+                color = QColor('#ba1a1a')
+            elif i in swapping:
+                color = QColor('#22c55e')
+            elif i in sorted_indices:
+                color = QColor('#006058')
+            
+            bar = QGraphicsRectItem(x, start_y - height, bar_width, height)
+            bar.setBrush(QBrush(color))
+            bar.setPen(QPen(QColor('#737686'), 1))
+            self.scene.addItem(bar)
+            
+            label = QGraphicsTextItem(str(val))
+            label.setPos(x + bar_width/2 - 10, start_y + 5)
+            self.scene.addItem(label)
+    
+    def draw_search(self, state):
+        arr = state.get('array', [])
+        target = state.get('target', 0)
+        search_range = state.get('search_range', (-1, -1))
+        mid = state.get('mid', -1)
+        
+        if not arr:
+            return
+        
+        max_val = max(arr) if arr else 1
+        bar_width = 30
+        bar_spacing = 8
+        start_x = 50
+        start_y = 200
+        
+        for i, val in enumerate(arr):
+            x = start_x + i * (bar_width + bar_spacing)
+            height = (val / max_val) * 150
+            
+            color = QColor('#d3e4fe')
+            
+            if search_range[0] <= i <= search_range[1]:
+                color = QColor('#dbe1ff')
+            if i == mid:
+                color = QColor('#004ac6')
+            if val == target:
+                color = QColor('#22c55e')
+            
+            bar = QGraphicsRectItem(x, start_y - height, bar_width, height)
+            bar.setBrush(QBrush(color))
+            self.scene.addItem(bar)
+    
+    def draw_graph(self, state):
+        nodes = state.get('nodes', [])
+        edges = state.get('edges', [])
+        visited = state.get('visited', {})
+        current = state.get('current', -1)
+        
+        node_positions = {}
+        center_x = 300
+        center_y = 150
+        radius = 100
+        
+        for i, node in enumerate(nodes):
+            angle = (2 * 3.14159 / len(nodes)) * i
+            x = center_x + radius * (1 if i < len(nodes)/2 else -1) * (0.5 + 0.5 * (i % 3))
+            y = center_y + radius * (i % 2 - 0.5) * 2
+            node_positions[node] = (x, y)
+            
+            color = QColor('#d3e4fe')
+            if visited.get(node, False):
+                color = QColor('#22c55e')
+            if node == current:
+                color = QColor('#004ac6')
+                radius_size = 25
+            else:
+                radius_size = 20
+            
+            circle = QGraphicsEllipseItem(x - radius_size, y - radius_size, 
+                                          radius_size * 2, radius_size * 2)
+            circle.setBrush(QBrush(color))
+            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            self.scene.addItem(circle)
+            
+            label = QGraphicsTextItem(str(node))
+            label.setPos(x - 5, y - 5)
+            label.setFont(QFont('Arial', 12, QFont.Bold))
+            self.scene.addItem(label)
+        
+        for edge in edges:
+            x1, y1 = node_positions[edge[0]]
+            x2, y2 = node_positions[edge[1]]
+            
+            color = QColor('#737686')
+            if visited.get(edge[0], False) and visited.get(edge[1], False):
+                color = QColor('#22c55e')
+            
+            line = QGraphicsLineItem(x1, y1, x2, y2)
+            line.setPen(QPen(color, 2))
+            self.scene.addItem(line)
+    
+    def draw_shortest_path(self, state):
+        nodes = state.get('nodes', [])
+        edges = state.get('edges', [])
+        distances = state.get('distances', {})
+        visited = state.get('visited', {})
+        current = state.get('current', -1)
+        
+        node_positions = {}
+        center_x = 300
+        center_y = 150
+        radius = 100
+        
+        for i, node in enumerate(nodes):
+            angle = (2 * 3.14159 / len(nodes)) * i
+            x = center_x + radius * (1 if i < len(nodes)/2 else -1) * (0.5 + 0.5 * (i % 3))
+            y = center_y + radius * (i % 2 - 0.5) * 2
+            node_positions[node] = (x, y)
+            
+            color = QColor('#d3e4fe')
+            if visited.get(node, False):
+                color = QColor('#22c55e')
+            if node == current:
+                color = QColor('#004ac6')
+            
+            circle = QGraphicsEllipseItem(x - 20, y - 20, 40, 40)
+            circle.setBrush(QBrush(color))
+            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            self.scene.addItem(circle)
+            
+            label = QGraphicsTextItem(str(node))
+            label.setPos(x - 5, y - 5)
+            self.scene.addItem(label)
+            
+            dist = distances.get(node, float('inf'))
+            dist_label = QGraphicsTextItem(f'{dist:.1f}')
+            dist_label.setPos(x - 10, y + 25)
+            dist_label.setFont(QFont('Arial', 10))
+            self.scene.addItem(dist_label)
+        
+        for edge in edges:
+            x1, y1 = node_positions[edge[0]]
+            x2, y2 = node_positions[edge[1]]
+            weight = edge[2] if len(edge) > 2 else 1
+            
+            line = QGraphicsLineItem(x1, y1, x2, y2)
+            line.setPen(QPen(QColor('#737686'), 2))
+            self.scene.addItem(line)
+            
+            mid_x = (x1 + x2) / 2
+            mid_y = (y1 + y2) / 2
+            weight_label = QGraphicsTextItem(str(weight))
+            weight_label.setPos(mid_x - 8, mid_y - 10)
+            self.scene.addItem(weight_label)
+    
+    def draw_convex_hull(self, state):
+        points = state.get('points', [])
+        hull = state.get('hull', [])
+        
+        if not points:
+            return
+        
+        min_x = min(p[0] for p in points)
+        max_x = max(p[0] for p in points)
+        min_y = min(p[1] for p in points)
+        max_y = max(p[1] for p in points)
+        
+        scale = 400 / max(max_x - min_x, max_y - min_y)
+        offset_x = 50 - min_x * scale
+        offset_y = 200 - max_y * scale
+        
+        for point in points:
+            x = point[0] * scale + offset_x
+            y = -point[1] * scale + offset_y
+            
+            if point in hull:
+                color = QColor('#004ac6')
+            else:
+                color = QColor('#d3e4fe')
+            
+            circle = QGraphicsEllipseItem(x - 5, y - 5, 10, 10)
+            circle.setBrush(QBrush(color))
+            self.scene.addItem(circle)
+        
+        if len(hull) > 1:
+            for i in range(len(hull)):
+                p1 = hull[i]
+                p2 = hull[(i + 1) % len(hull)]
+                
+                x1 = p1[0] * scale + offset_x
+                y1 = -p1[1] * scale + offset_y
+                x2 = p2[0] * scale + offset_x
+                y2 = -p2[1] * scale + offset_y
+                
+                line = QGraphicsLineItem(x1, y1, x2, y2)
+                line.setPen(QPen(QColor('#4b41e1'), 2))
+                self.scene.addItem(line)
+    
+    def draw_clustering(self, state):
+        points = state.get('points', [])
+        centers = state.get('centers', [])
+        clusters = state.get('clusters', [])
+        
+        if not points:
+            return
+        
+        colors = [QColor('#004ac6'), QColor('#4b41e1'), QColor('#006058'), 
+                  QColor('#ba1a1a'), QColor('#9333ea'), QColor('#06b6d4')]
+        
+        for i, cluster in enumerate(clusters):
+            color = colors[i % len(colors)]
+            for point in cluster:
+                x = point[0] * 3 + 50
+                y = 250 - point[1] * 3
+                
+                circle = QGraphicsEllipseItem(x - 4, y - 4, 8, 8)
+                circle.setBrush(QBrush(color))
+                self.scene.addItem(circle)
+        
+        for i, center in enumerate(centers):
+            x = center[0] * 3 + 50
+            y = 250 - center[1] * 3
+            
+            color = colors[i % len(colors)]
+            circle = QGraphicsEllipseItem(x - 8, y - 8, 16, 16)
+            circle.setBrush(QBrush(color))
+            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            self.scene.addItem(circle)
