@@ -50,11 +50,17 @@ mathlab/
 ├── data/                      # 数据存储
 │   ├── __init__.py
 │   ├── project.py             # 项目文件管理
+│   ├── file_manager.py        # 文件分类与检索系统
 │   └── models/                # 预置ONNX模型
 ├── utils/                     # 工具函数
 │   ├── __init__.py
 │   ├── latex_renderer.py      # LaTeX渲染
+│   ├── theme_manager.py       # 主题切换管理
 │   └── helpers.py             # 通用辅助函数
+├── tests/                     # 单元测试
+│   ├── __init__.py
+│   ├── test_core.py           # 核心模块测试
+│   └── test_utils.py          # 工具模块测试
 └── resources/                 # 资源文件
     ├── icons/                 # SVG图标
     └── resources.qrc          # Qt资源文件
@@ -62,46 +68,49 @@ mathlab/
 
 ## 四、实现步骤
 
-### Phase 1: 基础框架搭建 (第1-2天)
-- 创建项目目录结构
-- 安装依赖
-- 配置Qt资源文件
-- 创建基础样式表
+### Phase 1: 基础框架搭建 ✅ 已完成
+- 创建项目目录结构 ✅
+- 安装依赖 ✅
+- 配置Qt资源文件 ✅
+- 创建基础样式表 ✅
 
-### Phase 2: 后端内核实现 (第3-7天)
-- `geometry_engine.py`: 几何对象管理、依赖DAG、约束求解
-- `cas_provider.py`: SymPy封装、LaTeX输出
-- `algo_animator.py`: 算法生成器框架、状态快照
-- `python_repl.py`: InteractiveConsole封装
-- `sandbox.py`: 子进程执行环境
+### Phase 2: 后端内核实现 ✅ 已完成
+- `geometry_engine.py`: 几何对象管理、依赖DAG、约束求解 ✅
+- `cas_provider.py`: SymPy封装、LaTeX输出 ✅
+- `algo_animator.py`: 算法生成器框架、状态快照 ✅
+- `python_repl.py`: InteractiveConsole封装 ✅
+- `sandbox.py`: 子进程执行环境 ✅
 
-### Phase 3: 前端界面实现 (第8-15天)
-- `main_window.py`: 主窗口布局、工具栏、菜单
-- `canvas.py`: QGraphicsView画布、几何对象渲染
-- `algebra_panel.py`: 代数关系树形展示
-- `console.py`: Python控制台UI
-- `properties_panel.py`: 对象属性编辑
-- `command_bar.py`: GeoGebra风格命令输入
+### Phase 3: 前端界面实现 ✅ 已完成
+- `main_window.py`: 主窗口布局、工具栏、菜单 ✅
+- `canvas.py`: QGraphicsView画布、几何对象渲染 ✅
+- `algebra_panel.py`: 代数关系树形展示 ✅
+- `console.py`: Python控制台UI ✅
+- `properties_panel.py`: 对象属性编辑 ✅
+- `command_bar.py`: GeoGebra风格命令输入 ✅
 
-### Phase 4: AI功能集成 (第16-22天)
-- `ai_manager.py`: ONNX模型加载、推理
-- `ai_tools_panel.py`: 散点拟合、手写识别、聚类演示
-- 沙箱子进程训练功能
+### Phase 4: AI功能集成 ✅ 已完成
+- `ai_manager.py`: ONNX模型加载、推理 ✅
+- `ai_tools_panel.py`: 散点拟合、手写识别、聚类演示 ✅
+- 沙箱子进程训练功能 ✅
 
-### Phase 5: 算法可视化 (第23-28天)
-- `algo_animator.py`: 排序、搜索、图论算法
-- `algo_vis_panel.py`: 动画播放控制
+### Phase 5: 算法可视化 ✅ 已完成
+- `algo_animator.py`: 排序、搜索、图论算法 ✅
+- `algo_vis_panel.py`: 动画播放控制 ✅
 
-### Phase 6: 文件管理与辅助功能 (第29-32天)
-- 项目保存/打开
-- 导出PNG/SVG/LaTeX
-- 主题切换
-- 国际化支持
+### Phase 6: 文件管理与辅助功能 ✅ 已完成
+- 项目保存/打开 ✅
+- 导出PNG ✅
+- 导出SVG ✅ (使用QSvgGenerator实现)
+- 导出LaTeX ✅ (集成到菜单，使用export_canvas_to_latex)
+- 主题切换 ✅ (支持Light/Dark/Sepia三种主题)
+- 文件分类与检索系统 ✅ (FileManager, FileCategory, SearchFilter)
+- 国际化支持 ⏳ 待实现
 
-### Phase 7: 测试与打包 (第33-35天)
-- 单元测试
-- Nuitka打包
-- Bug修复
+### Phase 7: 测试与打包 ⏳ 进行中
+- 单元测试 ✅
+- Nuitka打包 ⏳ 待完成
+- Bug修复 ⏳ 待完成
 
 ## 五、关键类设计
 

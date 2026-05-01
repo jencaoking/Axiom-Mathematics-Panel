@@ -15,9 +15,21 @@ class CASProvider:
     
     def parse_expression(self, expr_str):
         try:
-            return eval(expr_str, {k: v for k, v in self.symbols_cache.items()}, {})
+            local_ns = {k: v for k, v in self.symbols_cache.items()}
+            result = eval(expr_str, {"__builtins__": {}}, local_ns)
+            return result
         except Exception as e:
-            return None
+            try:
+                import re
+                found_symbols = re.findall(r'[a-zA-Z_]\w*', expr_str)
+                for sym_name in found_symbols:
+                    if sym_name not in self.symbols_cache and sym_name not in dir(__builtins__):
+                        self.symbols_cache[sym_name] = Symbol(sym_name)
+                local_ns = {k: v for k, v in self.symbols_cache.items()}
+                result = eval(expr_str, {"__builtins__": {}}, local_ns)
+                return result
+            except Exception:
+                return None
     
     def simplify(self, expr_str):
         expr = self.parse_expression(expr_str)

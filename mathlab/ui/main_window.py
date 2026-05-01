@@ -1,10 +1,13 @@
+import os
 from PySide6.QtWidgets import (
     QMainWindow, QToolBar, QToolButton,
     QMenuBar, QMenu, QDockWidget, QStatusBar,
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QDialog, QVBoxLayout,
+    QLabel, QComboBox, QPushButton, QHBoxLayout
 )
-from PySide6.QtGui import QIcon, QPainter, QAction
+from PySide6.QtGui import QIcon, QPainter, QAction, QPicture, QPainter as QtPainter
 from PySide6.QtCore import Qt, QSize
+from PySide6.QtSvg import QSvgGenerator
 
 from .canvas import GeometryCanvas
 from .algebra_panel import AlgebraPanel
@@ -13,6 +16,16 @@ from .properties_panel import PropertiesPanel
 from .command_bar import CommandBar
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
+
+try:
+    from ..utils.latex_renderer import export_canvas_to_latex
+except ImportError:
+    from utils.latex_renderer import export_canvas_to_latex
+
+try:
+    from ..utils.theme_manager import THEMES, set_theme, get_current_theme
+except ImportError:
+    from utils.theme_manager import THEMES, set_theme, get_current_theme
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -45,6 +58,7 @@ class MainWindow(QMainWindow):
         save_as_action = QAction('Save As...', self)
         export_png_action = QAction('Export as PNG', self)
         export_svg_action = QAction('Export as SVG', self)
+        export_latex_action = QAction('Export as LaTeX', self)
         exit_action = QAction('Exit', self)
         
         file_menu.addAction(new_action)
@@ -54,6 +68,7 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(export_png_action)
         file_menu.addAction(export_svg_action)
+        file_menu.addAction(export_latex_action)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
         
@@ -86,11 +101,15 @@ class MainWindow(QMainWindow):
         ai_tools_action = QAction('AI Tools', self)
         ai_tools_action.setCheckable(True)
         
+        theme_action = QAction('Theme...', self)
+        
         view_menu.addAction(algebra_panel_action)
         view_menu.addAction(properties_panel_action)
         view_menu.addAction(console_action)
         view_menu.addAction(algo_vis_action)
         view_menu.addAction(ai_tools_action)
+        view_menu.addSeparator()
+        view_menu.addAction(theme_action)
         
         tools_menu = QMenu('Tools', self)
         geometry_tool_action = QAction('Geometry Tools', self)
@@ -122,6 +141,7 @@ class MainWindow(QMainWindow):
         save_as_action.triggered.connect(self.on_save_project_as)
         export_png_action.triggered.connect(self.on_export_png)
         export_svg_action.triggered.connect(self.on_export_svg)
+        export_latex_action.triggered.connect(self.on_export_latex)
         exit_action.triggered.connect(self.close)
         
         algebra_panel_action.triggered.connect(self.toggle_algebra_panel)
@@ -129,6 +149,8 @@ class MainWindow(QMainWindow):
         console_action.triggered.connect(self.toggle_console)
         algo_vis_action.triggered.connect(self.toggle_algo_vis_panel)
         ai_tools_action.triggered.connect(self.toggle_ai_tools_panel)
+        
+        theme_action.triggered.connect(self.show_theme_dialog)
         
         about_action.triggered.connect(self.show_about)
     
@@ -183,15 +205,22 @@ class MainWindow(QMainWindow):
         
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
         
-        self.select_action.triggered.connect(lambda: self.on_action_selected('select'))
-        self.point_action.triggered.connect(lambda: self.on_action_selected('point'))
-        self.segment_action.triggered.connect(lambda: self.on_action_selected('segment'))
-        self.circle_action.triggered.connect(lambda: self.on_action_selected('circle'))
-        self.polygon_action.triggered.connect(lambda: self.on_action_selected('polygon'))
-        self.pan_action.triggered.connect(lambda: self.on_action_selected('pan'))
+        self._connect_tool_actions()
         
         self.zoom_in_action.triggered.connect(self.on_zoom_in)
         self.zoom_out_action.triggered.connect(self.on_zoom_out)
+    
+    def _connect_tool_actions(self):
+        actions = [
+            ('select', self.select_action),
+            ('point', self.point_action),
+            ('segment', self.segment_action),
+            ('circle', self.circle_action),
+            ('polygon', self.polygon_action),
+            ('pan', self.pan_action),
+        ]
+        for tool_name, action in actions:
+            action.triggered.connect(lambda checked, t=tool_name: self.on_action_selected(t))
     
     def setup_docks(self):
         self.algebra_panel = AlgebraPanel(self)
@@ -213,10 +242,11 @@ class MainWindow(QMainWindow):
     
     def load_stylesheet(self):
         try:
-            with open('mathlab/ui/styles.qss', 'r') as f:
+            stylesheet_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ui', 'styles.qss')
+            with open(stylesheet_path, 'r', encoding='utf-8') as f:
                 self.setStyleSheet(f.read())
-        except:
-            pass
+        except Exception as e:
+            print(f'Warning: Could not load stylesheet: {e}')
     
     def connect_signals(self):
         self.central_widget.point_added.connect(self.on_point_added)
@@ -389,7 +419,48 @@ class MainWindow(QMainWindow):
         if file_path:
             if not file_path.endswith('.svg'):
                 file_path += '.svg'
-            self.statusBar().showMessage('SVG export not fully implemented yet')
+            try:
+                svg_generator = QSvgGenerator()
+                svg_generator.setFileName(file_path)
+                
+                bounding_rect = self.central_widget.scene().itemsBoundingRect()
+                svg_generator.setViewBox(bounding_rect)
+                
+                painter = QtPainter(svg_generator)
+                painter.setRenderHint(QtPainter.Antialiasing)
+                self.central_widget.scene().render(painter)
+                painter.end()
+                
+                self.statusBar().showMessage(f'Exported SVG: {file_path}')
+            except Exception as e:
+                QMessageBox.warning(self, 'Error', f'Failed to export SVG: {str(e)}')
+    
+    def on_export_latex(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 'Export as LaTeX', '', 'LaTeX Files (*.tex)'
+        )
+        if file_path:
+            if not file_path.endswith('.tex'):
+                file_path += '.tex'
+            try:
+                objects_data = []
+                for obj_id, item in self.algebra_panel.object_items.items():
+                    obj_data = {
+                        'id': obj_id,
+                        'name': item.text(0),
+                        'type': item.data(1, Qt.UserRole),
+                        'coordinates': {}
+                    }
+                    objects_data.append(obj_data)
+                
+                latex_content = export_canvas_to_latex(objects_data)
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(latex_content)
+                
+                self.statusBar().showMessage(f'Exported LaTeX: {file_path}')
+            except Exception as e:
+                QMessageBox.warning(self, 'Error', f'Failed to export LaTeX: {str(e)}')
     
     def toggle_algebra_panel(self, visible):
         self.algebra_panel.setVisible(visible)
@@ -413,8 +484,45 @@ class MainWindow(QMainWindow):
             self.ai_tools_panel.raise_()
     
     def show_about(self):
-        QMessageBox.about(self, 'About MathLab', 
+        QMessageBox.about(self, 'About MathLab',
             'MathLab - Interactive Mathematics and AI Teaching Software\n\n'
             'Version 1.0\n\n'
             'A powerful tool for learning mathematics and AI concepts through interactive visualization.'
         )
+
+    def show_theme_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Select Theme')
+        dialog.setModal(True)
+        dialog.setMinimumWidth(300)
+
+        layout = QVBoxLayout(dialog)
+
+        label = QLabel('Choose a theme:')
+        layout.addWidget(label)
+
+        combo = QComboBox()
+        current_theme = get_current_theme()
+        for theme_id, theme_data in THEMES.items():
+            combo.addItem(theme_data['name'], theme_id)
+            if theme_id == current_theme:
+                combo.setCurrentIndex(combo.count() - 1)
+
+        layout.addWidget(combo)
+
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton('Apply')
+        cancel_button = QPushButton('Cancel')
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        def on_apply():
+            selected_theme = combo.currentData()
+            set_theme(selected_theme)
+            dialog.accept()
+
+        ok_button.clicked.connect(on_apply)
+        cancel_button.clicked.connect(dialog.reject)
+
+        dialog.exec()

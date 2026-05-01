@@ -36,14 +36,24 @@ class SandboxProcess:
             f.write(code)
         
         env = os.environ.copy()
-        env['PYTHONPATH'] = ':'.join(sys.path)
+        if sys.platform == 'win32':
+            env['PYTHONPATH'] = ';'.join(sys.path)
+        else:
+            env['PYTHONPATH'] = ':'.join(sys.path)
         
+        creation_flags = 0
+        if sys.platform == 'win32':
+            try:
+                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+            except AttributeError:
+                pass
+
         self.process = subprocess.Popen(
             [sys.executable, script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == 'win32' else 0
+            creationflags=creation_flags
         )
         
         self.running = True

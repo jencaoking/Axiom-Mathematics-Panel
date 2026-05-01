@@ -36,11 +36,23 @@ class GeometricObject:
     
     @classmethod
     def deserialize(cls, data):
-        obj = cls(data['id'], data['name'], data['type'])
-        obj.coordinates = data['coordinates']
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        return obj
+        obj_type = data.get('type')
+        if obj_type == 'Point':
+            coords = data.get('coordinates', {})
+            return Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
+        elif obj_type == 'Segment':
+            return Segment(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
+        elif obj_type == 'Circle':
+            coords = data.get('coordinates', {})
+            return Circle(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1))
+        elif obj_type == 'Polygon':
+            return Polygon(data['id'], data['name'], data.get('point_ids', []))
+        else:
+            obj = cls(data['id'], data['name'], data['type'])
+            obj.coordinates = data.get('coordinates', {})
+            obj.constraints = data.get('constraints', [])
+            obj.depends_on = data.get('depends_on', [])
+            return obj
 
 class Point(GeometricObject):
     def __init__(self, obj_id, name, x=0, y=0):
@@ -271,12 +283,21 @@ class GeometryEngine:
         obj_name = self.objects[obj_id].name
         obj_type = self.objects[obj_id].type
         del self.objects[obj_id]
-        
-        self.name_counter[obj_type] = max(
-            [0] + [int(k[1:]) for k in self.objects.keys() 
-                   if self.objects[k].type == obj_type and self.objects[k].name.startswith(obj_type[0])]
-        )
-        
+
+        type_prefix = obj_type.lower()[:3]
+        try:
+            max_num = 0
+            for k in self.objects.keys():
+                if k.startswith(type_prefix):
+                    try:
+                        num = int(k[len(type_prefix)+1:])
+                        max_num = max(max_num, num)
+                    except (ValueError, IndexError):
+                        pass
+            self.name_counter[obj_type] = max_num
+        except Exception:
+            pass
+
         self._notify('object_removed', obj_id)
     
     def update_point(self, obj_id, x=None, y=None):
