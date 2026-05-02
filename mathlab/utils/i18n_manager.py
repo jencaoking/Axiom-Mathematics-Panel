@@ -7,71 +7,129 @@ SUPPORTED_LANGUAGES = {
     'zh': '中文'
 }
 
+
 class I18nManager:
+    """Singleton i18n manager with language-change notification support."""
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(I18nManager, cls).__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         if self._initialized:
             return
         self._initialized = True
-        
+
         self.current_language = DEFAULT_LANGUAGE
-        self.translations = {}
+        self.translations: dict = {}
+        self._listeners: list = []   # list[callable]
+
         self._load_translations()
-    
+
+    # ------------------------------------------------------------------
+    # Translation loading
+    # ------------------------------------------------------------------
     def _load_translations(self):
         locale_dir = os.path.join(os.path.dirname(__file__), '..', 'locale')
-        
-        for lang_code in SUPPORTED_LANGUAGES.keys():
+
+        for lang_code in SUPPORTED_LANGUAGES:
             file_path = os.path.join(locale_dir, f'{lang_code}.json')
             if os.path.exists(file_path):
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         self.translations[lang_code] = json.load(f)
                 except Exception as e:
-                    print(f'Error loading translation file {file_path}: {e}')
-    
-    def set_language(self, lang_code):
-        if lang_code in SUPPORTED_LANGUAGES:
-            self.current_language = lang_code
+                    print(f'[i18n] Error loading {file_path}: {e}')
+
+    # ------------------------------------------------------------------
+    # Language management
+    # ------------------------------------------------------------------
+    def set_language(self, lang_code: str) -> bool:
+        """Change the active language and notify all registered listeners."""
+        if lang_code not in SUPPORTED_LANGUAGES:
+            return False
+        if lang_code == self.current_language:
             return True
-        return False
-    
-    def get_language(self):
+        self.current_language = lang_code
+        self._notify_listeners(lang_code)
+        return True
+
+    def get_language(self) -> str:
         return self.current_language
-    
-    def get_supported_languages(self):
+
+    def get_supported_languages(self) -> dict:
         return SUPPORTED_LANGUAGES
-    
-    def t(self, key, *args, **kwargs):
+
+    # ------------------------------------------------------------------
+    # Listener registration
+    # ------------------------------------------------------------------
+    def add_language_change_listener(self, callback) -> None:
+        """Register *callback(lang_code: str)* to be called on language change."""
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+
+    def remove_language_change_listener(self, callback) -> None:
+        """Unregister a previously registered callback."""
+        if callback in self._listeners:
+            self._listeners.remove(callback)
+
+    def _notify_listeners(self, lang_code: str) -> None:
+        for cb in list(self._listeners):
+            try:
+                cb(lang_code)
+            except Exception as e:
+                print(f'[i18n] Listener error: {e}')
+
+    # ------------------------------------------------------------------
+    # Translation lookup
+    # ------------------------------------------------------------------
+    def t(self, key: str, *args, **kwargs) -> str:
+        """
+        Translate *key* (dot-separated path) with optional format arguments.
+
+        Returns the *key* itself when a translation is not found so the UI
+        always shows something useful instead of crashing.
+        """
         keys = key.split('.')
         value = self.translations.get(self.current_language, {})
-        
+
         for k in keys:
-            value = value.get(k, None)
+            if not isinstance(value, dict):
+                return key
+            value = value.get(k)
             if value is None:
                 return key
-        
-        if args:
-            value = value.format(*args)
-        elif kwargs:
-            value = value.format(**kwargs)
-        
+
+        if not isinstance(value, str):
+            return key
+
+        try:
+            if args:
+                value = value.format(*args)
+            elif kwargs:
+                value = value.format(**kwargs)
+        except (IndexError, KeyError):
+            pass
+
         return value
 
-_i18n = None
 
-def get_i18n():
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+_i18n: I18nManager | None = None
+
+
+def get_i18n() -> I18nManager:
     global _i18n
     if _i18n is None:
         _i18n = I18nManager()
     return _i18n
 
-def t(key, *args, **kwargs):
+
+def t(key: str, *args, **kwargs) -> str:
+    """Shorthand for ``get_i18n().t(key, ...)``."""
     return get_i18n().t(key, *args, **kwargs)
