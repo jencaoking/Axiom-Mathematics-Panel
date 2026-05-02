@@ -27,7 +27,7 @@ except ImportError:
 _TYPE_COLORS: dict[str, str] = {
     'Point':   '#004ac6',
     'Segment': '#4b41e1',
-    'Circle':  '#4b41e1',
+    'Circle':  '#006058',
     'Polygon': '#9333ea',
 }
 _DEFAULT_COLOR = '#737686'

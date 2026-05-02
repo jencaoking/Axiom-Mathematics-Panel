@@ -278,18 +278,19 @@ class GeometryEngine:
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
             if dep_id in self.objects:
+                dep_obj = self.objects[dep_id]
                 self.dependencies.remove_node(dep_id)
-                self._notify('object_removed', dep_id)
+                self._notify('object_removed', dep_obj.serialize())
                 del self.objects[dep_id]
         
+        obj = self.objects[obj_id]
+        obj_type = obj.type
+        
         self.dependencies.remove_node(obj_id)
-        obj_name = self.objects[obj_id].name
-        obj_type = self.objects[obj_id].type
+        self._notify('object_removed', obj.serialize())
         del self.objects[obj_id]
 
         self.name_counter[obj_type] = max(0, self.name_counter[obj_type] - 1)
-
-        self._notify('object_removed', obj_id)
     
     def update_point(self, obj_id, x=None, y=None):
         if obj_id not in self.objects:
@@ -339,9 +340,10 @@ class GeometryEngine:
             for constraint in obj.constraints:
                 if isinstance(constraint, str):
                     try:
-                        exec(f'from sympy import *\neq = {constraint}', globals())
-                        equations.append(eq)
-                    except:
+                        eq = sympify(constraint)
+                        if eq is not None:
+                            equations.append(eq)
+                    except Exception:
                         pass
                 else:
                     equations.append(constraint)

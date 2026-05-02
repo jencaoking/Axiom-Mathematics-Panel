@@ -32,7 +32,7 @@ class SandboxProcess:
         
         script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
         
-        with open(script_path, 'w') as f:
+        with open(script_path, 'w', encoding='utf-8') as f:
             f.write(code)
         
         env = os.environ.copy()
@@ -84,8 +84,19 @@ class SandboxProcess:
         stdout_thread.join()
         stderr_thread.join()
         
-        output = ''.join([self.output_queue.get_nowait() for _ in range(self.output_queue.qsize())])
-        error = ''.join([self.error_queue.get_nowait() for _ in range(self.error_queue.qsize())])
+        output = ''
+        while not self.output_queue.empty():
+            try:
+                output += self.output_queue.get_nowait()
+            except Exception:
+                pass
+        
+        error = ''
+        while not self.error_queue.empty():
+            try:
+                error += self.error_queue.get_nowait()
+            except Exception:
+                pass
         
         result = None
         success = self.process.returncode == 0
