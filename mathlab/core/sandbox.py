@@ -4,6 +4,7 @@ import os
 import json
 import threading
 import time
+import tempfile
 from queue import Queue
 
 class SandboxProcess:
@@ -30,10 +31,11 @@ class SandboxProcess:
         if timeout is None:
             timeout = self.max_time_seconds
         
-        script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
+        sandbox_script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
         
-        with open(script_path, 'w', encoding='utf-8') as f:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
             f.write(code)
+            code_file_path = f.name
         
         env = os.environ.copy()
         if sys.platform == 'win32':
@@ -49,7 +51,7 @@ class SandboxProcess:
                 pass
 
         self.process = subprocess.Popen(
-            [sys.executable, script_path],
+            [sys.executable, sandbox_script_path, code_file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
@@ -74,6 +76,7 @@ class SandboxProcess:
             self.process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             self.terminate()
+            os.unlink(code_file_path)
             return {
                 'success': False,
                 'output': '',
@@ -102,6 +105,8 @@ class SandboxProcess:
         success = self.process.returncode == 0
         
         self.running = False
+        
+        os.unlink(code_file_path)
         
         return {
             'success': success,

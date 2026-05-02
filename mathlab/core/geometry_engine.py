@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex
+from sympy import symbols, Eq, solve, latex, sympify
 
 class GeometricObject:
     TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle']
@@ -278,16 +278,15 @@ class GeometryEngine:
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
             if dep_id in self.objects:
-                dep_obj = self.objects[dep_id]
                 self.dependencies.remove_node(dep_id)
-                self._notify('object_removed', dep_obj.serialize())
+                self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
         
         obj = self.objects[obj_id]
         obj_type = obj.type
         
         self.dependencies.remove_node(obj_id)
-        self._notify('object_removed', obj.serialize())
+        self._notify('object_removed', obj_id)
         del self.objects[obj_id]
 
         self.name_counter[obj_type] = max(0, self.name_counter[obj_type] - 1)
