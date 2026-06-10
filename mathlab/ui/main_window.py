@@ -20,10 +20,16 @@ from .command_bar import CommandBar
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 
-from ..core.geometry_engine import GeometryEngine
-from ..core.python_repl import PythonREPL
-from ..core.ai_manager import AIManager
-from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+try:
+    from core.geometry_engine import GeometryEngine
+    from core.python_repl import PythonREPL
+    from core.ai_manager import AIManager
+    from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+except ImportError:
+    from ..core.geometry_engine import GeometryEngine
+    from ..core.python_repl import PythonREPL
+    from ..core.ai_manager import AIManager
+    from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
 
 try:
     from .preferences_dialog import PreferencesDialog

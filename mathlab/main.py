@@ -1,7 +1,9 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+mathlab_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, mathlab_dir)
+sys.path.insert(0, os.path.dirname(mathlab_dir))
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
