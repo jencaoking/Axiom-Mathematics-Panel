@@ -23,6 +23,7 @@ from .ai_tools_panel import AIToolsPanel
 from ..core.geometry_engine import GeometryEngine
 from ..core.python_repl import PythonREPL
 from ..core.ai_manager import AIManager
+from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -554,32 +555,69 @@ class MainWindow(QMainWindow):
         if params is None:
             params = {}
 
-        if model_type == 'linear_regression':
-            result = self.ai_manager.fit_linear_regression(points)
-        elif model_type == 'polynomial_regression':
-            degree = params.get('degree', 2)
-            result = self.ai_manager.fit_polynomial_regression(points, degree=degree)
-        elif model_type == 'neural_network':
-            result = self.ai_manager.fit_neural_network(points)
-        else:
-            result = {'success': False, 'error': 'Unknown model type'}
+        self.ai_tools_panel.set_loading_state(True)
+        self.statusBar().showMessage(f"正在训练 {model_type} 模型，请稍候...")
 
+        self.fit_worker = AIFitWorker(self.ai_manager, points, model_type, **params)
+        self.fit_worker.finished.connect(self.on_fit_worker_finished)
+        self.fit_worker.error.connect(self.on_ai_worker_error)
+        self.fit_worker.start()
+
+    def on_fit_worker_finished(self, result: dict):
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage("模型训练完成", 3000)
         self.ai_tools_panel.set_fit_result(result)
+        self.fit_worker.deleteLater()
+        self.fit_worker = None
 
     def on_ai_cluster_requested(self, points: list, method: str, params: dict) -> None:
         if not points:
             return
 
-        if method == 'k-means':
-            result = self.ai_manager.cluster_kmeans(points, n_clusters=params.get('n_clusters', 3))
-        else:
-            result = self.ai_manager.cluster_dbscan(points)
+        self.ai_tools_panel.set_loading_state(True)
+        self.statusBar().showMessage(f"正在进行 {method} 聚类分析...")
 
+        self.cluster_worker = AIClusterWorker(self.ai_manager, points, method, params)
+        self.cluster_worker.finished.connect(self.on_cluster_worker_finished)
+        self.cluster_worker.error.connect(self.on_ai_worker_error)
+        self.cluster_worker.start()
+
+    def on_cluster_worker_finished(self, result: dict):
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage("聚类分析完成", 3000)
         self.ai_tools_panel.set_cluster_result(result)
+        self.cluster_worker.deleteLater()
+        self.cluster_worker = None
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
-        result = self.ai_manager.recognize_digit(image_data)
+        self.ai_tools_panel.set_loading_state(True)
+        self.statusBar().showMessage("正在识别数字...")
+
+        self.recognize_worker = AIRecognizeWorker(self.ai_manager, image_data)
+        self.recognize_worker.finished.connect(self.on_recognize_worker_finished)
+        self.recognize_worker.error.connect(self.on_ai_worker_error)
+        self.recognize_worker.start()
+
+    def on_recognize_worker_finished(self, result: dict):
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage("识别完成", 3000)
         self.ai_tools_panel.set_recognition_result(result)
+        self.recognize_worker.deleteLater()
+        self.recognize_worker = None
+
+    def on_ai_worker_error(self, error_msg: str):
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage("后台运算出错！", 5000)
+        
+        if hasattr(self, 'fit_worker') and self.fit_worker:
+            self.fit_worker.deleteLater()
+            self.fit_worker = None
+        if hasattr(self, 'cluster_worker') and self.cluster_worker:
+            self.cluster_worker.deleteLater()
+            self.cluster_worker = None
+        if hasattr(self, 'recognize_worker') and self.recognize_worker:
+            self.recognize_worker.deleteLater()
+            self.recognize_worker = None
 
     def on_ai_generate_points(self, n: int) -> None:
         result = self.ai_manager.generate_random_points(n, x_range=(-200, 200), y_range=(-200, 200))

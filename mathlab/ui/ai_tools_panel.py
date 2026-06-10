@@ -402,6 +402,21 @@ class AIToolsPanel(QDockWidget):
     def append_training_output(self, text):
         self.output_area.appendPlainText(text)
 
+    def set_loading_state(self, is_loading: bool):
+        self.fit_button.setEnabled(not is_loading)
+        self.cluster_button.setEnabled(not is_loading)
+        self.recognize_button.setEnabled(not is_loading)
+        self.generate_button.setEnabled(not is_loading)
+        self.run_button.setEnabled(not is_loading)
+
+        if hasattr(self, 'status_label'):
+            if is_loading:
+                self.status_label.setText("⏳ 正在进行高强度计算...")
+                self.status_label.setStyleSheet("color: #006058; font-weight: bold;")
+            else:
+                self.status_label.setText("就绪")
+                self.status_label.setStyleSheet("color: #64748b;")
+
     # ------------------------------------------------------------------
     # AI Assistant Chat Methods
     # ------------------------------------------------------------------
