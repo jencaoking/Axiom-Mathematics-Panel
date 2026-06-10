@@ -21,11 +21,17 @@ ALLOWED_BUILTINS = {
     'zip', 'print', '__import__'
 }
 
-class SafeModuleLoader:
-    def __getattr__(self, name):
-        if name in ALLOWED_MODULES:
-            return __import__(name)
+def restricted_import(name, *args, **kwargs):
+    if name not in ALLOWED_MODULES:
         raise ImportError(f"Module '{name}' is not allowed")
+    return __import__(name, *args, **kwargs)
+
+def forbidden_func(name):
+    def wrapper(*args, **kwargs):
+        raise RuntimeError(f"Function '{name}' is not allowed in sandbox")
+    return wrapper
+
+DANGEROUS_BUILTINS = {'open', 'eval', 'exec', 'compile'}
 
 def execute_code(code):
     output_buffer = io.StringIO()
@@ -36,6 +42,10 @@ def execute_code(code):
     
     safe_builtins_dict = {name: getattr(builtins, name) for name in ALLOWED_BUILTINS}
     safe_builtins_dict['print'] = safe_print
+    safe_builtins_dict['__import__'] = restricted_import
+    
+    for func_name in DANGEROUS_BUILTINS:
+        safe_builtins_dict[func_name] = forbidden_func(func_name)
     
     safe_globals = {
         '__builtins__': safe_builtins_dict,
@@ -45,8 +55,6 @@ def execute_code(code):
         '__loader__': None,
         '__spec__': None,
     }
-    
-    safe_globals['__import__'] = SafeModuleLoader()
     
     try:
         exec(code, safe_globals)

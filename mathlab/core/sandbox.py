@@ -73,47 +73,50 @@ class SandboxProcess:
         stderr_thread.start()
         
         try:
-            self.process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            self.terminate()
-            os.unlink(code_file_path)
+            try:
+                self.process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                self.terminate()
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': 'Execution timed out',
+                    'result': None
+                }
+            
+            stdout_thread.join()
+            stderr_thread.join()
+            
+            output = ''
+            while not self.output_queue.empty():
+                try:
+                    output += self.output_queue.get_nowait()
+                except Exception:
+                    pass
+            
+            error = ''
+            while not self.error_queue.empty():
+                try:
+                    error += self.error_queue.get_nowait()
+                except Exception:
+                    pass
+            
+            result = None
+            success = self.process.returncode == 0
+            
+            self.running = False
+            
             return {
-                'success': False,
-                'output': '',
-                'error': 'Execution timed out',
-                'result': None
+                'success': success,
+                'output': output,
+                'error': error,
+                'result': result
             }
-        
-        stdout_thread.join()
-        stderr_thread.join()
-        
-        output = ''
-        while not self.output_queue.empty():
+        finally:
             try:
-                output += self.output_queue.get_nowait()
-            except Exception:
+                os.unlink(code_file_path)
+            except OSError:
                 pass
-        
-        error = ''
-        while not self.error_queue.empty():
-            try:
-                error += self.error_queue.get_nowait()
-            except Exception:
-                pass
-        
-        result = None
-        success = self.process.returncode == 0
-        
-        self.running = False
-        
-        os.unlink(code_file_path)
-        
-        return {
-            'success': success,
-            'output': output,
-            'error': error,
-            'result': result
-        }
     
     def terminate(self):
         if self.process and self.running:

@@ -2,6 +2,8 @@ import code
 import io
 import sys
 import re
+import contextlib
+import builtins
 from collections import deque
 
 class PythonREPL:
@@ -13,8 +15,6 @@ class PythonREPL:
         self.console = code.InteractiveConsole(self.namespace)
         self.history = deque(maxlen=100)
         self.running = False
-        self.output_buffer = io.StringIO()
-        self.error_buffer = io.StringIO()
         
         self._setup_shortcuts()
     
@@ -27,28 +27,26 @@ class PythonREPL:
             public_vars = [k for k in self.namespace.keys() if not k.startswith('_')]
             return '\n'.join(public_vars)
         
-        self.namespace['%clear'] = lambda: self.namespace.clear() or 'Namespace cleared'
+        def clear_namespace():
+            keys_to_remove = [k for k in list(self.namespace.keys()) 
+                              if not k.startswith('_') and not k.startswith('%')]
+            for k in keys_to_remove:
+                del self.namespace[k]
+            return 'Namespace cleared'
+        
+        self.namespace['%clear'] = clear_namespace
         self.namespace['%history'] = lambda: '\n'.join(self.history)
         self.namespace['%vars'] = list_vars
     
     def _capture_output(self, func):
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
+        output_buffer = io.StringIO()
+        error_buffer = io.StringIO()
         
-        sys.stdout = self.output_buffer
-        sys.stderr = self.error_buffer
-        
-        try:
+        with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(error_buffer):
             result = func()
-        finally:
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
         
-        output = self.output_buffer.getvalue()
-        error = self.error_buffer.getvalue()
-        
-        self.output_buffer = io.StringIO()
-        self.error_buffer = io.StringIO()
+        output = output_buffer.getvalue()
+        error = error_buffer.getvalue()
         
         return result, output, error
     
@@ -102,7 +100,7 @@ class PythonREPL:
             if name.startswith(text):
                 matches.append(name)
         
-        for name in dir(__builtins__):
+        for name in dir(builtins):
             if name.startswith(text):
                 matches.append(name)
         

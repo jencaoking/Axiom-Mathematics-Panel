@@ -87,36 +87,21 @@ class AIManager:
         if len(points) < degree + 1:
             return {'success': False, 'error': f'Need at least {degree + 1} points'}
         
-        X = np.array([[p[0]] for p in points], dtype=np.float32)
-        y = np.array([p[1] for p in points], dtype=np.float32)
+        X = np.array([p[0] for p in points], dtype=np.float64)
+        y = np.array([p[1] for p in points], dtype=np.float64)
         
-        poly = PolynomialFeatures(degree=degree)
-        X_poly = poly.fit_transform(X)
+        coefficients = np.polyfit(X, y, degree)
+        poly = np.poly1d(coefficients)
         
-        model = LinearRegression()
-        model.fit(X_poly, y)
-        
-        coefficients = model.coef_
-        intercept = model.intercept_
-        
-        predictions = model.predict(X_poly)
+        predictions = poly(X)
         mse = float(mean_squared_error(y, predictions))
         
-        equation_terms = []
-        for i, coef in enumerate(coefficients):
-            if i == 0:
-                equation_terms.append(f'{coef:.4f}')
-            elif i == 1:
-                equation_terms.append(f'{coef:.4f}x')
-            else:
-                equation_terms.append(f'{coef:.4f}x^{i}')
-        
-        equation = 'y = ' + ' + '.join(equation_terms)
+        equation = 'y = ' + str(poly)
         
         return {
             'success': True,
             'coefficients': coefficients.tolist(),
-            'intercept': float(intercept),
+            'intercept': float(coefficients[-1]),
             'equation': equation,
             'mse': mse,
             'predictions': predictions.tolist()

@@ -58,8 +58,15 @@ class CASProvider:
     def solve_equation(self, equation_str, variable='x'):
         try:
             x = self._get_symbol(variable)
-            left_expr = sympify(equation_str.replace('=', '-'), locals=self.symbols_cache)
-            eq = Eq(left_expr, 0)
+            if '=' in equation_str:
+                left_str, right_str = equation_str.split('=', 1)
+                left_expr = sympify(left_str.strip(), locals=self.symbols_cache)
+                right_expr = sympify(right_str.strip(), locals=self.symbols_cache)
+                eq = Eq(left_expr, right_expr)
+            else:
+                left_expr = sympify(equation_str, locals=self.symbols_cache)
+                eq = Eq(left_expr, 0)
+            
             solutions = solve(eq, x)
             for symbol in left_expr.free_symbols:
                 self.symbols_cache[str(symbol)] = symbol

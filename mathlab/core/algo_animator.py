@@ -1,6 +1,7 @@
 import random
 import networkx as nx
 import heapq
+from collections import deque
 
 class AlgoAnimator:
     def __init__(self):
@@ -10,8 +11,34 @@ class AlgoAnimator:
         self.params = {}
     
     def load_algorithm(self, algorithm_name, **params):
-        self.params = params
         self.current_algorithm = algorithm_name
+        
+        # 为需要随机数据的算法预处理参数，确保 reset() 时可复现
+        if algorithm_name == 'bubble_sort' or algorithm_name == 'quick_sort':
+            if 'arr' not in params:
+                params['arr'] = [random.randint(1, 100) for _ in range(8)]
+        elif algorithm_name == 'binary_search':
+            if 'arr' not in params:
+                params['arr'] = sorted([random.randint(1, 100) for _ in range(10)])
+            if 'target' not in params:
+                params['target'] = params['arr'][random.randint(0, len(params['arr'])-1)]
+        elif algorithm_name in ('bfs', 'dfs'):
+            if 'graph' not in params:
+                params['graph'] = nx.erdos_renyi_graph(6, 0.5, directed=False)
+        elif algorithm_name == 'dijkstra':
+            if 'graph' not in params:
+                params['graph'] = nx.complete_graph(5)
+                # 为边设置随机权重
+                for u, v in params['graph'].edges():
+                    params['graph'][u][v]['weight'] = random.randint(1, 10)
+        elif algorithm_name == 'convex_hull':
+            if 'points' not in params:
+                params['points'] = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(12)]
+        elif algorithm_name == 'kmeans':
+            if 'points' not in params:
+                params['points'] = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(15)]
+        
+        self.params = params
         
         algorithms = {
             'bubble_sort': self.bubble_sort_generator,
@@ -274,7 +301,7 @@ class AlgoAnimator:
         
         adj_list = {n: list(graph.neighbors(n)) for n in graph.nodes()}
         visited = {n: False for n in graph.nodes()}
-        queue = [start]
+        queue = deque([start])
         visited[start] = True
         order = []
         
@@ -284,13 +311,13 @@ class AlgoAnimator:
             'edges': list(graph.edges()),
             'visited': visited.copy(),
             'current': start,
-            'queue': queue.copy(),
+            'queue': list(queue),
             'order': order.copy(),
             'description': f'Starting BFS from node {start}'
         }
         
         while queue:
-            node = queue.pop(0)
+            node = queue.popleft()
             order.append(node)
             
             yield {
@@ -402,7 +429,8 @@ class AlgoAnimator:
             graph = nx.complete_graph(5)
         
         for u, v in graph.edges():
-            graph[u][v]['weight'] = random.randint(1, 10)
+            if 'weight' not in graph[u][v]:
+                graph[u][v]['weight'] = random.randint(1, 10)
         
         adj_list = {n: [(neighbor, graph[n][neighbor]['weight']) 
                         for neighbor in graph.neighbors(n)] 
@@ -597,7 +625,9 @@ class AlgoAnimator:
                     'description': f'Updating center {i} to {new_center}'
                 }
             
-            if new_centers == centers:
+            max_distance = max(((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)**0.5 
+                              for c1, c2 in zip(new_centers, centers))
+            if max_distance < 1e-6:
                 break
             
             centers = new_centers

@@ -1,6 +1,7 @@
 import uuid
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex, sympify
+from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, pow
+from sympy.parsing.sympy_parser import standard_transformations
 
 class GeometricObject:
     TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle']
@@ -37,22 +38,28 @@ class GeometricObject:
     @classmethod
     def deserialize(cls, data):
         obj_type = data.get('type')
+        obj = None
+        
+        if obj_type == 'Polygon':
+            return Polygon.deserialize(data)
+        
         if obj_type == 'Point':
             coords = data.get('coordinates', {})
-            return Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
+            obj = Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
         elif obj_type == 'Segment':
-            return Segment(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
+            obj = Segment(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
         elif obj_type == 'Circle':
             coords = data.get('coordinates', {})
-            return Circle(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1))
-        elif obj_type == 'Polygon':
-            return Polygon(data['id'], data['name'], data.get('point_ids', []))
+            obj = Circle(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1.0))
         else:
-            obj = cls(data['id'], data['name'], data['type'])
+            obj = cls(data['id'], data['name'], obj_type)
+        
+        if obj:
             obj.coordinates = data.get('coordinates', {})
             obj.constraints = data.get('constraints', [])
             obj.depends_on = data.get('depends_on', [])
-            return obj
+        
+        return obj
 
 class Point(GeometricObject):
     def __init__(self, obj_id, name, x=0, y=0):
@@ -174,8 +181,8 @@ class DAG:
                 return
             visited.add(n)
             for dep in self.reverse_graph[n]:
-                result.append(dep)
                 dfs(dep)
+                result.append(dep)
         dfs(node)
         return result
     
@@ -198,12 +205,9 @@ class GeometryEngine:
         self.name_counter = defaultdict(int)
         self.dependencies = DAG()
         self.listeners = []
-        self._next_id = 1
     
     def _generate_id(self):
-        obj_id = f'obj_{self._next_id}'
-        self._next_id += 1
-        return obj_id
+        return str(uuid.uuid4())
     
     def _generate_name(self, obj_type):
         prefix = obj_type[0].upper()
@@ -278,6 +282,8 @@ class GeometryEngine:
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
             if dep_id in self.objects:
+                dep_obj = self.objects[dep_id]
+                self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
@@ -339,12 +345,7 @@ class GeometryEngine:
             for constraint in obj.constraints:
                 if isinstance(constraint, str):
                     try:
-                        allowed_symbols = {}
-                        for point in points:
-                            allowed_symbols[f'x_{point.id}'] = symbols(f'x_{point.id}')
-                            allowed_symbols[f'y_{point.id}'] = symbols(f'y_{point.id}')
-                        from sympy import Eq, sqrt, sin, cos, tan, pi, exp, log, Abs, pow
-                        allowed_symbols.update({
+                        allowed_symbols = {
                             'Eq': Eq,
                             'sqrt': sqrt,
                             'sin': sin,
@@ -355,8 +356,11 @@ class GeometryEngine:
                             'log': log,
                             'Abs': Abs,
                             'pow': pow
-                        })
-                        eq = sympify(constraint, locals=allowed_symbols)
+                        }
+                        for point in points:
+                            allowed_symbols[f'x_{point.id}'] = symbols(f'x_{point.id}')
+                            allowed_symbols[f'y_{point.id}'] = symbols(f'y_{point.id}')
+                        eq = parse_expr(constraint, local_dict=allowed_symbols, transformations=standard_transformations)
                         equations.append(eq)
                     except Exception:
                         pass
@@ -436,5 +440,12 @@ class GeometryEngine:
         
         for obj in self.objects.values():
             if hasattr(obj, 'update_coordinates'):
-                obj.update_coordinates(self)
+                if type(obj).__name__ in ('Segment', 'Circle', 'Polygon'):
+                    obj.update_coordinates(self)
             self._notify('object_added', obj.serialize())
+    
+    def clear(self):
+        self.objects.clear()
+        self.name_counter.clear()
+        self.dependencies = DAG()
+        self._notify('canvas_cleared', None)

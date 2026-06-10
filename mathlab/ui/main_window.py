@@ -480,6 +480,8 @@ class MainWindow(QMainWindow):
             self.central_widget.clear_canvas()
             self.algebra_panel.clear()
             self._objects_data.clear()
+            if hasattr(self, 'geometry_engine'):
+                self.geometry_engine.clear()
             result = {
                 'success': True,
                 'output': t('errors.canvas_cleared') + '\n',
@@ -510,14 +512,20 @@ class MainWindow(QMainWindow):
                     if len(coords) == 2:
                         x = float(coords[0].strip())
                         y = float(coords[1].strip())
-                        obj_id = str(uuid.uuid4())
-                        obj_data = {
-                            'id': obj_id,
-                            'name': name,
-                            'type': 'Point',
-                            'coordinates': {'x': x, 'y': y},
-                        }
-                        self._add_object(obj_data)
+
+                        if hasattr(self, 'geometry_engine'):
+                            # 交给引擎处理
+                            self.geometry_engine.add_point(x, y, name=name)
+                        else:
+                            # 降级兼容
+                            obj_id = str(uuid.uuid4())
+                            obj_data = {
+                                'id': obj_id,
+                                'name': name,
+                                'type': 'Point',
+                                'coordinates': {'x': x, 'y': y},
+                            }
+                            self._add_object(obj_data)
         except Exception as e:
             QMessageBox.warning(
                 self,
