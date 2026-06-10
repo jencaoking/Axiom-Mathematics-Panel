@@ -35,19 +35,32 @@
 
 ---
 
-### 3. REPL 完全隔离 (python_repl.py)
+### 3. REPL 完全隔离 + 会话模式 (python_repl.py)
 
 #### 架构变更
 - **废弃**: `code.InteractiveConsole` 进程内执行模式
 - **采用**: 每次执行委托给 `SandboxProcess` 独立沙箱
+- **新增**: 会话上下文传递机制（可选）
 
-#### 影响
-- ✅ **安全性**: 主程序永不卡死，任何代码都在隔离子进程中执行
-- ⚠️ **副作用**: 失去变量持久化能力（每次执行都是独立环境）
-- 🔧 **适配**: 
-  - `complete()` 改为仅补全内置函数
-  - `get_completions()` 传入空命名空间
-  - `set_variable()`/`get_variable()` 抛出 `NotImplementedError`
+#### 两种模式
+
+**会话模式** (`session_mode=True`, 默认):
+- ✅ 自动拼接历史代码实现变量持久化
+- ✅ 类似 Jupyter Notebook 的交互体验
+- ⚠️ 执行时间随历史代码增加而增长
+- 🔒 仍在沙箱中执行，安全性不变
+
+**隔离模式** (`session_mode=False`):
+- ✅ 每次执行都是独立环境
+- ✅ 最快执行速度，最安全
+- ❌ 不支持变量持久化
+
+#### API 适配
+- `set_session_mode(enabled)`: 动态切换模式
+- `clear_session()`: 清空会话上下文
+- `get_session_context_length()`: 获取上下文长度
+- `complete()`: 改为仅补全内置函数
+- `get_completions()`: 传入空命名空间
 
 ---
 
@@ -86,18 +99,38 @@ pip install psutil>=5.9
 启用完整的内存监控功能。
 
 ### 2. REPL 使用注意事项
-由于 REPL 现在是完全隔离的沙箱模式：
-- ❌ **不再支持**: `x = 5` 后在下一行使用 `print(x)`
-- ✅ **推荐做法**: 将相关代码写在一次执行中
-  ```python
-  # 正确示例
-  repl.execute("x = 5; print(x * 2)")
-  ```
 
-### 3. 如需变量持久化
-如果业务逻辑需要 REPL 的变量持久化功能，可以考虑：
-- 方案 A: 将历史代码拼接后重新执行（类似 Jupyter 的 cell 重放）
-- 方案 B: 提供专门的"会话模式"API，内部维护代码上下文
+#### 会话模式（默认）
+```python
+repl = PythonREPL(session_mode=True)  # 启用会话模式
+
+# 可以逐行输入并保留变量
+repl.execute('x = 42')
+result = repl.execute('print(x * 2)')  # 输出: 84 ✅
+```
+
+#### 隔离模式
+```python
+repl = PythonREPL(session_mode=False)  # 禁用会话模式
+
+# 每次执行都是独立环境
+repl.execute('x = 42')
+result = repl.execute('print(x)')  # 错误: name 'x' is not defined ❌
+```
+
+#### 动态切换
+```python
+repl.set_session_mode(False)  # 切换到隔离模式
+repl.clear_session()          # 清空会话上下文
+```
+
+### 3. 性能优化建议
+
+对于长会话，定期清空上下文以提升性能：
+```python
+if repl.get_session_context_length() > 50:
+    repl.clear_session()
+```
 
 ---
 
@@ -138,18 +171,16 @@ pip install psutil>=5.9
 ## 🎯 下一步优化建议
 
 1. **UI 层适配**
-   - 在控制台面板添加"执行选中代码"快捷键
-   - 提供"查看当前沙箱状态"按钮（显示是否正在执行）
+   - 在控制台面板添加“执行选中代码”快捷键
+   - 提供“查看当前沙箱状态”按钮（显示是否正在执行）
+   - 添加“切换会话/隔离模式”开关
+   - 显示当前会话上下文长度
 
-2. **会话上下文传递**（可选）
-   - 为 REPL 设计"累积模式"：自动将历史代码拼接后重新执行
-   - 权衡安全性与便利性
-
-3. **更细粒度的资源控制**
+2. **更细粒度的资源控制**
    - 允许用户自定义超时时间和内存限制
    - 针对不同任务类型（代数/几何/AI 训练）设置不同的默认值
 
-4. **沙箱白名单增强**
+3. **沙箱白名单增强**
    - 在 `sandbox_script.py` 中细化 `ALLOWED_MODULES`
    - 考虑添加动态模块加载审批机制
 
