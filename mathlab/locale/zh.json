@@ -127,6 +127,7 @@
     "digit_recognition": "数字识别",
     "clustering": "聚类",
     "training_notebook": "训练笔记本",
+    "ai_assistant": "AI 助手",
     "model_type": "模型类型:",
     "polynomial_degree": "多项式次数:",
     "fit_data": "拟合数据",
@@ -149,7 +150,13 @@
     "kmeans": "K-均值",
     "dbscan": "DBSCAN",
     "running_training": "运行训练中...",
-    "cluster_count": "聚类数:"
+    "cluster_count": "聚类数:",
+    "ask_question": "问我任何数学问题，或让我帮你画图...",
+    "send": "发送",
+    "provider": "AI 提供商:",
+    "you": "你",
+    "assistant": "AI 助手",
+    "error": "错误"
   },
   "algo_vis": {
     "title": "算法可视化",

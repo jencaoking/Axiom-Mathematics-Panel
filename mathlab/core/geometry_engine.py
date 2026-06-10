@@ -293,20 +293,15 @@ class GeometryEngine:
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
             if dep_id in self.objects:
-                dep_obj = self.objects[dep_id]
-                self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
         
         obj = self.objects[obj_id]
-        obj_type = obj.type
         
         self.dependencies.remove_node(obj_id)
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
-
-        self.name_counter[obj_type] = max(0, self.name_counter[obj_type] - 1)
     
     def update_point(self, obj_id, x=None, y=None):
         if obj_id not in self.objects:
@@ -367,11 +362,12 @@ class GeometryEngine:
                             'exp': exp,
                             'log': log,
                             'Abs': Abs,
-                            'pow': pow
+                            'pow': __builtins__['pow'] if hasattr(__builtins__, 'pow') else pow
                         }
                         for point in points:
-                            allowed_symbols[f'x_{point.id}'] = symbols(f'x_{point.id}')
-                            allowed_symbols[f'y_{point.id}'] = symbols(f'y_{point.id}')
+                            safe_id = point.id.replace('-', '_')
+                            allowed_symbols[f'x_{safe_id}'] = symbols(f'x_{safe_id}')
+                            allowed_symbols[f'y_{safe_id}'] = symbols(f'y_{safe_id}')
                         eq = parse_expr(constraint, local_dict=allowed_symbols, transformations=standard_transformations)
                         equations.append(eq)
                     except Exception:

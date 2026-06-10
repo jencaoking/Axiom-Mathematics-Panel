@@ -368,6 +368,8 @@ class MainWindow(QMainWindow):
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
 
+        self.ai_tools_panel.action_requested.connect(self.execute_ai_action)
+
     def _add_object(self, obj_data: dict) -> None:
         obj_id = obj_data['id']
         self._objects_data[obj_id] = obj_data
@@ -477,6 +479,67 @@ class MainWindow(QMainWindow):
             if obj_id in self._objects_data:
                 self._objects_data[obj_id]['name'] = new_name
                 self.algebra_panel.update_object(self._objects_data[obj_id])
+
+    def execute_ai_action(self, action_data: dict) -> None:
+        action = action_data.get('action')
+        
+        if action == 'add_point':
+            x = action_data.get('x', 0.0)
+            y = action_data.get('y', 0.0)
+            name = action_data.get('name', '')
+            if hasattr(self, 'geometry_engine'):
+                self.geometry_engine.add_point(x, y, name=name)
+            else:
+                self.on_point_added(x, y, name)
+        
+        elif action == 'add_segment':
+            point1_id = action_data.get('point1_id')
+            point2_id = action_data.get('point2_id')
+            if point1_id and point2_id and hasattr(self, 'geometry_engine'):
+                self.geometry_engine.add_segment(point1_id, point2_id)
+        
+        elif action == 'add_circle':
+            center_id = action_data.get('center_id')
+            radius = action_data.get('radius', 1.0)
+            if center_id and hasattr(self, 'geometry_engine'):
+                self.geometry_engine.add_circle(center_id, radius)
+        
+        elif action == 'add_polygon':
+            point_ids = action_data.get('point_ids', [])
+            if len(point_ids) >= 3 and hasattr(self, 'geometry_engine'):
+                self.geometry_engine.add_polygon(point_ids)
+        
+        elif action == 'update_point':
+            point_id = action_data.get('point_id')
+            x = action_data.get('x')
+            y = action_data.get('y')
+            if point_id and (x is not None or y is not None) and hasattr(self, 'geometry_engine'):
+                kwargs = {}
+                if x is not None:
+                    kwargs['x'] = x
+                if y is not None:
+                    kwargs['y'] = y
+                self.geometry_engine.update_point(point_id, **kwargs)
+        
+        elif action == 'remove_object':
+            obj_id = action_data.get('obj_id')
+            if obj_id:
+                self.on_object_deleted(obj_id)
+        
+        elif action == 'clear':
+            self.on_console_command('%clear')
+        
+        elif action == 'solve':
+            expression = action_data.get('expression', '')
+            if expression and hasattr(self, 'cas_provider'):
+                result = self.cas_provider.solve_equation(expression, 'x')
+                if result.get('success'):
+                    self.console.display_result({
+                        'success': True,
+                        'output': str(result.get('result', '')),
+                        'error': '',
+                        'more': False
+                    })
 
     def on_console_command(self, command: str) -> None:
         if command == '%clear':
