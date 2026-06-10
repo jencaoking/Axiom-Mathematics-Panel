@@ -167,23 +167,32 @@ class TestPythonREPL(unittest.TestCase):
         self.repl = PythonREPL()
 
     def test_execute_simple(self):
+        """沙箱模式下执行简单代码"""
         result = self.repl.execute('x = 5')
         self.assertTrue(result['success'])
-        self.assertEqual(self.repl.namespace.get('x'), 5)
-
+        # 注意：沙箱模式下不支持持久化变量，因此无法通过 namespace 检查
+    
     def test_execute_with_output(self):
+        """测试输出捕获"""
         result = self.repl.execute('print("hello")')
         self.assertIn('hello', result['output'])
-
+    
     def test_history(self):
+        """测试历史记录"""
         self.repl.execute('x = 1')
         self.repl.execute('y = 2')
         history = self.repl.get_history()
         self.assertEqual(len(history), 2)
-
-    def test_namespace_update(self):
-        self.repl.update_namespace({'z': 100})
-        self.assertEqual(self.repl.namespace.get('z'), 100)
+    
+    def test_sandbox_isolation(self):
+        """测试沙箱隔离性：每次执行都是独立环境"""
+        result1 = self.repl.execute('a = 10')
+        self.assertTrue(result1['success'])
+        
+        # 第二次执行时，第一次定义的变量 a 不存在
+        result2 = self.repl.execute('print(a)')
+        self.assertFalse(result2['success'])  # 应该失败，因为 a 未定义
+        self.assertIn('name', result2['error'].lower())  # NameError
 
 
 class TestAlgoAnimator(unittest.TestCase):
@@ -215,6 +224,39 @@ class TestSandboxProcess(unittest.TestCase):
     def test_run_code_success(self):
         result = self.sandbox.run_code('print("test")', timeout=5)
         self.assertIn('test', result['output'])
+    
+    def test_sandbox_timeout(self):
+        """测试超时终止机制"""
+        sandbox = SandboxProcess()
+        result = sandbox.run_code("while True: pass", timeout=2)
+        self.assertEqual(result['success'], False)
+        # 看门狗会触发超时或内存限制
+        self.assertTrue(
+            'timed out' in result['error'].lower() or 
+            'Memory limit' in result['error'] or
+            'execution timed out' in result['error'].lower()
+        )
+    
+    def test_sandbox_memory_limit(self):
+        """测试内存限制（如果安装了 psutil）"""
+        sandbox = SandboxProcess()
+        sandbox.max_memory_mb = 50  # 降低阈值以便快速测试
+        code = "arr = []\nwhile True:\n    arr.append('X' * 1000000)"
+        result = sandbox.run_code(code, timeout=10)
+        self.assertEqual(result['success'], False)
+        # 应该触发内存限制或超时
+        self.assertTrue(
+            'Memory limit' in result['error'] or
+            'timed out' in result['error'].lower()
+        )
+    
+    def test_sandbox_normal_execution(self):
+        """测试正常代码执行"""
+        sandbox = SandboxProcess()
+        result = sandbox.run_code("print('Hello'); import numpy as np; print(np.array([1,2,3]))")
+        self.assertEqual(result['success'], True)
+        self.assertIn('Hello', result['output'])
+        self.assertIn('[1 2 3]', result['output'])
 
 
 class TestSandboxManager(unittest.TestCase):

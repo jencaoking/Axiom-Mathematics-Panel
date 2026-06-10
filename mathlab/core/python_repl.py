@@ -1,124 +1,58 @@
-import code
-import io
 import sys
-import re
-import contextlib
-import builtins
 import time
 import threading
 import jedi
 from collections import deque
+from .sandbox import SandboxProcess
 
 class PythonREPL:
     def __init__(self, namespace=None):
-        self.namespace = namespace if namespace is not None else {}
-        self.namespace['__name__'] = '__console__'
-        self.namespace['__doc__'] = None
-        
-        self.console = code.InteractiveConsole(self.namespace)
+        # 沙箱模式下不再维护持久化命名空间
         self.history = deque(maxlen=100)
         self.running = False
-        
-        self._setup_shortcuts()
+        self._sandbox = SandboxProcess()  # 单例沙箱实例
     
-    def _setup_shortcuts(self):
-        def clear_history():
-            self.history.clear()
-            return 'History cleared'
-        
-        def list_vars():
-            public_vars = [k for k in self.namespace.keys() if not k.startswith('_')]
-            return '\n'.join(public_vars)
-        
-        def clear_namespace():
-            keys_to_remove = [k for k in list(self.namespace.keys()) 
-                              if not k.startswith('_') and not k.startswith('%')]
-            for k in keys_to_remove:
-                del self.namespace[k]
-            return 'Namespace cleared'
-        
-        self.namespace['%clear'] = clear_namespace
-        self.namespace['%history'] = lambda: '\n'.join(self.history)
-        self.namespace['%vars'] = list_vars
-    
-    def _capture_output(self, func):
-        output_buffer = io.StringIO()
-        error_buffer = io.StringIO()
-        
-        with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(error_buffer):
-            result = func()
-        
-        output = output_buffer.getvalue()
-        error = error_buffer.getvalue()
-        
-        return result, output, error
+
     
     def execute(self, code_str, timeout=5):
+        """
+        在独立沙箱中执行代码，确保主程序永不卡死
+        注意：沙箱模式下不支持变量持久化，每次执行都是独立环境
+        """
         self.running = True
         
         if code_str.strip():
             self.history.append(code_str)
         
-        if code_str.strip().startswith('%'):
-            return self._execute_command(code_str)
-        
-        result_container = {'more': None, 'output': '', 'error': '', 'success': False}
-        timer = None
-        
-        def run_code():
-            try:
-                more, output, error = self._capture_output(lambda: self.console.push(code_str))
-                result_container.update({'more': more, 'output': output, 'error': error, 'success': not more})
-            except Exception as e:
-                result_container['error'] = str(e)
-        
-        thread = threading.Thread(target=run_code)
-        thread.daemon = True
-        thread.start()
-        thread.join(timeout=timeout)
-        
-        if thread.is_alive():
-            result_container['error'] = f"Execution timed out after {timeout} seconds"
-            # Note: We can't easily kill the thread in Python, but we mark it as failed.
-            # For true isolation, use SandboxProcess.
+        # 直接委托给沙箱进程执行
+        sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
         
         self.running = False
         
         return {
-            'success': result_container['success'],
-            'output': result_container['output'],
-            'error': result_container['error'],
-            'more': result_container['more']
+            'success': sandbox_result['success'],
+            'output': sandbox_result['output'],
+            'error': sandbox_result['error'],
+            'more': False  # 沙箱模式下不支持多行交互
         }
     
-    def _execute_command(self, cmd):
-        parts = cmd.strip().split()
-        command = parts[0]
-        args = parts[1:]
-        
-        try:
-            if command == '%clear':
-                result = self.namespace['%clear']()
-                return {'success': True, 'output': result, 'error': '', 'more': False}
-            elif command == '%history':
-                result = self.namespace['%history']()
-                return {'success': True, 'output': result, 'error': '', 'more': False}
-            elif command == '%vars':
-                result = self.namespace['%vars']()
-                return {'success': True, 'output': result, 'error': '', 'more': False}
-            else:
-                return {'success': False, 'output': '', 'error': f'Unknown command: {command}', 'more': False}
-        except Exception as e:
-            return {'success': False, 'output': '', 'error': str(e), 'more': False}
-    
     def complete(self, text):
+        """
+        简单的内置函数补全（沙箱模式下无法访问运行时命名空间）
+        """
         matches = []
         
-        for name in self.namespace:
-            if name.startswith(text):
-                matches.append(name)
+        # 仅补全 Python 内置函数
+        builtin_names = [
+            'abs', 'all', 'any', 'bool', 'callable', 'chr', 'complex', 'dict',
+            'dir', 'divmod', 'enumerate', 'float', 'hash', 'hex', 'id', 'int',
+            'isinstance', 'issubclass', 'iter', 'len', 'list', 'map', 'max',
+            'min', 'next', 'oct', 'ord', 'pow', 'range', 'repr', 'reversed',
+            'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type',
+            'zip', 'print', 'input', 'open', 'file', 'True', 'False', 'None'
+        ]
         
-        for name in dir(builtins):
+        for name in builtin_names:
             if name.startswith(text):
                 matches.append(name)
         
@@ -132,7 +66,8 @@ class PythonREPL:
         :param column: 光标所在列号 (从 0 开始)
         """
         try:
-            interpreter = jedi.Interpreter(code_str, namespaces=[self.namespace])
+            # 沙箱模式下传入空命名空间，仅提供基础补全
+            interpreter = jedi.Interpreter(code_str, namespaces=[{'__builtins__': __builtins__}])
             completions = interpreter.complete(line, column)
             return [{
                 'name': c.name,
@@ -144,16 +79,18 @@ class PythonREPL:
             return []
     
     def stop(self):
+        """停止当前执行的沙箱进程"""
         self.running = False
+        self._sandbox.terminate()
     
     def set_variable(self, name, value):
-        self.namespace[name] = value
+        raise NotImplementedError("沙箱模式下不支持持久化变量。每次执行都是独立环境。")
     
     def get_variable(self, name):
-        return self.namespace.get(name)
+        raise NotImplementedError("沙箱模式下不支持持久化变量。每次执行都是独立环境。")
     
     def update_namespace(self, updates):
-        self.namespace.update(updates)
+        raise NotImplementedError("沙箱模式下不支持持久化变量。每次执行都是独立环境。")
     
     def get_history(self):
         return list(self.history)
