@@ -22,6 +22,7 @@ from .ai_tools_panel import AIToolsPanel
 
 from ..core.geometry_engine import GeometryEngine
 from ..core.python_repl import PythonREPL
+from ..core.ai_manager import AIManager
 
 try:
     from .preferences_dialog import PreferencesDialog
