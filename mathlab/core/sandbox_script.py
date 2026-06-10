@@ -12,6 +12,8 @@ ALLOWED_MODULES = {
     'sklearn',
 }
 
+DENIED_MODULES = {'importlib', 'os', 'sys', 'subprocess', 'ctypes'}
+
 ALLOWED_BUILTINS = {
     'abs', 'all', 'any', 'bool', 'callable', 'chr', 'complex', 'dict',
     'dir', 'divmod', 'enumerate', 'float', 'hash', 'hex', 'id', 'int',
@@ -22,6 +24,8 @@ ALLOWED_BUILTINS = {
 }
 
 def restricted_import(name, *args, **kwargs):
+    if name in DENIED_MODULES:
+        raise ImportError(f"Module '{name}' is strictly forbidden")
     if name not in ALLOWED_MODULES:
         raise ImportError(f"Module '{name}' is not allowed")
     return __import__(name, *args, **kwargs)

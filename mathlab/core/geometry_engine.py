@@ -222,8 +222,9 @@ class GeometryEngine:
     
     def _generate_name(self, obj_type):
         prefix = obj_type[0].upper()
-        self.name_counter[obj_type] += 1
-        return f'{prefix}{self.name_counter[obj_type]}'
+        # 基于当前该类型对象的数量生成名称，防止重名
+        count = len([obj for obj in self.objects.values() if obj.type == obj_type]) + 1
+        return f'{prefix}{count}'
     
     def add_listener(self, listener):
         self.listeners.append(listener)
@@ -293,20 +294,15 @@ class GeometryEngine:
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
             if dep_id in self.objects:
-                dep_obj = self.objects[dep_id]
-                self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
         
         obj = self.objects[obj_id]
-        obj_type = obj.type
         
         self.dependencies.remove_node(obj_id)
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
-
-        self.name_counter[obj_type] = max(0, self.name_counter[obj_type] - 1)
     
     def update_point(self, obj_id, x=None, y=None):
         if obj_id not in self.objects:
@@ -367,7 +363,7 @@ class GeometryEngine:
                             'exp': exp,
                             'log': log,
                             'Abs': Abs,
-                            'pow': __builtins__['pow'] if hasattr(__builtins__, 'pow') else pow
+                            'pow': pow
                         }
                         for point in points:
                             safe_id = point.id.replace('-', '_')

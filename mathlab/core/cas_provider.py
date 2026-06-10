@@ -1,4 +1,5 @@
 import sympy
+import re
 from sympy import (
     symbols, Symbol, Eq, solve, simplify, expand, factor,
     diff, integrate, limit, latex, sin, cos, tan, log, exp,
@@ -66,11 +67,12 @@ class CASProvider:
     def solve_equation(self, equation_str, variable='x'):
         try:
             x = self._get_symbol(variable)
-            # 兼容编程习惯，将 '==' 替换为 '='
-            equation_str = equation_str.replace('==', '=')
             
-            if '=' in equation_str:
-                left_str, right_str = equation_str.split('=', 1)
+            # 使用正则表达式精确匹配单个等号，避免误截断 >= 或 <=
+            match = re.search(r'(?<!>)=(?!>)', equation_str)
+            if match:
+                left_str = equation_str[:match.start()]
+                right_str = equation_str[match.end():]
                 left_expr = sympify(left_str.strip(), locals=self.symbols_cache)
                 right_expr = sympify(right_str.strip(), locals=self.symbols_cache)
                 eq = Eq(left_expr, right_expr)

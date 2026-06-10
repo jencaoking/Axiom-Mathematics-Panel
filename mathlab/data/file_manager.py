@@ -286,11 +286,19 @@ class FileManager:
         try:
             if os.path.exists(file_path):
                 backup_path = file_path + '.backup'
-                shutil.copy2(file_path, backup_path)
+                if keep_backup:
+                    shutil.copy2(file_path, backup_path)
+                
                 os.remove(file_path)
                 
-                if not keep_backup:
-                    os.remove(backup_path)
+                if keep_backup and os.path.exists(backup_path):
+                    # 如果用户不想要备份但上面已经创建了，或者用户想要备份但删除失败
+                    pass 
+                elif not keep_backup and os.path.exists(backup_path):
+                    try:
+                        os.remove(backup_path)
+                    except Exception:
+                        pass
 
             self.index.remove_entry(file_path)
             return {'success': True}

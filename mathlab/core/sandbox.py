@@ -118,10 +118,13 @@ class SandboxProcess:
                 'result': result
             }
         finally:
-            try:
-                os.unlink(code_file_path)
-            except OSError:
-                pass
+            # 增加重试机制以应对 Windows 下的文件锁延迟
+            for _ in range(3):
+                try:
+                    os.unlink(code_file_path)
+                    break
+                except OSError:
+                    time.sleep(0.1)
     
     def terminate(self):
         if self.process and self.running:

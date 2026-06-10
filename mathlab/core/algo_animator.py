@@ -31,6 +31,12 @@ class AlgoAnimator:
                 # 为边设置随机权重
                 for u, v in params['graph'].edges():
                     params['graph'][u][v]['weight'] = random.randint(1, 10)
+            else:
+                # 确保 reset 时如果已存在图，不再重新分配随机权重
+                graph = params['graph']
+                for u, v in graph.edges():
+                    if 'weight' not in graph[u][v]:
+                        graph[u][v]['weight'] = random.randint(1, 10)
         elif algorithm_name == 'convex_hull':
             if 'points' not in params:
                 params['points'] = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(12)]
@@ -428,6 +434,7 @@ class AlgoAnimator:
         if graph is None:
             graph = nx.complete_graph(5)
         
+        # 仅在 generator 内部处理缺失权重的情况，避免在 load_algorithm 中重复修改
         for u, v in graph.edges():
             if 'weight' not in graph[u][v]:
                 graph[u][v]['weight'] = random.randint(1, 10)
@@ -613,6 +620,17 @@ class AlgoAnimator:
                     )
                 else:
                     new_center = centers[i]
+                    yield {
+                        'type': 'clustering',
+                        'points': points.copy(),
+                        'centers': new_centers + centers[len(new_centers):],
+                        'clusters': [list(c) for c in clusters],
+                        'updated_center': i,
+                        'iteration': iteration,
+                        'description': f'Cluster {i} is empty, keeping center at {new_center}'
+                    }
+                    new_centers.append(new_center)
+                    continue
                 new_centers.append(new_center)
                 
                 yield {

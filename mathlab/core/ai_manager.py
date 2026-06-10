@@ -171,7 +171,12 @@ class AIRequestWorker:
                     break
                 if line:
                     try:
-                        data = json.loads(line.decode('utf-8'))
+                        decoded = line.decode('utf-8')
+                        if decoded.startswith('data: '):
+                            decoded = decoded[6:]
+                        if decoded.strip() == '[DONE]':
+                            break
+                        data = json.loads(decoded)
                         if 'choices' in data and len(data['choices']) > 0:
                             delta = data['choices'][0].get('delta', {})
                             if 'content' in delta:

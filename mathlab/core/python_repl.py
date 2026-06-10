@@ -5,6 +5,7 @@ import re
 import contextlib
 import builtins
 import time
+import threading
 import jedi
 from collections import deque
 
@@ -61,36 +62,33 @@ class PythonREPL:
         if code_str.strip().startswith('%'):
             return self._execute_command(code_str)
         
-        start_time = time.time()
-        timeout_occurred = [False]
-        
-        def timeout_tracer(frame, event, arg):
-            if time.time() - start_time > timeout:
-                timeout_occurred[0] = True
-                raise TimeoutError(f"Execution timed out after {timeout} seconds")
-            return timeout_tracer
+        result_container = {'more': None, 'output': '', 'error': '', 'success': False}
+        timer = None
         
         def run_code():
-            old_trace = sys.settrace(timeout_tracer)
             try:
-                return self.console.push(code_str)
-            finally:
-                sys.settrace(old_trace)
+                more, output, error = self._capture_output(lambda: self.console.push(code_str))
+                result_container.update({'more': more, 'output': output, 'error': error, 'success': not more})
+            except Exception as e:
+                result_container['error'] = str(e)
         
-        more, output, error = None, "", ""
-        try:
-            more, output, error = self._capture_output(run_code)
-        except TimeoutError as e:
-            error = str(e)
-            more = False
+        thread = threading.Thread(target=run_code)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=timeout)
+        
+        if thread.is_alive():
+            result_container['error'] = f"Execution timed out after {timeout} seconds"
+            # Note: We can't easily kill the thread in Python, but we mark it as failed.
+            # For true isolation, use SandboxProcess.
         
         self.running = False
         
         return {
-            'success': not more and not timeout_occurred[0],
-            'output': output,
-            'error': error,
-            'more': more
+            'success': result_container['success'],
+            'output': result_container['output'],
+            'error': result_container['error'],
+            'more': result_container['more']
         }
     
     def _execute_command(self, cmd):
