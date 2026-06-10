@@ -67,3 +67,4 @@ class AutocompleteTextEdit(QPlainTextEdit):
             code_text = self.toPlainText()
 
             self.request_completions.emit(code_text, line, column)
+
