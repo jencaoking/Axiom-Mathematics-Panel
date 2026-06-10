@@ -339,11 +339,25 @@ class GeometryEngine:
             for constraint in obj.constraints:
                 if isinstance(constraint, str):
                     try:
-                        # 使用安全的局部命名空间，避免全局作用域污染
-                        local_ns = {}
-                        exec(f'from sympy import *\neq = {constraint}', {}, local_ns)
-                        if 'eq' in local_ns:
-                            equations.append(local_ns['eq'])
+                        allowed_symbols = {}
+                        for point in points:
+                            allowed_symbols[f'x_{point.id}'] = symbols(f'x_{point.id}')
+                            allowed_symbols[f'y_{point.id}'] = symbols(f'y_{point.id}')
+                        from sympy import Eq, sqrt, sin, cos, tan, pi, exp, log, Abs, pow
+                        allowed_symbols.update({
+                            'Eq': Eq,
+                            'sqrt': sqrt,
+                            'sin': sin,
+                            'cos': cos,
+                            'tan': tan,
+                            'pi': pi,
+                            'exp': exp,
+                            'log': log,
+                            'Abs': Abs,
+                            'pow': pow
+                        })
+                        eq = sympify(constraint, locals=allowed_symbols)
+                        equations.append(eq)
                     except Exception:
                         pass
                 else:
