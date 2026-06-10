@@ -5,6 +5,7 @@ import re
 import contextlib
 import builtins
 import time
+import jedi
 from collections import deque
 
 class PythonREPL:
@@ -124,6 +125,25 @@ class PythonREPL:
                 matches.append(name)
         
         return matches
+    
+    def get_completions(self, code_str: str, line: int, column: int) -> list:
+        """
+        获取代码补全建议
+        :param code_str: 当前输入框的完整代码
+        :param line: 光标所在行号 (从 1 开始)
+        :param column: 光标所在列号 (从 0 开始)
+        """
+        try:
+            interpreter = jedi.Interpreter(code_str, namespaces=[self.namespace])
+            completions = interpreter.complete(line, column)
+            return [{
+                'name': c.name,
+                'type': c.type,
+                'description': c.description
+            } for c in completions]
+        except Exception as e:
+            print(f"Jedi Error: {e}")
+            return []
     
     def stop(self):
         self.running = False
