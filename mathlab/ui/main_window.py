@@ -20,6 +20,9 @@ from .command_bar import CommandBar
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 
+from ..core.geometry_engine import GeometryEngine
+from ..core.python_repl import PythonREPL
+
 try:
     from .preferences_dialog import PreferencesDialog
 except ImportError:
@@ -48,6 +51,9 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
 
         self._objects_data: dict = {}
+
+        self.geometry_engine = GeometryEngine()
+        self.python_repl = PythonREPL()
 
         self.setup_ui()
         self.setup_menus()
@@ -358,6 +364,7 @@ class MainWindow(QMainWindow):
 
         self.algebra_panel.object_selected.connect(self.on_algebra_item_selected)
         self.algebra_panel.object_deleted.connect(self.on_object_deleted)
+        self.algebra_panel.object_renamed.connect(self.on_object_renamed)
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
 
@@ -385,10 +392,10 @@ class MainWindow(QMainWindow):
         self.central_widget.set_tool(tool_name)
 
     def on_zoom_in(self) -> None:
-        self.central_widget.scale(1.2, 1.2)
+        self.central_widget.zoom_in()
 
     def on_zoom_out(self) -> None:
-        self.central_widget.scale(0.8, 0.8)
+        self.central_widget.zoom_out()
 
     def on_point_added(self, x: float, y: float) -> None:
         if hasattr(self, 'geometry_engine'):
@@ -442,7 +449,7 @@ class MainWindow(QMainWindow):
                 'id': obj_id,
                 'name': t('geometry.polygon'),
                 'type': 'Polygon',
-                'coordinates': {},
+                'coordinates': {'points': list(points)},
                 'points': list(points),
             }
             self._add_object(obj_data)
@@ -457,6 +464,19 @@ class MainWindow(QMainWindow):
             self.central_widget.remove_object(obj_id)
             self.algebra_panel.remove_object(obj_id)
         self._objects_data.pop(obj_id, None)
+
+    def on_object_renamed(self, obj_id: str, new_name: str) -> None:
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.name = new_name
+                obj_data = obj.serialize()
+                self._objects_data[obj_id] = obj_data
+                self.algebra_panel.update_object(obj_data)
+        else:
+            if obj_id in self._objects_data:
+                self._objects_data[obj_id]['name'] = new_name
+                self.algebra_panel.update_object(self._objects_data[obj_id])
 
     def on_console_command(self, command: str) -> None:
         if command == '%clear':

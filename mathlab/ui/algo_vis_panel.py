@@ -106,6 +106,7 @@ class AlgoVisPanel(QDockWidget):
         self.pause_button.clicked.connect(self.on_pause)
         self.step_button.clicked.connect(self.on_step)
         self.reset_button.clicked.connect(self.on_reset)
+        self.fast_forward_button.clicked.connect(self.on_fast_forward)
         self.speed_slider.valueChanged.connect(self.on_speed_changed)
 
     # ------------------------------------------------------------------
@@ -180,6 +181,11 @@ class AlgoVisPanel(QDockWidget):
 
     def on_speed_changed(self, value):
         self.timer.setInterval(int(500 / value))
+
+    def on_fast_forward(self):
+        self.timer.setInterval(50)
+        self.is_playing = True
+        self.timer.start()
 
     def on_timer(self):
         self.algorithm_selected.emit('step', {})
@@ -308,13 +314,13 @@ class AlgoVisPanel(QDockWidget):
                 color = QColor('#22c55e')
             if node == current:
                 color = QColor('#004ac6')
-                radius_size = 25
+                node_radius = 25
             else:
-                radius_size = 20
+                node_radius = 20
 
             circle = QGraphicsEllipseItem(
-                x - radius_size, y - radius_size,
-                radius_size * 2, radius_size * 2
+                x - node_radius, y - node_radius,
+                node_radius * 2, node_radius * 2
             )
             circle.setBrush(QBrush(color))
             circle.setPen(QPen(QColor('#0b1c30'), 2))
@@ -402,7 +408,7 @@ class AlgoVisPanel(QDockWidget):
         min_y = min(p[1] for p in points)
         max_y = max(p[1] for p in points)
 
-        scale = 400 / max(max_x - min_x, max_y - min_y)
+        scale = 400 / max(max_x - min_x, max_y - min_y, 1e-6)
         offset_x = 50 - min_x * scale
         offset_y = 200 - max_y * scale
 

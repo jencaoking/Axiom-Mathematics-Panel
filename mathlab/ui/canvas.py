@@ -82,10 +82,19 @@ class GeometryCanvas(QGraphicsView):
         else:
             zoom_factor = zoom_out_factor
 
+        self.apply_zoom(zoom_factor)
+
+    def apply_zoom(self, zoom_factor):
         new_zoom = self.zoom_factor * zoom_factor
         if self.min_zoom <= new_zoom <= self.max_zoom:
             self.zoom_factor = new_zoom
             self.scale(zoom_factor, zoom_factor)
+
+    def zoom_in(self):
+        self.apply_zoom(1.1)
+
+    def zoom_out(self):
+        self.apply_zoom(1 / 1.1)
 
     # ------------------------------------------------------------------
     # BUG3 修复：set_tool 根据工具类型设置正确的拖动模式
@@ -387,6 +396,13 @@ class GeometryCanvas(QGraphicsView):
 
             obj_info['circle'].setRect(cx - r, cy - r, r * 2, r * 2)
 
+        elif obj_type == 'Polygon':
+            points = obj_data.get('points', [])
+            polygon = QPolygonF()
+            for point in points:
+                polygon.append(QPointF(point[0], point[1]))
+            obj_info['polygon'].setPolygon(polygon)
+
     def remove_object(self, obj_id):
         if obj_id in self.object_map:
             obj_info = self.object_map[obj_id]
@@ -402,4 +418,4 @@ class GeometryCanvas(QGraphicsView):
     def focus_on_object(self, obj_id):
         if obj_id in self.object_map:
             first_item = list(self.object_map[obj_id].values())[0]
-            self.centerOn(first_item.pos())
+            self.centerOn(first_item.sceneBoundingRect().center())

@@ -299,13 +299,22 @@ class AIToolsPanel(QDockWidget):
     # ------------------------------------------------------------------
     # Data helpers
     # ------------------------------------------------------------------
-    def get_drawing_data(self):
+    def get_drawing_data(self, stroke_radius=2):
         data = [[0] * 28 for _ in range(28)]
 
         for x, y in self.drawing_points:
             grid_x = min(max(0, int(x / 10)), 27)
             grid_y = min(max(0, int(y / 10)), 27)
-            data[grid_y][grid_x] = 255
+            
+            for dy in range(-stroke_radius, stroke_radius + 1):
+                for dx in range(-stroke_radius, stroke_radius + 1):
+                    nx = grid_x + dx
+                    ny = grid_y + dy
+                    if 0 <= nx < 28 and 0 <= ny < 28:
+                        distance = (dx ** 2 + dy ** 2) ** 0.5
+                        if distance <= stroke_radius:
+                            intensity = int(255 * (1 - distance / (stroke_radius + 1)))
+                            data[ny][nx] = max(data[ny][nx], intensity)
 
         return data
 

@@ -545,11 +545,11 @@ class PropertiesPanel(QDockWidget):
             # use Unicode superscript 2
             cx_str = f"{abs(cx):.2f}"
             cy_str = f"{abs(cy):.2f}"
-            cx_sign = "-" if cx >= 0 else "+"
-            cy_sign = "-" if cy >= 0 else "+"
+            x_eq_sign = "-" if cx >= 0 else "+"
+            y_eq_sign = "-" if cy >= 0 else "+"
             return (
-                f"(x {cx_sign} {cx_str})\u00b2 + "
-                f"(y {cy_sign} {cy_str})\u00b2 = {r:.2f}\u00b2"
+                f"(x {x_eq_sign} {cx_str})\u00b2 + "
+                f"(y {y_eq_sign} {cy_str})\u00b2 = {r:.2f}\u00b2"
             )
 
         elif obj_type == 'Segment':

@@ -33,7 +33,7 @@ class CommandBar(QToolBar):
             'Point', 'Circle', 'Segment', 'Polygon',
             'Line', 'Ray', 'Angle', 'Midpoint',
             'Perpendicular', 'Parallel', 'Intersection',
-            'Distance', 'Angle', 'Area', 'Clear'
+            'Distance', 'Area', 'Clear'
         ]
         
         self.completer = QCompleter(commands, self)

@@ -325,13 +325,13 @@ class AlgebraPanel(QDockWidget):
             cx = coords.get('cx', 0.0)
             cy = coords.get('cy', 0.0)
             r  = coords.get('r', 1.0)
-            cx_str  = f"{abs(cx):.2f}"
-            cy_str  = f"{abs(cy):.2f}"
-            cx_sign = "-" if cx >= 0 else "+"
-            cy_sign = "-" if cy >= 0 else "+"
+            cx_str = f"{abs(cx):.2f}"
+            cy_str = f"{abs(cy):.2f}"
+            x_eq_sign = "-" if cx >= 0 else "+"
+            y_eq_sign = "-" if cy >= 0 else "+"
             return (
-                f"(x {cx_sign} {cx_str})\u00b2 + "
-                f"(y {cy_sign} {cy_str})\u00b2 = r\u00b2"
+                f"(x {x_eq_sign} {cx_str})\u00b2 + "
+                f"(y {y_eq_sign} {cy_str})\u00b2 = r\u00b2"
             )
 
         elif obj_type == 'Segment':

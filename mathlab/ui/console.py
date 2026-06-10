@@ -84,8 +84,8 @@ class PythonConsole(QDockWidget):
                     elif event.key() == Qt.Key_Tab:
                         self.complete_command()
                         return True
-            except:
-                pass
+            except Exception as e:
+                print(f"Error in console eventFilter: {type(e).__name__}: {e}")
         return False
 
     def append_output(self, text):
