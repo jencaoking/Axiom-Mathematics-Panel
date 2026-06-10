@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsPolygonItem,
     QGraphicsTextItem, QMenu, QGraphicsSceneMouseEvent
 )
-from PySide6.QtGui import QPolygonF
+from PySide6.QtGui import QPolygonF, QPainterPath
 from PySide6.QtGui import QPen, QBrush, QColor, QFont, QCursor, QPainter
 from PySide6.QtCore import Qt, QPointF, QRectF, Signal
 
@@ -48,6 +48,7 @@ class GeometryCanvas(QGraphicsView):
         self.segment_items = {}
         self.circle_items  = {}
         self.polygon_items = {}
+        self.curve_items   = {}  # 存储所有曲线类型（圆锥曲线、函数绘图等）
         self.preview_item  = None
 
     # ------------------------------------------------------------------
@@ -291,6 +292,7 @@ class GeometryCanvas(QGraphicsView):
         self.segment_items.clear()
         self.circle_items.clear()
         self.polygon_items.clear()
+        self.curve_items.clear()
         self.drawing_points.clear()
         self.preview_item = None
 
@@ -366,6 +368,40 @@ class GeometryCanvas(QGraphicsView):
             self.scene_obj.addItem(polygon_item)
             self.object_map[obj_id] = {'polygon': polygon_item}
 
+        # 新增：圆锥曲线和函数绘图
+        elif obj_type in ['Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 
+                          'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus']:
+            points = obj_data.get('points_data', []) or obj_data.get('coordinates', {}).get('points', [])
+            
+            if not points:
+                return
+            
+            # 使用 QPainterPath 绘制平滑曲线
+            path = QPainterPath()
+            if len(points) > 0:
+                path.moveTo(QPointF(points[0][0], points[0][1]))
+                for point in points[1:]:
+                    path.lineTo(QPointF(point[0], point[1]))
+            
+            # 根据类型设置不同颜色
+            color_map = {
+                'Ellipse': QColor('#ff6b00'),
+                'Hyperbola': QColor('#d90429'),
+                'Parabola': QColor('#7209b7'),
+                'ConicSection': QColor('#f72585'),
+                'FunctionPlot': QColor('#4cc9f0'),
+                'ImplicitPlot': QColor('#4361ee'),
+                'PolarPlot': QColor('#3a0ca3'),
+                'Locus': QColor('#f72585'),
+            }
+            color = color_map.get(obj_type, QColor('#004ac6'))
+            
+            curve_item = self.scene_obj.addPath(path, QPen(color, 2), QBrush(Qt.NoBrush))
+            curve_item.setFlags(QGraphicsItem.ItemIsSelectable)
+            
+            self.object_map[obj_id] = {'curve': curve_item}
+            self.curve_items[obj_id] = curve_item
+
     def update_object(self, obj_id, obj_data):
         if obj_id not in self.object_map:
             self.draw_object(obj_id, obj_data)
@@ -403,12 +439,22 @@ class GeometryCanvas(QGraphicsView):
                 polygon.append(QPointF(point[0], point[1]))
             obj_info['polygon'].setPolygon(polygon)
 
+        # 新增：更新曲线对象
+        elif obj_type in ['Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 
+                          'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus']:
+            # 删除旧曲线并重新绘制
+            self.remove_object(obj_id)
+            self.draw_object(obj_id, obj_data)
+
     def remove_object(self, obj_id):
         if obj_id in self.object_map:
             obj_info = self.object_map[obj_id]
             for item in obj_info.values():
                 self.scene_obj.removeItem(item)
             del self.object_map[obj_id]
+            # 如果是曲线对象，也从 curve_items 中删除
+            if obj_id in self.curve_items:
+                del self.curve_items[obj_id]
 
     def select_object(self, obj_id):
         if obj_id in self.object_map:

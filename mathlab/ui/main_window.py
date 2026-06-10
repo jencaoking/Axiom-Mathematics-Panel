@@ -374,6 +374,10 @@ class MainWindow(QMainWindow):
         self.central_widget.circle_added_coords.connect(self.on_circle_added)
         self.central_widget.polygon_added_coords.connect(self.on_polygon_added)
 
+        # 连接 geometry_engine 的监听器
+        if hasattr(self, 'geometry_engine'):
+            self.geometry_engine.add_listener(self.on_geometry_event)
+
         self.algebra_panel.object_selected.connect(self.on_algebra_item_selected)
         self.algebra_panel.object_deleted.connect(self.on_object_deleted)
         self.algebra_panel.object_renamed.connect(self.on_object_renamed)
@@ -398,6 +402,27 @@ class MainWindow(QMainWindow):
         self._objects_data[obj_id] = obj_data
         self.algebra_panel.add_object(obj_data)
         self.central_widget.draw_object(obj_id, obj_data)
+
+    def on_geometry_event(self, event_type: str, data):
+        """处理来自 geometry_engine 的事件"""
+        if event_type == 'object_added':
+            self._add_object(data)
+        elif event_type == 'object_updated':
+            obj_id = data.get('id')
+            if obj_id:
+                self._objects_data[obj_id] = data
+                self.algebra_panel.update_object(data)
+                self.central_widget.update_object(obj_id, data)
+        elif event_type == 'object_removed':
+            obj_id = data
+            if obj_id in self._objects_data:
+                del self._objects_data[obj_id]
+                self.algebra_panel.remove_object(obj_id)
+                self.central_widget.remove_object(obj_id)
+        elif event_type == 'canvas_cleared':
+            self._objects_data.clear()
+            self.algebra_panel.clear()
+            self.central_widget.clear_canvas()
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:

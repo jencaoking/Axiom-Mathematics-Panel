@@ -1,10 +1,12 @@
 import uuid
+import numpy as np
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs
+from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve
 from sympy.parsing.sympy_parser import standard_transformations
 
 class GeometricObject:
-    TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle']
+    TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle', 
+             'Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus']
     
     def __init__(self, obj_id, name, obj_type):
         self.id = obj_id
@@ -15,7 +17,7 @@ class GeometricObject:
         self.constraints = []
         self.depends_on = []
     
-    def update_coordinates(self):
+    def update_coordinates(self, engine=None):
         pass
     
     def to_latex(self):
@@ -42,6 +44,28 @@ class GeometricObject:
         
         if obj_type == 'Polygon':
             obj = Polygon.deserialize(data)
+        elif obj_type == 'Ellipse':
+            coords = data.get('coordinates', {})
+            obj = Ellipse(data['id'], data['name'], data.get('center_id', ''), 
+                         coords.get('a', 2.0), coords.get('b', 1.0), coords.get('rotation', 0))
+        elif obj_type == 'Hyperbola':
+            coords = data.get('coordinates', {})
+            obj = Hyperbola(data['id'], data['name'], data.get('center_id', ''),
+                           coords.get('a', 1.0), coords.get('b', 1.0), coords.get('rotation', 0))
+        elif obj_type == 'Parabola':
+            coords = data.get('coordinates', {})
+            obj = Parabola(data['id'], data['name'], data.get('vertex_id', ''),
+                          coords.get('p', 1.0), coords.get('direction', 'up'))
+        elif obj_type == 'ConicSection':
+            obj = ConicSection.deserialize(data)
+        elif obj_type == 'FunctionPlot':
+            obj = FunctionPlot.deserialize(data)
+        elif obj_type == 'ImplicitPlot':
+            obj = ImplicitPlot.deserialize(data)
+        elif obj_type == 'PolarPlot':
+            obj = PolarPlot.deserialize(data)
+        elif obj_type == 'Locus':
+            obj = Locus.deserialize(data)
         elif obj_type == 'Point':
             coords = data.get('coordinates', {})
             obj = Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
@@ -159,6 +183,444 @@ class Polygon(GeometricObject):
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
         obj.points = data.get('points', [])
+        return obj
+
+class Ellipse(GeometricObject):
+    """椭圆：支持中心点、长轴、短轴定义"""
+    def __init__(self, obj_id, name, center_id, a=2.0, b=1.0, rotation=0):
+        super().__init__(obj_id, name, 'Ellipse')
+        self.center_id = center_id
+        self.a = a  # 半长轴
+        self.b = b  # 半短轴
+        self.rotation = rotation  # 旋转角度（弧度）
+        self.depends_on = [center_id]
+    
+    def update_coordinates(self, engine):
+        center = engine.objects.get(self.center_id)
+        if center:
+            self.coordinates = {
+                'cx': center.coordinates['x'],
+                'cy': center.coordinates['y'],
+                'a': self.a,
+                'b': self.b,
+                'rotation': self.rotation
+            }
+    
+    def to_latex(self):
+        return rf'\frac{{(x-{self.coordinates.get("cx", 0)})^2}}{{{self.a}^2}} + \frac{{(y-{self.coordinates.get("cy", 0)})^2}}{{{self.b}^2}} = 1'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['center_id'] = self.center_id
+        data['a'] = self.a
+        data['b'] = self.b
+        data['rotation'] = self.rotation
+        return data
+
+class Hyperbola(GeometricObject):
+    """双曲线：支持中心点、实轴、虚轴定义"""
+    def __init__(self, obj_id, name, center_id, a=1.0, b=1.0, rotation=0):
+        super().__init__(obj_id, name, 'Hyperbola')
+        self.center_id = center_id
+        self.a = a  # 实半轴
+        self.b = b  # 虚半轴
+        self.rotation = rotation  # 旋转角度（弧度）
+        self.depends_on = [center_id]
+    
+    def update_coordinates(self, engine):
+        center = engine.objects.get(self.center_id)
+        if center:
+            self.coordinates = {
+                'cx': center.coordinates['x'],
+                'cy': center.coordinates['y'],
+                'a': self.a,
+                'b': self.b,
+                'rotation': self.rotation
+            }
+    
+    def to_latex(self):
+        return rf'\frac{{(x-{self.coordinates.get("cx", 0)})^2}}{{{self.a}^2}} - \frac{{(y-{self.coordinates.get("cy", 0)})^2}}{{{self.b}^2}} = 1'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['center_id'] = self.center_id
+        data['a'] = self.a
+        data['b'] = self.b
+        data['rotation'] = self.rotation
+        return data
+
+class Parabola(GeometricObject):
+    """抛物线：支持顶点、焦点或标准方程定义"""
+    def __init__(self, obj_id, name, vertex_id, p=1.0, direction='up'):
+        super().__init__(obj_id, name, 'Parabola')
+        self.vertex_id = vertex_id
+        self.p = p  # 焦距参数
+        self.direction = direction  # 'up', 'down', 'left', 'right'
+        self.depends_on = [vertex_id]
+    
+    def update_coordinates(self, engine):
+        vertex = engine.objects.get(self.vertex_id)
+        if vertex:
+            self.coordinates = {
+                'vx': vertex.coordinates['x'],
+                'vy': vertex.coordinates['y'],
+                'p': self.p,
+                'direction': self.direction
+            }
+    
+    def to_latex(self):
+        vx = self.coordinates.get('vx', 0)
+        vy = self.coordinates.get('vy', 0)
+        if self.direction in ['up', 'down']:
+            sign = 1 if self.direction == 'up' else -1
+            return rf'(x-{vx})^2 = {4*self.p*sign}(y-{vy})'
+        else:
+            sign = 1 if self.direction == 'right' else -1
+            return rf'(y-{vy})^2 = {4*self.p*sign}(x-{vx})'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['vertex_id'] = self.vertex_id
+        data['p'] = self.p
+        data['direction'] = self.direction
+        return data
+
+class ConicSection(GeometricObject):
+    """一般圆锥曲线：通过一般方程 Ax²+Bxy+Cy²+Dx+Ey+F=0 定义"""
+    def __init__(self, obj_id, name, A=1, B=0, C=1, D=0, E=0, F=-1, x_range=(-10, 10), y_range=(-10, 10)):
+        super().__init__(obj_id, name, 'ConicSection')
+        self.A = A
+        self.B = B
+        self.C = C
+        self.D = D
+        self.E = E
+        self.F = F
+        self.x_range = x_range
+        self.y_range = y_range
+        self.equation_str = f'{A}*x**2 + {B}*x*y + {C}*y**2 + {D}*x + {E}*y + {F}'
+        self.points_data = []  # 存储离散点用于绘制
+    
+    def generate_points(self, num_points=500):
+        """通过隐函数求解生成离散点"""
+        try:
+            x_sym, y_sym = symbols('x y')
+            eq = self.A * x_sym**2 + self.B * x_sym * y_sym + self.C * y_sym**2 + self.D * x_sym + self.E * y_sym + self.F
+            
+            points = []
+            x_vals = np.linspace(self.x_range[0], self.x_range[1], num_points)
+            
+            for x_val in x_vals:
+                # 对于每个 x，解关于 y 的二次方程
+                a_coeff = float(self.C)
+                b_coeff = float(self.B * x_val + self.E)
+                c_coeff = float(self.A * x_val**2 + self.D * x_val + self.F)
+                
+                if abs(a_coeff) < 1e-10:
+                    # 退化为线性方程
+                    if abs(b_coeff) > 1e-10:
+                        y_val = -c_coeff / b_coeff
+                        if self.y_range[0] <= y_val <= self.y_range[1]:
+                            points.append((float(x_val), float(y_val)))
+                else:
+                    discriminant = b_coeff**2 - 4*a_coeff*c_coeff
+                    if discriminant >= 0:
+                        sqrt_disc = np.sqrt(discriminant)
+                        y1 = (-b_coeff + sqrt_disc) / (2*a_coeff)
+                        y2 = (-b_coeff - sqrt_disc) / (2*a_coeff)
+                        
+                        if self.y_range[0] <= y1 <= self.y_range[1]:
+                            points.append((float(x_val), float(y1)))
+                        if self.y_range[0] <= y2 <= self.y_range[1] and abs(y2 - y1) > 1e-6:
+                            points.append((float(x_val), float(y2)))
+            
+            self.points_data = points
+            self.coordinates = {'points': points}
+            return points
+        except Exception as e:
+            print(f'Error generating conic section points: {e}')
+            return []
+    
+    def to_latex(self):
+        terms = []
+        if self.A != 0:
+            terms.append(f'{self.A}x^2')
+        if self.B != 0:
+            terms.append(f'{self.B}xy')
+        if self.C != 0:
+            terms.append(f'{self.C}y^2')
+        if self.D != 0:
+            terms.append(f'{self.D}x')
+        if self.E != 0:
+            terms.append(f'{self.E}y')
+        if self.F != 0:
+            terms.append(f'{self.F}')
+        return ' + '.join(terms) + ' = 0' if terms else '0 = 0'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['A'] = self.A
+        data['B'] = self.B
+        data['C'] = self.C
+        data['D'] = self.D
+        data['E'] = self.E
+        data['F'] = self.F
+        data['x_range'] = self.x_range
+        data['y_range'] = self.y_range
+        data['equation_str'] = self.equation_str
+        data['points_data'] = self.points_data
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(
+            data['id'], data['name'],
+            data.get('A', 1), data.get('B', 0), data.get('C', 1),
+            data.get('D', 0), data.get('E', 0), data.get('F', -1),
+            data.get('x_range', (-10, 10)), data.get('y_range', (-10, 10))
+        )
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.points_data = data.get('points_data', [])
+        obj.equation_str = data.get('equation_str', '')
+        return obj
+
+class FunctionPlot(GeometricObject):
+    """显函数绘图：y = f(x)"""
+    def __init__(self, obj_id, name, expression, x_range=(-10, 10), num_points=500):
+        super().__init__(obj_id, name, 'FunctionPlot')
+        self.expression = expression
+        self.x_range = x_range
+        self.num_points = num_points
+        self.points_data = []
+        self._generate_points()
+    
+    def _generate_points(self):
+        """生成离散点用于绘制"""
+        try:
+            x_sym = symbols('x')
+            expr = parse_expr(self.expression, local_dict={'x': x_sym})
+            
+            points = []
+            x_vals = np.linspace(self.x_range[0], self.x_range[1], self.num_points)
+            
+            for x_val in x_vals:
+                try:
+                    y_val = float(expr.subs(x_sym, x_val).evalf())
+                    if not (np.isnan(y_val) or np.isinf(y_val)):
+                        points.append((float(x_val), float(y_val)))
+                except:
+                    continue
+            
+            self.points_data = points
+            self.coordinates = {'points': points}
+        except Exception as e:
+            print(f'Error generating function plot points: {e}')
+            self.points_data = []
+    
+    def to_latex(self):
+        return rf'y = {self.expression}'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['expression'] = self.expression
+        data['x_range'] = self.x_range
+        data['num_points'] = self.num_points
+        data['points_data'] = self.points_data
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(data['id'], data['name'], data.get('expression', 'x'), 
+                  data.get('x_range', (-10, 10)), data.get('num_points', 500))
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.points_data = data.get('points_data', [])
+        return obj
+
+class ImplicitPlot(GeometricObject):
+    """隐函数绘图：f(x,y) = 0"""
+    def __init__(self, obj_id, name, expression, x_range=(-10, 10), y_range=(-10, 10), resolution=400):
+        super().__init__(obj_id, name, 'ImplicitPlot')
+        self.expression = expression
+        self.x_range = x_range
+        self.y_range = y_range
+        self.resolution = resolution
+        self.points_data = []
+        self._generate_points()
+    
+    def _generate_points(self):
+        """使用网格采样和等值线提取生成点"""
+        try:
+            x_sym, y_sym = symbols('x y')
+            expr = parse_expr(self.expression, local_dict={'x': x_sym, 'y': y_sym})
+            
+            # 创建网格
+            x_vals = np.linspace(self.x_range[0], self.x_range[1], self.resolution)
+            y_vals = np.linspace(self.y_range[0], self.y_range[1], self.resolution)
+            X, Y = np.meshgrid(x_vals, y_vals)
+            
+            # 计算函数值
+            Z = np.zeros_like(X)
+            for i in range(self.resolution):
+                for j in range(self.resolution):
+                    try:
+                        val = float(expr.subs({x_sym: X[i,j], y_sym: Y[i,j]}).evalf())
+                        Z[i,j] = val
+                    except:
+                        Z[i,j] = np.nan
+            
+            # 使用简单的等值线提取（Marching Squares 简化版）
+            points = []
+            threshold = 0.0
+            for i in range(self.resolution - 1):
+                for j in range(self.resolution - 1):
+                    # 检查四个角点
+                    vals = [Z[i,j], Z[i,j+1], Z[i+1,j+1], Z[i+1,j]]
+                    
+                    # 如果存在符号变化，说明有等值线穿过
+                    if any(v * threshold <= 0 for v in vals if not np.isnan(v)):
+                        # 简单插值找到近似点
+                        for di in [0, 1]:
+                            for dj in [0, 1]:
+                                if not np.isnan(Z[i+di, j+dj]) and abs(Z[i+di, j+dj]) < 0.1:
+                                    points.append((float(X[i+di, j+dj]), float(Y[i+di, j+dj])))
+            
+            self.points_data = points
+            self.coordinates = {'points': points}
+        except Exception as e:
+            print(f'Error generating implicit plot points: {e}')
+            self.points_data = []
+    
+    def to_latex(self):
+        return rf'{self.expression} = 0'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['expression'] = self.expression
+        data['x_range'] = self.x_range
+        data['y_range'] = self.y_range
+        data['resolution'] = self.resolution
+        data['points_data'] = self.points_data
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(data['id'], data['name'], data.get('expression', 'x**2 + y**2 - 1'),
+                  data.get('x_range', (-10, 10)), data.get('y_range', (-10, 10)),
+                  data.get('resolution', 400))
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.points_data = data.get('points_data', [])
+        return obj
+
+class PolarPlot(GeometricObject):
+    """极坐标绘图：r = f(θ)"""
+    def __init__(self, obj_id, name, expression, theta_range=(0, 2*np.pi), num_points=500):
+        super().__init__(obj_id, name, 'PolarPlot')
+        self.expression = expression
+        self.theta_range = theta_range
+        self.num_points = num_points
+        self.points_data = []
+        self._generate_points()
+    
+    def _generate_points(self):
+        """将极坐标转换为直角坐标并生成点"""
+        try:
+            theta_sym = symbols('theta')
+            expr = parse_expr(self.expression, local_dict={'theta': theta_sym})
+            
+            points = []
+            theta_vals = np.linspace(self.theta_range[0], self.theta_range[1], self.num_points)
+            
+            for theta_val in theta_vals:
+                try:
+                    r_val = float(expr.subs(theta_sym, theta_val).evalf())
+                    if not (np.isnan(r_val) or np.isinf(r_val)):
+                        # 转换为直角坐标
+                        x = r_val * np.cos(theta_val)
+                        y = r_val * np.sin(theta_val)
+                        points.append((float(x), float(y)))
+                except:
+                    continue
+            
+            self.points_data = points
+            self.coordinates = {'points': points}
+        except Exception as e:
+            print(f'Error generating polar plot points: {e}')
+            self.points_data = []
+    
+    def to_latex(self):
+        return rf'r = {self.expression}'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['expression'] = self.expression
+        data['theta_range'] = self.theta_range
+        data['num_points'] = self.num_points
+        data['points_data'] = self.points_data
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        import math
+        obj = cls(data['id'], data['name'], data.get('expression', 'theta'),
+                  tuple(data.get('theta_range', [0, 2*math.pi])), data.get('num_points', 500))
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.points_data = data.get('points_data', [])
+        return obj
+
+class Locus(GeometricObject):
+    """动点轨迹：追踪依赖点的运动轨迹"""
+    def __init__(self, obj_id, name, tracer_point_id, driver_point_id, max_points=1000):
+        super().__init__(obj_id, name, 'Locus')
+        self.tracer_point_id = tracer_point_id  # 被追踪的点
+        self.driver_point_id = driver_point_id  # 驱动运动的点
+        self.max_points = max_points
+        self.trail_points = []  # 轨迹点历史
+        self.points_data = []
+        self.depends_on = [tracer_point_id, driver_point_id]
+    
+    def add_trail_point(self, x, y):
+        """添加一个轨迹点"""
+        self.trail_points.append((x, y))
+        if len(self.trail_points) > self.max_points:
+            self.trail_points.pop(0)
+        self.points_data = self.trail_points.copy()
+        self.coordinates = {'points': self.points_data}
+    
+    def clear_trail(self):
+        """清除轨迹"""
+        self.trail_points.clear()
+        self.points_data.clear()
+        self.coordinates = {'points': []}
+    
+    def to_latex(self):
+        return rf'Locus of {self.name}'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['tracer_point_id'] = self.tracer_point_id
+        data['driver_point_id'] = self.driver_point_id
+        data['max_points'] = self.max_points
+        data['trail_points'] = self.trail_points
+        data['points_data'] = self.points_data
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(data['id'], data['name'], 
+                  data.get('tracer_point_id', ''), data.get('driver_point_id', ''),
+                  data.get('max_points', 1000))
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.trail_points = data.get('trail_points', [])
+        obj.points_data = data.get('points_data', [])
         return obj
 
 class DAG:
@@ -286,6 +748,121 @@ class GeometryEngine:
         polygon.update_coordinates(self)
         self._notify('object_added', polygon.serialize())
         return obj_id
+    
+    def add_ellipse(self, center_id, a=2.0, b=1.0, rotation=0, name=None):
+        """添加椭圆"""
+        if center_id not in self.objects:
+            raise ValueError('Center point not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Ellipse')
+        ellipse = Ellipse(obj_id, name, center_id, a, b, rotation)
+        self.objects[obj_id] = ellipse
+        self.dependencies.add_edge(center_id, obj_id)
+        ellipse.update_coordinates(self)
+        self._notify('object_added', ellipse.serialize())
+        return obj_id
+    
+    def add_hyperbola(self, center_id, a=1.0, b=1.0, rotation=0, name=None):
+        """添加双曲线"""
+        if center_id not in self.objects:
+            raise ValueError('Center point not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Hyperbola')
+        hyperbola = Hyperbola(obj_id, name, center_id, a, b, rotation)
+        self.objects[obj_id] = hyperbola
+        self.dependencies.add_edge(center_id, obj_id)
+        hyperbola.update_coordinates(self)
+        self._notify('object_added', hyperbola.serialize())
+        return obj_id
+    
+    def add_parabola(self, vertex_id, p=1.0, direction='up', name=None):
+        """添加抛物线"""
+        if vertex_id not in self.objects:
+            raise ValueError('Vertex point not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Parabola')
+        parabola = Parabola(obj_id, name, vertex_id, p, direction)
+        self.objects[obj_id] = parabola
+        self.dependencies.add_edge(vertex_id, obj_id)
+        parabola.update_coordinates(self)
+        self._notify('object_added', parabola.serialize())
+        return obj_id
+    
+    def add_conic_section(self, A=1, B=0, C=1, D=0, E=0, F=-1, x_range=(-10, 10), y_range=(-10, 10), name=None):
+        """添加一般圆锥曲线"""
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('ConicSection')
+        conic = ConicSection(obj_id, name, A, B, C, D, E, F, x_range, y_range)
+        conic.generate_points()  # 生成离散点
+        self.objects[obj_id] = conic
+        self._notify('object_added', conic.serialize())
+        return obj_id
+    
+    def add_function_plot(self, expression, x_range=(-10, 10), num_points=500, name=None):
+        """添加显函数绘图 y=f(x)"""
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('FunctionPlot')
+        func_plot = FunctionPlot(obj_id, name, expression, x_range, num_points)
+        self.objects[obj_id] = func_plot
+        self._notify('object_added', func_plot.serialize())
+        return obj_id
+    
+    def add_implicit_plot(self, expression, x_range=(-10, 10), y_range=(-10, 10), resolution=400, name=None):
+        """添加隐函数绘图 f(x,y)=0"""
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('ImplicitPlot')
+        impl_plot = ImplicitPlot(obj_id, name, expression, x_range, y_range, resolution)
+        self.objects[obj_id] = impl_plot
+        self._notify('object_added', impl_plot.serialize())
+        return obj_id
+    
+    def add_polar_plot(self, expression, theta_range=(0, 2*np.pi), num_points=500, name=None):
+        """添加极坐标绘图 r=f(θ)"""
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('PolarPlot')
+        polar_plot = PolarPlot(obj_id, name, expression, theta_range, num_points)
+        self.objects[obj_id] = polar_plot
+        self._notify('object_added', polar_plot.serialize())
+        return obj_id
+    
+    def add_locus(self, tracer_point_id, driver_point_id, max_points=1000, name=None):
+        """添加动点轨迹追踪器"""
+        if tracer_point_id not in self.objects or driver_point_id not in self.objects:
+            raise ValueError('Tracer or driver point not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Locus')
+        locus = Locus(obj_id, name, tracer_point_id, driver_point_id, max_points)
+        self.objects[obj_id] = locus
+        self.dependencies.add_edge(tracer_point_id, obj_id)
+        self.dependencies.add_edge(driver_point_id, obj_id)
+        self._notify('object_added', locus.serialize())
+        return obj_id
+    
+    def update_locus(self, locus_id):
+        """更新轨迹：添加当前追踪点位置"""
+        if locus_id not in self.objects:
+            return
+        
+        locus = self.objects[locus_id]
+        if locus.type != 'Locus':
+            return
+        
+        tracer = self.objects.get(locus.tracer_point_id)
+        if tracer:
+            locus.add_trail_point(tracer.coordinates['x'], tracer.coordinates['y'])
+            self._notify('object_updated', locus.serialize())
     
     def remove_object(self, obj_id):
         if obj_id not in self.objects:
