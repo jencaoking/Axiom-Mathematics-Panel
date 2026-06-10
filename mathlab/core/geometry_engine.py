@@ -96,6 +96,12 @@ class Segment(GeometricObject):
     
     def to_latex(self):
         return rf'\overline{{{self.name}}}'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['point1_id'] = self.point1_id
+        data['point2_id'] = self.point2_id
+        return data
 
 class Circle(GeometricObject):
     def __init__(self, obj_id, name, center_id, radius=1.0):
@@ -115,6 +121,12 @@ class Circle(GeometricObject):
     
     def to_latex(self):
         return rf'Circle({self.name})'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['center_id'] = self.center_id
+        data['radius'] = self.radius
+        return data
 
 class Polygon(GeometricObject):
     def __init__(self, obj_id, name, point_ids):
@@ -334,8 +346,9 @@ class GeometryEngine:
         points = self.get_objects_by_type('Point')
         
         for point in points:
-            x_sym = symbols(f'x_{point.id}')
-            y_sym = symbols(f'y_{point.id}')
+            safe_id = point.id.replace('-', '_')
+            x_sym = symbols(f'x_{safe_id}')
+            y_sym = symbols(f'y_{safe_id}')
             var_to_idx[(point.id, 'x')] = len(variables)
             var_to_idx[(point.id, 'y')] = len(variables) + 1
             variables.extend([x_sym, y_sym])
@@ -377,7 +390,8 @@ class GeometryEngine:
             
             for eq in equations:
                 try:
-                    val = float(eq.subs(var_dict).evalf())
+                    eq_expr = eq.lhs - eq.rhs if isinstance(eq, Eq) else eq
+                    val = float(eq_expr.subs(var_dict).evalf())
                     result.append(val)
                 except:
                     result.append(0.0)

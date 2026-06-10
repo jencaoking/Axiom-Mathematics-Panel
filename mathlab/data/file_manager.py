@@ -90,7 +90,7 @@ class FileMetadata:
                 while chunk := f.read(65536):
                     md5.update(chunk)
             return md5.hexdigest()
-        except:
+        except (OSError, IOError):
             return ''
 
 class FileIndex:
@@ -173,7 +173,7 @@ class FileIndex:
 
     def get_recent_files(self, limit: int = 10) -> List[Dict]:
         recent = []
-        for path in self.recent_files[-limit:]:
+        for path in reversed(self.recent_files[-limit:]):
             if path in self.entries:
                 recent.append(self.entries[path])
         return recent
@@ -336,13 +336,13 @@ class FileManager:
         return self.index.get_statistics()
 
     def categorize_project(self, file_path: str, category: FileCategory, tags: Optional[List[str]] = None) -> Dict:
-        entry = self.index.get_entry(file_path)
-        if not entry:
+        abs_path = os.path.abspath(file_path)
+        if abs_path not in self.index.entries:
             return {'success': False, 'error': 'Project not found in index'}
 
-        entry['category'] = category.value
+        self.index.entries[abs_path]['category'] = category.value
         if tags:
-            entry['tags'] = tags
+            self.index.entries[abs_path]['tags'] = tags
 
         self.index.save()
         return {'success': True}

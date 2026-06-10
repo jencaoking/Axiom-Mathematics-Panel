@@ -7,7 +7,11 @@ class ProjectManager:
         self.current_project = None
         self.objects = {}
         self.console_history = []
-        self.settings = {}
+        self.settings = {
+            'created': datetime.now().isoformat(),
+            'modified': datetime.now().isoformat(),
+            'version': '1.0'
+        }
     
     def new_project(self):
         self.current_project = None

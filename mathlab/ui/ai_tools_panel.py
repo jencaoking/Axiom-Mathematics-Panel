@@ -401,3 +401,78 @@ class AIToolsPanel(QDockWidget):
 
     def append_training_output(self, text):
         self.output_area.appendPlainText(text)
+
+    # ------------------------------------------------------------------
+    # AI Assistant Chat Methods
+    # ------------------------------------------------------------------
+    def on_send_message(self):
+        user_text = self.chat_input.text().strip()
+        if not user_text:
+            return
+
+        self.chat_display.append(f"<b style='color: #004ac6;'>{t('ai_tools.you')}:</b> {user_text}")
+        self.chat_input.clear()
+        self.chat_input.setEnabled(False)
+        self.send_button.setEnabled(False)
+
+        system_context = self._get_system_context()
+
+        provider = AIProvider(self.provider_combo.currentData())
+        config = AIRequestConfig(provider=provider)
+
+        self.worker = AIRequestWorker(user_text, system_context, config)
+        self.worker.on('chunk_received', self.on_chunk_received)
+        self.worker.on('action_required', self.on_action_required)
+        self.worker.on('finished', self.on_request_finished)
+        self.worker.on('error', self.on_request_error)
+
+        self.worker_thread = QThread()
+        self.worker.moveToThread(self.worker_thread)
+        
+        self.worker_thread.started.connect(self.worker.run)
+        self.worker_thread.start()
+
+        self.chat_display.append(f"<b style='color: #006058;'>{t('ai_tools.assistant')}:</b> ")
+
+    def _get_system_context(self):
+        system_context = {}
+        main_win = self.parent()
+        
+        if hasattr(main_win, 'geometry_engine'):
+            try:
+                system_context['geometry'] = main_win.geometry_engine.serialize_all()
+            except Exception:
+                system_context['geometry'] = {}
+        
+        if hasattr(main_win, 'cas_provider'):
+            system_context['cas_enabled'] = True
+        
+        return system_context
+
+    def on_chunk_received(self, text_chunk: str):
+        cursor = self.chat_display.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(text_chunk)
+        self.chat_display.setTextCursor(cursor)
+        self.chat_display.verticalScrollBar().setValue(
+            self.chat_display.verticalScrollBar().maximum()
+        )
+
+    def on_action_required(self, action_data: dict):
+        self.action_requested.emit(action_data)
+
+    def on_request_finished(self):
+        self.chat_display.append("\n")
+        self.chat_input.setEnabled(True)
+        self.send_button.setEnabled(True)
+        self.chat_input.setFocus()
+        
+        if self.worker_thread:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+        self.worker = None
+
+    def on_request_error(self, error_msg: str):
+        self.chat_display.append(f"<span style='color: #dc2626;'>{t('ai_tools.error')}: {error_msg}</span>")
+        self.on_request_finished()
