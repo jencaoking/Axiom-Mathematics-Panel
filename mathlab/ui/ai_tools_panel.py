@@ -20,7 +20,7 @@ except ImportError:
 
 
 class AIToolsPanel(QDockWidget):
-    fit_requested = Signal(list, str)
+    fit_requested = Signal(list, str, dict)
     cluster_requested = Signal(list, str, dict)
     recognize_requested = Signal(list)
     generate_points = Signal(int)
@@ -304,7 +304,7 @@ class AIToolsPanel(QDockWidget):
         else:
             params = {}
 
-        self.fit_requested.emit(self.scatter_points, model_type)
+        self.fit_requested.emit(self.scatter_points, model_type, params)
 
     def on_clear_points(self):
         self.scatter_points.clear()

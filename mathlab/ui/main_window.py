@@ -371,6 +371,10 @@ class MainWindow(QMainWindow):
         self.command_bar.command_entered.connect(self.on_command_entered)
 
         self.ai_tools_panel.action_requested.connect(self.execute_ai_action)
+        self.ai_tools_panel.fit_requested.connect(self.on_ai_fit_requested)
+        self.ai_tools_panel.cluster_requested.connect(self.on_ai_cluster_requested)
+        self.ai_tools_panel.recognize_requested.connect(self.on_ai_recognize_requested)
+        self.ai_tools_panel.generate_points.connect(self.on_ai_generate_points)
 
     def _add_object(self, obj_data: dict) -> None:
         obj_id = obj_data['id']
@@ -542,6 +546,47 @@ class MainWindow(QMainWindow):
                         'error': '',
                         'more': False
                     })
+
+    def on_ai_fit_requested(self, points: list, model_type: str, params: dict = None) -> None:
+        if not points:
+            return
+
+        if params is None:
+            params = {}
+
+        if model_type == 'linear_regression':
+            result = self.ai_manager.fit_linear_regression(points)
+        elif model_type == 'polynomial_regression':
+            degree = params.get('degree', 2)
+            result = self.ai_manager.fit_polynomial_regression(points, degree=degree)
+        elif model_type == 'neural_network':
+            result = self.ai_manager.fit_neural_network(points)
+        else:
+            result = {'success': False, 'error': 'Unknown model type'}
+
+        self.ai_tools_panel.set_fit_result(result)
+
+    def on_ai_cluster_requested(self, points: list, method: str, params: dict) -> None:
+        if not points:
+            return
+
+        if method == 'k-means':
+            result = self.ai_manager.cluster_kmeans(points, n_clusters=params.get('n_clusters', 3))
+        else:
+            result = self.ai_manager.cluster_dbscan(points)
+
+        self.ai_tools_panel.set_cluster_result(result)
+
+    def on_ai_recognize_requested(self, image_data: list) -> None:
+        result = self.ai_manager.recognize_digit(image_data)
+        self.ai_tools_panel.set_recognition_result(result)
+
+    def on_ai_generate_points(self, n: int) -> None:
+        result = self.ai_manager.generate_random_points(n, x_range=(-200, 200), y_range=(-200, 200))
+        if result['success']:
+            self.ai_tools_panel.set_scatter_points(result['points'])
+            for x, y in result['points']:
+                self.on_point_added(x, y)
 
     def on_console_command(self, command: str) -> None:
         if command == '%clear':
