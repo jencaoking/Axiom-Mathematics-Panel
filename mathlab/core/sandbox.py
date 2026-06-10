@@ -38,10 +38,13 @@ class SandboxProcess:
             code_file_path = f.name
         
         env = os.environ.copy()
-        if sys.platform == 'win32':
-            env['PYTHONPATH'] = ';'.join(sys.path)
+        current_pythonpath = env.get('PYTHONPATH', '')
+        extra_paths = ';'.join(sys.path) if sys.platform == 'win32' else ':'.join(sys.path)
+        
+        if current_pythonpath:
+            env['PYTHONPATH'] = f"{current_pythonpath}{';' if sys.platform == 'win32' else ':'}{extra_paths}"
         else:
-            env['PYTHONPATH'] = ':'.join(sys.path)
+            env['PYTHONPATH'] = extra_paths
         
         creation_flags = 0
         if sys.platform == 'win32':
@@ -62,11 +65,13 @@ class SandboxProcess:
         
         stdout_thread = threading.Thread(
             target=self._read_output,
-            args=(self.process.stdout, self.output_queue)
+            args=(self.process.stdout, self.output_queue),
+            daemon=True
         )
         stderr_thread = threading.Thread(
             target=self._read_output,
-            args=(self.process.stderr, self.error_queue)
+            args=(self.process.stderr, self.error_queue),
+            daemon=True
         )
         
         stdout_thread.start()
@@ -125,10 +130,15 @@ class SandboxProcess:
                     subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.process.pid)])
                 else:
                     self.process.terminate()
-                    self.process.wait(timeout=5)
-            except:
-                pass
-            self.running = False
+                    try:
+                        self.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.process.kill()
+                        self.process.wait()
+            except Exception as e:
+                print(f"Warning: Failed to terminate process: {e}")
+            finally:
+                self.running = False
     
     def is_running(self):
         return self.running

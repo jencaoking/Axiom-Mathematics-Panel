@@ -73,6 +73,8 @@ class MainWindow(QMainWindow):
 
         self.current_project = None
 
+        self.active_workers = set()
+
         self.connect_signals()
 
         get_i18n().add_language_change_listener(self._on_language_changed)
@@ -496,10 +498,12 @@ class MainWindow(QMainWindow):
                 obj_data = obj.serialize()
                 self._objects_data[obj_id] = obj_data
                 self.algebra_panel.update_object(obj_data)
+                self.central_widget.update_object(obj_id, obj_data)
         else:
             if obj_id in self._objects_data:
                 self._objects_data[obj_id]['name'] = new_name
                 self.algebra_panel.update_object(self._objects_data[obj_id])
+                self.central_widget.update_object(obj_id, self._objects_data[obj_id])
 
     def execute_ai_action(self, action_data: dict) -> None:
         action = action_data.get('action')
@@ -573,16 +577,31 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"正在训练 {model_type} 模型，请稍候...")
 
         self.fit_worker = AIFitWorker(self.ai_manager, points, model_type, **params)
-        self.fit_worker.finished.connect(self.on_fit_worker_finished)
-        self.fit_worker.error.connect(self.on_ai_worker_error)
+        self.active_workers.add(self.fit_worker)
+        self.fit_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.fit_worker))
+        self.fit_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.fit_worker))
         self.fit_worker.start()
 
-    def on_fit_worker_finished(self, result: dict):
+    def on_ai_worker_finished(self, result: dict, worker):
+        if worker in self.active_workers:
+            self.active_workers.remove(worker)
+            worker.deleteLater()
+        
         self.ai_tools_panel.set_loading_state(False)
-        self.statusBar().showMessage("模型训练完成", 3000)
-        self.ai_tools_panel.set_fit_result(result)
-        self.fit_worker.deleteLater()
-        self.fit_worker = None
+        
+        # 简单的类型判断来分发结果
+        if isinstance(worker, AIFitWorker):
+            self.statusBar().showMessage("模型训练完成", 3000)
+            self.ai_tools_panel.set_fit_result(result)
+        elif isinstance(worker, AIClusterWorker):
+            self.statusBar().showMessage("聚类分析完成", 3000)
+            self.ai_tools_panel.set_cluster_result(result)
+        elif isinstance(worker, AIRecognizeWorker):
+            self.statusBar().showMessage("识别完成", 3000)
+            self.ai_tools_panel.set_recognition_result(result)
+
+    def on_fit_worker_finished(self, result: dict):
+        pass  # Deprecated, handled by on_ai_worker_finished
 
     def on_ai_cluster_requested(self, points: list, method: str, params: dict) -> None:
         if not points:
@@ -592,60 +611,50 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"正在进行 {method} 聚类分析...")
 
         self.cluster_worker = AIClusterWorker(self.ai_manager, points, method, params)
-        self.cluster_worker.finished.connect(self.on_cluster_worker_finished)
-        self.cluster_worker.error.connect(self.on_ai_worker_error)
+        self.active_workers.add(self.cluster_worker)
+        self.cluster_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.cluster_worker))
+        self.cluster_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.cluster_worker))
         self.cluster_worker.start()
 
     def on_cluster_worker_finished(self, result: dict):
-        self.ai_tools_panel.set_loading_state(False)
-        self.statusBar().showMessage("聚类分析完成", 3000)
-        self.ai_tools_panel.set_cluster_result(result)
-        self.cluster_worker.deleteLater()
-        self.cluster_worker = None
+        pass  # Deprecated, handled by on_ai_worker_finished
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage("正在识别数字...")
 
         self.recognize_worker = AIRecognizeWorker(self.ai_manager, image_data)
-        self.recognize_worker.finished.connect(self.on_recognize_worker_finished)
-        self.recognize_worker.error.connect(self.on_ai_worker_error)
+        self.active_workers.add(self.recognize_worker)
+        self.recognize_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.recognize_worker))
+        self.recognize_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.recognize_worker))
         self.recognize_worker.start()
 
     def on_recognize_worker_finished(self, result: dict):
-        self.ai_tools_panel.set_loading_state(False)
-        self.statusBar().showMessage("识别完成", 3000)
-        self.ai_tools_panel.set_recognition_result(result)
-        self.recognize_worker.deleteLater()
-        self.recognize_worker = None
+        pass  # Deprecated, handled by on_ai_worker_finished
 
-    def on_ai_worker_error(self, error_msg: str):
-        self.ai_tools_panel.set_loading_state(False)
-        self.statusBar().showMessage("后台运算出错！", 5000)
+    def on_ai_worker_error(self, error_msg: str, worker=None):
+        if worker and worker in self.active_workers:
+            self.active_workers.remove(worker)
+            worker.deleteLater()
         
-        if hasattr(self, 'fit_worker') and self.fit_worker:
-            self.fit_worker.deleteLater()
-            self.fit_worker = None
-        if hasattr(self, 'cluster_worker') and self.cluster_worker:
-            self.cluster_worker.deleteLater()
-            self.cluster_worker = None
-        if hasattr(self, 'recognize_worker') and self.recognize_worker:
-            self.recognize_worker.deleteLater()
-            self.recognize_worker = None
-        if hasattr(self, 'generate_points_worker') and self.generate_points_worker:
-            self.generate_points_worker.deleteLater()
-            self.generate_points_worker = None
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage(f"后台运算出错: {error_msg}", 5000)
 
     def on_ai_generate_points(self, n: int) -> None:
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage("正在生成随机点...")
 
         self.generate_points_worker = AIGeneratePointsWorker(self.ai_manager, n, x_range=(-200, 200), y_range=(-200, 200))
-        self.generate_points_worker.finished.connect(self.on_generate_points_worker_finished)
-        self.generate_points_worker.error.connect(self.on_ai_worker_error)
+        self.active_workers.add(self.generate_points_worker)
+        self.generate_points_worker.finished.connect(lambda res: self.on_generate_points_worker_finished(res, self.generate_points_worker))
+        self.generate_points_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.generate_points_worker))
         self.generate_points_worker.start()
 
-    def on_generate_points_worker_finished(self, result: dict):
+    def on_generate_points_worker_finished(self, result: dict, worker):
+        if worker in self.active_workers:
+            self.active_workers.remove(worker)
+            worker.deleteLater()
+        
         self.ai_tools_panel.set_loading_state(False)
         self.statusBar().showMessage("随机点生成完成", 3000)
         
@@ -653,9 +662,6 @@ class MainWindow(QMainWindow):
             self.ai_tools_panel.set_scatter_points(result['points'])
             for x, y in result['points']:
                 self.on_point_added(x, y)
-        
-        self.generate_points_worker.deleteLater()
-        self.generate_points_worker = None
 
     def on_console_command(self, command: str) -> None:
         if command == '%clear':
@@ -718,6 +724,8 @@ class MainWindow(QMainWindow):
         self.properties_panel.clear()
         self.console.clear()
         self._objects_data.clear()
+        if hasattr(self, 'geometry_engine'):
+            self.geometry_engine.clear()
         self.current_project = None
 
     def on_open_project(self) -> None:

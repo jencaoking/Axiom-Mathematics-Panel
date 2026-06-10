@@ -259,7 +259,19 @@ class AIManager:
         predictions = poly(X)
         mse = float(mean_squared_error(y, predictions))
         
-        equation = 'y = ' + str(poly)
+        # 规范化公式字符串，避免多行输出
+        terms = []
+        for i, c in enumerate(coefficients):
+            power = len(coefficients) - 1 - i
+            if abs(c) < 1e-10:
+                continue
+            if power == 0:
+                terms.append(f"{c:.4f}")
+            elif power == 1:
+                terms.append(f"{c:.4f}x")
+            else:
+                terms.append(f"{c:.4f}x^{power}")
+        equation = 'y = ' + ' + '.join(terms) if terms else 'y = 0'
         
         return {
             'success': True,

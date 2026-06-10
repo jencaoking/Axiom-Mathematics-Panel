@@ -56,8 +56,9 @@ def main():
             window.algebra_panel.update_object(data)
             window.central_widget.update_object(data['id'], data)
         elif event_type == 'object_removed':
-            window.algebra_panel.remove_object(data)
-            window.central_widget.remove_object(data)
+            obj_id = data['id'] if isinstance(data, dict) else data
+            window.algebra_panel.remove_object(obj_id)
+            window.central_widget.remove_object(obj_id)
     
     window.geometry_engine.add_listener(on_geometry_event)
     
