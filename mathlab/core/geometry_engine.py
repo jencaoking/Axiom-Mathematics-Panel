@@ -41,9 +41,8 @@ class GeometricObject:
         obj = None
         
         if obj_type == 'Polygon':
-            return Polygon.deserialize(data)
-        
-        if obj_type == 'Point':
+            obj = Polygon.deserialize(data)
+        elif obj_type == 'Point':
             coords = data.get('coordinates', {})
             obj = Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
         elif obj_type == 'Segment':

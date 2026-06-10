@@ -51,7 +51,7 @@ class PythonREPL:
         
         return result, output, error
     
-    def execute(self, code_str):
+    def execute(self, code_str, timeout=5):
         self.running = True
         
         if code_str.strip():
@@ -60,15 +60,33 @@ class PythonREPL:
         if code_str.strip().startswith('%'):
             return self._execute_command(code_str)
         
-        def run_code():
-            return self.console.push(code_str)
+        start_time = time.time()
+        timeout_occurred = [False]
         
-        more, output, error = self._capture_output(run_code)
+        def timeout_tracer(frame, event, arg):
+            if time.time() - start_time > timeout:
+                timeout_occurred[0] = True
+                raise TimeoutError(f"Execution timed out after {timeout} seconds")
+            return timeout_tracer
+        
+        def run_code():
+            old_trace = sys.settrace(timeout_tracer)
+            try:
+                return self.console.push(code_str)
+            finally:
+                sys.settrace(old_trace)
+        
+        more, output, error = None, "", ""
+        try:
+            more, output, error = self._capture_output(run_code)
+        except TimeoutError as e:
+            error = str(e)
+            more = False
         
         self.running = False
         
         return {
-            'success': not more,
+            'success': not more and not timeout_occurred[0],
             'output': output,
             'error': error,
             'more': more
