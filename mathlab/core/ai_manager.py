@@ -90,8 +90,8 @@ class AIManager:
         X = np.array([p[0] for p in points], dtype=np.float64)
         y = np.array([p[1] for p in points], dtype=np.float64)
         
-        coefficients = np.polyfit(X, y, degree)
-        poly = np.poly1d(coefficients)
+        coefficients = np.polyfit(X, y, degree)[::-1]
+        poly = np.poly1d(coefficients[::-1])
         
         predictions = poly(X)
         mse = float(mean_squared_error(y, predictions))

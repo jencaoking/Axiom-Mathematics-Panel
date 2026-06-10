@@ -4,6 +4,7 @@ import sys
 import re
 import contextlib
 import builtins
+import time
 from collections import deque
 
 class PythonREPL:
