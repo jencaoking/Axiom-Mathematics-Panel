@@ -400,9 +400,9 @@ class FunctionExplorerPanel(QDockWidget):
             if transform_type == 'shift':
                 # 平移: f(x-a) + b
                 if factor_x != 0:
-                    # 水平平移: x -> (x - shift)
+                    # 水平平移: x -> (x - shift)，使用正则整词匹配避免替换 exp、max 等
                     shift = factor_x * 1.0  # 每次平移1个单位
-                    transformed_expr = transformed_expr.replace('x', f'(x - {shift})')
+                    transformed_expr = re.sub(r'\bx\b', f'(x - {shift})', transformed_expr)
                 if factor_y != 0:
                     # 垂直平移: f(x) + shift
                     shift = factor_y * 1.0
@@ -411,8 +411,8 @@ class FunctionExplorerPanel(QDockWidget):
             elif transform_type == 'scale':
                 # 伸缩: f(ax) * b
                 if factor_x != 1:
-                    # 水平伸缩: x -> x/a
-                    transformed_expr = transformed_expr.replace('x', f'(x / {factor_x})')
+                    # 水平伸缩: x -> x/a，使用正则整词匹配
+                    transformed_expr = re.sub(r'\bx\b', f'(x / {factor_x})', transformed_expr)
                 if factor_y != 1:
                     # 垂直伸缩: f(x) * b
                     transformed_expr = f'{factor_y} * ({transformed_expr})'
@@ -420,8 +420,8 @@ class FunctionExplorerPanel(QDockWidget):
             elif transform_type == 'reflect':
                 # 反射
                 if factor_x == -1:
-                    # 关于y轴反射: x -> -x
-                    transformed_expr = transformed_expr.replace('x', '(-x)')
+                    # 关于y轴反射: x -> -x，使用正则整词匹配
+                    transformed_expr = re.sub(r'\bx\b', '(-x)', transformed_expr)
                 if factor_y == -1:
                     # 关于x轴反射: f(x) -> -f(x)
                     transformed_expr = f'-({transformed_expr})'

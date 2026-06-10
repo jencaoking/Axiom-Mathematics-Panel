@@ -731,10 +731,12 @@ class PreferencesDialog(QDialog):
         self.settings.update({"ui_font": family, "ui_font_size": size})
         self.font_changed.emit(family, size)
 
+        # 语言已在 _on_lang_combo_changed 中处理，此处不再重复发射
         lang_code = self.lang_combo.currentData()
         if lang_code:
             self.settings["language"] = lang_code
-            self.language_changed.emit(lang_code)
+            # 移除重复的 language_changed 发射，避免 retranslate_ui 被调用两次
+            # self.language_changed.emit(lang_code)
 
         gfx = {
             "line_width": self.line_width_spin.value(),

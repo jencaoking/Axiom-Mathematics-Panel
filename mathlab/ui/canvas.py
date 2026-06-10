@@ -295,6 +295,9 @@ class GeometryCanvas(QGraphicsView):
         self.curve_items.clear()
         self.drawing_points.clear()
         self.preview_item = None
+        # 重置绘制状态，防止下次 mouseMoveEvent 操作野指针
+        self.current_tool = 'select'
+        self.setDragMode(QGraphicsView.RubberBandDrag)
 
     # ------------------------------------------------------------------
     # 由 main_window 调用，统一绘制并写入 object_map

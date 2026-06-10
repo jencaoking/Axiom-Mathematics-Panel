@@ -490,8 +490,12 @@ class AIToolsPanel(QDockWidget):
         if self.worker_thread:
             self.worker_thread.quit()
             self.worker_thread.wait()
+            # 清理线程和 worker，防止内存泄漏
+            self.worker_thread.deleteLater()
             self.worker_thread = None
-        self.worker = None
+        if self.worker:
+            self.worker.deleteLater()
+            self.worker = None
 
     def on_request_error(self, error_msg: str):
         self.chat_display.append(f"<span style='color: #dc2626;'>{t('ai_tools.error')}: {error_msg}</span>")

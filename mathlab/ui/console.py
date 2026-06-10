@@ -117,6 +117,10 @@ class PythonConsole(QDockWidget):
         self.execute_command.emit(command)
 
     def on_stop(self):
+        # Guard: 如果 stop_button 已禁用，说明没有命令在执行，直接返回
+        if not self.stop_button.isEnabled():
+            return
+        
         self.stop_execution.emit()
         self.append_output('\n' + t('console.execution_stopped') + '\n')
         self.append_prompt()

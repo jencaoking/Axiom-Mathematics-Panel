@@ -35,8 +35,10 @@ class AutocompleteTextEdit(QPlainTextEdit):
         prefix = self.completer.completionPrefix()
         extra = len(completion) - len(prefix)
         
-        tc.insertText(completion[-extra:])
-        self.setTextCursor(tc)
+        # 当 extra > 0 时才插入剩余部分，避免重复插入
+        if extra > 0:
+            tc.insertText(completion[-extra:])
+            self.setTextCursor(tc)
 
     def text_under_cursor(self):
         tc = self.textCursor()

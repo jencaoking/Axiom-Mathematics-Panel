@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
 
         self._objects_data: dict = {}
+        self.current_function_id = None  # 跟踪当前正在编辑的函数ID
 
         self.geometry_engine = GeometryEngine()
         self.python_repl = PythonREPL()
@@ -321,8 +322,12 @@ class MainWindow(QMainWindow):
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
 
         self._connect_tool_actions()
-        self.zoom_in_action.triggered.connect(self.on_zoom_in)
-        self.zoom_out_action.triggered.connect(self.on_zoom_out)
+        
+        # 初始化缩放 Action（避免重复追加）
+        zoom_in_act = self.zoom_in_action
+        zoom_out_act = self.zoom_out_action
+        zoom_in_act.triggered.connect(self.on_zoom_in)
+        zoom_out_act.triggered.connect(self.on_zoom_out)
 
     def _connect_tool_actions(self):
         tool_map = [
@@ -472,6 +477,9 @@ class MainWindow(QMainWindow):
             else:
                 return
             
+            # 保存当前函数ID，用于后续更新
+            self.current_function_id = obj_id
+            
             # 保存原始表达式和参数信息到对象中
             obj = self.geometry_engine.get_object(obj_id)
             if obj:
@@ -491,14 +499,11 @@ class MainWindow(QMainWindow):
             if not expression:
                 return
             
-            # 查找最近添加的同类型函数并更新
-            objects = self.geometry_engine.get_objects_by_type(plot_type)
-            if objects:
-                # 找到最后一个添加的函数（假设是用户刚创建的）
-                last_func = objects[-1]
-                
-                # 重新生成点数据
-                if hasattr(last_func, '_generate_points'):
+            # 使用保存的 current_function_id 定位对象，而非假设最后一个
+            obj_id = self.current_function_id
+            if obj_id:
+                last_func = self.geometry_engine.get_object(obj_id)
+                if last_func and hasattr(last_func, '_generate_points'):
                     last_func.expression = expression
                     last_func._generate_points()
                     
@@ -623,7 +628,8 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'geometry_engine'):
                 self.geometry_engine.add_point(x, y, name=name)
             else:
-                self.on_point_added(x, y, name)
+                # 移除错误的第三个参数，on_point_added 只接受2个参数
+                self.on_point_added(x, y)
         
         elif action == 'add_segment':
             point1_id = action_data.get('point1_id')
@@ -691,13 +697,7 @@ class MainWindow(QMainWindow):
         self.fit_worker.start()
 
     def on_ai_worker_finished(self, result: dict, worker):
-        if worker in self.active_workers:
-            self.active_workers.remove(worker)
-            worker.deleteLater()
-        
-        self.ai_tools_panel.set_loading_state(False)
-        
-        # 简单的类型判断来分发结果
+        # 在 deleteLater 之前完成所有 worker 类型判断，避免竞态
         if isinstance(worker, AIFitWorker):
             self.statusBar().showMessage("模型训练完成", 3000)
             self.ai_tools_panel.set_fit_result(result)
@@ -707,6 +707,11 @@ class MainWindow(QMainWindow):
         elif isinstance(worker, AIRecognizeWorker):
             self.statusBar().showMessage("识别完成", 3000)
             self.ai_tools_panel.set_recognition_result(result)
+        
+        # 清理 worker
+        if worker in self.active_workers:
+            self.active_workers.remove(worker)
+            worker.deleteLater()
 
     def on_fit_worker_finished(self, result: dict):
         pass  # Deprecated, handled by on_ai_worker_finished

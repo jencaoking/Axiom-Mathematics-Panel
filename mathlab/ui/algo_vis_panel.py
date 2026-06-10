@@ -16,6 +16,7 @@ except ImportError:
 
 class AlgoVisPanel(QDockWidget):
     algorithm_selected = Signal(str, dict)
+    step_requested = Signal()  # 新增专用信号，避免使用字符串 'step'
 
     def __init__(self, parent=None):
         super().__init__(t('algo_vis.title'), parent)
@@ -171,7 +172,8 @@ class AlgoVisPanel(QDockWidget):
     def on_step(self):
         self.timer.stop()
         self.is_playing = False
-        self.algorithm_selected.emit('step', {})
+        # 使用专用信号而非字符串 'step'，保持协议一致性
+        self.step_requested.emit()
 
     def on_reset(self):
         self.on_pause()
@@ -188,7 +190,8 @@ class AlgoVisPanel(QDockWidget):
         self.timer.start()
 
     def on_timer(self):
-        self.algorithm_selected.emit('step', {})
+        # 使用专用信号而非字符串 'step'，保持协议一致性
+        self.step_requested.emit()
 
     # ------------------------------------------------------------------
     # Visualization dispatcher
