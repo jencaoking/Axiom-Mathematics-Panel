@@ -1,12 +1,14 @@
 /* =============================================================
    Axiom Mathematics Panel — Design System Stylesheet
-   Aligned to DESIGN.md  ·  All tokens from colour & type spec
+   Aligned to DESIGN.md · All tokens from colour & type spec
    =============================================================
 
-   COLOUR TOKENS
+   COLOUR TOKENS (from DESIGN.md)
    ─────────────────────────────────────────────────────────────
    surface:                     #f8f9ff
    surface-dim:                 #cbdbf5
+   surface-bright:              #f8f9ff
+   surface-container-lowest:    #ffffff
    surface-container-low:       #eff4ff
    surface-container:           #e5eeff
    surface-container-high:      #dce9ff
@@ -18,6 +20,7 @@
    inverse-on-surface:          #eaf1ff
    outline:                     #737686
    outline-variant:             #c3c6d7
+   surface-tint:                #0053db
    primary:                     #004ac6
    on-primary:                  #ffffff
    primary-container:           #2563eb
@@ -29,11 +32,32 @@
    ─────────────────────────────────────────────────────────────
    UI font   : Inter, Segoe UI, sans-serif
    Code font : Consolas, monospace
-   label-caps: 11px / 700 / letter-spacing 0.05em / uppercase
-   body-base : 14px / 400
-   body-sm   : 12px / 400
-   headline  : 14px / 600
-   code      : 13px / 400
+   display   : 24px / 32px / 600
+   headline  : 18px / 24px / 600
+   body-base : 14px / 20px / 400
+   body-sm   : 12px / 16px / 400
+   code      : 13px / 20px / 400
+   label-caps: 11px / 16px / 700 / letter-spacing 0.05em / uppercase
+
+   SPACING TOKENS
+   ─────────────────────────────────────────────────────────────
+   unit:             4px
+   xs:               4px
+   sm:               8px
+   md:               16px
+   lg:               24px
+   xl:               32px
+   panel-gap:        1px
+   container-padding: 12px
+
+   ROUNDING TOKENS
+   ─────────────────────────────────────────────────────────────
+   sm:     0.125rem (2px)
+   DEFAULT: 0.25rem (4px)
+   md:     0.375rem (6px)
+   lg:     0.5rem (8px)
+   xl:     0.75rem (12px)
+   full:   9999px
    ============================================================= */
 
 
@@ -41,6 +65,8 @@
 * {
     font-family: "Inter", "Segoe UI", "SF Pro Display", Arial, sans-serif;
     font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
     color: #0b1c30;
 }
 
@@ -53,7 +79,6 @@ QMainWindow {
     color: #0b1c30;
 }
 
-/* Dock-splitter hairline */
 QMainWindow::separator {
     width: 1px;
     height: 1px;
@@ -62,7 +87,7 @@ QMainWindow::separator {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QMenuBar
+   QMenuBar - TopNavBar integration
    ═══════════════════════════════════════════════════════════════ */
 QMenuBar {
     background-color: #ffffff;
@@ -70,18 +95,24 @@ QMenuBar {
     color: #0b1c30;
     font-size: 14px;
     padding: 0px;
-    min-height: 36px;
+    min-height: 48px;
 }
 
 QMenuBar::item {
-    padding: 6px 16px;
+    padding: 0px 16px;
     background: transparent;
-    color: #0b1c30;
+    color: #434655;
+    font-size: 14px;
+    font-weight: 400;
+    height: 48px;
+    align-items: center;
 }
 
 QMenuBar::item:selected {
     background-color: #e5eeff;
     color: #004ac6;
+    font-weight: 600;
+    border-bottom: 2px solid #004ac6;
 }
 
 QMenuBar::item:pressed {
@@ -124,20 +155,16 @@ QMenu::separator {
     margin: 4px 0px;
 }
 
-QMenu::icon {
-    padding-left: 4px;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
-   QToolBar
+   QToolBar - Main Toolbar
    ═══════════════════════════════════════════════════════════════ */
 QToolBar {
     background-color: #ffffff;
     border: none;
     border-bottom: 1px solid #c3c6d7;
     spacing: 4px;
-    padding: 0px 8px;
+    padding: 0px 16px;
     min-height: 48px;
 }
 
@@ -188,43 +215,24 @@ QToolButton:disabled {
     background-color: transparent;
 }
 
-/* Icon-only buttons (no text label) */
 QToolButton[toolButtonStyle="0"] {
     min-width: 36px;
     min-height: 36px;
     padding: 6px;
 }
 
-/* Drop-down arrow on QToolButton with menu */
-QToolButton::menu-button {
-    border: none;
-    width: 16px;
-}
-
-QToolButton::menu-arrow {
-    width: 8px;
-    height: 8px;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
-   QDockWidget
+   QDockWidget - Panel Container
    ═══════════════════════════════════════════════════════════════ */
 QDockWidget {
     background-color: #f8f9ff;
     color: #0b1c30;
     border: none;
-    /* suppress default icons — set to blank via empty resource paths */
     titlebar-close-icon: none;
     titlebar-normal-icon: none;
 }
 
-/*
-   Panel header — label-caps style
-   height 40px, #f1f5f9 bg, 11px/700/0.05em uppercase
-   NOTE: text-transform is not supported in QSS; apply
-         toUpper() in Python code for true uppercase labels.
-*/
 QDockWidget::title {
     background-color: #f1f5f9;
     padding: 0px 12px;
@@ -253,14 +261,9 @@ QDockWidget::float-button:hover {
     background-color: #e5eeff;
 }
 
-QDockWidget::close-button:pressed,
-QDockWidget::float-button:pressed {
-    background-color: #dce9ff;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
-   QGraphicsView — canvas area
+   QGraphicsView — Canvas Area
    ═══════════════════════════════════════════════════════════════ */
 QGraphicsView {
     background-color: #ffffff;
@@ -294,14 +297,6 @@ QTreeWidget::item:selected {
 }
 
 QTreeWidget::item:hover:!selected {
-    background-color: #eff4ff;
-}
-
-QTreeWidget::branch:selected {
-    background-color: #d3e4fe;
-}
-
-QTreeWidget::branch:hover:!selected {
     background-color: #eff4ff;
 }
 
@@ -347,13 +342,15 @@ QListWidget::item:hover:!selected {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QPlainTextEdit — generic
+   QPlainTextEdit — Generic
    ═══════════════════════════════════════════════════════════════ */
 QPlainTextEdit {
     background-color: #ffffff;
     color: #0b1c30;
     font-family: Consolas, "Fira Code", monospace;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
     border: 1px solid #c3c6d7;
     border-radius: 4px;
     padding: 4px;
@@ -377,6 +374,8 @@ QPlainTextEdit#console_output {
     color: #eaf1ff;
     font-family: Consolas, "Fira Code", monospace;
     font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
     border: none;
     border-radius: 0px;
     padding: 8px;
@@ -389,9 +388,33 @@ QPlainTextEdit#console_output:focus {
     background-color: #213145;
 }
 
+/* ── Console input — inverse-surface palette ─────────────────── */
+QLineEdit#console_input {
+    background-color: #213145;
+    color: #eaf1ff;
+    font-family: Consolas, "Fira Code", monospace;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+    border: none;
+    border-radius: 0px;
+    padding: 8px;
+    selection-background-color: #004ac6;
+    selection-color: #ffffff;
+}
+
+QLineEdit#console_input:focus {
+    border: none;
+    background-color: #213145;
+}
+
+QLineEdit#console_input::placeholder {
+    color: #737686;
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
-   QLineEdit — generic
+   QLineEdit — Generic
    ═══════════════════════════════════════════════════════════════ */
 QLineEdit {
     background-color: #ffffff;
@@ -400,6 +423,7 @@ QLineEdit {
     padding: 5px 10px;
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     min-height: 32px;
     selection-background-color: #dce9ff;
     selection-color: #004ac6;
@@ -409,7 +433,6 @@ QLineEdit:hover {
     border-color: #737686;
 }
 
-/* Focus ring: 2px solid primary + tinted bg */
 QLineEdit:focus {
     border: 2px solid #004ac6;
     background-color: #f8f9ff;
@@ -430,11 +453,12 @@ QLineEdit::placeholder {
 QLineEdit#command_bar {
     background-color: #f8f9ff;
     border: 1px solid #c3c6d7;
-    border-radius: 2px;
-    padding: 4px 8px 4px 24px;
+    border-radius: 4px;
+    padding: 6px 8px 6px 28px;
     font-family: Consolas, monospace;
     font-size: 12px;
-    min-width: 200px;
+    font-weight: 400;
+    min-width: 240px;
     min-height: 28px;
     color: #0b1c30;
 }
@@ -444,14 +468,14 @@ QLineEdit#command_bar:hover {
 }
 
 QLineEdit#command_bar:focus {
-    border: 1px solid #004ac6;
+    border: 2px solid #004ac6;
     background-color: #ffffff;
-    padding: 4px 8px 4px 24px;
+    padding: 5px 7px 5px 27px;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QPushButton — primary (default)
+   QPushButton — Primary (default)
    ═══════════════════════════════════════════════════════════════ */
 QPushButton {
     background-color: #004ac6;
@@ -506,12 +530,6 @@ QPushButton.secondary:pressed {
     background-color: #dce9ff;
 }
 
-QPushButton[class="secondary"]:disabled,
-QPushButton.secondary:disabled {
-    color: #737686;
-    border-color: #c3c6d7;
-}
-
 /* ── Danger variant ──────────────────────────────────────────── */
 QPushButton[class="danger"],
 QPushButton.danger {
@@ -530,17 +548,6 @@ QPushButton.danger:hover {
     background-color: #d32f2f;
 }
 
-QPushButton[class="danger"]:pressed,
-QPushButton.danger:pressed {
-    background-color: #9b1010;
-}
-
-QPushButton[class="danger"]:disabled,
-QPushButton.danger:disabled {
-    background-color: #c3c6d7;
-    color: #737686;
-}
-
 /* ── Flat variant — toolbar icon buttons ─────────────────────── */
 QPushButton[flat="true"],
 QPushButton.flat {
@@ -548,11 +555,10 @@ QPushButton.flat {
     color: #434655;
     border: none;
     border-radius: 4px;
-    padding: 4px 8px;
-    min-height: 28px;
-    min-width: 28px;
-    font-size: 13px;
-    font-weight: 400;
+    padding: 6px;
+    min-height: 32px;
+    min-width: 32px;
+    font-size: 16px;
 }
 
 QPushButton[flat="true"]:hover,
@@ -561,27 +567,15 @@ QPushButton.flat:hover {
     color: #004ac6;
 }
 
-QPushButton[flat="true"]:pressed,
-QPushButton.flat:pressed {
-    background-color: #dce9ff;
-    color: #004ac6;
-}
-
 QPushButton[flat="true"]:checked,
 QPushButton.flat:checked {
     background-color: #dce9ff;
     color: #004ac6;
-    font-weight: 600;
-}
-
-QPushButton[flat="true"]:disabled,
-QPushButton.flat:disabled {
-    color: #737686;
 }
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QSlider — horizontal, primary colour track + handle
+   QSlider — Horizontal, primary colour track + handle
    ═══════════════════════════════════════════════════════════════ */
 QSlider::groove:horizontal {
     height: 4px;
@@ -615,17 +609,9 @@ QSlider::handle:horizontal:hover {
     background: #2563eb;
 }
 
-QSlider::handle:horizontal:pressed {
-    background: #003d99;
-}
-
-QSlider::handle:horizontal:disabled {
-    background: #c3c6d7;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
-   QScrollBar — vertical  (slim 8 px)
+   QScrollBar — Vertical (slim 8px)
    ═══════════════════════════════════════════════════════════════ */
 QScrollBar:vertical {
     width: 8px;
@@ -644,10 +630,6 @@ QScrollBar::handle:vertical:hover {
     background: #737686;
 }
 
-QScrollBar::handle:vertical:pressed {
-    background: #434655;
-}
-
 QScrollBar::add-page:vertical,
 QScrollBar::sub-page:vertical {
     background: transparent;
@@ -659,7 +641,7 @@ QScrollBar::sub-line:vertical {
     background: transparent;
 }
 
-/* ── QScrollBar — horizontal  (slim 8 px) ───────────────────── */
+/* ── QScrollBar — Horizontal (slim 8px) ───────────────────── */
 QScrollBar:horizontal {
     height: 8px;
     background: transparent;
@@ -677,10 +659,6 @@ QScrollBar::handle:horizontal:hover {
     background: #737686;
 }
 
-QScrollBar::handle:horizontal:pressed {
-    background: #434655;
-}
-
 QScrollBar::add-page:horizontal,
 QScrollBar::sub-page:horizontal {
     background: transparent;
@@ -692,7 +670,6 @@ QScrollBar::sub-line:horizontal {
     background: transparent;
 }
 
-/* Corner between scrollbars */
 QAbstractScrollArea::corner {
     background: transparent;
 }
@@ -712,7 +689,6 @@ QTabWidget::tab-bar {
     alignment: left;
 }
 
-/* Generic tab bar — label-caps style */
 QTabBar {
     background: transparent;
     border: none;
@@ -744,24 +720,7 @@ QTabBar::tab:hover:!selected {
     border-radius: 4px 4px 0px 0px;
 }
 
-QTabBar::tab:disabled {
-    color: #737686;
-}
-
-QTabBar::scroller {
-    width: 24px;
-}
-
-QTabBar QToolButton {
-    background-color: transparent;
-    border: none;
-}
-
 /* ── Console tab bar — bottom panel, inverse selected state ─── */
-/*
-   Apply objectName="console_tabs" to the QTabBar or parent
-   QTabWidget to activate this inverse-surface variant.
-*/
 QTabBar#console_tabs::tab {
     padding: 6px 16px;
     font-size: 11px;
@@ -800,6 +759,7 @@ QComboBox {
     padding: 0px 10px;
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     min-height: 32px;
     selection-background-color: #e5eeff;
     selection-color: #004ac6;
@@ -813,12 +773,6 @@ QComboBox:focus {
     border: 2px solid #004ac6;
     padding: 0px 9px;
     background-color: #f8f9ff;
-}
-
-QComboBox:disabled {
-    background-color: #eff4ff;
-    color: #737686;
-    border-color: #c3c6d7;
 }
 
 QComboBox::drop-down {
@@ -851,11 +805,6 @@ QComboBox QAbstractItemView::item {
     min-height: 28px;
 }
 
-QComboBox QAbstractItemView::item:selected {
-    background-color: #e5eeff;
-    color: #004ac6;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    QSpinBox + QDoubleSpinBox
@@ -868,6 +817,7 @@ QDoubleSpinBox {
     padding: 0px 6px;
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     min-height: 32px;
     selection-background-color: #dce9ff;
     selection-color: #004ac6;
@@ -883,13 +833,6 @@ QDoubleSpinBox:focus {
     border: 2px solid #004ac6;
     background-color: #f8f9ff;
     padding: 0px 5px;
-}
-
-QSpinBox:disabled,
-QDoubleSpinBox:disabled {
-    background-color: #eff4ff;
-    color: #737686;
-    border-color: #c3c6d7;
 }
 
 QSpinBox::up-button,
@@ -922,13 +865,6 @@ QDoubleSpinBox::down-button:hover {
     background-color: #e5eeff;
 }
 
-QSpinBox::up-button:pressed,
-QSpinBox::down-button:pressed,
-QDoubleSpinBox::up-button:pressed,
-QDoubleSpinBox::down-button:pressed {
-    background-color: #dce9ff;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    QCheckBox
@@ -937,6 +873,7 @@ QCheckBox {
     spacing: 8px;
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     background: transparent;
 }
 
@@ -963,16 +900,6 @@ QCheckBox::indicator:checked:hover {
     border-color: #2563eb;
 }
 
-QCheckBox::indicator:indeterminate {
-    background-color: #2563eb;
-    border-color: #2563eb;
-}
-
-QCheckBox::indicator:disabled {
-    background-color: #eff4ff;
-    border-color: #c3c6d7;
-}
-
 QCheckBox:disabled {
     color: #737686;
 }
@@ -985,6 +912,7 @@ QRadioButton {
     spacing: 8px;
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     background: transparent;
 }
 
@@ -1011,15 +939,6 @@ QRadioButton::indicator:checked:hover {
     border-color: #2563eb;
 }
 
-QRadioButton::indicator:disabled {
-    background-color: #eff4ff;
-    border-color: #c3c6d7;
-}
-
-QRadioButton:disabled {
-    color: #737686;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    QLabel
@@ -1027,18 +946,18 @@ QRadioButton:disabled {
 QLabel {
     color: #0b1c30;
     font-size: 14px;
+    font-weight: 400;
     background: transparent;
     border: none;
 }
 
-/* Muted secondary text */
 QLabel[class="dim"],
 QLabel.dim {
     color: #434655;
     font-size: 12px;
+    font-weight: 400;
 }
 
-/* label-caps — section headers, panel labels */
 QLabel[class="caps"],
 QLabel.caps {
     font-size: 11px;
@@ -1048,29 +967,28 @@ QLabel.caps {
     color: #434655;
 }
 
-/* headline — item/section name */
 QLabel[class="headline"],
 QLabel.headline {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
+    line-height: 24px;
     color: #0b1c30;
 }
 
-/* body-sm */
 QLabel[class="sm"],
 QLabel.sm {
     font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
     color: #0b1c30;
 }
 
-/* inverse — labels on dark (console) backgrounds */
 QLabel[class="inverse"],
 QLabel.inverse {
     color: #eaf1ff;
     background: transparent;
 }
 
-/* LaTeX / math render label */
 QLabel.latex {
     font-family: "CMU Serif", "STIX Two Text", Georgia, serif;
     font-size: 15px;
@@ -1104,15 +1022,6 @@ QHeaderView::section:hover {
     color: #004ac6;
 }
 
-QHeaderView::section:checked {
-    background-color: #dce9ff;
-    color: #004ac6;
-}
-
-QHeaderView::section:first {
-    border-left: none;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    QStatusBar
@@ -1122,6 +1031,7 @@ QStatusBar {
     border-top: 1px solid #c3c6d7;
     color: #434655;
     font-size: 12px;
+    font-weight: 400;
     min-height: 24px;
 }
 
@@ -1147,7 +1057,6 @@ QProgressBar {
     background-color: #e5eeff;
     border: none;
     text-align: center;
-    /* hide text — set label separately in code */
     color: transparent;
     font-size: 1px;
 }
@@ -1157,7 +1066,6 @@ QProgressBar::chunk {
     border-radius: 3px;
 }
 
-/* Indeterminate / error states */
 QProgressBar[state="error"]::chunk {
     background-color: #ba1a1a;
 }
@@ -1168,7 +1076,7 @@ QProgressBar[state="success"]::chunk {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QSplitter — hairline 1 px dividers, no gutter
+   QSplitter — hairline 1px dividers, no gutter
    ═══════════════════════════════════════════════════════════════ */
 QSplitter::handle {
     background-color: #c3c6d7;
@@ -1186,10 +1094,6 @@ QSplitter::handle:vertical {
 
 QSplitter::handle:hover {
     background-color: #004ac6;
-}
-
-QSplitter::handle:pressed {
-    background-color: #003d99;
 }
 
 
@@ -1226,6 +1130,7 @@ QTableWidget {
     color: #0b1c30;
     gridline-color: #eff4ff;
     font-size: 14px;
+    font-weight: 400;
     outline: 0;
 }
 
@@ -1246,13 +1151,11 @@ QTableWidget::item:hover:!selected {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   QFrame — algebra panel list items
-   Custom property selector: QFrame#algebra_item
-   Set selected="true" via setProperty("selected", True) + style().polish()
+   QFrame — Algebra Panel List Items
    ═══════════════════════════════════════════════════════════════ */
 QFrame#algebra_item {
     border-radius: 4px;
-    padding: 4px;
+    padding: 8px 10px;
     background: transparent;
     border: 1px solid transparent;
 }
@@ -1281,10 +1184,45 @@ QScrollArea > QWidget > QWidget {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   Miscellaneous / utility
+   Preferences Dialog Sidebar Tab Widget
    ═══════════════════════════════════════════════════════════════ */
+QTabWidget#preferences_sidebar::pane {
+    border: none;
+    border-left: 1px solid #c3c6d7;
+    background: #ffffff;
+}
 
-/* Panel dividers (QFrame with frameShape = HLine / VLine) */
+QTabWidget#preferences_sidebar QTabBar {
+    background: #f8f9ff;
+}
+
+QTabWidget#preferences_sidebar QTabBar::tab {
+    padding: 12px 20px;
+    text-align: left;
+    min-width: 180px;
+    font-size: 13px;
+    font-weight: 400;
+    color: #434655;
+    border-right: 1px solid #c3c6d7;
+    border-bottom: 1px solid #c3c6d7;
+}
+
+QTabWidget#preferences_sidebar QTabBar::tab:selected {
+    background: #ffffff;
+    color: #004ac6;
+    font-weight: 600;
+    border-left: 3px solid #004ac6;
+    border-right: none;
+}
+
+QTabWidget#preferences_sidebar QTabBar::tab:hover:!selected {
+    background: #eff4ff;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Miscellaneous / Utility
+   ═══════════════════════════════════════════════════════════════ */
 QFrame[frameShape="4"],
 QFrame[frameShape="5"] {
     color: #c3c6d7;
@@ -1293,7 +1231,6 @@ QFrame[frameShape="5"] {
     max-height: 1px;
 }
 
-/* Tooltip */
 QToolTip {
     background-color: #213145;
     color: #eaf1ff;
@@ -1301,4 +1238,5 @@ QToolTip {
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
+    font-weight: 400;
 }

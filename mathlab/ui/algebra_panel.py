@@ -133,7 +133,7 @@ class _AlgebraItem(QFrame):
 
     def _apply_base_style(self):
         self._name_label.setStyleSheet(
-            "QLabel { font-size: 14px; font-weight: 600; color: #1e1e2e; }"
+            "QLabel { font-size: 14px; font-weight: 600; color: #0b1c30; }"
         )
         self._formula_label.setStyleSheet(
             "QLabel {"

@@ -1,3 +1,4 @@
+import sympy
 from sympy import (
     symbols, Symbol, Eq, solve, simplify, expand, factor,
     diff, integrate, limit, latex, sin, cos, tan, log, exp,
@@ -9,15 +10,22 @@ class CASProvider:
         self.symbols_cache = {}
     
     def _get_symbol(self, name):
-        if name not in self.symbols_cache:
-            self.symbols_cache[name] = Symbol(name)
+        if name in self.symbols_cache:
+            return self.symbols_cache[name]
+        
+        if hasattr(sympy, name):
+            return getattr(sympy, name)
+        
+        self.symbols_cache[name] = Symbol(name)
         return self.symbols_cache[name]
     
     def parse_expression(self, expr_str):
         try:
             result = sympify(expr_str, locals=self.symbols_cache)
             for symbol in result.free_symbols:
-                self.symbols_cache[str(symbol)] = symbol
+                sym_name = str(symbol)
+                if not hasattr(sympy, sym_name):
+                    self.symbols_cache[sym_name] = symbol
             return result
         except Exception:
             return None
@@ -58,6 +66,9 @@ class CASProvider:
     def solve_equation(self, equation_str, variable='x'):
         try:
             x = self._get_symbol(variable)
+            # 兼容编程习惯，将 '==' 替换为 '='
+            equation_str = equation_str.replace('==', '=')
+            
             if '=' in equation_str:
                 left_str, right_str = equation_str.split('=', 1)
                 left_expr = sympify(left_str.strip(), locals=self.symbols_cache)
@@ -69,7 +80,9 @@ class CASProvider:
             
             solutions = solve(eq, x)
             for symbol in left_expr.free_symbols:
-                self.symbols_cache[str(symbol)] = symbol
+                sym_name = str(symbol)
+                if not hasattr(sympy, sym_name):
+                    self.symbols_cache[sym_name] = symbol
             return {
                 "success": True,
                 "solutions": [latex(s) for s in solutions],

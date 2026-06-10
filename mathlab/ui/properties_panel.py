@@ -232,7 +232,7 @@ class PropertiesPanel(QDockWidget):
         color_row = QHBoxLayout()
         color_row.setSpacing(6)
         self._color_label = QLabel(t('properties_panel.color'))
-        self._color_label.setStyleSheet("font-size: 13px; color: #44475a;")
+        self._color_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._color_label.setFixedWidth(64)
         color_row.addWidget(self._color_label)
 
@@ -249,7 +249,7 @@ class PropertiesPanel(QDockWidget):
         opacity_row = QHBoxLayout()
         opacity_row.setSpacing(8)
         self._opacity_label = QLabel(t('properties_panel.opacity'))
-        self._opacity_label.setStyleSheet("font-size: 13px; color: #44475a;")
+        self._opacity_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._opacity_label.setFixedWidth(64)
         opacity_row.addWidget(self._opacity_label)
 
@@ -273,7 +273,7 @@ class PropertiesPanel(QDockWidget):
         stroke_row = QHBoxLayout()
         stroke_row.setSpacing(8)
         self._stroke_label = QLabel(t('properties_panel.stroke'))
-        self._stroke_label.setStyleSheet("font-size: 13px; color: #44475a;")
+        self._stroke_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._stroke_label.setFixedWidth(64)
         stroke_row.addWidget(self._stroke_label)
 
@@ -347,10 +347,10 @@ class PropertiesPanel(QDockWidget):
             "QTextEdit {"
             "  font-family: 'Consolas', 'JetBrains Mono', monospace;"
             "  font-size: 13px;"
-            "  color: #1e1e2e;"
-            "  background: #f3f4ff;"
-            "  border: 1px solid #caced9;"
-            "  border-radius: 6px;"
+            "  color: #0b1c30;"
+            "  background: #f8f9ff;"
+            "  border: 1px solid #c3c6d7;"
+            "  border-radius: 4px;"
             "  padding: 6px 8px;"
             "}"
         )

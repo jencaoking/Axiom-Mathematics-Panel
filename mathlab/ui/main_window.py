@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (
     QMainWindow, QToolBar, QToolButton,
     QMenuBar, QMenu, QDockWidget, QStatusBar,
     QFileDialog, QMessageBox, QDialog, QVBoxLayout,
-    QLabel, QComboBox, QPushButton, QHBoxLayout
+    QLabel, QComboBox, QPushButton, QHBoxLayout,
+    QSpacerItem, QSizePolicy
 )
 from PySide6.QtGui import QAction, QPainter as QtPainter
 from PySide6.QtCore import Qt, QSize
@@ -46,7 +47,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(t('main_window.title'))
         self.setGeometry(100, 100, 1200, 800)
 
-        # Runtime object data store (id → obj_data dict) used for save/export
         self._objects_data: dict = {}
 
         self.setup_ui()
@@ -60,12 +60,8 @@ class MainWindow(QMainWindow):
 
         self.connect_signals()
 
-        # Register for automatic UI retranslation on language change
         get_i18n().add_language_change_listener(self._on_language_changed)
 
-    # ------------------------------------------------------------------
-    # UI setup
-    # ------------------------------------------------------------------
     def setup_ui(self):
         self.central_widget = GeometryCanvas(self)
         self.setCentralWidget(self.central_widget)
@@ -73,7 +69,6 @@ class MainWindow(QMainWindow):
     def setup_menus(self):
         menu_bar = QMenuBar(self)
 
-        # ── File menu ──────────────────────────────────────────────────
         self.file_menu = QMenu(t('menu.file'), self)
 
         self.new_action         = QAction(t('main_window.new_project'), self)
@@ -101,7 +96,6 @@ class MainWindow(QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
 
-        # ── Edit menu ──────────────────────────────────────────────────
         self.edit_menu = QMenu(t('menu.edit'), self)
 
         self.undo_action   = QAction(t('main_window.undo'), self)
@@ -117,7 +111,6 @@ class MainWindow(QMainWindow):
         self.edit_menu.addSeparator()
         self.edit_menu.addAction(self.delete_action)
 
-        # ── View menu ──────────────────────────────────────────────────
         self.view_menu = QMenu(t('menu.view'), self)
 
         self.algebra_panel_action = QAction(t('main_window.algebra_panel'), self)
@@ -153,7 +146,6 @@ class MainWindow(QMainWindow):
         self.preferences_action.setShortcut('Ctrl+,')
         self.view_menu.addAction(self.preferences_action)
 
-        # ── AI menu ────────────────────────────────────────────────────
         self.ai_menu = QMenu(t('menu.ai'), self)
         self.ai_scatter_action  = QAction(t('ai_tools.scatter_fitting'), self)
         self.ai_cluster_action  = QAction(t('ai_tools.clustering'), self)
@@ -165,7 +157,6 @@ class MainWindow(QMainWindow):
         self.ai_menu.addSeparator()
         self.ai_menu.addAction(self.ai_train_action)
 
-        # ── Tools menu ─────────────────────────────────────────────────
         self.tools_menu = QMenu(t('menu.tools'), self)
 
         self.geometry_tool_action = QAction(t('main_window.geometry_tools'), self)
@@ -176,7 +167,6 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.algebra_tool_action)
         self.tools_menu.addAction(self.ai_tool_action)
 
-        # ── Help menu ──────────────────────────────────────────────────
         self.help_menu = QMenu(t('menu.help'), self)
 
         self.about_action   = QAction(t('main_window.about'), self)
@@ -185,7 +175,6 @@ class MainWindow(QMainWindow):
         self.help_menu.addAction(self.tutorial_action)
         self.help_menu.addAction(self.about_action)
 
-        # ── Assemble menu bar ─────────────────────────────────────────
         menu_bar.addMenu(self.file_menu)
         menu_bar.addMenu(self.edit_menu)
         menu_bar.addMenu(self.view_menu)
@@ -195,7 +184,6 @@ class MainWindow(QMainWindow):
 
         self.setMenuBar(menu_bar)
 
-        # ── Wire up actions ───────────────────────────────────────────
         self.new_action.triggered.connect(self.on_new_project)
         self.open_action.triggered.connect(self.on_open_project)
         self.save_action.triggered.connect(self.on_save_project)
@@ -224,8 +212,8 @@ class MainWindow(QMainWindow):
 
     def setup_toolbar(self):
         self.toolbar = QToolBar('Main Toolbar')
-        self.toolbar.setIconSize(QSize(32, 32))
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.setIconSize(QSize(20, 20))
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonIconOnly)
 
         self.select_action = QAction(t('main_window.select'), self)
         self.select_action.setCheckable(True)
@@ -246,9 +234,6 @@ class MainWindow(QMainWindow):
         self.pan_action = QAction(t('main_window.pan'), self)
         self.pan_action.setCheckable(True)
 
-        self.zoom_in_action  = QAction(t('main_window.zoom_in'), self)
-        self.zoom_out_action = QAction(t('main_window.zoom_out'), self)
-
         self.tool_actions = [
             self.select_action, self.point_action, self.segment_action,
             self.circle_action, self.polygon_action, self.pan_action
@@ -261,34 +246,52 @@ class MainWindow(QMainWindow):
         self.toolbar.addAction(self.polygon_action)
         self.toolbar.addAction(self.pan_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.zoom_in_action)
-        self.toolbar.addAction(self.zoom_out_action)
-        self.toolbar.addSeparator()
 
         self.command_bar = CommandBar()
         self.toolbar.addWidget(self.command_bar)
 
-        # ── Right side: Language toggle + Settings ────────────────────
         self.toolbar.addSeparator()
+
         self.lang_btn = QPushButton('EN/ZH')
         self.lang_btn.setToolTip(t('main_window.language'))
         self.lang_btn.setObjectName('lang_btn')
-        self.lang_btn.setFixedHeight(28)
+        self.lang_btn.setFixedSize(64, 28)
         self.lang_btn.setStyleSheet(
-            'QPushButton{background:transparent;border:1px solid #c3c6d7;'
-            'border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;color:#434655;}'
-            'QPushButton:hover{background:#e5eeff;border-color:#004ac6;color:#004ac6;}'
+            'QPushButton{'
+            '  background:#f8f9ff;'
+            '  border:1px solid #c3c6d7;'
+            '  border-radius:4px;'
+            '  padding:2px 8px;'
+            '  font-size:11px;'
+            '  font-weight:700;'
+            '  color:#434655;'
+            '}'
+            'QPushButton:hover{'
+            '  background:#e5eeff;'
+            '  border-color:#004ac6;'
+            '  color:#004ac6;'
+            '}'
         )
         self.lang_btn.clicked.connect(self._toggle_language)
         self.toolbar.addWidget(self.lang_btn)
 
-        self.settings_btn = QPushButton('⚙')
+        self.settings_btn = QPushButton()
         self.settings_btn.setToolTip(t('main_window.preferences'))
-        self.settings_btn.setFixedSize(32, 32)
+        self.settings_btn.setFixedSize(28, 28)
         self.settings_btn.setStyleSheet(
-            'QPushButton{background:transparent;border:none;font-size:16px;color:#434655;}'
-            'QPushButton:hover{background:#e5eeff;border-radius:4px;}'
+            'QPushButton{'
+            '  background:transparent;'
+            '  border:none;'
+            '  font-size:16px;'
+            '  color:#434655;'
+            '}'
+            'QPushButton:hover{'
+            '  background:#e5eeff;'
+            '  border-radius:4px;'
+            '  color:#004ac6;'
+            '}'
         )
+        self.settings_btn.setText('⚙')
         self.settings_btn.clicked.connect(self.show_preferences_dialog)
         self.toolbar.addWidget(self.settings_btn)
 
@@ -315,7 +318,6 @@ class MainWindow(QMainWindow):
     def setup_docks(self):
         self.algebra_panel = AlgebraPanel(self)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.algebra_panel)
-        # Qt does not support text-transform in QSS — set title text as uppercase
         self.algebra_panel.setWindowTitle(t('algebra_panel.title').upper())
 
         self.properties_panel = PropertiesPanel(self)
@@ -349,31 +351,22 @@ class MainWindow(QMainWindow):
             print(f'Warning: Could not load stylesheet: {e}')
 
     def connect_signals(self):
-        # Canvas geometry signals
         self.central_widget.point_added.connect(self.on_point_added)
         self.central_widget.segment_added_coords.connect(self.on_segment_added)
         self.central_widget.circle_added_coords.connect(self.on_circle_added)
         self.central_widget.polygon_added_coords.connect(self.on_polygon_added)
 
-        # Panel signals
         self.algebra_panel.object_selected.connect(self.on_algebra_item_selected)
         self.algebra_panel.object_deleted.connect(self.on_object_deleted)
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
 
-    # ------------------------------------------------------------------
-    # Internal helper
-    # ------------------------------------------------------------------
     def _add_object(self, obj_data: dict) -> None:
-        """Unified entry point: track, show in panel, and draw on canvas."""
         obj_id = obj_data['id']
         self._objects_data[obj_id] = obj_data
         self.algebra_panel.add_object(obj_data)
         self.central_widget.draw_object(obj_id, obj_data)
 
-    # ------------------------------------------------------------------
-    # Tool / zoom handlers
-    # ------------------------------------------------------------------
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:
             action.setChecked(False)
@@ -397,11 +390,7 @@ class MainWindow(QMainWindow):
     def on_zoom_out(self) -> None:
         self.central_widget.scale(0.8, 0.8)
 
-    # ------------------------------------------------------------------
-    # Canvas geometry event handlers
-    # ------------------------------------------------------------------
     def on_point_added(self, x: float, y: float) -> None:
-        """Slot for GeometryCanvas.point_added — no double-draw."""
         if hasattr(self, 'geometry_engine'):
             self.geometry_engine.add_point(x, y)
         else:
@@ -415,7 +404,6 @@ class MainWindow(QMainWindow):
             self._add_object(obj_data)
 
     def on_segment_added(self, x1: float, y1: float, x2: float, y2: float) -> None:
-        """Slot for GeometryCanvas.segment_added_coords."""
         if hasattr(self, 'geometry_engine'):
             p1_id = self.geometry_engine.add_point(x1, y1)
             p2_id = self.geometry_engine.add_point(x2, y2)
@@ -431,7 +419,6 @@ class MainWindow(QMainWindow):
             self._add_object(obj_data)
 
     def on_circle_added(self, cx: float, cy: float, radius: float) -> None:
-        """Slot for GeometryCanvas.circle_added_coords."""
         if hasattr(self, 'geometry_engine'):
             c_id = self.geometry_engine.add_point(cx, cy)
             self.geometry_engine.add_circle(c_id, radius)
@@ -446,7 +433,6 @@ class MainWindow(QMainWindow):
             self._add_object(obj_data)
 
     def on_polygon_added(self, points: list) -> None:
-        """Slot for GeometryCanvas.polygon_added_coords."""
         if hasattr(self, 'geometry_engine'):
             p_ids = [self.geometry_engine.add_point(pt[0], pt[1]) for pt in points]
             self.geometry_engine.add_polygon(p_ids)
@@ -461,9 +447,6 @@ class MainWindow(QMainWindow):
             }
             self._add_object(obj_data)
 
-    # ------------------------------------------------------------------
-    # Panel interaction handlers
-    # ------------------------------------------------------------------
     def on_algebra_item_selected(self, obj_id: str) -> None:
         self.central_widget.select_object(obj_id)
 
@@ -500,7 +483,6 @@ class MainWindow(QMainWindow):
         self.console.display_result(result)
 
     def on_command_entered(self, command: str) -> None:
-        """Parse a GeoGebra-style command from the command bar."""
         try:
             parts = command.split('=')
             if len(parts) == 2:
@@ -514,10 +496,8 @@ class MainWindow(QMainWindow):
                         y = float(coords[1].strip())
 
                         if hasattr(self, 'geometry_engine'):
-                            # 交给引擎处理
                             self.geometry_engine.add_point(x, y, name=name)
                         else:
-                            # 降级兼容
                             obj_id = str(uuid.uuid4())
                             obj_data = {
                                 'id': obj_id,
@@ -533,9 +513,6 @@ class MainWindow(QMainWindow):
                 t('dialogs.invalid_command', str(e)),
             )
 
-    # ------------------------------------------------------------------
-    # Project management
-    # ------------------------------------------------------------------
     def on_new_project(self) -> None:
         self.central_widget.clear_canvas()
         self.algebra_panel.clear()
@@ -615,9 +592,6 @@ class MainWindow(QMainWindow):
                 t('dialogs.failed_to_save', str(e)),
             )
 
-    # ------------------------------------------------------------------
-    # Export
-    # ------------------------------------------------------------------
     def on_export_png(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self, t('dialogs.export_png'), '', 'PNG Files (*.png)'
@@ -673,9 +647,6 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, t('dialogs.error'), t('dialogs.failed_to_export', str(e)))
 
-    # ------------------------------------------------------------------
-    # Panel visibility toggles
-    # ------------------------------------------------------------------
     def toggle_algebra_panel(self, visible: bool) -> None:
         self.algebra_panel.setVisible(visible)
 
@@ -699,16 +670,11 @@ class MainWindow(QMainWindow):
         else:
             self.ai_tools_panel.hide()
 
-    # ------------------------------------------------------------------
-    # Dialogs
-    # ------------------------------------------------------------------
     def show_about(self) -> None:
         QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))
 
     def show_preferences_dialog(self) -> None:
-        """Open the full MathLab Settings / Preferences dialog."""
         if PreferencesDialog is None:
-            # Fallback to old theme dialog
             self.show_theme_dialog()
             return
         dlg = PreferencesDialog(self)
@@ -774,7 +740,6 @@ class MainWindow(QMainWindow):
         layout.addLayout(btn_layout)
 
         def on_apply():
-            # set_language triggers _on_language_changed via listener
             get_i18n().set_language(combo.currentData())
             dialog.accept()
 
@@ -782,32 +747,23 @@ class MainWindow(QMainWindow):
         cancel_btn.clicked.connect(dialog.reject)
         dialog.exec()
 
-    # ------------------------------------------------------------------
-    # Internationalization
-    # ------------------------------------------------------------------
     def _toggle_language(self) -> None:
-        """Quick EN ↔ ZH toggle from the toolbar button."""
         current = get_i18n().get_language()
         target = 'zh' if current == 'en' else 'en'
-        get_i18n().set_language(target)   # triggers _on_language_changed
+        get_i18n().set_language(target)
 
     def _on_language_changed(self, lang_code: str) -> None:
-        """Automatically called by I18nManager when language changes."""
         self.retranslate_ui()
 
     def retranslate_ui(self) -> None:
-        """Update every translatable string in the window and its children."""
-        # Window
         self.setWindowTitle(t('main_window.title'))
 
-        # Menu titles
         self.file_menu.setTitle(t('menu.file'))
         self.edit_menu.setTitle(t('menu.edit'))
         self.view_menu.setTitle(t('menu.view'))
         self.tools_menu.setTitle(t('menu.tools'))
         self.help_menu.setTitle(t('menu.help'))
 
-        # File menu actions
         self.new_action.setText(t('main_window.new_project'))
         self.open_action.setText(t('main_window.open_project'))
         self.save_action.setText(t('main_window.save_project'))
@@ -817,12 +773,10 @@ class MainWindow(QMainWindow):
         self.export_latex_action.setText(t('main_window.export_latex'))
         self.exit_action.setText(t('main_window.exit'))
 
-        # Edit menu actions
         self.undo_action.setText(t('main_window.undo'))
         self.redo_action.setText(t('main_window.redo'))
         self.delete_action.setText(t('main_window.delete'))
 
-        # View menu actions
         self.algebra_panel_action.setText(t('main_window.algebra_panel'))
         self.properties_panel_action.setText(t('main_window.properties_panel'))
         self.console_action.setText(t('main_window.console'))
@@ -831,26 +785,20 @@ class MainWindow(QMainWindow):
         self.theme_action.setText(t('main_window.theme'))
         self.language_action.setText(t('main_window.language'))
 
-        # Tools menu actions
         self.geometry_tool_action.setText(t('main_window.geometry_tools'))
         self.algebra_tool_action.setText(t('main_window.algebra_tools'))
         self.ai_tool_action.setText(t('main_window.ai_tools'))
 
-        # Help menu actions
         self.about_action.setText(t('main_window.about'))
         self.tutorial_action.setText(t('main_window.tutorial'))
 
-        # Toolbar actions
         self.select_action.setText(t('main_window.select'))
         self.point_action.setText(t('main_window.point'))
         self.segment_action.setText(t('main_window.segment'))
         self.circle_action.setText(t('main_window.circle'))
         self.polygon_action.setText(t('main_window.polygon'))
         self.pan_action.setText(t('main_window.pan'))
-        self.zoom_in_action.setText(t('main_window.zoom_in'))
-        self.zoom_out_action.setText(t('main_window.zoom_out'))
 
-        # Preferences & AI menu actions
         self.preferences_action.setText(t('main_window.preferences'))
         self.ai_menu.setTitle(t('menu.ai'))
         self.ai_scatter_action.setText(t('ai_tools.scatter_fitting'))
@@ -858,20 +806,31 @@ class MainWindow(QMainWindow):
         self.ai_digit_action.setText(t('ai_tools.digit_recognition'))
         self.ai_train_action.setText(t('ai_tools.training_notebook'))
 
-        # Toolbar side buttons tooltip
         self.lang_btn.setToolTip(t('main_window.language'))
         self.settings_btn.setToolTip(t('main_window.preferences'))
 
-        # Dock titles (uppercase for label-caps style)
         self.algebra_panel.setWindowTitle(t('algebra_panel.title').upper())
         self.properties_panel.setWindowTitle(t('properties_panel.title').upper())
         self.console.setWindowTitle(t('console.title').upper())
         self.algo_vis_panel.setWindowTitle(t('algo_vis.title').upper())
         self.ai_tools_panel.setWindowTitle(t('ai_tools.title').upper())
 
-        # Child panels
         self.algebra_panel.retranslate_ui()
         self.properties_panel.retranslate_ui()
         self.console.retranslate_ui()
         self.algo_vis_panel.retranslate_ui()
         self.ai_tools_panel.retranslate_ui()
+
+    @property
+    def zoom_in_action(self):
+        if not hasattr(self, '_zoom_in_action'):
+            self._zoom_in_action = QAction(t('main_window.zoom_in'), self)
+            self.toolbar.addAction(self._zoom_in_action)
+        return self._zoom_in_action
+
+    @property
+    def zoom_out_action(self):
+        if not hasattr(self, '_zoom_out_action'):
+            self._zoom_out_action = QAction(t('main_window.zoom_out'), self)
+            self.toolbar.addAction(self._zoom_out_action)
+        return self._zoom_out_action

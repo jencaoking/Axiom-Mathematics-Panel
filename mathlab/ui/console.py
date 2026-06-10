@@ -46,27 +46,12 @@ class PythonConsole(QDockWidget):
         self.output_area = QPlainTextEdit()
         self.output_area.setReadOnly(True)
         self.output_area.setFont(QFont('Consolas', 12))
-        self.output_area.setStyleSheet("""
-            QPlainTextEdit {
-                background-color: #1e1e1e;
-                color: #d4d4d4;
-                font-family: Consolas, monospace;
-                border: none;
-            }
-        """)
+        self.output_area.setObjectName("console_output")
 
         self.input_line = QLineEdit()
         self.input_line.setFont(QFont('Consolas', 12))
         self.input_line.setPlaceholderText(t('console.placeholder'))
-        self.input_line.setStyleSheet("""
-            QLineEdit {
-                background-color: #2d2d2d;
-                color: #d4d4d4;
-                font-family: Consolas, monospace;
-                border: none;
-                padding: 6px;
-            }
-        """)
+        self.input_line.setObjectName("console_input")
 
         self.layout.addWidget(self.output_area)
         self.layout.addWidget(self.input_line)
