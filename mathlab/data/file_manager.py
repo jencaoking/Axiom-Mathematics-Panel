@@ -267,8 +267,10 @@ class FileManager:
         try:
             data['modified'] = datetime.now().isoformat()
 
-            with open(file_path, 'w', encoding='utf-8') as f:
+            tmp_path = file_path + '.tmp'
+            with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
+            os.replace(tmp_path, file_path)
 
             self.index.add_entry(file_path, {
                 'category': data.get('category', FileCategory.UNTITLED.value),

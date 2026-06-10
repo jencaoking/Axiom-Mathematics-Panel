@@ -3,15 +3,20 @@ from PySide6.QtWidgets import (
     QTabWidget, QPushButton, QComboBox, QSpinBox,
     QLabel, QGraphicsView, QGraphicsScene,
     QGraphicsEllipseItem, QGraphicsLineItem,
-    QProgressBar, QPlainTextEdit
+    QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit
 )
-from PySide6.QtGui import QPen, QBrush, QColor
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
+from PySide6.QtCore import Qt, Signal, QThread
 
 try:
     from ..utils.i18n_manager import t
 except ImportError:
     from utils.i18n_manager import t
+
+try:
+    from ..core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
+except ImportError:
+    from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
 
 
 class AIToolsPanel(QDockWidget):
@@ -19,10 +24,13 @@ class AIToolsPanel(QDockWidget):
     cluster_requested = Signal(list, str, dict)
     recognize_requested = Signal(list)
     generate_points = Signal(int)
+    action_requested = Signal(dict)
 
     def __init__(self, parent=None):
         super().__init__(t('ai_tools.title'), parent)
         self.setAllowedAreas(Qt.RightDockWidgetArea)
+        self.worker = None
+        self.worker_thread = None
 
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
@@ -177,6 +185,54 @@ class AIToolsPanel(QDockWidget):
         self.training_layout.addWidget(self.output_area)
 
         self.tab_widget.addTab(self.training_tab, t('ai_tools.training_notebook'))
+
+        # ------------------------------------------------------------------
+        # Tab 4: AI Assistant Chat
+        # ------------------------------------------------------------------
+        self.assistant_tab = QWidget()
+        self.assistant_layout = QVBoxLayout(self.assistant_tab)
+
+        self.chat_display = QTextBrowser()
+        self.chat_display.setReadOnly(True)
+        self.chat_display.setOpenExternalLinks(True)
+        self.chat_display.setStyleSheet("""
+            QTextBrowser {
+                background-color: #ffffff;
+                color: #1a1a2e;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 14px;
+                border: 1px solid #e0e4e8;
+                border-radius: 4px;
+            }
+        """)
+
+        self.chat_input = QLineEdit()
+        self.chat_input.setPlaceholderText(t('ai_tools.ask_question'))
+        self.chat_input.returnPressed.connect(self.on_send_message)
+
+        self.send_button = QPushButton(t('ai_tools.send'))
+        self.send_button.clicked.connect(self.on_send_message)
+
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItem('Local Demo', AIProvider.LOCAL.value)
+        self.provider_combo.addItem('Minimax', AIProvider.MINIMAX.value)
+        self.provider_combo.addItem('Kimi', AIProvider.KIMI.value)
+        self.provider_combo.addItem('DeepSeek', AIProvider.DEEPSEEK.value)
+
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(self.chat_input)
+        input_layout.addWidget(self.send_button)
+
+        provider_layout = QHBoxLayout()
+        provider_layout.addWidget(QLabel(t('ai_tools.provider')))
+        provider_layout.addWidget(self.provider_combo)
+        provider_layout.addStretch()
+
+        self.assistant_layout.addLayout(provider_layout)
+        self.assistant_layout.addWidget(self.chat_display)
+        self.assistant_layout.addLayout(input_layout)
+
+        self.tab_widget.addTab(self.assistant_tab, t('ai_tools.ai_assistant'))
 
         # ------------------------------------------------------------------
         self.layout.addWidget(self.tab_widget)

@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, pow
+from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs
 from sympy.parsing.sympy_parser import standard_transformations
 
 class GeometricObject:

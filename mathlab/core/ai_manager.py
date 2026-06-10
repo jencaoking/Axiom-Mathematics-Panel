@@ -4,6 +4,9 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import mean_squared_error
 import os
+import json
+import time
+from enum import Enum
 
 try:
     import torch
@@ -17,6 +20,166 @@ try:
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
+
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
+class AIProvider(Enum):
+    MINIMAX = "minimax"
+    KIMI = "kimi"
+    DEEPSEEK = "deepseek"
+    LOCAL = "local"
+
+class AIRequestConfig:
+    def __init__(self, provider: AIProvider = AIProvider.LOCAL, api_key: str = "", base_url: str = ""):
+        self.provider = provider
+        self.api_key = api_key
+        self.base_url = base_url
+
+class AIRequestWorker:
+    def __init__(self, prompt: str, system_context: dict, config: AIRequestConfig = None):
+        self.prompt = prompt
+        self.system_context = system_context
+        self.config = config or AIRequestConfig()
+        self._is_running = False
+        self._callbacks = {
+            'chunk_received': [],
+            'action_required': [],
+            'finished': [],
+            'error': []
+        }
+
+    def on(self, event: str, callback):
+        if event in self._callbacks:
+            self._callbacks[event].append(callback)
+
+    def emit(self, event: str, *args):
+        for callback in self._callbacks.get(event, []):
+            callback(*args)
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        self._is_running = True
+        try:
+            context_str = json.dumps(self.system_context, ensure_ascii=False)
+            
+            system_prompt = f"""你是一个数学助手，运行在MathLab交互式数学软件中。
+当前画布状态: {context_str}
+
+你的能力:
+1. 解答数学问题
+2. 分析几何图形
+3. 通过JSON指令操作画布
+
+如果需要在画布上操作，请输出纯JSON，格式如:
+{{"action": "add_point", "x": 1, "y": 2, "name": "A"}}
+
+支持的操作:
+- add_point: 添加点 {"action": "add_point", "x": number, "y": number, "name": string}
+- add_segment: 添加线段 {"action": "add_segment", "point1_id": string, "point2_id": string}
+- add_circle: 添加圆 {"action": "add_circle", "center_id": string, "radius": number}
+- add_polygon: 添加多边形 {"action": "add_polygon", "point_ids": [string]}
+- update_point: 更新点 {"action": "update_point", "point_id": string, "x": number, "y": number}
+- remove_object: 删除对象 {"action": "remove_object", "obj_id": string}
+- clear: 清空画布 {"action": "clear"}
+- solve: 求解 {"action": "solve", "expression": string}
+
+如果只是回答问题，请直接输出文本，不要输出JSON。
+"""
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": self.prompt}
+            ]
+
+            if self.config.provider == AIProvider.LOCAL:
+                self._simulate_local_response(messages)
+            else:
+                self._make_api_request(messages)
+
+        except Exception as e:
+            self.emit('error', str(e))
+        finally:
+            self.emit('finished')
+
+    def _simulate_local_response(self, messages):
+        responses = [
+            ("分析当前画布...\n", None),
+            ("我已识别到画布上的几何对象。\n", None),
+            ("根据你的问题，我来帮你分析：\n", None),
+            ("这是一个数学问题，我可以帮你解答。\n", None),
+            ("如果你需要我在画布上绘制图形，请告诉我具体需求。\n", None),
+        ]
+
+        for text_chunk, action in responses:
+            if not self._is_running:
+                break
+            
+            for word in text_chunk:
+                if not self._is_running:
+                    break
+                self.emit('chunk_received', word)
+                time.sleep(0.05)
+            
+            if action:
+                self.emit('action_required', action)
+
+    def _make_api_request(self, messages):
+        if not REQUESTS_AVAILABLE:
+            self.emit('error', 'requests library not available')
+            return
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.config.api_key}'
+        }
+
+        payload = {
+            'messages': messages,
+            'stream': True,
+            'max_tokens': 2048
+        }
+
+        urls = {
+            AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
+            AIProvider.KIMI: "https://api.moonshot.cn/v1/chat/completions",
+            AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions"
+        }
+
+        url = self.config.base_url or urls.get(self.config.provider)
+        if not url:
+            self.emit('error', 'Invalid provider or base URL')
+            return
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                stream=True,
+                timeout=60
+            )
+            response.raise_for_status()
+
+            for line in response.iter_lines():
+                if not self._is_running:
+                    break
+                if line:
+                    try:
+                        data = json.loads(line.decode('utf-8'))
+                        if 'choices' in data and len(data['choices']) > 0:
+                            delta = data['choices'][0].get('delta', {})
+                            if 'content' in delta:
+                                self.emit('chunk_received', delta['content'])
+                    except json.JSONDecodeError:
+                        pass
+        except requests.exceptions.RequestException as e:
+            self.emit('error', str(e))
 
 class AIManager:
     def __init__(self):

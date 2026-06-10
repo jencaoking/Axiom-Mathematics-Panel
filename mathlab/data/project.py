@@ -50,8 +50,10 @@ class ProjectManager:
                 }
             }
             
-            with open(file_path, 'w', encoding='utf-8') as f:
+            tmp_path = file_path + '.tmp'
+            with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
+            os.replace(tmp_path, file_path)
             
             self.current_project = file_path
             return {'success': True}
@@ -62,9 +64,16 @@ class ProjectManager:
         self.objects[obj_id] = obj_data
         self._update_modified()
     
+    def _deep_update(self, target, source):
+        for key, value in source.items():
+            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+                self._deep_update(target[key], value)
+            else:
+                target[key] = value
+
     def update_object(self, obj_id, obj_data):
         if obj_id in self.objects:
-            self.objects[obj_id].update(obj_data)
+            self._deep_update(self.objects[obj_id], obj_data)
             self._update_modified()
     
     def remove_object(self, obj_id):
