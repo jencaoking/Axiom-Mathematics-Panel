@@ -19,6 +19,7 @@ from .properties_panel import PropertiesPanel
 from .command_bar import CommandBar
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
+from .function_explorer_panel import FunctionExplorerPanel
 
 try:
     from core.geometry_engine import GeometryEngine
@@ -148,6 +149,9 @@ class MainWindow(QMainWindow):
         self.ai_tools_action = QAction(t('main_window.ai_tools'), self)
         self.ai_tools_action.setCheckable(True)
 
+        self.function_explorer_action = QAction(t('function_explorer.title'), self)
+        self.function_explorer_action.setCheckable(True)
+
         self.theme_action    = QAction(t('main_window.theme'), self)
         self.language_action = QAction(t('main_window.language'), self)
 
@@ -156,6 +160,7 @@ class MainWindow(QMainWindow):
         self.view_menu.addAction(self.console_action)
         self.view_menu.addAction(self.algo_vis_action)
         self.view_menu.addAction(self.ai_tools_action)
+        self.view_menu.addAction(self.function_explorer_action)
         self.view_menu.addSeparator()
         self.view_menu.addAction(self.theme_action)
         self.view_menu.addAction(self.language_action)
@@ -215,6 +220,7 @@ class MainWindow(QMainWindow):
         self.console_action.triggered.connect(self.toggle_console)
         self.algo_vis_action.triggered.connect(self.toggle_algo_vis_panel)
         self.ai_tools_action.triggered.connect(self.toggle_ai_tools_panel)
+        self.function_explorer_action.triggered.connect(self.toggle_function_explorer)
 
         self.theme_action.triggered.connect(self.show_theme_dialog)
         self.language_action.triggered.connect(self.show_language_dialog)
@@ -346,6 +352,12 @@ class MainWindow(QMainWindow):
         self.console.setWindowTitle(t('console.title').upper())
         self.console.set_python_repl(self.python_repl)
 
+        # 函数探索器面板
+        self.function_explorer = FunctionExplorerPanel(self)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.function_explorer)
+        self.function_explorer.setWindowTitle(t('function_explorer.title').upper())
+        self.function_explorer.hide()  # 默认隐藏
+
         self.algo_vis_panel = AlgoVisPanel(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.algo_vis_panel)
         self.algo_vis_panel.setWindowTitle(t('algo_vis.title').upper())
@@ -392,6 +404,10 @@ class MainWindow(QMainWindow):
 
         self.ai_tools_panel.code_editor.request_completions.connect(self.on_code_completion_requested)
 
+        # 连接函数探索器信号
+        self.function_explorer.function_added.connect(self.on_function_added)
+        self.function_explorer.function_updated.connect(self.on_function_updated)
+
     def on_code_completion_requested(self, code_text: str, line: int, column: int):
         if hasattr(self, 'python_repl'):
             completions = self.python_repl.get_completions(code_text, line, column)
@@ -423,6 +439,73 @@ class MainWindow(QMainWindow):
             self._objects_data.clear()
             self.algebra_panel.clear()
             self.central_widget.clear_canvas()
+
+    def on_function_added(self, func_data: dict):
+        """处理函数探索器添加的函数"""
+        try:
+            plot_type = func_data.get('plot_type', 'FunctionPlot')
+            expression = func_data.get('expression', '')
+            
+            if not expression:
+                return
+            
+            # 根据类型调用不同的绘图方法
+            if plot_type == 'FunctionPlot':
+                obj_id = self.geometry_engine.add_function_plot(
+                    expression=expression,
+                    x_range=func_data.get('x_range', (-10, 10)),
+                    num_points=500
+                )
+            elif plot_type == 'ImplicitPlot':
+                obj_id = self.geometry_engine.add_implicit_plot(
+                    expression=expression,
+                    x_range=func_data.get('x_range', (-10, 10)),
+                    y_range=func_data.get('y_range', (-10, 10))
+                )
+            elif plot_type == 'PolarPlot':
+                import math
+                obj_id = self.geometry_engine.add_polar_plot(
+                    expression=expression,
+                    theta_range=(0, 2*math.pi),
+                    num_points=500
+                )
+            else:
+                return
+            
+            # 保存原始表达式和参数信息到对象中
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.original_expression = expression
+                obj.parameters = func_data.get('parameters', {})
+        except Exception as e:
+            QMessageBox.warning(self, t('dialogs.error'), 
+                              f"{t('errors.invalid_expression')}: {str(e)}")
+    
+    def on_function_updated(self, func_data: dict):
+        """处理函数探索器更新的函数（参数变化）"""
+        try:
+            plot_type = func_data.get('plot_type', 'FunctionPlot')
+            expression = func_data.get('expression', '')
+            original_expr = func_data.get('original_expression', expression)
+            
+            if not expression:
+                return
+            
+            # 查找最近添加的同类型函数并更新
+            objects = self.geometry_engine.get_objects_by_type(plot_type)
+            if objects:
+                # 找到最后一个添加的函数（假设是用户刚创建的）
+                last_func = objects[-1]
+                
+                # 重新生成点数据
+                if hasattr(last_func, '_generate_points'):
+                    last_func.expression = expression
+                    last_func._generate_points()
+                    
+                    # 通知更新
+                    self.on_geometry_event('object_updated', last_func.serialize())
+        except Exception as e:
+            print(f"Error updating function: {e}")
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:
@@ -901,6 +984,13 @@ class MainWindow(QMainWindow):
             self.ai_tools_panel.raise_()
         else:
             self.ai_tools_panel.hide()
+
+    def toggle_function_explorer(self, visible: bool) -> None:
+        if visible:
+            self.function_explorer.show()
+            self.function_explorer.raise_()
+        else:
+            self.function_explorer.hide()
 
     def show_about(self) -> None:
         QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))
