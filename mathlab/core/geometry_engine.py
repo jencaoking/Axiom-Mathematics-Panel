@@ -686,7 +686,12 @@ class GeometryEngine:
         prefix = obj_type[0].upper()
         # 基于当前该类型对象的数量生成名称，防止重名
         count = len([obj for obj in self.objects.values() if obj.type == obj_type]) + 1
-        return f'{prefix}{count}'
+        # 确保生成的名称在当前环境中是唯一的
+        while True:
+            name = f'{prefix}{count}'
+            if not any(obj.name == name for obj in self.objects.values()):
+                return name
+            count += 1
     
     def add_listener(self, listener):
         self.listeners.append(listener)

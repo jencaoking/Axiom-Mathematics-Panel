@@ -322,12 +322,6 @@ class MainWindow(QMainWindow):
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
 
         self._connect_tool_actions()
-        
-        # 初始化缩放 Action（避免重复追加）
-        zoom_in_act = self.zoom_in_action
-        zoom_out_act = self.zoom_out_action
-        zoom_in_act.triggered.connect(self.on_zoom_in)
-        zoom_out_act.triggered.connect(self.on_zoom_out)
 
     def _connect_tool_actions(self):
         tool_map = [
@@ -1153,6 +1147,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, '_zoom_in_action'):
             self._zoom_in_action = QAction(t('main_window.zoom_in'), self)
             self.toolbar.addAction(self._zoom_in_action)
+            self._zoom_in_action.triggered.connect(self.on_zoom_in)
         return self._zoom_in_action
 
     @property
@@ -1160,4 +1155,5 @@ class MainWindow(QMainWindow):
         if not hasattr(self, '_zoom_out_action'):
             self._zoom_out_action = QAction(t('main_window.zoom_out'), self)
             self.toolbar.addAction(self._zoom_out_action)
+            self._zoom_out_action.triggered.connect(self.on_zoom_out)
         return self._zoom_out_action

@@ -165,7 +165,10 @@ class SandboxProcess:
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
                     # Unix下通过向进程组 ID（负的 PID）发送 SIGKILL，全组连带子进程瞬间清除
-                    os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                    try:
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass  # 进程可能已经退出
             except Exception as e:
                 print(f"Warning: Failed to terminate process group: {e}")
             finally:
