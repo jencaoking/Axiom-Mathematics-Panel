@@ -5,6 +5,11 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem,
     QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit
 )
+
+try:
+    from .code_editor import AutocompleteTextEdit
+except ImportError:
+    from code_editor import AutocompleteTextEdit
 from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
 from PySide6.QtCore import Qt, Signal, QThread
 
@@ -151,7 +156,7 @@ class AIToolsPanel(QDockWidget):
         self.training_tab = QWidget()
         self.training_layout = QVBoxLayout(self.training_tab)
 
-        self.code_editor = QPlainTextEdit()
+        self.code_editor = AutocompleteTextEdit()
         self.code_editor.setPlaceholderText(t('ai_tools.write_training_code'))
         self.code_editor.setStyleSheet("""
             QPlainTextEdit {

@@ -18,6 +18,8 @@ class PythonConsole(QDockWidget):
         super().__init__(t('console.title'), parent)
         self.setAllowedAreas(Qt.BottomDockWidgetArea)
 
+        self.python_repl = None
+
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -155,19 +157,42 @@ class PythonConsole(QDockWidget):
         if not current_text:
             return
 
-        words = current_text.split()
-        if not words:
-            return
+        cursor_pos = self.input_line.cursorPosition()
+        line = 1
+        column = cursor_pos
 
-        last_word = words[-1]
-        completions = self.get_completions(last_word)
+        jedi_completions = self.get_jedi_completions(current_text, line, column)
+        
+        if jedi_completions:
+            names = [c['name'] for c in jedi_completions]
+            
+            if len(names) == 1:
+                last_word_start = current_text.rfind(' ', 0, cursor_pos) + 1
+                prefix = current_text[last_word_start:cursor_pos]
+                completion = names[0]
+                if completion.startswith(prefix):
+                    new_text = current_text[:last_word_start] + completion + current_text[cursor_pos:]
+                    self.input_line.setText(new_text)
+                    self.input_line.setCursorPosition(last_word_start + len(completion))
+            elif len(names) > 1:
+                self.append_output('\n' + '\n'.join(names) + '\n')
+                self.append_prompt()
+                self.input_line.setText(current_text)
+        else:
+            words = current_text.split()
+            if words:
+                last_word = words[-1]
+                completions = self.get_completions(last_word)
 
-        if len(completions) == 1:
-            self.input_line.setText(current_text[:-len(last_word)] + completions[0])
-        elif len(completions) > 1:
-            self.append_output('\n'.join(completions) + '\n')
-            self.append_prompt()
-            self.input_line.setText(current_text)
+                if len(completions) == 1:
+                    self.input_line.setText(current_text[:-len(last_word)] + completions[0])
+                elif len(completions) > 1:
+                    self.append_output('\n'.join(completions) + '\n')
+                    self.append_prompt()
+                    self.input_line.setText(current_text)
+
+    def set_python_repl(self, repl):
+        self.python_repl = repl
 
     def get_completions(self, prefix):
         common_commands = [
@@ -177,6 +202,11 @@ class PythonConsole(QDockWidget):
         ]
 
         return [cmd for cmd in common_commands if cmd.startswith(prefix)]
+
+    def get_jedi_completions(self, code_str: str, line: int, column: int):
+        if self.python_repl:
+            return self.python_repl.get_completions(code_str, line, column)
+        return []
 
     def retranslate_ui(self):
         self.setWindowTitle(t('console.title'))

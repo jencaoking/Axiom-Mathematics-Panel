@@ -70,6 +70,25 @@ class AIRecognizeWorker(QThread):
             self.error.emit(str(e))
 
 
+class AIGeneratePointsWorker(QThread):
+    finished = Signal(dict)
+    error = Signal(str)
+
+    def __init__(self, ai_manager, n, x_range, y_range):
+        super().__init__()
+        self.ai_manager = ai_manager
+        self.n = n
+        self.x_range = x_range
+        self.y_range = y_range
+
+    def run(self):
+        try:
+            result = self.ai_manager.generate_random_points(self.n, x_range=self.x_range, y_range=self.y_range)
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class SandboxWorker(QThread):
     finished = Signal(dict)
     error = Signal(str)

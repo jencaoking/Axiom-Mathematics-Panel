@@ -6,6 +6,7 @@ from .properties_panel import PropertiesPanel
 from .command_bar import CommandBar
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
+from .code_editor import AutocompleteTextEdit
 
 __all__ = [
     'MainWindow',
@@ -16,4 +17,5 @@ __all__ = [
     'CommandBar',
     'AlgoVisPanel',
     'AIToolsPanel',
+    'AutocompleteTextEdit',
 ]

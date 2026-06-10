@@ -23,7 +23,7 @@ from .ai_tools_panel import AIToolsPanel
 from ..core.geometry_engine import GeometryEngine
 from ..core.python_repl import PythonREPL
 from ..core.ai_manager import AIManager
-from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker
+from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -336,6 +336,7 @@ class MainWindow(QMainWindow):
         self.console = PythonConsole(self)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.console)
         self.console.setWindowTitle(t('console.title').upper())
+        self.console.set_python_repl(self.python_repl)
 
         self.algo_vis_panel = AlgoVisPanel(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.algo_vis_panel)
@@ -376,6 +377,13 @@ class MainWindow(QMainWindow):
         self.ai_tools_panel.cluster_requested.connect(self.on_ai_cluster_requested)
         self.ai_tools_panel.recognize_requested.connect(self.on_ai_recognize_requested)
         self.ai_tools_panel.generate_points.connect(self.on_ai_generate_points)
+
+        self.ai_tools_panel.code_editor.request_completions.connect(self.on_code_completion_requested)
+
+    def on_code_completion_requested(self, code_text: str, line: int, column: int):
+        if hasattr(self, 'python_repl'):
+            completions = self.python_repl.get_completions(code_text, line, column)
+            self.ai_tools_panel.code_editor.set_completions(completions)
 
     def _add_object(self, obj_data: dict) -> None:
         obj_id = obj_data['id']
@@ -618,13 +626,30 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'recognize_worker') and self.recognize_worker:
             self.recognize_worker.deleteLater()
             self.recognize_worker = None
+        if hasattr(self, 'generate_points_worker') and self.generate_points_worker:
+            self.generate_points_worker.deleteLater()
+            self.generate_points_worker = None
 
     def on_ai_generate_points(self, n: int) -> None:
-        result = self.ai_manager.generate_random_points(n, x_range=(-200, 200), y_range=(-200, 200))
+        self.ai_tools_panel.set_loading_state(True)
+        self.statusBar().showMessage("正在生成随机点...")
+
+        self.generate_points_worker = AIGeneratePointsWorker(self.ai_manager, n, x_range=(-200, 200), y_range=(-200, 200))
+        self.generate_points_worker.finished.connect(self.on_generate_points_worker_finished)
+        self.generate_points_worker.error.connect(self.on_ai_worker_error)
+        self.generate_points_worker.start()
+
+    def on_generate_points_worker_finished(self, result: dict):
+        self.ai_tools_panel.set_loading_state(False)
+        self.statusBar().showMessage("随机点生成完成", 3000)
+        
         if result['success']:
             self.ai_tools_panel.set_scatter_points(result['points'])
             for x, y in result['points']:
                 self.on_point_added(x, y)
+        
+        self.generate_points_worker.deleteLater()
+        self.generate_points_worker = None
 
     def on_console_command(self, command: str) -> None:
         if command == '%clear':
