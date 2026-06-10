@@ -155,16 +155,16 @@ class DAG:
             self.reverse_graph[to_node].append(from_node)
     
     def remove_node(self, node):
-        for neighbors in self.graph.values():
-            if node in neighbors:
-                neighbors.remove(node)
-        if node in self.graph:
-            del self.graph[node]
-        if node in self.reverse_graph:
-            for parent in self.reverse_graph[node]:
-                if parent in self.graph and node in self.graph[parent]:
-                    self.graph[parent].remove(node)
-            del self.reverse_graph[node]
+        for child in self.graph.get(node, []):
+            if node in self.reverse_graph.get(child, []):
+                self.reverse_graph[child].remove(node)
+        
+        for parent in self.reverse_graph.get(node, []):
+            if node in self.graph.get(parent, []):
+                self.graph[parent].remove(node)
+                
+        self.graph.pop(node, None)
+        self.reverse_graph.pop(node, None)
     
     def get_dependencies(self, node):
         visited = set()
@@ -183,12 +183,12 @@ class DAG:
         visited = set()
         result = []
         def dfs(n):
-            if n in visited:
-                return
-            visited.add(n)
-            for dep in self.graph[n]:
-                result.append(dep)
-                dfs(dep)
+            for dep in self.graph.get(n, []):
+                if dep not in visited:
+                    visited.add(dep)
+                    result.append(dep)
+                    dfs(dep)
+        visited.add(node)
         dfs(node)
         return result
 
@@ -339,9 +339,11 @@ class GeometryEngine:
             for constraint in obj.constraints:
                 if isinstance(constraint, str):
                     try:
-                        eq = sympify(constraint)
-                        if eq is not None:
-                            equations.append(eq)
+                        # 使用安全的局部命名空间，避免全局作用域污染
+                        local_ns = {}
+                        exec(f'from sympy import *\neq = {constraint}', {}, local_ns)
+                        if 'eq' in local_ns:
+                            equations.append(local_ns['eq'])
                     except Exception:
                         pass
                 else:

@@ -402,48 +402,64 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def on_point_added(self, x: float, y: float) -> None:
         """Slot for GeometryCanvas.point_added — no double-draw."""
-        obj_id = str(uuid.uuid4())
-        obj_data = {
-            'id': obj_id,
-            'name': t('geometry.new_point'),
-            'type': 'Point',
-            'coordinates': {'x': x, 'y': y},
-        }
-        self._add_object(obj_data)
+        if hasattr(self, 'geometry_engine'):
+            self.geometry_engine.add_point(x, y)
+        else:
+            obj_id = str(uuid.uuid4())
+            obj_data = {
+                'id': obj_id,
+                'name': t('geometry.new_point'),
+                'type': 'Point',
+                'coordinates': {'x': x, 'y': y},
+            }
+            self._add_object(obj_data)
 
     def on_segment_added(self, x1: float, y1: float, x2: float, y2: float) -> None:
         """Slot for GeometryCanvas.segment_added_coords."""
-        obj_id = str(uuid.uuid4())
-        obj_data = {
-            'id': obj_id,
-            'name': t('geometry.segment'),
-            'type': 'Segment',
-            'coordinates': {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2},
-        }
-        self._add_object(obj_data)
+        if hasattr(self, 'geometry_engine'):
+            p1_id = self.geometry_engine.add_point(x1, y1)
+            p2_id = self.geometry_engine.add_point(x2, y2)
+            self.geometry_engine.add_segment(p1_id, p2_id)
+        else:
+            obj_id = str(uuid.uuid4())
+            obj_data = {
+                'id': obj_id,
+                'name': t('geometry.segment'),
+                'type': 'Segment',
+                'coordinates': {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2},
+            }
+            self._add_object(obj_data)
 
     def on_circle_added(self, cx: float, cy: float, radius: float) -> None:
         """Slot for GeometryCanvas.circle_added_coords."""
-        obj_id = str(uuid.uuid4())
-        obj_data = {
-            'id': obj_id,
-            'name': t('geometry.circle'),
-            'type': 'Circle',
-            'coordinates': {'cx': cx, 'cy': cy, 'r': radius},
-        }
-        self._add_object(obj_data)
+        if hasattr(self, 'geometry_engine'):
+            c_id = self.geometry_engine.add_point(cx, cy)
+            self.geometry_engine.add_circle(c_id, radius)
+        else:
+            obj_id = str(uuid.uuid4())
+            obj_data = {
+                'id': obj_id,
+                'name': t('geometry.circle'),
+                'type': 'Circle',
+                'coordinates': {'cx': cx, 'cy': cy, 'r': radius},
+            }
+            self._add_object(obj_data)
 
     def on_polygon_added(self, points: list) -> None:
         """Slot for GeometryCanvas.polygon_added_coords."""
-        obj_id = str(uuid.uuid4())
-        obj_data = {
-            'id': obj_id,
-            'name': t('geometry.polygon'),
-            'type': 'Polygon',
-            'coordinates': {},
-            'points': list(points),
-        }
-        self._add_object(obj_data)
+        if hasattr(self, 'geometry_engine'):
+            p_ids = [self.geometry_engine.add_point(pt[0], pt[1]) for pt in points]
+            self.geometry_engine.add_polygon(p_ids)
+        else:
+            obj_id = str(uuid.uuid4())
+            obj_data = {
+                'id': obj_id,
+                'name': t('geometry.polygon'),
+                'type': 'Polygon',
+                'coordinates': {},
+                'points': list(points),
+            }
+            self._add_object(obj_data)
 
     # ------------------------------------------------------------------
     # Panel interaction handlers
@@ -536,8 +552,15 @@ class MainWindow(QMainWindow):
 
             self.on_new_project()
 
-            for obj_id, obj_data in data.get('objects', {}).items():
-                self._add_object(obj_data)
+            if hasattr(self, 'geometry_engine') and 'name_counter' in data:
+                self.geometry_engine.deserialize_all(data)
+                self._objects_data = {obj.id: obj.serialize() for obj in self.geometry_engine.get_all_objects()}
+                for obj in self.geometry_engine.get_all_objects():
+                    self.algebra_panel.add_object(obj.serialize())
+                    self.central_widget.draw_object(obj.id, obj.serialize())
+            else:
+                for obj_id, obj_data in data.get('objects', {}).items():
+                    self._add_object(obj_data)
 
             self.current_project = file_path
             self.statusBar().showMessage(t('status_bar.opened', file_path))
@@ -569,7 +592,10 @@ class MainWindow(QMainWindow):
     def _save_project(self, file_path: str) -> None:
         try:
             import json
-            data = {'objects': self._objects_data}
+            if hasattr(self, 'geometry_engine'):
+                data = self.geometry_engine.serialize_all()
+            else:
+                data = {'objects': self._objects_data}
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             self.current_project = file_path
