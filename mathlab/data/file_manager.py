@@ -85,8 +85,11 @@ class FileMetadata:
 
     def _calculate_checksum(self) -> str:
         try:
+            md5 = hashlib.md5()
             with open(self.file_path, 'rb') as f:
-                return hashlib.md5(f.read()).hexdigest()
+                while chunk := f.read(65536):
+                    md5.update(chunk)
+            return md5.hexdigest()
         except:
             return ''
 
@@ -252,7 +255,7 @@ class FileManager:
 
             self.index.add_entry(file_path, {
                 'category': data.get('category', FileCategory.UNTITLED.value),
-                'object_types': list(set(obj.get('type') for obj in data.get('objects', {}).values())),
+                'object_types': list(set(t for t in (obj.get('type') for obj in data.get('objects', {}).values()) if t is not None)),
                 'tags': data.get('settings', {}).get('tags', [])
             })
 
@@ -269,7 +272,7 @@ class FileManager:
 
             self.index.add_entry(file_path, {
                 'category': data.get('category', FileCategory.UNTITLED.value),
-                'object_types': list(set(obj.get('type') for obj in data.get('objects', {}).values())),
+                'object_types': list(set(t for t in (obj.get('type') for obj in data.get('objects', {}).values()) if t is not None)),
                 'tags': data.get('settings', {}).get('tags', [])
             })
 
@@ -277,12 +280,15 @@ class FileManager:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    def delete_project(self, file_path: str) -> Dict:
+    def delete_project(self, file_path: str, keep_backup: bool = False) -> Dict:
         try:
             if os.path.exists(file_path):
                 backup_path = file_path + '.backup'
                 shutil.copy2(file_path, backup_path)
                 os.remove(file_path)
+                
+                if not keep_backup:
+                    os.remove(backup_path)
 
             self.index.remove_entry(file_path)
             return {'success': True}
@@ -310,7 +316,7 @@ class FileManager:
 
             self.index.add_entry(new_path, {
                 'category': data.get('category', FileCategory.UNTITLED.value),
-                'object_types': list(set(obj.get('type') for obj in data.get('objects', {}).values())),
+                'object_types': list(set(t for t in (obj.get('type') for obj in data.get('objects', {}).values()) if t is not None)),
                 'tags': data.get('settings', {}).get('tags', [])
             })
 
