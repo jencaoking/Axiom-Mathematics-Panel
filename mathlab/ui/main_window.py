@@ -392,6 +392,12 @@ class MainWindow(QMainWindow):
         self.algebra_panel.object_selected.connect(self.on_algebra_item_selected)
         self.algebra_panel.object_deleted.connect(self.on_object_deleted)
         self.algebra_panel.object_renamed.connect(self.on_object_renamed)
+        
+        # 连接属性面板信号
+        if hasattr(self, 'properties_panel'):
+            self.properties_panel.object_renamed.connect(self.on_object_renamed)
+            # TODO: 后续需要实现颜色、透明度等属性的同步逻辑
+            # self.properties_panel.color_changed.connect(self.on_object_color_changed)
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
 

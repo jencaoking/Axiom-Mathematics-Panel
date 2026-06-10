@@ -37,8 +37,10 @@ class AutocompleteTextEdit(QPlainTextEdit):
         
         # 当 extra > 0 时才插入剩余部分，避免重复插入
         if extra > 0:
+            tc.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, extra)
             tc.insertText(completion[-extra:])
             self.setTextCursor(tc)
+        self.completer.popup().hide()
 
     def text_under_cursor(self):
         tc = self.textCursor()

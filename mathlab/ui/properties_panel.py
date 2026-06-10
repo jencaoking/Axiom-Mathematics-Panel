@@ -479,6 +479,10 @@ class PropertiesPanel(QDockWidget):
         self._show_label_cb.setChecked(show_label)
         label_mode = obj_data.get('label_mode', 'name')
         self._set_label_mode(label_mode)
+        
+        # 确保按钮状态与 show_label 同步
+        self._name_btn.setEnabled(show_label)
+        self._value_btn.setEnabled(show_label)
 
         # ── definition ────────────────────────────────────────────────
         definition = self._format_definition(obj_data)

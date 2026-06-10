@@ -301,7 +301,7 @@ class AlgebraPanel(QDockWidget):
             return
         current_name = self.object_items[obj_id]._name_label.text()
         new_name, ok = QInputDialog.getText(
-            self, t('algebra_panel.rename'), "", text=current_name
+            self, t('algebra_panel.rename'), t('algebra_panel.new_name'), text=current_name
         )
         if ok and new_name.strip():
             self.object_renamed.emit(obj_id, new_name.strip())
