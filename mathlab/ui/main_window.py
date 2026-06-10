@@ -55,6 +55,7 @@ class MainWindow(QMainWindow):
 
         self.geometry_engine = GeometryEngine()
         self.python_repl = PythonREPL()
+        self.ai_manager = AIManager()
 
         self.setup_ui()
         self.setup_menus()
