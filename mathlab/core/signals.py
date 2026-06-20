@@ -8,6 +8,8 @@ class GeometrySignals(QObject):
     object_updated = Signal(dict)
     object_removed = Signal(str)
     selection_changed = Signal(str)
+    equation_changed = Signal(str, str)
+    signals_blocked_changed = Signal(bool)
 
 class ConsoleSignals(QObject):
     def __init__(self):

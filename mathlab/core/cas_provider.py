@@ -165,6 +165,106 @@ class CASProvider:
         self.symbols_cache.clear()
         return {"success": True}
     
+    def solve_intersection(self, obj1, obj2):
+        """求解两个几何对象的交点"""
+        try:
+            x, y = symbols('x y')
+            
+            eq1 = self._object_to_equation(obj1, x, y)
+            eq2 = self._object_to_equation(obj2, x, y)
+            
+            if eq1 is None or eq2 is None:
+                return []
+            
+            solutions = solve((eq1, eq2), (x, y))
+            
+            points = []
+            if isinstance(solutions, dict):
+                if x in solutions and y in solutions:
+                    try:
+                        px = float(solutions[x])
+                        py = float(solutions[y])
+                        points.append((px, py))
+                    except (TypeError, ValueError):
+                        pass
+            elif isinstance(solutions, list):
+                for sol in solutions:
+                    if isinstance(sol, dict) and x in sol and y in sol:
+                        try:
+                            px = float(sol[x])
+                            py = float(sol[y])
+                            points.append((px, py))
+                        except (TypeError, ValueError):
+                            pass
+            
+            return points
+        except Exception:
+            return []
+    
+    def _object_to_equation(self, obj, x, y):
+        """将几何对象转换为 SymPy 方程"""
+        obj_type = obj.type
+        
+        if obj_type == 'Line':
+            return Eq(obj.a * x + obj.b * y + obj.c, 0)
+        elif obj_type == 'Segment':
+            x1, y1 = obj.coordinates.get('x1', 0), obj.coordinates.get('y1', 0)
+            x2, y2 = obj.coordinates.get('x2', 0), obj.coordinates.get('y2', 0)
+            a = y2 - y1
+            b = x1 - x2
+            c = x2 * y1 - x1 * y2
+            return Eq(a * x + b * y + c, 0)
+        elif obj_type == 'Circle':
+            cx, cy = obj.coordinates.get('cx', 0), obj.coordinates.get('cy', 0)
+            r = obj.coordinates.get('r', 1)
+            return Eq((x - cx)**2 + (y - cy)**2, r**2)
+        elif obj_type == 'Point':
+            px, py = obj.coordinates.get('x', 0), obj.coordinates.get('y', 0)
+            return Eq(x, px)
+        
+        return None
+    
+    def extract_line_control_points(self, equation_str):
+        """从直线方程中提取两个控制点坐标"""
+        try:
+            from sympy.parsing.sympy_parser import parse_expr, standard_transformations
+            
+            x, y = symbols('x y')
+            
+            match = re.search(r'(?<!>)=(?!>)', equation_str)
+            if match:
+                left_str = equation_str[:match.start()]
+                right_str = equation_str[match.end():]
+                left_expr = parse_expr(left_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
+                right_expr = parse_expr(right_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
+                eq = left_expr - right_expr
+            else:
+                eq = parse_expr(equation_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
+            
+            eq = simplify(eq)
+            
+            coeffs = eq.as_coefficients_dict()
+            coeff_x = float(coeffs.get(x, 0))
+            coeff_y = float(coeffs.get(y, 0))
+            const = float(coeffs.get(1, 0))
+            
+            points = []
+            
+            if abs(coeff_y) > 1e-10:
+                x1, y1 = 0.0, -const / coeff_y
+                x2, y2 = 10.0, (-const - coeff_x * 10) / coeff_y
+                points.append((x1, y1))
+                points.append((x2, y2))
+            elif abs(coeff_x) > 1e-10:
+                x1, y1 = -const / coeff_x, 0.0
+                x2, y2 = (-const - coeff_y * 10) / coeff_x, 10.0
+                points.append((x1, y1))
+                points.append((x2, y2))
+            
+            return points
+        except Exception:
+            return []
+    
     def latex_to_text(self, latex_str):
         try:
             return {"success": True, "text": latex_str}

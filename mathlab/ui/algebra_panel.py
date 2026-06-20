@@ -9,7 +9,7 @@ Algebra Panel — redesigned with a custom card list:
 from PySide6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QScrollArea, QFrame, QMenu, QSizePolicy,
-    QApplication
+    QApplication, QLineEdit
 )
 from PySide6.QtGui import QAction, QFont, QColor, QPainter, QBrush, QPen, QCursor
 from PySide6.QtCore import Signal, Qt, QSize, QPoint
@@ -72,17 +72,20 @@ class _AlgebraItem(QFrame):
 
     Layout:
         [dot]  [name  (bold 14px)    ]
-               [formula (mono 12px)  ]
+               [formula (mono 12px)  ]  or [QLineEdit for editing]
     """
 
     clicked  = Signal(str)      # obj_id
     rename_requested = Signal(str)
     delete_requested = Signal(str)
+    equation_edited = Signal(str, str)  # obj_id, new_equation
 
     def __init__(self, obj_id: str, obj_data: dict, parent=None):
         super().__init__(parent)
         self.obj_id = obj_id
         self._selected = False
+        self._editing = False
+        self._obj_type = obj_data.get('type', '')
 
         self.setObjectName("algebra_item")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -90,9 +93,8 @@ class _AlgebraItem(QFrame):
         self.customContextMenuRequested.connect(self._show_context_menu)
 
         # ── dot ──────────────────────────────────────────────────────
-        obj_type = obj_data.get('type', '')
-        hex_col  = _TYPE_COLORS.get(obj_type, _DEFAULT_COLOR)
-        hollow   = (obj_type == 'Circle')
+        hex_col  = _TYPE_COLORS.get(self._obj_type, _DEFAULT_COLOR)
+        hollow   = (self._obj_type == 'Circle')
         dot = _ColorDot(hex_col, hollow)
 
         # ── text labels ───────────────────────────────────────────────
@@ -102,11 +104,19 @@ class _AlgebraItem(QFrame):
         self._formula_label = QLabel()
         self._formula_label.setObjectName("item_formula")
 
+        # ── equation editor ───────────────────────────────────────────
+        self._equation_edit = QLineEdit()
+        self._equation_edit.setObjectName("equation_edit")
+        self._equation_edit.hide()
+        self._equation_edit.returnPressed.connect(self._on_equation_edit_finished)
+        self._equation_edit.editingFinished.connect(self._on_equation_edit_finished)
+
         text_layout = QVBoxLayout()
         text_layout.setContentsMargins(0, 0, 0, 0)
         text_layout.setSpacing(1)
         text_layout.addWidget(self._name_label)
         text_layout.addWidget(self._formula_label)
+        text_layout.addWidget(self._equation_edit)
 
         row = QHBoxLayout(self)
         row.setContentsMargins(10, 7, 10, 7)
@@ -120,14 +130,42 @@ class _AlgebraItem(QFrame):
     # ── data ──────────────────────────────────────────────────────────
 
     def update_data(self, obj_data: dict):
+        self._obj_type = obj_data.get('type', '')
         self._name_label.setText(obj_data.get('name', ''))
-        self._formula_label.setText(AlgebraPanel.format_definition(obj_data))
+        formula = AlgebraPanel.format_definition(obj_data)
+        self._formula_label.setText(formula)
+        self._equation_edit.setText(formula)
 
     # ── selection ─────────────────────────────────────────────────────
 
     def set_selected(self, selected: bool):
         self._selected = selected
         self._refresh_bg()
+
+    # ── editing ───────────────────────────────────────────────────────
+
+    def start_editing(self):
+        if self._editing or self._obj_type not in ['Line', 'Circle', 'Segment']:
+            return
+        
+        self._editing = True
+        self._formula_label.hide()
+        self._equation_edit.show()
+        self._equation_edit.selectAll()
+        self._equation_edit.setFocus()
+
+    def stop_editing(self, commit=True):
+        if not self._editing:
+            return
+        
+        self._editing = False
+        self._equation_edit.hide()
+        self._formula_label.show()
+
+        if commit:
+            new_equation = self._equation_edit.text().strip()
+            if new_equation and new_equation != self._formula_label.text():
+                self.equation_edited.emit(self.obj_id, new_equation)
 
     # ── style helpers ─────────────────────────────────────────────────
 
@@ -140,6 +178,17 @@ class _AlgebraItem(QFrame):
             "  font-family: 'Consolas', 'JetBrains Mono', monospace;"
             "  font-size: 12px;"
             "  color: #434655;"
+            "}"
+        )
+        self._equation_edit.setStyleSheet(
+            "QLineEdit {"
+            "  font-family: 'Consolas', 'JetBrains Mono', monospace;"
+            "  font-size: 12px;"
+            "  color: #004ac6;"
+            "  background: #fff;"
+            "  border: 1px solid #004ac6;"
+            "  border-radius: 3px;"
+            "  padding: 2px 4px;"
             "}"
         )
         self._refresh_bg()
@@ -161,6 +210,19 @@ class _AlgebraItem(QFrame):
             self.clicked.emit(self.obj_id)
         super().mousePressEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.start_editing()
+        super().mouseDoubleClickEvent(event)
+
+    def focusOutEvent(self, event):
+        if self._editing:
+            self.stop_editing()
+        super().focusOutEvent(event)
+
+    def _on_equation_edit_finished(self):
+        self.stop_editing()
+
     def _show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
         rename_act = QAction(t('algebra_panel.rename'), self)
@@ -180,6 +242,7 @@ class AlgebraPanel(QDockWidget):
     object_selected = Signal(str)
     object_renamed  = Signal(str, str)
     object_deleted  = Signal(str)
+    equation_changed = Signal(str, str)  # obj_id, new_equation
 
     def __init__(self, parent=None):
         super().__init__(t('algebra_panel.title'), parent)
@@ -246,6 +309,7 @@ class AlgebraPanel(QDockWidget):
         item.clicked.connect(self._on_item_clicked)
         item.rename_requested.connect(self._on_rename_requested)
         item.delete_requested.connect(self.object_deleted)
+        item.equation_edited.connect(self._on_equation_edited)
 
         # insert before the trailing stretch
         count = self._list_layout.count()
@@ -305,6 +369,9 @@ class AlgebraPanel(QDockWidget):
         )
         if ok and new_name.strip():
             self.object_renamed.emit(obj_id, new_name.strip())
+
+    def _on_equation_edited(self, obj_id: str, new_equation: str):
+        self.equation_changed.emit(obj_id, new_equation)
 
     # ──────────────────────────────────────────────────────────────────
     # Static formula formatter (shared with PropertiesPanel)

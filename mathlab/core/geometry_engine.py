@@ -51,8 +51,8 @@ def _build_general_quadratic_latex(A, B, C, D, E, F, threshold=1e-10):
 
 
 class GeometricObject:
-    TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle', 
-             'Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus']
+    TYPES = ['Point', 'Line', 'Segment', 'Circle', 'Polygon', 'Ray', 'Angle', 
+             'Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus', 'Intersection']
     
     def __init__(self, obj_id, name, obj_type):
         self.id = obj_id
@@ -117,9 +117,15 @@ class GeometricObject:
             obj = Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
         elif obj_type == 'Segment':
             obj = Segment(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
+        elif obj_type == 'Line':
+            obj = Line(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
         elif obj_type == 'Circle':
             coords = data.get('coordinates', {})
             obj = Circle(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1.0))
+        elif obj_type == 'Intersection':
+            obj = Intersection(data['id'], data['name'], 
+                              data.get('obj1_id', ''), data.get('obj2_id', ''),
+                              data.get('index', 0))
         else:
             obj = cls(data['id'], data['name'], obj_type)
         
@@ -144,6 +150,216 @@ class Point(GeometricObject):
     
     def to_latex(self):
         x, y = self.coordinates['x'], self.coordinates['y']
+        return rf'{self.name} = ({latex(x)}, {latex(y)})'
+
+class Line(GeometricObject):
+    """无限长直线：通过两个点定义，支持符号表达式"""
+    def __init__(self, obj_id, name, point1_id, point2_id):
+        super().__init__(obj_id, name, 'Line')
+        self.point1_id = point1_id
+        self.point2_id = point2_id
+        self.depends_on = [point1_id, point2_id]
+        self.a = None  # 直线方程 ax + by + c = 0 的系数
+        self.b = None
+        self.c = None
+    
+    def update_coordinates(self, engine):
+        p1 = engine.objects.get(self.point1_id)
+        p2 = engine.objects.get(self.point2_id)
+        if p1 and p2:
+            x1, y1 = p1.coordinates['x'], p1.coordinates['y']
+            x2, y2 = p2.coordinates['x'], p2.coordinates['y']
+            
+            self.a = y2 - y1
+            self.b = x1 - x2
+            self.c = x2 * y1 - x1 * y2
+            
+            self.coordinates = {
+                'x1': x1, 'y1': y1,
+                'x2': x2, 'y2': y2,
+                'a': self.a, 'b': self.b, 'c': self.c
+            }
+    
+    def to_latex(self):
+        if self.a is None or self.b is None or self.c is None:
+            return rf'Line({self.name})'
+        
+        parts = []
+        if self.a != 0:
+            if self.a == 1:
+                parts.append('x')
+            elif self.a == -1:
+                parts.append('-x')
+            else:
+                parts.append(f'{self.a}x')
+        
+        if self.b != 0:
+            if self.b == 1:
+                sign = '+' if parts else ''
+                parts.append(f'{sign}y')
+            elif self.b == -1:
+                parts.append('-y')
+            else:
+                sign = '+' if (parts and self.b > 0) else ''
+                parts.append(f'{sign}{self.b}y')
+        
+        if self.c != 0:
+            sign = '+' if (parts and self.c > 0) else ''
+            parts.append(f'{sign}{self.c}')
+        
+        if not parts:
+            return '0 = 0'
+        
+        return ' '.join(parts) + ' = 0'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['point1_id'] = self.point1_id
+        data['point2_id'] = self.point2_id
+        data['a'] = self.a
+        data['b'] = self.b
+        data['c'] = self.c
+        return data
+    
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(data['id'], data['name'], 
+                  data.get('point1_id', ''), data.get('point2_id', ''))
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.a = data.get('a')
+        obj.b = data.get('b')
+        obj.c = data.get('c')
+        return obj
+
+class Intersection(GeometricObject):
+    """动态交点：实时追踪两个几何对象的相交位置"""
+    def __init__(self, obj_id, name, obj1_id, obj2_id, index=0):
+        super().__init__(obj_id, name, 'Point')
+        self.obj1_id = obj1_id
+        self.obj2_id = obj2_id
+        self.index = index
+        self.depends_on = [obj1_id, obj2_id]
+    
+    def update_coordinates(self, engine):
+        obj1 = engine.objects.get(self.obj1_id)
+        obj2 = engine.objects.get(self.obj2_id)
+        
+        if not obj1 or not obj2:
+            return
+        
+        if hasattr(engine, 'cas_provider') and engine.cas_provider:
+            points = engine.cas_provider.solve_intersection(obj1, obj2)
+        else:
+            points = self._solve_intersection(obj1, obj2)
+        
+        if points and len(points) > self.index:
+            self.coordinates['x'] = float(points[self.index][0])
+            self.coordinates['y'] = float(points[self.index][1])
+    
+    def _solve_intersection(self, obj1, obj2):
+        """回退的几何求交算法"""
+        try:
+            if obj1.type in ['Segment', 'Line'] and obj2.type in ['Segment', 'Line']:
+                return self._line_line_intersection(obj1, obj2)
+            elif obj1.type in ['Segment', 'Line'] and obj2.type == 'Circle':
+                return self._line_circle_intersection(obj1, obj2)
+            elif obj2.type in ['Segment', 'Line'] and obj1.type == 'Circle':
+                return self._line_circle_intersection(obj2, obj1)
+            elif obj1.type == 'Circle' and obj2.type == 'Circle':
+                return self._circle_circle_intersection(obj1, obj2)
+        except Exception:
+            pass
+        return []
+    
+    def _line_line_intersection(self, line1, line2):
+        """求解两条直线的交点"""
+        if line1.type == 'Segment':
+            x1, y1 = line1.coordinates.get('x1', 0), line1.coordinates.get('y1', 0)
+            x2, y2 = line1.coordinates.get('x2', 0), line1.coordinates.get('y2', 0)
+            a1, b1, c1 = y2 - y1, x1 - x2, x2 * y1 - x1 * y2
+        else:
+            a1, b1, c1 = line1.a, line1.b, line1.c
+        
+        if line2.type == 'Segment':
+            x1, y1 = line2.coordinates.get('x1', 0), line2.coordinates.get('y1', 0)
+            x2, y2 = line2.coordinates.get('x2', 0), line2.coordinates.get('y2', 0)
+            a2, b2, c2 = y2 - y1, x1 - x2, x2 * y1 - x1 * y2
+        else:
+            a2, b2, c2 = line2.a, line2.b, line2.c
+        
+        det = a1 * b2 - a2 * b1
+        if abs(det) < 1e-10:
+            return []
+        
+        x = (b1 * c2 - b2 * c1) / det
+        y = (a2 * c1 - a1 * c2) / det
+        return [(x, y)]
+    
+    def _line_circle_intersection(self, line, circle):
+        """求解直线与圆的交点"""
+        if line.type == 'Segment':
+            x1, y1 = line.coordinates.get('x1', 0), line.coordinates.get('y1', 0)
+            x2, y2 = line.coordinates.get('x2', 0), line.coordinates.get('y2', 0)
+            a, b, c = y2 - y1, x1 - x2, x2 * y1 - x1 * y2
+        else:
+            a, b, c = line.a, line.b, line.c
+        
+        cx, cy = circle.coordinates.get('cx', 0), circle.coordinates.get('cy', 0)
+        r = circle.coordinates.get('r', 1)
+        
+        d = abs(a * cx + b * cy + c) / np.sqrt(a**2 + b**2)
+        if d > r:
+            return []
+        
+        if abs(d - r) < 1e-10:
+            t = -(a * cx + b * cy + c) / (a**2 + b**2)
+            x = cx + a * t
+            y = cy + b * t
+            return [(x, y)]
+        
+        t1 = (- (a * cx + b * cy + c) + np.sqrt((a * cx + b * cy + c)**2 - (a**2 + b**2) * (cx**2 + cy**2 + c**2/(a**2 + b**2) - r**2))) / (a**2 + b**2)
+        t2 = (- (a * cx + b * cy + c) - np.sqrt((a * cx + b * cy + c)**2 - (a**2 + b**2) * (cx**2 + cy**2 + c**2/(a**2 + b**2) - r**2))) / (a**2 + b**2)
+        
+        x1, y1 = cx + a * t1, cy + b * t1
+        x2, y2 = cx + a * t2, cy + b * t2
+        return [(x1, y1), (x2, y2)]
+    
+    def _circle_circle_intersection(self, circle1, circle2):
+        """求解两个圆的交点"""
+        cx1, cy1 = circle1.coordinates.get('cx', 0), circle1.coordinates.get('cy', 0)
+        r1 = circle1.coordinates.get('r', 1)
+        cx2, cy2 = circle2.coordinates.get('cx', 0), circle2.coordinates.get('cy', 0)
+        r2 = circle2.coordinates.get('r', 1)
+        
+        dx = cx2 - cx1
+        dy = cy2 - cy1
+        d = np.sqrt(dx**2 + dy**2)
+        
+        if d > r1 + r2 or d < abs(r1 - r2):
+            return []
+        
+        if abs(d) < 1e-10 and abs(r1 - r2) < 1e-10:
+            return []
+        
+        a = (r1**2 - r2**2 + d**2) / (2 * d)
+        h = np.sqrt(r1**2 - a**2)
+        
+        xm = cx1 + a * dx / d
+        ym = cy1 + a * dy / d
+        
+        x1 = xm - h * dy / d
+        y1 = ym + h * dx / d
+        x2 = xm + h * dy / d
+        y2 = ym - h * dx / d
+        
+        if abs(h) < 1e-10:
+            return [(x1, y1)]
+        return [(x1, y1), (x2, y2)]
+    
+    def to_latex(self):
+        x, y = self.coordinates.get('x', 0), self.coordinates.get('y', 0)
         return rf'{self.name} = ({latex(x)}, {latex(y)})'
 
 class Segment(GeometricObject):
@@ -778,6 +994,17 @@ class GeometryEngine:
         self.name_counter = defaultdict(int)
         self.dependencies = DAG()
         self.listeners = []
+        self._signals_blocked = False
+        self.cas_provider = None
+    
+    def set_cas_provider(self, cas_provider):
+        self.cas_provider = cas_provider
+    
+    def block_signals(self, blocked):
+        self._signals_blocked = blocked
+    
+    def signals_blocked(self):
+        return self._signals_blocked
     
     def _generate_id(self):
         return str(uuid.uuid4())
@@ -797,6 +1024,8 @@ class GeometryEngine:
         self.listeners.append(listener)
     
     def _notify(self, event_type, data):
+        if self._signals_blocked:
+            return
         for listener in self.listeners:
             listener(event_type, data)
     
@@ -822,6 +1051,36 @@ class GeometryEngine:
         self.dependencies.add_edge(point2_id, obj_id)
         segment.update_coordinates(self)
         self._notify('object_added', segment.serialize())
+        return obj_id
+    
+    def add_line(self, point1_id, point2_id, name=None):
+        if point1_id not in self.objects or point2_id not in self.objects:
+            raise ValueError('Points not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Line')
+        line = Line(obj_id, name, point1_id, point2_id)
+        self.objects[obj_id] = line
+        self.dependencies.add_edge(point1_id, obj_id)
+        self.dependencies.add_edge(point2_id, obj_id)
+        line.update_coordinates(self)
+        self._notify('object_added', line.serialize())
+        return obj_id
+    
+    def add_intersection(self, obj1_id, obj2_id, index=0, name=None):
+        if obj1_id not in self.objects or obj2_id not in self.objects:
+            raise ValueError('Objects not found')
+        
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Intersection')
+        intersection = Intersection(obj_id, name, obj1_id, obj2_id, index)
+        self.objects[obj_id] = intersection
+        self.dependencies.add_edge(obj1_id, obj_id)
+        self.dependencies.add_edge(obj2_id, obj_id)
+        intersection.update_coordinates(self)
+        self._notify('object_added', intersection.serialize())
         return obj_id
     
     def add_circle(self, center_id, radius=1.0, name=None):

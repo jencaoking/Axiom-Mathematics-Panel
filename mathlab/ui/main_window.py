@@ -25,11 +25,13 @@ try:
     from core.geometry_engine import GeometryEngine
     from core.python_repl import PythonREPL
     from core.ai_manager import AIManager
+    from core.cas_provider import CASProvider
     from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
+    from ..core.cas_provider import CASProvider
     from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
 
 try:
@@ -63,6 +65,8 @@ class MainWindow(QMainWindow):
         self.current_function_id = None  # 跟踪当前正在编辑的函数ID
 
         self.geometry_engine = GeometryEngine()
+        self.cas_provider = CASProvider()
+        self.geometry_engine.set_cas_provider(self.cas_provider)
         self.python_repl = PythonREPL()
         self.ai_manager = AIManager()
 
@@ -392,6 +396,7 @@ class MainWindow(QMainWindow):
         self.algebra_panel.object_selected.connect(self.on_algebra_item_selected)
         self.algebra_panel.object_deleted.connect(self.on_object_deleted)
         self.algebra_panel.object_renamed.connect(self.on_object_renamed)
+        self.algebra_panel.equation_changed.connect(self.on_equation_changed)
         
         # 连接属性面板信号
         if hasattr(self, 'properties_panel'):
@@ -617,6 +622,33 @@ class MainWindow(QMainWindow):
                 self._objects_data[obj_id]['name'] = new_name
                 self.algebra_panel.update_object(self._objects_data[obj_id])
                 self.central_widget.update_object(obj_id, self._objects_data[obj_id])
+
+    def on_equation_changed(self, obj_id: str, new_equation: str) -> None:
+        if not hasattr(self, 'geometry_engine') or not hasattr(self, 'cas_provider'):
+            return
+        
+        obj = self.geometry_engine.get_object(obj_id)
+        if not obj:
+            return
+        
+        if obj.type == 'Line' or obj.type == 'Segment':
+            new_coords = self.cas_provider.extract_line_control_points(new_equation)
+            if len(new_coords) >= 2:
+                self.geometry_engine.block_signals(True)
+                
+                if obj.type == 'Line':
+                    p1_id = obj.point1_id
+                    p2_id = obj.point2_id
+                else:
+                    p1_id = obj.point1_id
+                    p2_id = obj.point2_id
+                
+                self.geometry_engine.update_point(p1_id, x=new_coords[0][0], y=new_coords[0][1])
+                self.geometry_engine.update_point(p2_id, x=new_coords[1][0], y=new_coords[1][1])
+                
+                self.geometry_engine.block_signals(False)
+                obj.update_coordinates(self.geometry_engine)
+                self.on_geometry_event('object_updated', obj.serialize())
 
     def execute_ai_action(self, action_data: dict) -> None:
         action = action_data.get('action')
