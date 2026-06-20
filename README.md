@@ -431,10 +431,10 @@ python -m unittest tests.test_utils -v
 
 | 渠道 | 信息 |
 |------|------|
-| **项目主页** | https://github.com/your-repo/mathlab |
-| **问题反馈** | https://github.com/your-repo/mathlab/issues |
-| **讨论社区** | https://github.com/your-repo/mathlab/discussions |
-| **邮箱** | mathlab@example.com |
+| **项目主页** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git |
+| **问题反馈** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git/issues |
+| **讨论社区** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git/discussions |
+| **邮箱** | jencaoking@outlook.com |
 
 ---
 
