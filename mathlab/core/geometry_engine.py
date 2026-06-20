@@ -759,14 +759,13 @@ class DAG:
         result = []
 
         def dfs(n):
+            if n in visited:
+                return
+            visited.add(n)
             for dep in self.graph.get(n, []):
-                if dep not in visited:
-                    visited.add(dep)
-                    dfs(dep)  # 先深入到底
+                dfs(dep)  # 先深入到底
             result.append(n)  # 后序收集
 
-        if node not in visited:
-            visited.add(node)
         dfs(node)
         # 逆序得到正确的拓扑顺序
         result.reverse()
