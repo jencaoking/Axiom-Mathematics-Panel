@@ -49,7 +49,7 @@ GUI框架:     PySide6 (Qt for Python)
 数值计算:    NumPy / SciPy
 机器学习:    scikit-learn / PyTorch / ONNX Runtime
 可视化:      matplotlib / pyqtgraph / networkx
-打包工具:    Nuitka
+打包工具:    PyInstaller
 ```
 
 ---
@@ -151,54 +151,65 @@ mathlab/
 ├── ui/                        # 前端界面模块
 │   ├── __init__.py
 │   ├── main_window.py         # 主窗口布局
-│   ├── canvas.py              # 几何画布 (QGraphicsView)
-│   ├── algebra_panel.py       # 代数侧边栏
-│   ├── console.py             # Python控制台
-│   ├── properties_panel.py    # 属性面板
-│   ├── command_bar.py         # 命令输入栏
-│   ├── algo_vis_panel.py      # 算法可视化面板
-│   ├── ai_tools_panel.py      # AI工具面板
-│   └── styles.qss             # 样式表
+│   ├── canvas.py               # 几何画布 (QGraphicsView)
+│   ├── code_editor.py          # 代码编辑器
+│   ├── function_explorer_panel.py  # 函数 explorer 面板
+│   ├── algebra_panel.py        # 代数侧边栏
+│   ├── console.py              # Python 控制台
+│   ├── properties_panel.py     # 属性面板
+│   ├── command_bar.py          # 命令输入栏
+│   ├── algo_vis_panel.py       # 算法可视化面板
+│   ├── ai_tools_panel.py       # AI 工具面板
+│   ├── preferences_dialog.py   # 设置对话框
+│   └── styles.qss              # 样式表
 │
 ├── core/                      # 后端内核模块
 │   ├── __init__.py
-│   ├── geometry_engine.py     # 几何引擎 (DAG依赖管理)
-│   ├── cas_provider.py        # 符号计算服务 (SymPy封装)
-│   ├── algo_animator.py       # 算法动画框架
-│   ├── ai_manager.py          # AI管理器
-│   ├── python_repl.py         # Python控制台内核
-│   ├── sandbox.py             # 沙箱子进程
-│   ├── async_workers.py       # 异步工作线程
-│   └── signals.py             # 信号定义
+│   ├── geometry_engine.py      # 几何引擎 (DAG 依赖管理)
+│   ├── cas_provider.py          # 符号计算服务 (SymPy 封装)
+│   ├── algo_animator.py         # 算法动画框架
+│   ├── ai_manager.py            # AI 管理器
+│   ├── python_repl.py           # Python 控制台内核
+│   ├── sandbox.py              # 沙箱子进程
+│   ├── sandbox_script.py       # 沙箱脚本
+│   ├── async_workers.py        # 异步工作线程
+│   └── signals.py              # 信号定义
 │
 ├── data/                      # 数据存储
 │   ├── __init__.py
-│   ├── project.py             # 项目文件管理
-│   └── file_manager.py        # 文件分类与检索
+│   ├── project.py              # 项目文件管理
+│   └── file_manager.py         # 文件分类与检索
 │
 ├── utils/                     # 工具函数
 │   ├── __init__.py
-│   ├── latex_renderer.py      # LaTeX渲染
-│   ├── theme_manager.py       # 主题切换
-│   ├── i18n_manager.py        # 国际化
-│   └── helpers.py             # 通用辅助函数
+│   ├── latex_renderer.py       # LaTeX 渲染
+│   ├── theme_manager.py        # 主题切换
+│   ├── i18n_manager.py         # 国际化
+│   └── helpers.py              # 通用辅助函数
 │
 ├── tests/                     # 单元测试
 │   ├── __init__.py
-│   ├── test_core.py           # 核心模块测试 (59 tests)
-│   └── test_utils.py          # 工具模块测试 (34 tests)
+│   ├── test_core.py            # 核心模块测试
+│   └── test_utils.py           # 工具模块测试
 │
 ├── docs/                      # 文档
-│   ├── api.md                 # API文档
-│   └── user_guide.md          # 用户指南
+│   ├── api.md                  # API 文档
+│   └── user_guide.md           # 用户指南
 │
 ├── locale/                    # 国际化资源
-│   ├── en.json                # 英文
-│   └── zh.json                # 中文
+│   ├── en.json                 # 英文
+│   └── zh.json                 # 中文
 │
-└── resources/                 # 资源文件
-    ├── icons/                 # SVG图标
-    └── resources.qrc          # Qt资源文件
+├── resources/                 # 资源文件
+│   └── resources.qrc          # Qt 资源文件
+│
+├── LICENSE                    # Apache 2.0 许可证
+├── ANALYTIC_GEOMETRY_GUIDE.md     # 解析几何指南
+├── FUNCTION_EXPLORER_GUIDE.md      # 函数 explorer 指南
+├── FUNCTION_EXPLORER_IMPLEMENTATION.md  # 函数 explorer 实现
+├── FUNCTION_EXPLORER_QUICKSTART.md     # 函数 explorer 快速开始
+├── SESSION_MODE_GUIDE.md            # 会话模式指南
+└── SANDBOX_SECURITY_REFACTOR.md    # 沙箱安全重构文档
 ```
 
 ---
@@ -382,14 +393,6 @@ python -m unittest tests.test_core -v
 # 工具模块测试
 python -m unittest tests.test_utils -v
 ```
-
-### 测试覆盖率
-
-当前测试覆盖率：
-- `core/` 模块: ~60%
-- `utils/` 模块: ~80%
-- `data/` 模块: ~40%
-- `ui/` 模块: 待完善
 
 ---
 
