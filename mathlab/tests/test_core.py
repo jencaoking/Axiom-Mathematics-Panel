@@ -164,7 +164,7 @@ class TestCASProvider(unittest.TestCase):
 
 class TestPythonREPL(unittest.TestCase):
     def setUp(self):
-        self.repl = PythonREPL()
+        self.repl = PythonREPL(session_mode=False)
 
     def test_execute_simple(self):
         """沙箱模式下执行简单代码"""
