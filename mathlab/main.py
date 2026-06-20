@@ -1,7 +1,15 @@
 import sys
 import os
 
-mathlab_dir = os.path.dirname(os.path.abspath(__file__))
+# PyInstaller打包后路径处理
+if getattr(sys, 'frozen', False):
+    # exe运行模式
+    application_path = sys._MEIPASS
+else:
+    # 开发模式
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
+mathlab_dir = application_path
 sys.path.insert(0, mathlab_dir)
 sys.path.insert(0, os.path.dirname(mathlab_dir))
 
@@ -21,7 +29,7 @@ def main():
     app.setApplicationVersion('1.0')
     
     try:
-        stylesheet_path = os.path.join(os.path.dirname(__file__), 'ui', 'styles.qss')
+        stylesheet_path = os.path.join(mathlab_dir, 'ui', 'styles.qss')
         with open(stylesheet_path, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())
     except Exception:
