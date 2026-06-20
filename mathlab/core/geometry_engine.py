@@ -236,7 +236,7 @@ class Line(GeometricObject):
 class Intersection(GeometricObject):
     """动态交点：实时追踪两个几何对象的相交位置"""
     def __init__(self, obj_id, name, obj1_id, obj2_id, index=0):
-        super().__init__(obj_id, name, 'Point')
+        super().__init__(obj_id, name, 'Intersection')
         self.obj1_id = obj1_id
         self.obj2_id = obj2_id
         self.index = index
