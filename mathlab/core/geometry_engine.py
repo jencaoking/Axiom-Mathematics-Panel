@@ -1,8 +1,54 @@
 import uuid
+import warnings
 import numpy as np
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve
+from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve, lambdify
 from sympy.parsing.sympy_parser import standard_transformations
+
+
+def _build_general_quadratic_latex(A, B, C, D, E, F, threshold=1e-10):
+    """将一般二次方程系数 Ax²+Bxy+Cy²+Dx+Ey+F=0 渲染为 LaTeX 字符串。
+
+    用于圆锥曲线（椭圆、双曲线）在发生旋转后展开坐标旋转公式得到的
+    通用二次形式。绝对值小于 threshold 的系数视为 0 略去。
+    """
+    def fmt_num(v):
+        """将 |v| 格式化为可读字符串，整数省略小数部分。"""
+        av = abs(v)
+        if abs(av - round(av)) < threshold:
+            return str(int(round(av)))
+        return f'{av:.4g}'
+
+    coeffs = [(A, 'x^2'), (B, 'xy'), (C, 'y^2'), (D, 'x'), (E, 'y'), (F, '')]
+    items = []
+    for c, var in coeffs:
+        if abs(c) < threshold:
+            continue
+        coef_str = fmt_num(c)
+        sign = '+' if c >= 0 else '-'
+        items.append((sign, coef_str, var))
+
+    if not items:
+        return '0 = 0'
+
+    parts = []
+    for i, (sign, coef_str, var) in enumerate(items):
+        # 系数为 1 时省略数字
+        if var and coef_str == '1':
+            content = var
+        elif var:
+            content = f'{coef_str}{var}'
+        else:
+            content = coef_str
+
+        if i == 0:
+            parts.append(content if sign == '+' else f'-{content}')
+        else:
+            # 不在前面加空格，由 join(' ') 统一处理分隔
+            parts.append(f'{sign} {content}')
+
+    return ' '.join(parts) + ' = 0'
+
 
 class GeometricObject:
     TYPES = ['Point', 'Line', 'Circle', 'Segment', 'Polygon', 'Ray', 'Angle', 
@@ -207,7 +253,23 @@ class Ellipse(GeometricObject):
             }
     
     def to_latex(self):
-        return rf'\frac{{(x-{self.coordinates.get("cx", 0)})^2}}{{{self.a}^2}} + \frac{{(y-{self.coordinates.get("cy", 0)})^2}}{{{self.b}^2}} = 1'
+        cx = self.coordinates.get('cx', 0)
+        cy = self.coordinates.get('cy', 0)
+        if self.rotation == 0:
+            return rf'\frac{{(x-{cx})^2}}{{{self.a}^2}} + \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1'
+        # 旋转 θ 后，将标准方程展开为一般二次方程 Ax²+Bxy+Cy²+Dx+Ey+F=0
+        # 推导：令 u=x-cx, v=y-cy，则 x'=u·cosθ+v·sinθ, y'=-u·sinθ+v·cosθ
+        cos_t = np.cos(self.rotation)
+        sin_t = np.sin(self.rotation)
+        a2 = self.a ** 2
+        b2 = self.b ** 2
+        A = cos_t ** 2 / a2 + sin_t ** 2 / b2
+        B = 2 * sin_t * cos_t * (1 / a2 - 1 / b2)
+        C = sin_t ** 2 / a2 + cos_t ** 2 / b2
+        D = -2 * A * cx - B * cy
+        E = -B * cx - 2 * C * cy
+        F = A * cx ** 2 + B * cx * cy + C * cy ** 2 - 1
+        return _build_general_quadratic_latex(A, B, C, D, E, F)
     
     def serialize(self):
         data = super().serialize()
@@ -239,7 +301,22 @@ class Hyperbola(GeometricObject):
             }
     
     def to_latex(self):
-        return rf'\frac{{(x-{self.coordinates.get("cx", 0)})^2}}{{{self.a}^2}} - \frac{{(y-{self.coordinates.get("cy", 0)})^2}}{{{self.b}^2}} = 1'
+        cx = self.coordinates.get('cx', 0)
+        cy = self.coordinates.get('cy', 0)
+        if self.rotation == 0:
+            return rf'\frac{{(x-{cx})^2}}{{{self.a}^2}} - \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1'
+        # 旋转 θ 后展开为一般二次方程。注意双曲线 a²/b² 前的符号相反。
+        cos_t = np.cos(self.rotation)
+        sin_t = np.sin(self.rotation)
+        a2 = self.a ** 2
+        b2 = self.b ** 2
+        A = cos_t ** 2 / a2 - sin_t ** 2 / b2
+        B = 2 * sin_t * cos_t * (1 / a2 + 1 / b2)
+        C = sin_t ** 2 / a2 - cos_t ** 2 / b2
+        D = -2 * A * cx - B * cy
+        E = -B * cx - 2 * C * cy
+        F = A * cx ** 2 + B * cx * cy + C * cy ** 2 - 1
+        return _build_general_quadratic_latex(A, B, C, D, E, F)
     
     def serialize(self):
         data = super().serialize()
@@ -396,21 +473,27 @@ class FunctionPlot(GeometricObject):
         self._generate_points()
     
     def _generate_points(self):
-        """生成离散点用于绘制"""
+        """生成离散点用于绘制（使用 lambdify 矢量化加速）"""
         try:
             x_sym = symbols('x')
             expr = parse_expr(self.expression, local_dict={'x': x_sym})
             
-            points = []
             x_vals = np.linspace(self.x_range[0], self.x_range[1], self.num_points)
             
-            for x_val in x_vals:
-                try:
-                    y_val = float(expr.subs(x_sym, x_val).evalf())
-                    if not (np.isnan(y_val) or np.isinf(y_val)):
-                        points.append((float(x_val), float(y_val)))
-                except:
-                    continue
+            try:
+                # 矢量化：将 SymPy 表达式转为 NumPy 函数
+                func = lambdify(x_sym, expr, "numpy")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    y_vals = func(x_vals)
+            except Exception:
+                self.points_data = []
+                self.coordinates = {'points': []}
+                return
+            
+            # 过滤掉 NaN/Inf
+            mask = np.isfinite(y_vals)
+            points = list(zip(x_vals[mask].tolist(), y_vals[mask].astype(float).tolist()))
             
             self.points_data = points
             self.coordinates = {'points': points}
@@ -451,7 +534,7 @@ class ImplicitPlot(GeometricObject):
         self._generate_points()
     
     def _generate_points(self):
-        """使用网格采样和等值线提取生成点"""
+        """使用网格采样和等值线提取生成点（使用 lambdify 矢量化加速）"""
         try:
             x_sym, y_sym = symbols('x y')
             expr = parse_expr(self.expression, local_dict={'x': x_sym, 'y': y_sym})
@@ -461,15 +544,14 @@ class ImplicitPlot(GeometricObject):
             y_vals = np.linspace(self.y_range[0], self.y_range[1], self.resolution)
             X, Y = np.meshgrid(x_vals, y_vals)
             
-            # 计算函数值
-            Z = np.zeros_like(X)
-            for i in range(self.resolution):
-                for j in range(self.resolution):
-                    try:
-                        val = float(expr.subs({x_sym: X[i,j], y_sym: Y[i,j]}).evalf())
-                        Z[i,j] = val
-                    except:
-                        Z[i,j] = np.nan
+            # 矢量化计算函数值（一次 C 级别运算替代 160000 次 subs）
+            try:
+                func = lambdify((x_sym, y_sym), expr, "numpy")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    Z = func(X, Y)
+            except Exception:
+                Z = np.full_like(X, np.nan)
             
             # 使用简单的等值线提取（Marching Squares 简化版）
             points = []
@@ -527,24 +609,31 @@ class PolarPlot(GeometricObject):
         self._generate_points()
     
     def _generate_points(self):
-        """将极坐标转换为直角坐标并生成点"""
+        """将极坐标转换为直角坐标并生成点（使用 lambdify 矢量化加速）"""
         try:
             theta_sym = symbols('theta')
             expr = parse_expr(self.expression, local_dict={'theta': theta_sym})
             
-            points = []
             theta_vals = np.linspace(self.theta_range[0], self.theta_range[1], self.num_points)
             
-            for theta_val in theta_vals:
-                try:
-                    r_val = float(expr.subs(theta_sym, theta_val).evalf())
-                    if not (np.isnan(r_val) or np.isinf(r_val)):
-                        # 转换为直角坐标
-                        x = r_val * np.cos(theta_val)
-                        y = r_val * np.sin(theta_val)
-                        points.append((float(x), float(y)))
-                except:
-                    continue
+            try:
+                # 矢量化计算 r 值
+                func = lambdify(theta_sym, expr, "numpy")
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    r_vals = func(theta_vals)
+            except Exception:
+                self.points_data = []
+                self.coordinates = {'points': []}
+                return
+            
+            # 过滤 NaN/Inf 后一次性转换为直角坐标
+            mask = np.isfinite(r_vals)
+            r_valid = r_vals[mask]
+            t_valid = theta_vals[mask]
+            x = r_valid * np.cos(t_valid)
+            y = r_valid * np.sin(t_valid)
+            points = list(zip(x.astype(float).tolist(), y.astype(float).tolist()))
             
             self.points_data = points
             self.coordinates = {'points': points}
@@ -660,17 +749,29 @@ class DAG:
         return result
     
     def get_dependents(self, node):
+        """返回所有依赖节点，按拓扑顺序排列（父节点在子节点之前）。
+
+        使用后序遍历的逆序实现严格拓扑排序，确保任意节点都先于
+        其下游节点被返回，从而 update_point 中可以安全地按顺序
+        更新依赖图，不会出现读取到脏数据的情况。
+        """
         visited = set()
         result = []
+
         def dfs(n):
             for dep in self.graph.get(n, []):
                 if dep not in visited:
                     visited.add(dep)
-                    result.append(dep)
-                    dfs(dep)
-        visited.add(node)
+                    dfs(dep)  # 先深入到底
+            result.append(n)  # 后序收集
+
+        if node not in visited:
+            visited.add(node)
         dfs(node)
-        return result
+        # 逆序得到正确的拓扑顺序
+        result.reverse()
+        # 移除起始节点自身，调用方只需要依赖项
+        return [x for x in result if x != node]
 
 class GeometryEngine:
     def __init__(self):
@@ -914,7 +1015,7 @@ class GeometryEngine:
         return [obj for obj in self.objects.values() if obj.type == obj_type]
     
     def solve_constraints(self):
-        from scipy.optimize import fsolve
+        from scipy.optimize import least_squares
         import numpy as np
         
         variables = []
@@ -962,6 +1063,10 @@ class GeometryEngine:
             return None
         
         def objective(x):
+            """返回残差向量。least_squares 允许方程数与变量数不等，
+            即使系统欠约束（方程 < 变量）或过约束（方程 > 变量），
+            也能返回最小二乘意义上的最优解，而 fsolve 在这种情况下
+            会直接抛出 shape mismatch 异常导致崩溃。"""
             result = []
             var_dict = {}
             for i, var in enumerate(variables):
@@ -972,10 +1077,11 @@ class GeometryEngine:
                     eq_expr = eq.lhs - eq.rhs if isinstance(eq, Eq) else eq
                     val = float(eq_expr.subs(var_dict).evalf())
                     result.append(val)
-                except:
+                except Exception:
+                    # 求值失败时残差记为 0，避免优化器被异常打断
                     result.append(0.0)
             
-            return np.array(result)
+            return np.array(result, dtype=float)
         
         initial_guess = []
         for point in points:
@@ -983,7 +1089,17 @@ class GeometryEngine:
             initial_guess.append(point.coordinates.get('y', 0.0))
         
         try:
-            result = fsolve(objective, np.array(initial_guess))
+            # 自动选择 least_squares 算法：
+            # - 'lm' (Levenberg-Marquardt)：要求方程数 ≥ 变量数，适合过约束/适定
+            # - 'trf' (Trust Region Reflective)：兼容欠约束（方程数 < 变量数）
+            n_eq = len(equations)
+            n_var = len(variables)
+            method = 'lm' if n_eq >= n_var else 'trf'
+            result_obj = least_squares(objective, np.array(initial_guess), method=method)
+            if not result_obj.success:
+                return {'success': False, 'error': result_obj.message}
+            
+            result = result_obj.x
             
             for point in points:
                 x_idx = var_to_idx.get((point.id, 'x'))
@@ -1032,7 +1148,10 @@ class GeometryEngine:
         
         for obj in self.objects.values():
             if hasattr(obj, 'update_coordinates'):
-                if type(obj).__name__ in ('Segment', 'Circle', 'Polygon'):
+                # 所有依赖其他节点（点）的几何对象都需要刷新坐标，
+                # 否则反序列化时这些对象会停留在初始默认值。
+                if type(obj).__name__ in ('Segment', 'Circle', 'Polygon',
+                                          'Ellipse', 'Hyperbola', 'Parabola', 'Locus'):
                     obj.update_coordinates(self)
             self._notify('object_added', obj.serialize())
     
