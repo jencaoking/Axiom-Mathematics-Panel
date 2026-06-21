@@ -33,6 +33,7 @@
 | **符号计算系统** | 基于SymPy的完整CAS，支持化简、求导、积分、方程求解 |
 | **算法可视化** | 排序、搜索、图论等算法的逐步动画演示 |
 | **AI辅助学习** | 线性/多项式回归、K-Means聚类、神经网络训练等ML功能 |
+| **全局命令面板** | VS Code 风格的全局命令控制台，支持模糊搜索、快捷执行 |
 
 ### 🔒 安全特性
 
@@ -67,8 +68,8 @@ GUI框架:     PySide6 (Qt for Python)
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-repo/mathlab.git
-cd mathlab
+git clone https://github.com/jencaoking/Axiom-Mathematics-Panel.git
+cd Axiom-Mathematics-Panel
 
 # 创建虚拟环境（推荐）
 python -m venv venv
@@ -466,7 +467,7 @@ MathLab 受益于以下开源项目：
   author = {MathLab Team},
   version = {1.0.0},
   year = {2024},
-  url = {https://github.com/your-repo/mathlab}
+  url = {https://github.com/jencaoking/Axiom-Mathematics-Panel.git}
 }
 ```
 
