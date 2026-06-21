@@ -1,5 +1,7 @@
 import os
 import uuid
+import platform
+import subprocess
 
 from PySide6.QtWidgets import (
     QMainWindow, QToolBar, QToolButton,
@@ -56,6 +58,13 @@ try:
     from ..utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
 except ImportError:
     from utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+
+try:
+    from ..utils.logger import get_logger, LOG_DIR
+except ImportError:
+    from utils.logger import get_logger, LOG_DIR
+
+logger = get_logger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -408,7 +417,7 @@ class MainWindow(QMainWindow):
             with open(stylesheet_path, 'r', encoding='utf-8') as f:
                 self.setStyleSheet(f.read())
         except Exception as e:
-            print(f'Warning: Could not load stylesheet: {e}')
+            logger.warning('样式表加载失败: %s', e)
 
     def connect_signals(self):
         self.central_widget.point_added.connect(self.on_point_added)
@@ -542,7 +551,7 @@ class MainWindow(QMainWindow):
                     # 通知更新
                     self.on_geometry_event('object_updated', last_func.serialize())
         except Exception as e:
-            print(f"Error updating function: {e}")
+            logger.warning("更新函数时出错: %s", e)
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:
@@ -968,6 +977,30 @@ class MainWindow(QMainWindow):
         reg(C('sys.language',    '切换语言',             self.show_language_dialog,    '系统'))
         reg(C('sys.about',       '关于 Axiom Mathematics', self.show_about,              '系统'))
         reg(C('sys.console.clear', '清空控制台',         self.console.clear,           '系统'))
+
+        # ── 日志 ────────────────────────────────────────────────────────
+        def _open_log_dir():
+            """跨平台打开运行日志目录，方便用户拖取日志文件提交 Bug 报告。"""
+            try:
+                if platform.system() == 'Windows':
+                    os.startfile(LOG_DIR)
+                elif platform.system() == 'Darwin':
+                    subprocess.Popen(['open', LOG_DIR])
+                else:
+                    subprocess.Popen(['xdg-open', LOG_DIR])
+                logger.info("用户打开了日志目录: %s", LOG_DIR)
+            except Exception as e:
+                logger.error("无法打开日志目录: %s", e)
+                if hasattr(self, 'console'):
+                    self.console.display_system_message(f"无法打开日志目录: {e}")
+
+        reg(C(
+            'sys.open_logs',
+            '系统：打开运行日志目录 (Open Logs)',
+            _open_log_dir,
+            '系统',
+            description=f'日志路径: {LOG_DIR}',
+        ))
 
     def on_new_project(self) -> None:
         self.central_widget.clear_canvas()

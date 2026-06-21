@@ -7,6 +7,9 @@ import time
 import tempfile
 import signal
 from queue import Queue
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # 强烈建议在环境依赖中添加 psutil 库（pip install psutil）
 # 如果没有安装，我们将使用降级方案，但 psutil 是跨平台精准监控内存的最佳手段
@@ -170,7 +173,7 @@ class SandboxProcess:
                     except ProcessLookupError:
                         pass  # 进程可能已经退出
             except Exception as e:
-                print(f"Warning: Failed to terminate process group: {e}")
+                logger.warning("终止沙箱子进程时出错: %s", e)
             finally:
                 self.running = False
     

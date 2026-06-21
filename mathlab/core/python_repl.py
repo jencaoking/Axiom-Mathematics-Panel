@@ -3,6 +3,9 @@ import time
 import threading
 import jedi
 from collections import deque
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # 支持相对导入和绝对导入两种方式
 try:
@@ -120,7 +123,7 @@ class PythonREPL:
                 'description': c.description
             } for c in completions]
         except Exception as e:
-            print(f"Jedi Error: {e}")
+            logger.debug("Jedi 代码补全异常: %s", e)
             return []
     
     def stop(self):

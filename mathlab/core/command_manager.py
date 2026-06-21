@@ -8,6 +8,9 @@ MainWindow 负责向 CommandManager 注册具体行为。
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class Command:
@@ -109,7 +112,7 @@ class CommandManager:
             try:
                 cmd.action()
             except Exception as e:
-                print(f"[CommandManager] Error executing '{command_id}': {e}")
+                logger.error("执行命令 '%s' 时异常: %s", command_id, e, exc_info=True)
             return True
         return False
 

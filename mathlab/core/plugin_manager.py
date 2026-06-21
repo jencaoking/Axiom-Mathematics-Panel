@@ -2,10 +2,12 @@
 import os
 import importlib
 import inspect
-import logging
 from typing import Dict
 from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.core.extension_api import MathLabAPI
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class PluginManager:
     def __init__(self, api_context: MathLabAPI, plugin_dir: str = None):
@@ -50,12 +52,12 @@ class PluginManager:
                                 self._activate_plugin(obj())
                                 
                     except Exception as e:
-                        logging.error(f"Failed to load plugin {item}: {e}", exc_info=True)
+                        logger.error("插件 [%s] 加载失败: %s", item, e, exc_info=True)
 
     def _activate_plugin(self, plugin_instance: MathLabPlugin):
         plugin_id = plugin_instance.name
         if plugin_id in self.active_plugins:
-            logging.warning(f"Plugin {plugin_id} is already loaded.")
+            logger.warning("插件 [%s] 已加载，跳过重复激活。", plugin_id)
             return
 
         try:
@@ -68,24 +70,24 @@ class PluginManager:
             plugin_instance.on_activate(plugin_api)
             self.active_plugins[plugin_id] = plugin_instance
             self.plugin_apis[plugin_id] = plugin_api
-            logging.info(f"Successfully activated plugin: {plugin_id} v{plugin_instance.version}")
+            logger.info("插件 [%s] v%s 激活成功。", plugin_id, plugin_instance.version)
         except Exception as e:
-            logging.error(f"Error activating plugin {plugin_id}: {e}", exc_info=True)
+            logger.error("激活插件 [%s] 时出错: %s", plugin_id, e, exc_info=True)
 
     def unload_all(self):
         for plugin_name, plugin in list(self.active_plugins.items()):
             try:
                 plugin.on_deactivate()
-                logging.info(f"Deactivated plugin: {plugin_name}")
+                logger.info("插件 [%s] 已停用。", plugin_name)
             except Exception as e:
-                logging.error(f"Error deactivating plugin {plugin_name}: {e}", exc_info=True)
+                logger.error("停用插件 [%s] 时出错: %s", plugin_name, e, exc_info=True)
             
             # 清理该插件分配的 API 注册的命令/UI 面板
             if plugin_name in self.plugin_apis:
                 try:
                     self.plugin_apis[plugin_name].cleanup()
                 except Exception as e:
-                    logging.error(f"Error cleaning up API for plugin {plugin_name}: {e}", exc_info=True)
+                    logger.error("清理插件 [%s] API 时出错: %s", plugin_name, e, exc_info=True)
                 del self.plugin_apis[plugin_name]
                 
         self.active_plugins.clear()

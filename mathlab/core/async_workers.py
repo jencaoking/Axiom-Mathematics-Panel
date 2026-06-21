@@ -1,4 +1,7 @@
 from PySide6.QtCore import QThread, Signal
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AIFitWorker(QThread):
@@ -26,6 +29,7 @@ class AIFitWorker(QThread):
 
             self.finished.emit(result)
         except Exception as e:
+            logger.exception("AIFitWorker 线程异常 (model_type=%s)", self.model_type)
             self.error.emit(str(e))
 
 
@@ -50,6 +54,7 @@ class AIClusterWorker(QThread):
 
             self.finished.emit(result)
         except Exception as e:
+            logger.exception("AIClusterWorker 线程异常 (method=%s)", self.method)
             self.error.emit(str(e))
 
 
@@ -67,6 +72,7 @@ class AIRecognizeWorker(QThread):
             result = self.ai_manager.recognize_digit(self.image_data)
             self.finished.emit(result)
         except Exception as e:
+            logger.exception("AIRecognizeWorker 线程异常")
             self.error.emit(str(e))
 
 
@@ -86,6 +92,7 @@ class AIGeneratePointsWorker(QThread):
             result = self.ai_manager.generate_random_points(self.n, x_range=self.x_range, y_range=self.y_range)
             self.finished.emit(result)
         except Exception as e:
+            logger.exception("AIGeneratePointsWorker 线程异常")
             self.error.emit(str(e))
 
 
@@ -104,4 +111,5 @@ class SandboxWorker(QThread):
             result = self.sandbox.run_code(self.code)
             self.finished.emit(result)
         except Exception as e:
+            logger.exception("SandboxWorker 线程异常")
             self.error.emit(str(e))
