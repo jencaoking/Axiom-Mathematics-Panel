@@ -411,11 +411,29 @@ class MainWindow(QMainWindow):
 
     def load_stylesheet(self):
         try:
+            from utils.theme_manager import get_theme_colors
+            theme = get_theme_colors()
+            
             stylesheet_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)), 'ui', 'styles.qss'
             )
             with open(stylesheet_path, 'r', encoding='utf-8') as f:
-                self.setStyleSheet(f.read())
+                qss = f.read()
+
+            if theme['name'] != 'Dark':
+                qss = qss.replace('#13131A', theme['background'])
+                qss = qss.replace('#E0E0E6', theme['foreground'])
+                qss = qss.replace('#1E1E28', theme['panel_bg'])
+                qss = qss.replace('#2A2A35', theme['panel_border'])
+                qss = qss.replace('#181822', theme['console_bg'])
+                qss = qss.replace('#323242', theme['panel_border'])
+                qss = qss.replace('#FFFFFF', theme['console_fg'])
+                qss = qss.replace('#00A67E', theme['accent'])
+                qss = qss.replace('#2A2A38', theme['panel_bg'])
+                qss = qss.replace('#3A3A4A', theme['panel_border'])
+                qss = qss.replace('#353545', theme['panel_border'])
+
+            self.setStyleSheet(qss)
         except Exception as e:
             logger.warning('样式表加载失败: %s', e)
 
@@ -437,8 +455,12 @@ class MainWindow(QMainWindow):
         # 连接属性面板信号
         if hasattr(self, 'properties_panel'):
             self.properties_panel.object_renamed.connect(self.on_object_renamed)
-            # TODO: 后续需要实现颜色、透明度等属性的同步逻辑
-            # self.properties_panel.color_changed.connect(self.on_object_color_changed)
+            self.properties_panel.color_changed.connect(self.on_object_color_changed)
+            self.properties_panel.opacity_changed.connect(self.on_object_opacity_changed)
+            self.properties_panel.stroke_changed.connect(self.on_object_stroke_changed)
+            self.properties_panel.label_toggled.connect(self.on_object_label_toggled)
+
+        self.central_widget.object_selected.connect(self.on_algebra_item_selected)
         self.console.execute_command.connect(self.on_console_command)
         self.command_bar.command_entered.connect(self.on_command_entered)
 
@@ -636,6 +658,46 @@ class MainWindow(QMainWindow):
 
     def on_algebra_item_selected(self, obj_id: str) -> None:
         self.central_widget.select_object(obj_id)
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                self.properties_panel.set_object(obj.serialize())
+        elif obj_id in self._objects_data:
+            self.properties_panel.set_object(self._objects_data[obj_id])
+
+    def on_object_color_changed(self, obj_id, color):
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.color = color
+                self._update_object_display(obj_id, obj)
+
+    def on_object_opacity_changed(self, obj_id, opacity):
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.opacity = opacity
+                self._update_object_display(obj_id, obj)
+
+    def on_object_stroke_changed(self, obj_id, stroke):
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.stroke = stroke
+                self._update_object_display(obj_id, obj)
+
+    def on_object_label_toggled(self, obj_id, show_label):
+        if hasattr(self, 'geometry_engine'):
+            obj = self.geometry_engine.get_object(obj_id)
+            if obj:
+                obj.show_label = show_label
+                self._update_object_display(obj_id, obj)
+
+    def _update_object_display(self, obj_id, obj):
+        obj_data = obj.serialize()
+        self._objects_data[obj_id] = obj_data
+        self.algebra_panel.update_object(obj_data)
+        self.central_widget.update_object(obj_id, obj_data)
 
     def on_object_deleted(self, obj_id: str) -> None:
         if hasattr(self, 'geometry_engine'):
@@ -793,8 +855,8 @@ class MainWindow(QMainWindow):
 
         self.fit_worker = AIFitWorker(self.ai_manager, points, model_type, **params)
         self.active_workers.add(self.fit_worker)
-        self.fit_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.fit_worker))
-        self.fit_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.fit_worker))
+        self.fit_worker.finished.connect(lambda res, w=self.fit_worker: self.on_ai_worker_finished(res, w))
+        self.fit_worker.error.connect(lambda msg, w=self.fit_worker: self.on_ai_worker_error(msg, w))
         self.fit_worker.start()
 
     def on_ai_worker_finished(self, result: dict, worker):
@@ -823,8 +885,8 @@ class MainWindow(QMainWindow):
 
         self.cluster_worker = AIClusterWorker(self.ai_manager, points, method, params)
         self.active_workers.add(self.cluster_worker)
-        self.cluster_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.cluster_worker))
-        self.cluster_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.cluster_worker))
+        self.cluster_worker.finished.connect(lambda res, w=self.cluster_worker: self.on_ai_worker_finished(res, w))
+        self.cluster_worker.error.connect(lambda msg, w=self.cluster_worker: self.on_ai_worker_error(msg, w))
         self.cluster_worker.start()
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
@@ -833,8 +895,8 @@ class MainWindow(QMainWindow):
 
         self.recognize_worker = AIRecognizeWorker(self.ai_manager, image_data)
         self.active_workers.add(self.recognize_worker)
-        self.recognize_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.recognize_worker))
-        self.recognize_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.recognize_worker))
+        self.recognize_worker.finished.connect(lambda res, w=self.recognize_worker: self.on_ai_worker_finished(res, w))
+        self.recognize_worker.error.connect(lambda msg, w=self.recognize_worker: self.on_ai_worker_error(msg, w))
         self.recognize_worker.start()
 
     def on_ai_worker_error(self, error_msg: str, worker=None):
@@ -851,8 +913,8 @@ class MainWindow(QMainWindow):
 
         self.generate_points_worker = AIGeneratePointsWorker(self.ai_manager, n, x_range=(-200, 200), y_range=(-200, 200))
         self.active_workers.add(self.generate_points_worker)
-        self.generate_points_worker.finished.connect(lambda res: self.on_generate_points_worker_finished(res, self.generate_points_worker))
-        self.generate_points_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.generate_points_worker))
+        self.generate_points_worker.finished.connect(lambda res, w=self.generate_points_worker: self.on_generate_points_worker_finished(res, w))
+        self.generate_points_worker.error.connect(lambda msg, w=self.generate_points_worker: self.on_ai_worker_error(msg, w))
         self.generate_points_worker.start()
 
     def on_generate_points_worker_finished(self, result: dict, worker):
@@ -1061,8 +1123,13 @@ class MainWindow(QMainWindow):
 
             self.on_new_project()
 
-            if hasattr(self, 'geometry_engine') and 'name_counter' in data:
-                self.geometry_engine.deserialize_all(data)
+            if hasattr(self, 'geometry_engine'):
+                if 'name_counter' in data:
+                    self.geometry_engine.deserialize_all(data)
+                else:
+                    legacy_data = {'name_counter': 1, 'objects': data.get('objects', {})}
+                    self.geometry_engine.deserialize_all(legacy_data)
+                    
                 self._objects_data = {obj.id: obj.serialize() for obj in self.geometry_engine.get_all_objects()}
                 for obj in self.geometry_engine.get_all_objects():
                     self.algebra_panel.add_object(obj.serialize())
@@ -1281,8 +1348,14 @@ class MainWindow(QMainWindow):
             else:
                 theme_key = next((k for k, v in THEMES.items() if v['name'] == name_or_key), 'light')
             self.apply_theme(theme_key)
+            self.load_stylesheet()
 
         dlg.theme_changed.connect(on_theme_changed)
+        dlg.accent_color_changed.connect(lambda c: None) # reserved for future use
+        dlg.font_changed.connect(lambda f, s: None) # reserved for future use
+        dlg.graphics_settings_changed.connect(lambda gfx: None) # reserved for future use
+        dlg.console_settings_changed.connect(lambda con: None) # reserved for future use
+        dlg.advanced_settings_changed.connect(lambda adv: None) # reserved for future use
         dlg.exec()
 
     def show_theme_dialog(self) -> None:
@@ -1448,8 +1521,8 @@ class MainWindow(QMainWindow):
         # 清理所有活动的异步线程
         for worker in list(self.active_workers):
             try:
-                worker.terminate()
-                worker.wait()
+                worker.quit()
+                worker.wait(1000)
             except Exception:
                 pass
         super().closeEvent(event)

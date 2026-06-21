@@ -265,6 +265,10 @@ class GeometryCanvas(QGraphicsView):
             self.add_polygon()
             return
 
+        if event.button() != Qt.LeftButton:
+            super().mousePressEvent(event)
+            return
+
         if self.current_tool == 'point':
             self.add_point(scene_pos.x(), scene_pos.y())
 
@@ -305,8 +309,6 @@ class GeometryCanvas(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.current_tool in ['segment', 'circle']:
-            pass
         super().mouseReleaseEvent(event)
 
     # ------------------------------------------------------------------
@@ -603,6 +605,9 @@ class GeometryCanvas(QGraphicsView):
                 del self.curve_items[obj_id]
 
     def select_object(self, obj_id):
+        for item in self.scene_obj.selectedItems():
+            item.setSelected(False)
+
         if obj_id in self.object_map:
             for item in self.object_map[obj_id].values():
                 item.setSelected(True)

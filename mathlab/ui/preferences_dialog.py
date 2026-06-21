@@ -99,6 +99,7 @@ class PreferencesDialog(QDialog):
 
         self._build_ui()
         self._load_settings()
+        self._connect_change_signals()
 
         get_i18n().add_language_change_listener(self._on_lang_changed_extern)
 
@@ -130,6 +131,23 @@ class PreferencesDialog(QDialog):
                 "Execute Code": "Shift+Enter",
             },
         }
+
+    def _connect_change_signals(self):
+        for widget in self.findChildren((QComboBox, QFontComboBox)):
+            widget.currentIndexChanged.connect(self._on_setting_changed)
+        for widget in self.findChildren((QSpinBox, QDoubleSpinBox)):
+            widget.valueChanged.connect(self._on_setting_changed)
+        for widget in self.findChildren(QCheckBox):
+            widget.toggled.connect(self._on_setting_changed)
+        for widget in self.findChildren(QSlider):
+            widget.valueChanged.connect(self._on_setting_changed)
+        self.shortcut_table.itemChanged.connect(self._on_setting_changed)
+        if hasattr(self, 'accent_btns'):
+            for _, btn in self.accent_btns:
+                btn.clicked.connect(self._on_setting_changed)
+
+    def _on_setting_changed(self, *args, **kwargs):
+        self.btn_apply.setEnabled(True)
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -738,11 +756,16 @@ class PreferencesDialog(QDialog):
             # 移除重复的 language_changed 发射，避免 retranslate_ui 被调用两次
             # self.language_changed.emit(lang_code)
 
+        canvas_bg = self.bg_combo.currentData()
+        if canvas_bg:
+            self.settings["canvas_bg"] = canvas_bg
+
         gfx = {
             "line_width": self.line_width_spin.value(),
             "point_size": self.point_size_spin.value(),
             "aa":         self.aa_check.isChecked(),
             "speed":      self.speed_slider.value(),
+            "snap":       self.snap_combo.currentData(),
         }
         self.settings.update({
             "line_width": gfx["line_width"],
@@ -757,6 +780,7 @@ class PreferencesDialog(QDialog):
             "font_size":    self.con_font_size_spin.value(),
             "history":      self.history_spin.value(),
             "autocomplete": self.autocomplete_check.isChecked(),
+            "color_scheme": self.color_scheme_combo.currentData(),
         }
         self.settings.update({
             "console_font":      con["font"],
@@ -784,6 +808,8 @@ class PreferencesDialog(QDialog):
                 shortcuts[action_item.text()] = key_item.text()
         self.settings["shortcuts"] = shortcuts
         self.shortcuts_changed.emit(shortcuts)
+        
+        self.btn_apply.setEnabled(False)
 
     def _on_ok(self):
         self._apply_settings()

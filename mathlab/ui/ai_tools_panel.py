@@ -261,6 +261,7 @@ class AIToolsPanel(QDockWidget):
         self.clear_drawing_button.clicked.connect(self.on_clear_drawing)
         self.cluster_button.clicked.connect(self.on_cluster)
         self.run_button.clicked.connect(self.on_run_training)
+        self.stop_training_button.clicked.connect(self.on_stop_training)
 
         self.drawing_view.mousePressEvent = self.on_drawing_press
         self.drawing_view.mouseMoveEvent = self.on_drawing_move
@@ -345,8 +346,29 @@ class AIToolsPanel(QDockWidget):
         self.cluster_requested.emit(self.scatter_points, method, params)
 
     def on_run_training(self):
-        code = self.code_editor.toPlainText()  # noqa: F841
+        code = self.code_editor.toPlainText()
+        if not code.strip():
+            return
+            
+        self.output_area.clear()
         self.output_area.appendPlainText(t('ai_tools.running_training'))
+        self.set_loading_state(True)
+        
+        from PySide6.QtCore import QTimer
+        self._training_timer = QTimer(self)
+        self._training_timer.setSingleShot(True)
+        self._training_timer.timeout.connect(self._finish_training)
+        self._training_timer.start(2000)
+
+    def _finish_training(self):
+        self.output_area.appendPlainText("Training completed successfully. (Simulated)")
+        self.set_loading_state(False)
+
+    def on_stop_training(self):
+        if hasattr(self, '_training_timer') and self._training_timer.isActive():
+            self._training_timer.stop()
+            self.output_area.appendPlainText("Training stopped by user.")
+            self.set_loading_state(False)
 
     def on_drawing_press(self, event):
         scene_pos = self.drawing_view.mapToScene(event.pos())
@@ -423,14 +445,7 @@ class AIToolsPanel(QDockWidget):
         self.recognize_button.setEnabled(not is_loading)
         self.generate_button.setEnabled(not is_loading)
         self.run_button.setEnabled(not is_loading)
-
-        if hasattr(self, 'status_label'):
-            if is_loading:
-                self.status_label.setText("⏳ 正在进行高强度计算...")
-                self.status_label.setStyleSheet("color: #006058; font-weight: bold;")
-            else:
-                self.status_label.setText("就绪")
-                self.status_label.setStyleSheet("color: #64748b;")
+        self.stop_training_button.setEnabled(is_loading)
 
     # ------------------------------------------------------------------
     # AI Assistant Chat Methods
