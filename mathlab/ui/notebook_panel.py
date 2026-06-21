@@ -7,6 +7,7 @@ from mathlab.ui.code_editor import MonacoCodeEditor
 from mathlab.core.notebook import MathLabNotebook, CellType
 from mathlab.utils.i18n_manager import t
 import numpy as np
+from mathlab.ui.markdown_cell import MarkdownCellWidget
 
 class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
@@ -164,10 +165,15 @@ class NotebookPanel(QWidget):
 
     def add_new_cell(self, cell_type: CellType):
         backend_cell = self.backend.add_cell(cell_type, "")
-        ctype_str = "code" if cell_type == CellType.CODE else "markdown"
-        ui_cell = VSCodeStyleCellWidget(backend_cell.id, ctype_str, "")
         
-        ui_cell.execute_requested.connect(lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code))
+        if cell_type == CellType.CODE:
+            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", "")
+            ui_cell.execute_requested.connect(lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code))
+        else:
+            sample_math = "### 奇异值分解定理\n设 $A$ 是一个 $m \\times n$ 实矩阵，则存在正交矩阵 $U$ 和 $V$，使得：\n$$ A = U \\Sigma V^T $$"
+            backend_cell.content = sample_math
+            ui_cell = MarkdownCellWidget(backend_cell.id, sample_math)
+            ui_cell.btn_delete.clicked.connect(lambda _, cid=backend_cell.id: self.delete_cell(cid))
         
         self.ui_cells[backend_cell.id] = ui_cell
         self.canvas_layout.insertWidget(self.canvas_layout.count() - 1, ui_cell)

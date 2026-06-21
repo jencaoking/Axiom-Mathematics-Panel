@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* 深度定制的 MathLab 极客暗黑主题 */
+        body {
+            background-color: transparent;
+            color: #d4d4d4;
+            font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px 15px;
+            font-size: 15px;
+        }
+        /* 美化代码块 */
+        pre { background-color: #0d0d0d; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        code { font-family: Consolas, monospace; color: #ce9178; }
+        /* 美化表格和引用 */
+        blockquote { border-left: 4px solid #007acc; margin: 0; padding-left: 15px; color: #858585; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th { background-color: #2d2d2d; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.0/marked.min.js"></script>
+</head>
+<body>
+    <div id="content">等待渲染...</div>
+
+    <script>
+        // 暴露给 PyQt 调用的全局渲染函数
+        function renderMarkdown(mdText) {
+            const contentDiv = document.getElementById('content');
+            
+            // 1. 先将 Markdown 转换为 HTML
+            contentDiv.innerHTML = marked.parse(mdText);
+            
+            // 2. 遍历 HTML，将前后的 $$ 或 $ 替换为绝美的数学公式
+            renderMathInElement(contentDiv, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},  // 独立成行公式
+                    {left: '$', right: '$', display: false},   // 行内公式
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false, // 语法错误时原样显示，不崩溃
+                errorColor: '#f14c4c'
+            });
+            
+            // 渲染完成后，通知 Qt 重新计算高度 (可选高级功能)
+            // console.log(document.body.scrollHeight);
+        }
+    </script>
+</body>
+</html>

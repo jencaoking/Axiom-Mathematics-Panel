@@ -77,84 +77,90 @@ class SandboxProcess:
             
             time.sleep(0.1)  # 高频轮询，兼顾性能
     
-    def run_code(self, code, timeout=None):
-        if timeout is None:
-            timeout = self.max_time_seconds
-        
-        self._watchdog_triggered = False
-        self._watchdog_error_msg = ""
-        
+    def _start_process(self):
         sandbox_script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
-            f.write(code)
-            code_file_path = f.name
-        
         env = os.environ.copy()
         extra_paths = ';'.join(sys.path) if sys.platform == 'win32' else ':'.join(sys.path)
         env['PYTHONPATH'] = f"{env.get('PYTHONPATH', '')}{';' if sys.platform == 'win32' else ':'}{extra_paths}".strip(';:')
         
-        # 核心改进：创建独立的进程组/会话，防止孤儿进程逃逸
         creation_flags = 0
         preexec_fn = None
         if sys.platform == 'win32':
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
-            preexec_fn = os.setsid  # 使子进程成为全新的进程组长，全组一并生死
+            preexec_fn = os.setsid
             
         self.process = subprocess.Popen(
-            [sys.executable, sandbox_script_path, code_file_path],
+            [sys.executable, sandbox_script_path],
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=env,
             creationflags=creation_flags,
-            preexec_fn=preexec_fn
+            preexec_fn=preexec_fn,
+            text=True
         )
-        
         self.running = True
+
+    def run_code(self, code, timeout=None):
+        if timeout is None:
+            timeout = self.max_time_seconds
         
-        # 启动标准流读取线程
-        stdout_thread = threading.Thread(target=self._read_output, args=(self.process.stdout, self.output_queue), daemon=True)
-        stderr_thread = threading.Thread(target=self._read_output, args=(self.process.stderr, self.error_queue), daemon=True)
-        stdout_thread.start()
-        stderr_thread.start()
+        if not self.process or self.process.poll() is not None:
+            self._start_process()
+            
+        self._watchdog_triggered = False
+        self._watchdog_error_msg = ""
         
-        # 启动看门狗线程
-        watchdog_thread = threading.Thread(target=self._monitor_watchdog, args=(timeout,), daemon=True)
-        watchdog_thread.start()
+        req = json.dumps({'code': code})
+        self.process.stdin.write(req + '\\n')
+        self.process.stdin.flush()
         
-        try:
-            # 进程自己阻塞等待（看门狗会在超时或爆内存时强杀它）
-            self.process.wait()
-            
-            stdout_thread.join(timeout=2)
-            stderr_thread.join(timeout=2)
-            
-            output = ''
-            while not self.output_queue.empty():
-                output += self.output_queue.get_nowait()
-            
-            error = ''
-            while not self.error_queue.empty():
-                error += self.error_queue.get_nowait()
-            
-            # 如果触发了看门狗，覆盖返回的错误信息
-            success = self.process.returncode == 0 and not self._watchdog_triggered
-            if self._watchdog_triggered:
-                error = self._watchdog_error_msg
-                
-            return {
-                'success': success,
-                'output': output,
-                'error': error,
-                'result': None
-            }
-        finally:
-            self.running = False
+        result_queue = Queue()
+        
+        def read_response():
             try:
-                os.unlink(code_file_path)
-            except OSError:
+                line = self.process.stdout.readline()
+                if line:
+                    result_queue.put(json.loads(line))
+            except Exception as e:
                 pass
+                
+        reader_thread = threading.Thread(target=read_response, daemon=True)
+        reader_thread.start()
+        
+        # Watchdog logic
+        start_time = time.time()
+        while reader_thread.is_alive():
+            elapsed = time.time() - start_time
+            if elapsed > timeout:
+                self._watchdog_triggered = True
+                self._watchdog_error_msg = f"Execution timed out after {timeout} seconds."
+                self.terminate()
+                break
+                
+            if psutil and self.process:
+                try:
+                    parent = psutil.Process(self.process.pid)
+                    total_memory = parent.memory_info().rss
+                    for child in parent.children(recursive=True):
+                        total_memory += child.memory_info().rss
+                    if (total_memory / (1024 * 1024)) > self.max_memory_mb:
+                        self._watchdog_triggered = True
+                        self._watchdog_error_msg = f"Memory limit exceeded."
+                        self.terminate()
+                        break
+                except Exception:
+                    pass
+            time.sleep(0.05)
+            
+        if self._watchdog_triggered:
+            return {'success': False, 'output': '', 'error': self._watchdog_error_msg, 'result': None}
+            
+        if not result_queue.empty():
+            res = result_queue.get()
+            return {'success': res.get('success', False), 'output': res.get('output', ''), 'error': res.get('error', ''), 'result': None}
+            
+        return {'success': False, 'output': '', 'error': 'Sandbox process died unexpectedly', 'result': None}
+
     
     def terminate(self):
         """

@@ -18,13 +18,12 @@ class PythonREPL:
         """
         初始化 Python REPL
         :param namespace: 保留参数（沙箱模式下不使用）
-        :param session_mode: 是否启用会话模式（自动拼接历史代码实现变量持久化）
+        :param session_mode: 是否启用会话模式（通过保持 Sandbox 进程存活实现）
         """
         self.history = deque(maxlen=100)  # 存储用户输入的历史代码
         self.running = False
         self._sandbox = SandboxProcess()  # 单例沙箱实例
         self._session_mode = session_mode  # 会话模式开关
-        self._session_context = []  # 存储已成功执行的会话代码上下文
         self.namespace = namespace or {}
     
     def update_namespace(self, vars_dict):
@@ -38,29 +37,14 @@ class PythonREPL:
     def execute(self, code_str, timeout=5):
         """
         在独立沙箱中执行代码，确保主程序永不卡死
-        
-        会话模式：自动将历史代码拼接后重新执行，实现变量持久化
-        隔离模式：每次执行都是独立环境（默认更安全）
         """
         self.running = True
         
         if code_str.strip():
             self.history.append(code_str)
         
-        # 根据模式构建执行代码
-        if self._session_mode:
-            # 会话模式：拼接历史上下文 + 当前代码
-            execution_code = self._build_session_code(code_str)
-        else:
-            # 隔离模式：仅执行当前代码
-            execution_code = code_str
-        
         # 委托给沙箱进程执行
-        sandbox_result = self._sandbox.run_code(execution_code, timeout=timeout)
-        
-        # 如果执行成功且是会话模式，将当前代码加入上下文
-        if sandbox_result['success'] and self._session_mode:
-            self._session_context.append(code_str)
+        sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
         
         self.running = False
         
@@ -70,19 +54,6 @@ class PythonREPL:
             'error': sandbox_result['error'],
             'more': False  # 沙箱模式下不支持多行交互
         }
-    
-    def _build_session_code(self, current_code):
-        """
-        构建会话代码：将历史上下文与当前代码拼接
-        策略：将所有成功执行的代码按顺序拼接，形成完整的执行环境
-        """
-        if not self._session_context:
-            return current_code
-        
-        # 拼接所有历史代码 + 当前代码
-        # 使用 '\n' 分隔，确保每段代码独立成行
-        full_code = '\n'.join(self._session_context) + '\n' + current_code
-        return full_code
     
     def complete(self, text):
         """
@@ -134,25 +105,19 @@ class PythonREPL:
     def set_session_mode(self, enabled=True):
         """
         动态切换会话模式
-        :param enabled: True 启用会话模式（变量持久化），False 禁用（完全隔离）
+        :param enabled: True 启用会话模式（变量持久化），False 禁用（每次重启沙箱）
         """
         self._session_mode = enabled
         if not enabled:
-            # 禁用时清空会话上下文
-            self._session_context.clear()
-    
+            # 禁用时重启沙箱进程以清空状态
+            self._sandbox.terminate()
+            
     def clear_session(self):
-        """
-        清空会话上下文（保留历史记录）
-        用于重置变量状态，但保留用户的输入历史
-        """
-        self._session_context.clear()
+        """清空会话上下文"""
+        self._sandbox.terminate()
     
     def get_session_context_length(self):
-        """
-        获取当前会话上下文的代码行数
-        """
-        return len(self._session_context)
+        return len(self.history)
     
     def get_history(self):
         return list(self.history)
