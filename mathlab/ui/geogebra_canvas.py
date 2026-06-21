@@ -1,9 +1,10 @@
 from enum import Enum
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsEllipseItem, QGraphicsLineItem
 from PySide6.QtGui import QPen, QBrush, QColor, QPainter
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QVariantAnimation, QPointF
 
 from mathlab.core.geogebra_engine import GeometryEngine, GeoEntity, GeoPoint, GeoLine, GeoCircle, GeoIntersection
+from mathlab.core.animation import CreateAnimation
 
 class ToolMode(Enum):
     """画板的工具状态机枚举"""
@@ -37,6 +38,59 @@ class QGeoPointItem(QGraphicsEllipseItem):
             self.geo_entity.set_coords(new_pos.x(), new_pos.y())
             self.engine_ui_link.sync_ui_from_engine()
         return super().itemChange(change, value)
+
+
+class AnimatedLineItem(QGraphicsLineItem):
+    """支持生长动画的直线"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._full_start = QPointF(0, 0)
+        self._full_end = QPointF(0, 0)
+        self._progress = 1.0 # 默认完全画完
+
+    def set_full_line(self, x1, y1, x2, y2):
+        """记录直线的终极形态"""
+        self._full_start = QPointF(x1, y1)
+        self._full_end = QPointF(x2, y2)
+        self._update_geometry()
+
+    def set_draw_progress(self, alpha: float):
+        """0.0 到 1.0 的绘制进度"""
+        self._progress = alpha
+        self._update_geometry()
+
+    def _update_geometry(self):
+        # 向量插值：P_current = P_start + (P_end - P_start) * alpha
+        dx = self._full_end.x() - self._full_start.x()
+        dy = self._full_end.y() - self._full_start.y()
+        
+        cur_x = self._full_start.x() + dx * self._progress
+        cur_y = self._full_start.y() + dy * self._progress
+        
+        # 真正丢给 Qt 去画的线
+        self.setLine(self._full_start.x(), self._full_start.y(), cur_x, cur_y)
+
+
+class AnimatedCircleItem(QGraphicsEllipseItem):
+    """支持绕圈扫影生长的圆"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._progress = 1.0
+        # 设置起点为顶部 (Qt中角度以1/16度为单位，3点钟是0，12点钟是90)
+        self.setStartAngle(90 * 16) 
+
+    def set_full_rect(self, x, y, w, h):
+        self.setRect(x, y, w, h)
+        self._update_geometry()
+
+    def set_draw_progress(self, alpha: float):
+        self._progress = alpha
+        self._update_geometry()
+
+    def _update_geometry(self):
+        # 跨度角度：满圆是 360 度，乘以 16 是 Qt 的内部单位
+        span = int(360 * 16 * self._progress)
+        self.setSpanAngle(span)
 
 
 class GeoGebraCanvas(QGraphicsView):
@@ -137,28 +191,49 @@ class GeoGebraCanvas(QGraphicsView):
                     self.action_buffer.clear()
             return
 
-    def _create_ui_item(self, entity):
+    def _create_ui_item(self, entity, animate=True):
         if isinstance(entity, GeoPoint):
             item = QGeoPointItem(entity, self.scene, self)
             item.setZValue(10)
             self.scene.addItem(item)
             self.ui_items[entity.id] = item
             
+            if animate:
+                anim = QVariantAnimation(item)
+                anim.setDuration(400)
+                anim.setStartValue(0.0)
+                anim.setEndValue(1.0)
+                anim.valueChanged.connect(item.setOpacity)
+                anim.start()
+                item._appear_anim = anim 
+            
         elif isinstance(entity, GeoLine):
-            item = QGraphicsLineItem()
+            item = AnimatedLineItem()
             item.geo_entity = entity
             pen = QPen(QColor(entity.color), 3)
             item.setPen(pen)
             self.scene.addItem(item)
             self.ui_items[entity.id] = item
             
+            if animate and entity.parents and len(entity.parents) >= 2:
+                item.set_full_line(entity.parents[0].x, entity.parents[0].y, entity.parents[1].x, entity.parents[1].y)
+                create_anim = CreateAnimation(item, duration=600)
+                create_anim.play()
+                item._create_anim = create_anim
+            
         elif isinstance(entity, GeoCircle):
-            item = QGraphicsEllipseItem()
+            item = AnimatedCircleItem()
             item.geo_entity = entity
             pen = QPen(QColor(entity.color), 3)
             item.setPen(pen)
             self.scene.addItem(item)
             self.ui_items[entity.id] = item
+            
+            if animate:
+                item.set_full_rect(entity.center_x - entity.r, entity.center_y - entity.r, entity.r * 2, entity.r * 2)
+                create_anim = CreateAnimation(item, duration=600)
+                create_anim.play()
+                item._create_anim = create_anim
             
         self.sync_ui_from_engine()
 
@@ -177,12 +252,20 @@ class GeoGebraCanvas(QGraphicsView):
                 item.setPos(entity.x, entity.y)
                 
             elif isinstance(entity, GeoLine):
-                item.setLine(entity.parents[0].x, entity.parents[0].y, 
-                             entity.parents[1].x, entity.parents[1].y)
+                if isinstance(item, AnimatedLineItem):
+                    item.set_full_line(entity.parents[0].x, entity.parents[0].y, 
+                                       entity.parents[1].x, entity.parents[1].y)
+                else:
+                    item.setLine(entity.parents[0].x, entity.parents[0].y, 
+                                 entity.parents[1].x, entity.parents[1].y)
                              
             elif isinstance(entity, GeoCircle):
-                item.setRect(entity.center_x - entity.r, entity.center_y - entity.r, 
-                             entity.r * 2, entity.r * 2)
+                if isinstance(item, AnimatedCircleItem):
+                    item.set_full_rect(entity.center_x - entity.r, entity.center_y - entity.r, 
+                                       entity.r * 2, entity.r * 2)
+                else:
+                    item.setRect(entity.center_x - entity.r, entity.center_y - entity.r, 
+                                 entity.r * 2, entity.r * 2)
 
         if hasattr(self, 'on_engine_updated') and self.on_engine_updated:
             self.on_engine_updated()
