@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from mathlab.core.octave_bridge import OctaveBridge, OctaveBridgeError
+from mathlab.utils.i18n_manager import t
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -50,7 +51,9 @@ class MathConsole(QDockWidget):
     def __init__(self, parent=None):
         from mathlab.utils.i18n_manager import get_i18n
         t = get_i18n().t
-        super().__init__(f"{t('math_console.title') or 'Interactive Console'} (Octave / NumEngine)", parent)
+        title = t('math_console.title')
+        if title == 'math_console.title': title = 'Interactive Console'
+        super().__init__(f"{title} (Octave / NumEngine)", parent)
         self.setAllowedAreas(
             Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea
         )
@@ -91,11 +94,11 @@ class MathConsole(QDockWidget):
         tb_layout.addWidget(lbl_title)
         tb_layout.addStretch()
 
-        self._lbl_ws = QLabel("工作区: 空")
+        self._lbl_ws = QLabel(t('math_console.workspace_empty') or "Workspace: Empty")
         self._lbl_ws.setStyleSheet(f"color:{_COL_MUTED}; font-size:11px;")
         tb_layout.addWidget(self._lbl_ws)
 
-        btn_clear = QPushButton("清屏")
+        btn_clear = QPushButton(t('math_console.clear') or "Clear")
         btn_clear.setFixedHeight(24)
         btn_clear.setStyleSheet(
             f"QPushButton{{background:#252535;color:{_COL_MUTED};"
@@ -105,7 +108,7 @@ class MathConsole(QDockWidget):
         btn_clear.clicked.connect(self._clear_output)
         tb_layout.addWidget(btn_clear)
 
-        btn_reset = QPushButton("重置工作区")
+        btn_reset = QPushButton(t('math_console.reset') or "Reset Workspace")
         btn_reset.setFixedHeight(24)
         btn_reset.setStyleSheet(btn_clear.styleSheet())
         btn_reset.clicked.connect(self._reset_workspace)
@@ -152,13 +155,13 @@ class MathConsole(QDockWidget):
             f"}}"
         )
         self._input.setPlaceholderText(
-            "输入 Octave 语法（如: A = [1 2; 3 4]  或  eig(A)），Enter 执行 ..."
+            t('math_console.placeholder') or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
         )
         self._input.returnPressed.connect(self._execute)
         self._input.installEventFilter(self)
         ir_layout.addWidget(self._input, stretch=1)
 
-        btn_run = QPushButton("▶ 执行")
+        btn_run = QPushButton(t('math_console.run') or "▶ Run")
         btn_run.setFixedHeight(28)
         btn_run.setStyleSheet(
             f"QPushButton{{background:#007ACC;color:white;"
@@ -384,15 +387,19 @@ class MathConsole(QDockWidget):
         sb.setValue(sb.maximum())
 
     def _print_welcome(self) -> None:
+        backend_info = t('math_console.backend_info') or "Backend: NumPy / SciPy / NumEngine &nbsp;·&nbsp; Syntax: MATLAB/Octave Compatible<br>"
+        hint1 = t('math_console.hint1') or "Hint: Enter <code style='color:{0};'>A = [1 2; 3 4]</code> to build matrix, "
+        hint1 = hint1.format(_COL_INPUT)
+        hint2 = t('math_console.hint2') or "<code style='color:{0};'>eig(A)</code> for eigenvalues, ↑↓ to browse history"
+        hint2 = hint2.format(_COL_INPUT)
         self._append_html(
             f"<div style='margin-bottom:12px;'>"
             f"<span style='color:{_COL_ACCENT};font-size:14px;font-weight:bold;'>"
             f"MathLab Console  v2.5</span><br>"
             f"<span style='color:{_COL_MUTED};font-size:11px;'>"
-            f"后端: NumPy / SciPy / NumEngine &nbsp;·&nbsp; 语法: MATLAB/Octave 兼容<br>"
-            f"提示: 输入 <code style='color:{_COL_INPUT};'>A = [1 2; 3 4]</code> 构建矩阵，"
-            f"<code style='color:{_COL_INPUT};'>eig(A)</code> 计算特征值，"
-            f"↑↓ 键浏览历史</span></div>"
+            f"{backend_info}"
+            f"{hint1}"
+            f"{hint2}</span></div>"
         )
 
     def _clear_output(self) -> None:
@@ -402,9 +409,10 @@ class MathConsole(QDockWidget):
     def _reset_workspace(self) -> None:
         self.bridge.reset()
         self._clear_output()
+        reset_success = t('math_console.reset_success') or "✓ Workspace reset"
         self._append_html(
             f"<span style='color:{_COL_MUTED};font-size:11px;'>"
-            f"✓ 工作区已重置</span><br><br>"
+            f"{reset_success}</span><br><br>"
         )
         self._update_workspace_label()
 
@@ -413,9 +421,11 @@ class MathConsole(QDockWidget):
         if ws:
             names = ", ".join(list(ws.keys())[:8])
             suffix = " …" if len(ws) > 8 else ""
-            self._lbl_ws.setText(f"工作区: {names}{suffix}  ({len(ws)} 个变量)")
+            workspace_prefix = t('math_console.workspace') or "Workspace"
+            vars_suffix = t('math_console.vars') or "vars"
+            self._lbl_ws.setText(f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})")
         else:
-            self._lbl_ws.setText("工作区: 空")
+            self._lbl_ws.setText(t('math_console.workspace_empty') or "Workspace: Empty")
 
     # ─────────────────────────────────────────────────────────────────────────
     # 公开 API（供 main_window 调用）

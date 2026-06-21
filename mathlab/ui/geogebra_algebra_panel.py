@@ -58,7 +58,9 @@ class GeoGebraAlgebraPanel(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         
-        header = QLabel("代数区 (Algebra)")
+        from mathlab.utils.i18n_manager import get_i18n
+        t = get_i18n().t
+        header = QLabel(t('geogebra.algebra_title') or "Algebra")
         header.setStyleSheet("background-color: #2d2d2d; color: #cccccc; padding: 10px; font-weight: bold; border-bottom: 1px solid #1e1e1e;")
         
         self.scroll_area = QScrollArea()

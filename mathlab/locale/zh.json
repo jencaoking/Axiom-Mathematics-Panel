@@ -282,5 +282,23 @@
   },
   "command_bar": {
     "placeholder": "输入命令 (Ctrl+Shift+P 打开命令面板)"
+  },
+  "geogebra": {
+    "tool_move": "移动",
+    "tool_point": "自由点",
+    "tool_line": "直线/线段",
+    "tool_intersect": "找交点",
+    "algebra_title": "代数区 (Algebra)"
+  },
+  "math_console": {
+    "workspace_empty": "工作区: 空",
+    "clear": "清屏",
+    "reset": "重置工作区",
+    "placeholder": "输入 Octave 语法（如: A = [1 2; 3 4]  或  eig(A)），Enter 执行 ...",
+    "run": "▶ 执行",
+    "backend_info": "后端: NumPy / SciPy / NumEngine &nbsp;·&nbsp; 语法: MATLAB/Octave 兼容<br>",
+    "hint1": "提示: 输入 <code style=\"color:{0};\">A = [1 2; 3 4]</code> 构建矩阵，",
+    "hint2": "<code style=\"color:{0};\">eig(A)</code> 计算特征值，↑↓ 键浏览历史",
+    "reset_success": "✓ 工作区已重置"
   }
 }

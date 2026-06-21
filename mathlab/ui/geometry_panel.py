@@ -26,11 +26,14 @@ class GeometryPanel(QWidget):
         self.btn_group = QButtonGroup(self)
         self.btn_group.setExclusive(True)
 
+        from mathlab.utils.i18n_manager import get_i18n
+        t = get_i18n().t
+
         tools = [
-            ("👆 移动", ToolMode.SELECT),
-            ("⏺ 自由点", ToolMode.POINT),
-            ("📏 直线/线段", ToolMode.LINE),
-            ("❌ 找交点", ToolMode.INTERSECT)
+            (f"👆 {t('geogebra.tool_move') or 'Move'}", ToolMode.SELECT),
+            (f"⏺ {t('geogebra.tool_point') or 'Point'}", ToolMode.POINT),
+            (f"📏 {t('geogebra.tool_line') or 'Line'}", ToolMode.LINE),
+            (f"❌ {t('geogebra.tool_intersect') or 'Intersect'}", ToolMode.INTERSECT)
         ]
 
         for text, mode in tools:
