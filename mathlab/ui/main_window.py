@@ -20,6 +20,7 @@ from .command_bar import CommandBar, CommandPalette
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
+from .animations import fade_in, fade_out
 
 try:
     from core.geometry_engine import GeometryEngine
@@ -1154,34 +1155,49 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, t('dialogs.error'), t('dialogs.failed_to_export', str(e)))
 
     def toggle_algebra_panel(self, visible: bool) -> None:
-        self.algebra_panel.setVisible(visible)
+        if visible:
+            self.algebra_panel.show()
+            fade_in(self.algebra_panel)
+        else:
+            fade_out(self.algebra_panel, callback=self.algebra_panel.hide)
 
     def toggle_properties_panel(self, visible: bool) -> None:
-        self.properties_panel.setVisible(visible)
+        if visible:
+            self.properties_panel.show()
+            fade_in(self.properties_panel)
+        else:
+            fade_out(self.properties_panel, callback=self.properties_panel.hide)
 
     def toggle_console(self, visible: bool) -> None:
-        self.console.setVisible(visible)
+        if visible:
+            self.console.show()
+            fade_in(self.console)
+        else:
+            fade_out(self.console, callback=self.console.hide)
 
     def toggle_algo_vis_panel(self, visible: bool) -> None:
         if visible:
             self.algo_vis_panel.show()
             self.algo_vis_panel.raise_()
+            fade_in(self.algo_vis_panel)
         else:
-            self.algo_vis_panel.hide()
+            fade_out(self.algo_vis_panel, callback=self.algo_vis_panel.hide)
 
     def toggle_ai_tools_panel(self, visible: bool) -> None:
         if visible:
             self.ai_tools_panel.show()
             self.ai_tools_panel.raise_()
+            fade_in(self.ai_tools_panel)
         else:
-            self.ai_tools_panel.hide()
+            fade_out(self.ai_tools_panel, callback=self.ai_tools_panel.hide)
 
     def toggle_function_explorer(self, visible: bool) -> None:
         if visible:
             self.function_explorer.show()
             self.function_explorer.raise_()
+            fade_in(self.function_explorer)
         else:
-            self.function_explorer.hide()
+            fade_out(self.function_explorer, callback=self.function_explorer.hide)
 
     def show_about(self) -> None:
         QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))
