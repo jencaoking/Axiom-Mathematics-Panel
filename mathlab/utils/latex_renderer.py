@@ -1,9 +1,14 @@
 import io
 from functools import lru_cache
-import matplotlib
-# 强制使用无头后端(Agg)，防止 Matplotlib 弹窗与 PyQt 的主线程冲突
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+
+try:
+    import matplotlib
+    # 强制使用无头后端(Agg)，防止 Matplotlib 弹窗与 Qt 主线程冲突
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
 
 from sympy import latex as sympy_latex
 from PySide6.QtCore import QByteArray
@@ -89,18 +94,22 @@ def export_canvas_to_latex(objects_data):
 @lru_cache(maxsize=256)
 def generate_latex_svg(latex_str, color='#0b1c30', font_size=12):
     """
-    将 LaTeX 字符串静默渲染为无损的 SVG 字节流
+    将 LaTeX 字符串静默渲染为无损的 SVG 字节流。
+    若 matplotlib 未安装，返回空 QByteArray（只影响代数公式渲染功能）。
     """
+    if not MATPLOTLIB_AVAILABLE:
+        return QByteArray()
+
     # 过滤掉首尾多余的 $ 符号，防止重复
     latex_str = latex_str.strip('$')
-    
+
     fig = plt.figure(figsize=(0.01, 0.01))
     fig.text(0, 0, f'${latex_str}$', fontsize=font_size, color=color, ha='left', va='center')
-    
+
     buf = io.BytesIO()
     fig.savefig(buf, format='svg', transparent=True, bbox_inches='tight', pad_inches=0.0)
     plt.close(fig)
-    
+
     return QByteArray(buf.getvalue())
 
 class SharedSvgRendererCache:
