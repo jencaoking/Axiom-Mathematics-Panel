@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
 [![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)]()
 
-> **MathLab** 是一款交互式数学与AI教学桌面软件，集动态几何画板、Python编程学习环境、算法可视化和AI辅助学习于一体。
+> **MathLab (Version 1.0)** 是一款交互式数学与AI教学桌面软件，集动态几何画板、Python编程学习环境、算法可视化和AI辅助学习于一体。本版本为全新的 **1.0 正式版本**，引入了全新的自适应前景色矢量图标、微动画转场以及偏好设置自动持久化等多项交互与易用性优化。
 
 ## 目录
 
