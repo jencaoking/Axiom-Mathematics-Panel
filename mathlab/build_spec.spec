@@ -84,12 +84,17 @@ EXCLUDES = [
     'PySide6.QtTest',
     'PySide6.QtTextToSpeech',
     'PySide6.QtUiTools',
-    'PySide6.QtWebChannel',
-    'PySide6.QtWebEngineCore',
     'PySide6.QtWebEngineQuick',
-    'PySide6.QtWebEngineWidgets',
     'PySide6.QtWebSockets',
     'PySide6.QtXml',
+
+    # 排除 PyQt5 避免打包冲突
+    'PyQt5',
+    'PyQt5.QtCore',
+    'PyQt5.QtGui',
+    'PyQt5.QtWidgets',
+    'PyQt5.QtWebEngineWidgets',
+    'PyQt5.QtWebChannel',
 
     'tkinter',
 
@@ -134,10 +139,10 @@ a = Analysis(
     binaries=[],
     datas=app_datas,
     hiddenimports=[
-        # WebEngine / PyQt5 依赖
-        'PyQt5.QtWebEngineWidgets',
-        'PyQt5.QtWebChannel',
-        'PyQt5.QtCore',
+        # WebEngine / PySide6 依赖
+        'PySide6.QtWebEngineWidgets',
+        'PySide6.QtWebChannel',
+        'PySide6.QtCore',
         # sympy 动态加载的子模块
         'sympy.parsing.sympy_parser',
         'sympy.core.add',
@@ -177,7 +182,6 @@ a = Analysis(
 def filter_binaries(binaries):
     SKIP_PATTERNS = [
         'qtvirtualkeyboard',
-        'qtwebengine',
         'qtwebview',
         'Qt53D',
         'Qt63D',

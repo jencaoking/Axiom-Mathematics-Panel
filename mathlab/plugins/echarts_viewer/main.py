@@ -2,9 +2,9 @@
 import os
 import json
 import numpy as np
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWebChannel import QWebChannel
-from PyQt5.QtCore import QUrl
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtCore import QUrl
 from mathlab.core.plugin_base import MathLabPlugin
 from .bridge import EChartsBridge
 

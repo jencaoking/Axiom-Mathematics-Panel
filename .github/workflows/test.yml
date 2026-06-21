@@ -29,7 +29,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r mathlab/requirements.txt
         pip install -r mathlab/requirements-optional.txt
-        pip install PyQt5 PyQtWebEngine pytest pytest-qt
+        pip install pytest pytest-qt
 
     - name: Install System Dependencies for Qt/WebEngine
       # 将 libegl1-mesa 替换为 libegl1，并补充其他 Qt 必须的底层库

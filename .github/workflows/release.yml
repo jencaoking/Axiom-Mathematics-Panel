@@ -37,7 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r mathlab/requirements.txt
         pip install -r mathlab/requirements-optional.txt
-        pip install PyQt5 PyQtWebEngine pyinstaller
+        pip install pyinstaller
 
     - name: Set Asset Filename
       id: vars
