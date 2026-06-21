@@ -314,8 +314,10 @@ class AIManager:
         if len(points) < 2:
             return {'success': False, 'error': 'Need at least 2 points'}
         
+        # [P0修复 Bug1] 补充缺失的导入：mean_squared_error 在此函数中使用但未导入
         import torch
         import torch.nn as nn
+        from sklearn.metrics import mean_squared_error
         
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
@@ -339,15 +341,11 @@ class AIManager:
             optimizer.step()
             
             loss_history.append(float(loss.item()))
-
-            if epoch % 10 == 0:
-                # 通知训练进度（百分比 + 当前 loss）
-                progress = int((epoch + 1) / epochs * 100)
-                self.emit('training_progress', progress, float(loss.item()))
         
         with torch.no_grad():
             predictions = model(X).numpy().flatten()
         
+        # [P0修复 Bug1] 移除错误的 self.emit()：AIManager 不是 QObject，无此方法
         mse = float(mean_squared_error(y.numpy(), predictions.reshape(-1, 1)))
         
         return {

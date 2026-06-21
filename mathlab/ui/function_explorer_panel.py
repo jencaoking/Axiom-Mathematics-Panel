@@ -77,7 +77,8 @@ class FunctionExplorerPanel(QDockWidget):
     """动态函数探索器面板"""
     
     function_added = Signal(dict)  # 发射函数数据
-    function_updated = Signal(dict)  # 更新函数参数
+    # [P0修复 Bug4] 信号定义修改为携带 obj_id (str)
+    function_updated = Signal(str, dict)  # 更新函数参数
     
     def __init__(self, parent=None):
         super().__init__(t('function_explorer.title'), parent)
@@ -384,7 +385,9 @@ class FunctionExplorerPanel(QDockWidget):
             elif self.type_combo.currentData() == 'polar':
                 func_data['plot_type'] = 'PolarPlot'
             
-            self.function_updated.emit(func_data)
+            # [P0修复 Bug4] 发射信号时，带上具体的 func_id
+            if self.current_function_id:
+                self.function_updated.emit(self.current_function_id, func_data)
         except Exception as e:
             print(f"Error updating function: {e}")
     

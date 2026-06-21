@@ -551,7 +551,17 @@ class GeometryCanvas(QGraphicsView):
             y = obj_data['coordinates'].get('y', 0)
 
             obj_info['point'].setRect(x - 5, y - 5, 10, 10)
-            obj_info['text'].setPos(x + 8, y - 12)
+            
+            # [P0修复 Bug3] 同步更新关联的文本图元内容
+            text_item = obj_info.get('text')
+            new_name = obj_data.get('name', '')
+            if text_item:
+                if hasattr(text_item, 'set_text'):
+                    text_item.set_text(new_name)
+                elif hasattr(text_item, 'setPlainText'):
+                    text_item.setPlainText(new_name)
+                # 同步更新文本的位置，保持相对偏移
+                text_item.setPos(x + 8, y - 12)
 
         elif obj_type == 'Segment':
             x1 = obj_data['coordinates'].get('x1', 0)

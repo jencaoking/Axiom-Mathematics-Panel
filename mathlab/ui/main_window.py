@@ -520,6 +520,8 @@ class MainWindow(QMainWindow):
             
             # 保存当前函数ID，用于后续更新
             self.current_function_id = obj_id
+            # [P0修复 Bug4] 同步给 function_explorer 面板具体的 obj_id
+            self.function_explorer.current_function_id = obj_id
             
             # 保存原始表达式和参数信息到对象中
             obj = self.geometry_engine.get_object(obj_id)
@@ -530,26 +532,25 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, t('dialogs.error'), 
                               f"{t('errors.invalid_expression')}: {str(e)}")
     
-    def on_function_updated(self, func_data: dict):
+    # [P0修复 Bug4] 接收 obj_id 并精确更新，而非依赖共享的 current_function_id
+    def on_function_updated(self, obj_id: str, func_data: dict):
         """处理函数探索器更新的函数（参数变化）"""
         try:
             plot_type = func_data.get('plot_type', 'FunctionPlot')
             expression = func_data.get('expression', '')
             original_expr = func_data.get('original_expression', expression)
             
-            if not expression:
+            if not expression or not obj_id:
                 return
             
-            # 使用保存的 current_function_id 定位对象，而非假设最后一个
-            obj_id = self.current_function_id
-            if obj_id:
-                last_func = self.geometry_engine.get_object(obj_id)
-                if last_func and hasattr(last_func, '_generate_points'):
-                    last_func.expression = expression
-                    last_func._generate_points()
-                    
-                    # 通知更新
-                    self.on_geometry_event('object_updated', last_func.serialize())
+            # 使用传入的 obj_id 定位对象
+            last_func = self.geometry_engine.get_object(obj_id)
+            if last_func and hasattr(last_func, '_generate_points'):
+                last_func.expression = expression
+                last_func._generate_points()
+                
+                # 通知更新
+                self.on_geometry_event('object_updated', last_func.serialize())
         except Exception as e:
             logger.warning("更新函数时出错: %s", e)
 

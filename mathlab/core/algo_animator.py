@@ -2,6 +2,15 @@ import random
 import heapq
 from collections import deque
 
+# [P0修复 Bug2] 引入 networkx 并做异常降级处理，防止未安装时整个模块崩溃
+try:
+    import networkx as nx
+    NX_AVAILABLE = True
+except ImportError:
+    nx = None
+    NX_AVAILABLE = False
+    print("[Warning] NetworkX is not installed. Graph algorithms (BFS/DFS/Dijkstra) will be disabled.")
+
 class AlgoAnimator:
     def __init__(self):
         self.current_algorithm = None
@@ -23,9 +32,14 @@ class AlgoAnimator:
                 params['target'] = params['arr'][random.randint(0, len(params['arr'])-1)]
         elif algorithm_name in ('bfs', 'dfs'):
             if 'graph' not in params:
+                # [P0修复 Bug2] 调用前检查 nx 是否可用
+                if not NX_AVAILABLE:
+                    return False
                 params['graph'] = nx.erdos_renyi_graph(6, 0.5, directed=False)
         elif algorithm_name == 'dijkstra':
             if 'graph' not in params:
+                if not NX_AVAILABLE:
+                    return False
                 params['graph'] = nx.complete_graph(5)
                 # 为边设置随机权重
                 for u, v in params['graph'].edges():
@@ -301,6 +315,10 @@ class AlgoAnimator:
         }
     
     def bfs_generator(self, graph=None, start=0):
+        # [P0修复 Bug2] 进入函数先检查依赖
+        if not NX_AVAILABLE:
+            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            return
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
         
@@ -367,6 +385,10 @@ class AlgoAnimator:
         }
     
     def dfs_generator(self, graph=None, start=0):
+        # [P0修复 Bug2] 进入函数先检查依赖
+        if not NX_AVAILABLE:
+            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            return
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
         
@@ -436,6 +458,10 @@ class AlgoAnimator:
         }
     
     def dijkstra_generator(self, graph=None, start=0):
+        # [P0修复 Bug2] 进入函数先检查依赖
+        if not NX_AVAILABLE:
+            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            return
         if graph is None:
             graph = nx.complete_graph(5)
         
