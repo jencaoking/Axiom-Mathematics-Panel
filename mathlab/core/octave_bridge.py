@@ -16,6 +16,9 @@ class BridgeSignals(QObject):
     """
     # 包含绘图配置的字典：类型、x/y 数据、标题、颜色等
     plot_requested = Signal(dict)
+    
+    # 滑块请求信号
+    slider_requested = Signal(dict)
 
 
 class OctaveBridgeError(Exception):

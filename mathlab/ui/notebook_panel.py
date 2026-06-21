@@ -69,6 +69,12 @@ class VSCodeStyleCellWidget(QFrame):
             self.input_editor.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c;")
             self.input_editor.setFixedHeight(100)
 
+        # Sliders container
+        self.sliders_container = QFrame()
+        self.sliders_layout = QVBoxLayout(self.sliders_container)
+        self.sliders_layout.setContentsMargins(0, 0, 0, 0)
+        self.sliders_dict = {}
+
         # Output browser
         self.output_browser = QTextBrowser()
         self.output_browser.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: none; font-family: Consolas;")
@@ -76,6 +82,7 @@ class VSCodeStyleCellWidget(QFrame):
 
         self.main_layout.addWidget(self.toolbar_container)
         self.main_layout.addWidget(self.input_editor)
+        self.main_layout.addWidget(self.sliders_container)
         self.main_layout.addWidget(self.output_browser)
 
     def on_monaco_run(self, code: str):
@@ -94,6 +101,8 @@ class VSCodeStyleCellWidget(QFrame):
             self.output_browser.setHtml(text)
             self.output_browser.show()
 
+from mathlab.ui.interactive_widgets import MathSlider
+
 class NotebookPanel(QWidget):
     """
     交互式笔记本的宏观容器
@@ -103,7 +112,11 @@ class NotebookPanel(QWidget):
         super().__init__(parent)
         self.backend = MathLabNotebook()
         self.ui_cells = {}
+        self.current_executing_cell_id = None
         
+        # 监听内核发出的滑块请求
+        self.backend.kernel.signals.slider_requested.connect(self.handle_slider_requested)
+
         self.init_ui()
         self.add_new_cell(CellType.CODE)
 
@@ -185,14 +198,53 @@ class NotebookPanel(QWidget):
             ui_cell.deleteLater()
         self.backend.remove_cell(cell_id)
 
-    def execute_single_cell(self, cell_id: str, current_code: str):
-        for backend_cell in self.backend.cells:
-            if backend_cell.id == cell_id:
-                backend_cell.content = current_code
-                break
+    def on_cell_execute(self, cell_id, code):
+        self.execute_single_cell(cell_id, code, is_silent=False)
 
+    def execute_single_cell(self, cell_id: str, current_code: str, is_silent=False):
+        """执行单元格，is_silent=True表示是由滑块拖动触发的，不需要获取焦点"""
+        self.current_executing_cell_id = cell_id
+        
+        # 同步前台代码到后台
+        cell = next(c for c in self.backend.cells if c.id == cell_id)
+        if not is_silent:
+            cell.content = current_code
+        
+        # 后台执行
         self.backend.execute_cell(cell_id)
+        
+        # 渲染输出
         self._render_cell_output(cell_id)
+
+    def handle_slider_requested(self, data: dict):
+        """收到底层的滑块请求，在对应的 UI 单元格里画出来"""
+        if not self.current_executing_cell_id: return
+        ui_cell = self.ui_cells.get(self.current_executing_cell_id)
+        if not ui_cell: return
+        
+        name = data["name"]
+        # 如果滑块还没创建，就创建它
+        if name not in ui_cell.sliders_dict:
+            slider = MathSlider(name, data["min"], data["max"], data["val"])
+            ui_cell.sliders_layout.addWidget(slider)
+            ui_cell.sliders_dict[name] = slider
+            
+            # 当滑块拖动时，更新变量并静默重跑代码
+            slider.value_changed.connect(
+                lambda var_name, new_val, cid=self.current_executing_cell_id: 
+                self.on_slider_dragged(cid, var_name, new_val)
+            )
+
+    def on_slider_dragged(self, cell_id: str, var_name: str, new_val: float):
+        """处理滑块拖动事件"""
+        # 1. 强行修改内核环境中的变量值
+        self.backend.kernel.env[var_name] = new_val
+        
+        # 2. 从后端拿到当前单元格的最新代码
+        cell = next(c for c in self.backend.cells if c.id == cell_id)
+        
+        # 3. 触发静默执行！
+        self.execute_single_cell(cell_id, cell.content, is_silent=True)
 
     def run_all_cells(self):
         # Monaco editor async fetch omitted for brevity, just execute backend cells directly
