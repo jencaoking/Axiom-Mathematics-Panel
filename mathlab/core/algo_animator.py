@@ -620,6 +620,7 @@ class AlgoAnimator:
                     )
                 else:
                     new_center = centers[i]
+                    new_centers.append(new_center)  # 先 append，再 yield，与非空分支一致
                     yield {
                         'type': 'clustering',
                         'points': points.copy(),
@@ -629,7 +630,6 @@ class AlgoAnimator:
                         'iteration': iteration,
                         'description': f'Cluster {i} is empty, keeping center at {new_center}'
                     }
-                    new_centers.append(new_center)
                     continue
                 new_centers.append(new_center)
                 

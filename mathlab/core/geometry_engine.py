@@ -1239,16 +1239,18 @@ class GeometryEngine:
     def remove_object(self, obj_id):
         if obj_id not in self.objects:
             return
-        
-        dependents = self.dependencies.get_dependents(obj_id)
-        for dep_id in dependents:
+
+        # 用 BFS 收集以 obj_id 为根的整棵依赖子树（拓扑序，叶子在前）
+        # get_dependents 只做 DFS 后序，已能覆盖全树；逆序后叶子在前，
+        # 保证先删叶子再删父节点，DAG 边不会残留
+        all_dependents = self.dependencies.get_dependents(obj_id)
+        # get_dependents 返回 [根排第一, ..., 叶子排最后]，逆序后叶子优先删
+        for dep_id in reversed(all_dependents):
             if dep_id in self.objects:
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
-        
-        obj = self.objects[obj_id]
-        
+
         self.dependencies.remove_node(obj_id)
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
@@ -1265,7 +1267,9 @@ class GeometryEngine:
         
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
-            dep_obj = self.objects[dep_id]
+            dep_obj = self.objects.get(dep_id)  # 安全获取，避免已删除对象 KeyError
+            if dep_obj is None:
+                continue
             dep_obj.update_coordinates(self)
             self._notify('object_updated', dep_obj.serialize())
         
@@ -1362,8 +1366,10 @@ class GeometryEngine:
             n_var = len(variables)
             method = 'lm' if n_eq >= n_var else 'trf'
             result_obj = least_squares(objective, np.array(initial_guess), method=method)
-            if not result_obj.success:
-                return {'success': False, 'error': result_obj.message}
+            # least_squares 返回的 OptimizeResult 没有 .success 字段，
+            # 使用 .status 判断：< 0 表示失败
+            if result_obj.status < 0:
+                return {'success': False, 'error': f'Solver failed (status={result_obj.status})'}
             
             result = result_obj.x
             
