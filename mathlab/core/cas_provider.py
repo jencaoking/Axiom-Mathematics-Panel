@@ -1,5 +1,14 @@
 import re
 import functools
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import sympy
+    from sympy import (
+        symbols, Symbol, Eq, solve, simplify, expand, factor,
+        diff, integrate, limit, latex, sin, cos, tan, log, exp,
+        sqrt, pi, Rational, Function, Derivative, Integral, sympify
+    )
 
 _sympy_loaded = False
 def _load_sympy():
