@@ -1107,6 +1107,14 @@ class MainWindow(QMainWindow):
         reg(C('tool.polygon',    '切换工具: 多边形',       lambda: self.on_action_selected('polygon'),    '画布', 'G'))
         reg(C('tool.pan',        '切换工具: 平移画布',     lambda: self.on_action_selected('pan'),        '画布', 'H'))
 
+        # ── 笔记本与工作区 ────────────────────────────────────────────────────────
+        reg(C('notebook.new',    '新建笔记本 (> new notebook)', lambda: (self.central_tabs.setCurrentWidget(self.notebook), self.notebook.backend.cells.clear(), self._refresh_notebook_ui()), '工作区'))
+        reg(C('notebook.run_all','运行全部代码块 (> run all)',   lambda: (self.central_tabs.setCurrentWidget(self.notebook), self.notebook.run_all_cells()), '工作区'))
+        reg(C('notebook.clear',  '清空所有输出 (> clear output)', lambda: (self.central_tabs.setCurrentWidget(self.notebook), self.notebook.clear_all_outputs()), '工作区'))
+        
+        if self.geogebra_panel:
+            reg(C('geometry.open', '打开几何画板 (> open geometry)', lambda: self.central_tabs.setCurrentWidget(self.geogebra_panel), '工作区'))
+
         # ── 变量注入 ────────────────────────────────────────────────────
         def _inject(name, expr):
             self.console.inject_variable(name, expr)
@@ -1134,10 +1142,11 @@ class MainWindow(QMainWindow):
 
         # ── 系统 ────────────────────────────────────────────────────────
         reg(C('sys.preferences', '打开首选项',          self.show_preferences_dialog, '系统', 'Ctrl+,'))
-        reg(C('sys.theme',       '切换主题',             self.show_theme_dialog,       '系统'))
+        reg(C('sys.theme',       '切换主题 / 深色模式 (> toggle dark mode)', self._toggle_theme, '系统'))
         reg(C('sys.language',    '切换语言',             self.show_language_dialog,    '系统'))
         reg(C('sys.about',       '关于 Axiom Mathematics', self.show_about,              '系统'))
         reg(C('sys.console.clear', '清空控制台',         self.console.clear,           '系统'))
+        reg(C('sys.exit',        '退出 MathLab (> exit)',  self.close, '系统', 'Alt+F4'))
 
         # ── 日志 ────────────────────────────────────────────────────────
         def _open_log_dir():
@@ -1337,6 +1346,20 @@ class MainWindow(QMainWindow):
             return
         set_theme(theme_key)
         self.update_toolbar_icons(theme_key)
+
+    def _toggle_theme(self) -> None:
+        current = get_current_theme()
+        new_theme = 'light' if current == 'dark' else 'dark'
+        self.apply_theme(new_theme)
+
+    def _refresh_notebook_ui(self) -> None:
+        # 暴力清空 UI 然后让其重新为空
+        while self.notebook.scroll_layout.count() > 1: # 结尾有弹簧
+            item = self.notebook.scroll_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self.notebook.ui_cells.clear()
+        self.notebook.add_new_cell(self.notebook.backend.add_cell("code", ""))
 
     def on_export_latex(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
