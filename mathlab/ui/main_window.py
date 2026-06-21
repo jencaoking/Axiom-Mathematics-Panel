@@ -29,14 +29,14 @@ try:
     from core.python_repl import PythonREPL
     from core.ai_manager import AIManager
     from core.cas_provider import CASProvider
-    from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+    from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker, TaskManager
     from core.command_manager import CommandManager, Command
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
     from ..core.cas_provider import CASProvider
-    from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+    from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker, TaskManager
     from ..core.command_manager import CommandManager, Command
 
 try:
@@ -668,24 +668,35 @@ class MainWindow(QMainWindow):
         if not obj:
             return
         
-        if obj.type == 'Line' or obj.type == 'Segment':
-            new_coords = self.cas_provider.extract_line_control_points(new_equation)
-            if len(new_coords) >= 2:
-                self.geometry_engine.block_signals(True)
-                
-                if obj.type == 'Line':
+        if obj.type in ['Line', 'Segment']:
+            # 1. 定义计算成功后的更新回调（由 TaskManager 自动在主线程中触发，极其安全）
+            def on_success(new_coords):
+                if len(new_coords) >= 2:
+                    self.geometry_engine.block_signals(True)
+                    
                     p1_id = obj.point1_id
                     p2_id = obj.point2_id
-                else:
-                    p1_id = obj.point1_id
-                    p2_id = obj.point2_id
-                
-                self.geometry_engine.update_point(p1_id, x=new_coords[0][0], y=new_coords[0][1])
-                self.geometry_engine.update_point(p2_id, x=new_coords[1][0], y=new_coords[1][1])
-                
-                self.geometry_engine.block_signals(False)
-                obj.update_coordinates(self.geometry_engine)
-                self.on_geometry_event('object_updated', obj.serialize())
+                    
+                    # 更新控制点
+                    self.geometry_engine.update_point(p1_id, x=new_coords[0][0], y=new_coords[0][1])
+                    self.geometry_engine.update_point(p2_id, x=new_coords[1][0], y=new_coords[1][1])
+                    
+                    self.geometry_engine.block_signals(False)
+                    obj.update_coordinates(self.geometry_engine)
+                    # 触发全局画布重绘
+                    self.on_geometry_event('object_updated', obj.serialize())
+
+            # 2. 定义失败回调
+            def on_error(err_msg):
+                self.console.display_system_message(f"公式解析失败: {err_msg}", level='error')
+
+            # 3. 将阻塞的方程反解任务丢入线程池！
+            TaskManager().submit(
+                fn=self.cas_provider.extract_line_control_points,
+                on_success=on_success,
+                on_error=on_error,
+                equation_str=new_equation
+            )
 
     def execute_ai_action(self, action_data: dict) -> None:
         action = action_data.get('action')
@@ -740,14 +751,25 @@ class MainWindow(QMainWindow):
         elif action == 'solve':
             expression = action_data.get('expression', '')
             if expression and hasattr(self, 'cas_provider'):
-                result = self.cas_provider.solve_equation(expression, 'x')
-                if result.get('success'):
-                    self.console.display_result({
-                        'success': True,
-                        'output': str(result.get('result', '')),
-                        'error': '',
-                        'more': False
-                    })
+                def on_success(result):
+                    if result.get('success'):
+                        self.console.display_result({
+                            'success': True,
+                            'output': str(result.get('result', '')),
+                            'error': '',
+                            'more': False
+                        })
+                
+                def on_error(err_msg):
+                    self.console.display_system_message(f"求解失败: {err_msg}", level='error')
+
+                TaskManager().submit(
+                    fn=self.cas_provider.solve_equation,
+                    on_success=on_success,
+                    on_error=on_error,
+                    equation_str=expression,
+                    variable='x'
+                )
 
     def on_ai_fit_requested(self, points: list, model_type: str, params: dict = None) -> None:
         if not points:

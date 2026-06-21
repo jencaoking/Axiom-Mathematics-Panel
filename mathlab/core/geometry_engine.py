@@ -250,13 +250,38 @@ class Intersection(GeometricObject):
             return
         
         if hasattr(engine, 'cas_provider') and engine.cas_provider:
-            points = engine.cas_provider.solve_intersection(obj1, obj2)
+            # 引入全局异步调度中心
+            from mathlab.core.async_workers import TaskManager
+            
+            def on_success(points):
+                if points and len(points) > self.index:
+                    self.coordinates['x'] = float(points[self.index][0])
+                    self.coordinates['y'] = float(points[self.index][1])
+                    # 1. 刷新自身交点在画布上的位置
+                    engine._notify('object_updated', self.serialize())
+                    
+                    # 2. 核心：级联更新！因为计算是异步的，引擎的常规遍历可能已经走完了，
+                    # 必须在这里手动触发依赖该交点的下游物体（如以该交点为圆心的圆）的重新计算
+                    dependents = engine.dependencies.get_dependents(self.id)
+                    for dep_id in dependents:
+                        dep_obj = engine.objects.get(dep_id)
+                        if dep_obj:
+                            dep_obj.update_coordinates(engine)
+                            engine._notify('object_updated', dep_obj.serialize())
+
+            # 将昂贵的 SymPy 求交任务抛入后台
+            TaskManager().submit(
+                fn=engine.cas_provider.solve_intersection,
+                on_success=on_success,
+                obj1=obj1, 
+                obj2=obj2
+            )
         else:
+            # 没有 CAS 时，使用解析几何后备算法（运算极快，保持同步即可）
             points = self._solve_intersection(obj1, obj2)
-        
-        if points and len(points) > self.index:
-            self.coordinates['x'] = float(points[self.index][0])
-            self.coordinates['y'] = float(points[self.index][1])
+            if points and len(points) > self.index:
+                self.coordinates['x'] = float(points[self.index][0])
+                self.coordinates['y'] = float(points[self.index][1])
     
     def _solve_intersection(self, obj1, obj2):
         """回退的几何求交算法"""
