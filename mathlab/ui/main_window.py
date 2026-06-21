@@ -23,6 +23,7 @@ from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
 from .animations import fade_in, fade_out
+from .math_console import MathConsole
 
 try:
     from core.geometry_engine import GeometryEngine
@@ -174,12 +175,18 @@ class MainWindow(QMainWindow):
         self.function_explorer_action = QAction(t('function_explorer.title'), self)
         self.function_explorer_action.setCheckable(True)
 
+        self.math_console_action = QAction('数学控制台 (Octave)', self)
+        self.math_console_action.setCheckable(True)
+        self.math_console_action.setChecked(True)
+        self.math_console_action.setShortcut('Ctrl+Shift+M')
+
         self.theme_action    = QAction(t('main_window.theme'), self)
         self.language_action = QAction(t('main_window.language'), self)
 
         self.view_menu.addAction(self.algebra_panel_action)
         self.view_menu.addAction(self.properties_panel_action)
         self.view_menu.addAction(self.console_action)
+        self.view_menu.addAction(self.math_console_action)
         self.view_menu.addAction(self.algo_vis_action)
         self.view_menu.addAction(self.ai_tools_action)
         self.view_menu.addAction(self.function_explorer_action)
@@ -243,6 +250,7 @@ class MainWindow(QMainWindow):
         self.algo_vis_action.triggered.connect(self.toggle_algo_vis_panel)
         self.ai_tools_action.triggered.connect(self.toggle_ai_tools_panel)
         self.function_explorer_action.triggered.connect(self.toggle_function_explorer)
+        self.math_console_action.triggered.connect(self.toggle_math_console)
 
         self.theme_action.triggered.connect(self.show_theme_dialog)
         self.language_action.triggered.connect(self.show_language_dialog)
@@ -379,6 +387,14 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.BottomDockWidgetArea, self.console)
         self.console.setWindowTitle(t('console.title').upper())
         self.console.set_python_repl(self.python_repl)
+
+        # ── 数学控制台（Octave / NumEngine 交互终端）────────────────────────────
+        self.math_console = MathConsole(self)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.math_console)
+        # 与 Python Console 合并为 Tab（底部共享一个停靠区）
+        self.tabifyDockWidget(self.console, self.math_console)
+        # 默认显示 Python Console（让 math_console 在背景 Tab）
+        self.console.raise_()
 
         # 函数探索器面板
         self.function_explorer = FunctionExplorerPanel(self)
@@ -1349,6 +1365,14 @@ class MainWindow(QMainWindow):
             fade_in(self.function_explorer)
         else:
             fade_out(self.function_explorer, callback=self.function_explorer.hide)
+
+    def toggle_math_console(self, visible: bool) -> None:
+        if visible:
+            self.math_console.show()
+            self.math_console.raise_()
+            fade_in(self.math_console)
+        else:
+            fade_out(self.math_console, callback=self.math_console.hide)
 
     def show_about(self) -> None:
         QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))
