@@ -144,7 +144,8 @@ class Point(GeometricObject):
         super().__init__(obj_id, name, 'Point')
         self.coordinates = {'x': x, 'y': y, 'z': z}  # 新增 z
         # 符号表达式也增加 z 维度，用于 3D 约束求解
-        self.symbolic_expr = (symbols(f'x_{name}'), symbols(f'y_{name}'), symbols(f'z_{name}'))
+        safe_name = name.replace('-', '_')
+        self.symbolic_expr = (symbols(f'x_{safe_name}'), symbols(f'y_{safe_name}'), symbols(f'z_{safe_name}'))
     
     def update_coordinates(self, x=None, y=None, z=None):
         if x is not None:
@@ -1028,6 +1029,33 @@ class Locus(GeometricObject):
         self.points_data.clear()
         self.coordinates = {'points': []}
     
+    def serialize(self):
+        data = super().serialize()
+        data['tracer_point_id'] = self.tracer_point_id
+        data['driver_point_id'] = self.driver_point_id
+        data['max_points'] = self.max_points
+        data['trail_points'] = self.trail_points
+        data['points_data'] = self.points_data
+        return data
+
+    @classmethod
+    def deserialize(cls, data):
+        obj = cls(
+            data['id'], data['name'],
+            data.get('tracer_point_id', ''),
+            data.get('driver_point_id', ''),
+            data.get('max_points', 1000)
+        )
+        obj.coordinates = data.get('coordinates', {})
+        obj.constraints = data.get('constraints', [])
+        obj.depends_on = data.get('depends_on', [])
+        obj.trail_points = data.get('trail_points', [])
+        obj.points_data = data.get('points_data', [])
+        return obj
+
+    def update_coordinates(self, engine):
+        pass
+
     def to_latex(self):
         return rf'Locus of {self.name}'
     

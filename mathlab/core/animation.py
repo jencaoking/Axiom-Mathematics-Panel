@@ -36,4 +36,9 @@ class CreateAnimation(QObject):
         # 播放前确保图形初始化为不可见状态 (0%)
         if hasattr(self.item, 'set_draw_progress'):
             self.item.set_draw_progress(0.0)
+        
+        # 绑定引用防止 GC 提前回收，并在结束时清理
+        self.item._create_anim_ref = self
+        self.anim.finished.connect(lambda: setattr(self.item, '_create_anim_ref', None))
+        
         self.anim.start()

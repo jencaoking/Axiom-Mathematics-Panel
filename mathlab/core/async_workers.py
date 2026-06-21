@@ -40,11 +40,14 @@ class TaskManager(QObject):
     全局异步任务调度中心 (单例模式)
     """
     _instance = None
+    import threading
+    _lock = threading.Lock()
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(TaskManager, cls).__new__(cls)
-            cls._instance._init_pool()
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(TaskManager, cls).__new__(cls)
+                cls._instance._init_pool()
         return cls._instance
 
     def _init_pool(self):

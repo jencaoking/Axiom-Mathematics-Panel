@@ -17,7 +17,7 @@ class AIProviderConfig:
     """AI 提供商配置管理器 (线程安全的单例模式)。"""
 
     _instance: Optional["AIProviderConfig"] = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:

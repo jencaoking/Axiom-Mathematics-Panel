@@ -254,29 +254,19 @@ class AIRequestWorker(QThread):
 
                         if content:
                             buffer += content
+                            decoder = json.JSONDecoder()
                             start_idx = buffer.find('{')
                             while start_idx != -1:
-                                brace_count = 0
-                                end_idx = -1
-                                for i in range(start_idx, len(buffer)):
-                                    if buffer[i] == '{':
-                                        brace_count += 1
-                                    elif buffer[i] == '}':
-                                        brace_count -= 1
-                                        if brace_count == 0:
-                                            end_idx = i
-                                            break
-                                if end_idx != -1:
-                                    possible_json = buffer[start_idx:end_idx+1]
-                                    try:
-                                        action_data = json.loads(possible_json)
-                                        if isinstance(action_data, dict) and 'action' in action_data:
-                                            self.action_required.emit(possible_json)
-                                            buffer = buffer[:start_idx] + buffer[end_idx+1:]
-                                            start_idx = buffer.find('{')
-                                            continue
-                                    except Exception:
-                                        pass
+                                try:
+                                    action_data, parsed_len = decoder.raw_decode(buffer[start_idx:])
+                                    if isinstance(action_data, dict) and 'action' in action_data:
+                                        possible_json = buffer[start_idx:start_idx + parsed_len]
+                                        self.action_required.emit(possible_json)
+                                        buffer = buffer[:start_idx] + buffer[start_idx + parsed_len:]
+                                        start_idx = buffer.find('{')
+                                        continue
+                                except json.JSONDecodeError:
+                                    pass
                                 start_idx = buffer.find('{', start_idx + 1)
                                 
                             safe_idx = buffer.find('{')
@@ -417,7 +407,6 @@ class AIManager:
         # [P0修复 Bug1] 补充缺失的导入：mean_squared_error 在此函数中使用但未导入
         import torch
         import torch.nn as nn
-        from sklearn.metrics import mean_squared_error
         
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
@@ -446,7 +435,8 @@ class AIManager:
             predictions = model(X).numpy().flatten()
         
         # [P0修复 Bug1] 移除错误的 self.emit()：AIManager 不是 QObject，无此方法
-        mse = float(mean_squared_error(y.numpy(), predictions.reshape(-1, 1)))
+        # 使用 PyTorch 计算 MSE，移除对 sklearn 的隐式依赖
+        mse = float(criterion(torch.tensor(predictions).reshape(-1, 1), y).item())
         
         return {
             'success': True,

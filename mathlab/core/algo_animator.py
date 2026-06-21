@@ -662,7 +662,7 @@ class AlgoAnimator:
                     yield {
                         'type': 'clustering',
                         'points': points.copy(),
-                        'centers': new_centers + centers[len(new_centers):],
+                        'centers': new_centers + centers[i+1:],
                         'clusters': [list(c) for c in clusters],
                         'updated_center': i,
                         'iteration': iteration,
@@ -674,7 +674,7 @@ class AlgoAnimator:
                 yield {
                     'type': 'clustering',
                     'points': points.copy(),
-                    'centers': new_centers + centers[len(new_centers):],
+                    'centers': new_centers + centers[i+1:],
                     'clusters': [list(c) for c in clusters],
                     'updated_center': i,
                     'iteration': iteration,

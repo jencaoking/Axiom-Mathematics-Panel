@@ -10,11 +10,16 @@ if TYPE_CHECKING:
         sqrt, pi, Rational, Function, Derivative, Integral, sympify
     )
 
+import threading
+
+_sympy_lock = threading.Lock()
 _sympy_loaded = False
 def _load_sympy():
     global _sympy_loaded
     if _sympy_loaded: return
-    import sympy
+    with _sympy_lock:
+        if _sympy_loaded: return
+        import sympy
     from sympy import (
         symbols, Symbol, Eq, solve, simplify, expand, factor,
         diff, integrate, limit, latex, sin, cos, tan, log, exp,
