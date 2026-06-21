@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-2.5.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-2.6.0-orange.svg)]()
 
-> **MathLab 2.5 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.0 的基础上引入 **GeoGebra 级几何约束求解引擎**、**SageMath 风格交互笔记本**、**Manim 级动画引擎**、**Octave 级矩阵/数值计算桥**、**多引擎 CAS 总线**以及**统一插件系统**，朝着"一体化数学实验室"的目标持续演进。
+> **MathLab 2.6 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.5 的基础上深度集成了 **JupyterLab** 环境，支持**跨进程双向 UDP 通信**、**IPython 命名空间变量注入**，并实现**隐形 UI 的深色主题视觉融合**，朝着"一体化数学实验室"的目标持续演进。
 
 ## 目录
 
@@ -36,6 +36,7 @@
 | **符号计算系统 (CAS)** | 基于 SymPy 的 CAS，并预留多引擎 CAS 总线 (SymPy / Maxima / Giac) 接入能力 |
 | **数值计算引擎** | 面向 Octave 级矩阵运算与 BLAS/LAPACK 数值计算的 `NumEngine` + `OctaveBridge` |
 | **交互笔记本** | SageMath 风格的多 Cell 笔记本（代码、Markdown、几何对象混合编排） |
+| **JupyterLab 深度集成** | 嵌有原生 JupyterLab 单元，剥离冗余 UI 控件，支持与 Qt 宿主的跨进程双向 UDP 数据绑定与变量同步 |
 | **算法可视化** | 排序、搜索、图论、凸包、K-Means 等算法的逐步动画演示 |
 | **动画引擎** | 借鉴 Manim 的数学动画时间轴与缓动，支持关键帧与过渡曲线 |
 | **AI 辅助学习** | 线性/多项式回归、K-Means/DBSCAN 聚类、ONNX 推理、可选 PyTorch 神经网络 |
@@ -55,13 +56,14 @@
 ### 🛠️ 技术栈
 
 ```
-GUI框架:        PySide6 (Qt for Python) + Qt WebEngine
+GUI框架:        PySide6 (Qt for Python) + Qt WebEngine (嵌入原生 JupyterLab)
+跨进程通信:     UDP Socket 极速双向数据绑定 (Tx: 45678, Rx: 45679)
 符号计算:       SymPy (预留 Maxima / Giac 多引擎总线)
 数值计算:       NumPy / SciPy / OctaveBridge
 机器学习:       scikit-learn / PyTorch (可选) / ONNX Runtime (可选)
 可视化:         matplotlib / pyqtgraph / Three.js (3D) / ECharts (2D 插件)
 动画:           自研 Animation Engine (Manim 风格关键帧)
-笔记本:         自研 Notebook (SageMath 风格 Cell)
+笔记本:         自研 Notebook (SageMath 风格 Cell) & JupyterLab 混合沙箱
 打包工具:       PyInstaller / Nuitka
 ```
 
@@ -176,6 +178,23 @@ nb.add_code_cell("simplify('a**2 + b**2 - c**2')")
 nb.run_all()
 ```
 
+### JupyterLab 双向交互与通信
+
+MathLab v2.6 引入了原生 JupyterLab 嵌入及跨进程双向 UDP 通信。你可以直接在 Jupyter 单元格中使用 `mlab` 客户端：
+
+```python
+from mathlab_api import mlab
+
+# 1. 往 Qt 画布绘制几何对象
+mlab.draw_point('A', 2.0, 3.0)  # 在画布上绘制点 A(2.0, 3.0)，并在 Jupyter 空间同步注册 A_x=2.0, A_y=3.0
+mlab.draw_point('B', 6.0, 3.0)
+mlab.draw_line('L1', 'A', 'B')  # 绘制线段 AB
+
+# 2. 当你在 Qt 端拖动几何点 A 时，Jupyter 内核中的 Python 变量 A_x 和 A_y 也会实时被修改！
+# 你可以直接在单元格中访问这些变量：
+print(A_x, A_y)
+```
+
 ---
 
 ## 目录结构
@@ -186,6 +205,7 @@ Axiom-Mathematics-Panel/
 ├── setup.py                      # 安装配置（含 extras_require）
 ├── requirements.txt              # 核心依赖
 ├── requirements-optional.txt     # 可选依赖说明
+├── mathlab_api.py                # Jupyter 侧 API 客户端 (跨进程双向通信核心)
 │
 ├── mathlab/
 │   ├── ui/                       # 前端界面模块
@@ -193,6 +213,7 @@ Axiom-Mathematics-Panel/
 │   │   ├── canvas.py             # 几何画布 (QGraphicsView)
 │   │   ├── geogebra_canvas.py    # GeoGebra 级几何画布
 │   │   ├── code_editor.py        # 代码编辑器 (Monaco)
+│   │   ├── jupyter_panel.py      # JupyterLab 面板 (动态 CSS 视觉融合)
 │   │   ├── function_explorer_panel.py   # 函数 explorer 面板
 │   │   ├── algebra_panel.py      # 代数侧边栏
 │   │   ├── geogebra_algebra_panel.py    # GeoGebra 代数面板
@@ -213,6 +234,9 @@ Axiom-Mathematics-Panel/
 │   │   ├── geometry_engine.py        # 几何引擎 (DAG)
 │   │   ├── geometry_engine_v1.py     # 几何引擎 v1 兼容层
 │   │   ├── geogebra_engine.py        # GeoGebra 级约束求解引擎
+│   │   ├── ipc_server.py             # UDP Socket 后台监听服务 (IPython -> Qt)
+│   │   ├── ipc_client.py             # UDP Socket 发送客户端 (Qt -> IPython)
+│   │   ├── jupyter_manager.py        # JupyterLab 子进程管理器 (URL 注入与端口管理)
 │   │   ├── cas_provider.py           # 符号计算服务 (SymPy 封装)
 │   │   ├── algo_animator.py          # 算法动画框架
 │   │   ├── animation.py              # 通用动画引擎
@@ -404,6 +428,13 @@ class PluginManager:
     def activate(self, name) -> None
     def deactivate(self, name) -> None
     def list_plugins(self) -> list[dict]
+
+class MathLabEngine:
+    """Jupyter 端的 API 客户端与反向 IPC 控制器"""
+    def __init__(self, send_port=45678, recv_port=45679)
+    def draw_point(self, name: str, x: float, y: float) -> str
+    def draw_line(self, name: str, p1_name: str, p2_name: str) -> str
+    def clear(self) -> str
 ```
 
 ---
@@ -605,10 +636,11 @@ python -m pytest tests/test_octave_bridge.py -v
 ## 路线图
 
 - **2.0 (已完成 · speed)**: 异步计算中枢、3D 渲染引擎、AI 集成、Fluent Design 主题
-- **2.5 (进行中 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
+- **2.5 (已完成 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
+- **2.6 (已完成 · Jupyter)**: 原生 JupyterLab 嵌入、跨进程双向 UDP IPC 通信、IPython 变量注入、隐藏 UI 的暗黑主题视觉融合
 - **3.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
 
-详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md)。
+详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md) (及 2.6 版本实现)。
 
 ---
 
@@ -652,10 +684,10 @@ MathLab 受益于以下开源项目：
 如果您在学术项目中使用了 MathLab，请按以下格式引用：
 
 ```
-@software{mathlab_axiom,
-  title  = {MathLab (Axiom): Interactive Mathematics, AI and 3D Teaching Software},
+@software{mathlab_jupyter,
+  title  = {MathLab (Axiom): Interactive Mathematics, AI and 3D Teaching Software with JupyterLab Integration},
   author = {MathLab Team},
-  version = {2.5.0},
+  version = {2.6.0},
   year   = {2026},
   url    = {https://github.com/jencaoking/Axiom-Mathematics-Panel}
 }

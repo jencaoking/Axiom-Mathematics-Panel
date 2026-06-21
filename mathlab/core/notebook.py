@@ -127,7 +127,7 @@ class MathLabNotebook:
     def save_to_file(self, filepath: str) -> None:
         """导出为 .mlnb (MathLab Notebook) JSON 文件"""
         data = {
-            "version": "2.5",
+            "version": "2.6",
             "cells": [cell.to_dict() for cell in self.cells]
         }
         with open(filepath, 'w', encoding='utf-8') as f:

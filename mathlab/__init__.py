@@ -5,7 +5,7 @@ from .core import (
 )
 from .data import ProjectManager
 
-__version__ = '1.0.0'
+__version__ = '2.6.0'
 __author__ = 'MathLab Team'
 
 __all__ = [

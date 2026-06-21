@@ -395,7 +395,7 @@ class MathConsole(QDockWidget):
         self._append_html(
             f"<div style='margin-bottom:12px;'>"
             f"<span style='color:{_COL_ACCENT};font-size:14px;font-weight:bold;'>"
-            f"MathLab Console  v2.5</span><br>"
+            f"MathLab Console  v2.6</span><br>"
             f"<span style='color:{_COL_MUTED};font-size:11px;'>"
             f"{backend_info}"
             f"{hint1}"
