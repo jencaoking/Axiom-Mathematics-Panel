@@ -65,6 +65,9 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
+# 引入配置管理器（线程安全单例：仅在系统启动或显式 reload 时读盘）
+from mathlab.core.ai_provider_config import AIProviderConfig
+
 class AIProvider(Enum):
     OPENAI = "openai"
     CLAUDE = "claude"
@@ -189,46 +192,25 @@ class AIRequestWorker(QThread):
         headers = {
             'Content-Type': 'application/json',
         }
-        if self.config.provider == AIProvider.CLAUDE:
+        # ── 走配置管理器（单例：仅首次实例化时读盘）获取模型/URL/认证方式 ──
+        config_manager = AIProviderConfig()
+        provider_key = self.config.provider.value if hasattr(self.config.provider, "value") else str(self.config.provider)
+
+        auth_type = config_manager.get_auth_type(provider_key)
+        if auth_type == "anthropic":
             headers['x-api-key'] = self.config.api_key
             headers['anthropic-version'] = '2023-06-01'
         else:
             headers['Authorization'] = f'Bearer {self.config.api_key}'
 
-        model_names = {
-            AIProvider.OPENAI: "gpt-4o",
-            AIProvider.CLAUDE: "claude-3-5-sonnet-20241022",
-            AIProvider.GEMINI: "gemini-1.5-flash",
-            AIProvider.DEEPSEEK: "deepseek-chat",
-            AIProvider.KIMI: "moonshot-v1-8k",
-            AIProvider.MINIMAX: "abab6.5s-chat",
-            AIProvider.QWEN: "qwen-plus",
-            AIProvider.ZHIPU: "glm-4",
-            AIProvider.DOUBAO: "doubao-pro-4k",
-            AIProvider.OLLAMA: "qwen2",
-        }
-
-        urls = {
-            AIProvider.OPENAI: "https://api.openai.com/v1/chat/completions",
-            AIProvider.CLAUDE: "https://api.anthropic.com/v1/messages",
-            AIProvider.GEMINI: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions",
-            AIProvider.KIMI: "https://api.moonshot.cn/v1/chat/completions",
-            AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
-            AIProvider.QWEN: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-            AIProvider.ZHIPU: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-            AIProvider.DOUBAO: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-            AIProvider.OLLAMA: "http://localhost:11434/v1/chat/completions",
-        }
-
         payload = {
-            'model': model_names.get(self.config.provider, ""),
+            'model': config_manager.get_model_name(provider_key),
             'messages': messages,
             'stream': True,
             'max_tokens': 2048
         }
 
-        url = self.config.base_url or urls.get(self.config.provider)
+        url = self.config.base_url or config_manager.get_api_endpoint(provider_key)
         if not url:
             self.error_signal.emit('Invalid provider or base URL')
             return
