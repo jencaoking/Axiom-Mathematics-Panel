@@ -425,6 +425,13 @@ class MainWindow(QMainWindow):
         palette_shortcut2 = QShortcut(QKeySequence('Ctrl+P'), self)
         palette_shortcut2.activated.connect(self._show_command_palette)
 
+        # ── ✨ 信号接线：数学控制台 plot() 命令 → ECharts 渲染 ────────────────
+        # math_console.bridge.signals 是 BridgeSignals(QObject)，
+        # plot_requested 发射一个包含 x/y/type/title 的 dict。
+        self.math_console.bridge.signals.plot_requested.connect(
+            self.handle_console_plot
+        )
+
     def load_stylesheet(self):
         try:
             from utils.theme_manager import get_theme_colors
@@ -1373,6 +1380,54 @@ class MainWindow(QMainWindow):
             fade_in(self.math_console)
         else:
             fade_out(self.math_console, callback=self.math_console.hide)
+
+    # ─────────────────────────────────────────────────────────────────────
+    # ECharts 图表串联棕函数
+    # ─────────────────────────────────────────────────────────────────────
+
+    def handle_console_plot(self, plot_data: dict) -> None:
+        """
+        槽函数：接收来自 OctaveBridge.signals.plot_requested 的绘图请求。
+
+        将 plot_data 序列化为 JSON 并通过 QWebEngineView.runJavaScript
+        推送到 ECharts 前端渲染。
+
+        同时调出 ECharts 插件的 QWebEngineView（通过 plugin_manager API 层展示）。
+        """
+        import json
+        json_str = json.dumps(plot_data, ensure_ascii=False)
+        # 调用前端统一入口函数 window.renderPlotData(payload)
+        js_code = f"window.renderPlotData({json_str});"
+
+        # 尝试通过 plugin_manager 获取 EChartsViewerPlugin 实例
+        web_view = self._get_echarts_webview()
+        if web_view is not None:
+            web_view.page().runJavaScript(js_code)
+        else:
+            # 如果 ECharts 插件尚未加载，向控制台显示提示
+            self.math_console.display_message(
+                '⚠ ECharts 插件未激活，请先加载并打开《高级数据调参》面板。',
+                'warn'
+            )
+
+    def _get_echarts_webview(self):
+        """
+        尝试通过 plugin_manager 获取 EChartsViewerPlugin 的 web_view。
+        返回 QWebEngineView 实例，若未找到则返回 None。
+        """
+        if not hasattr(self, 'plugin_manager'):
+            return None
+        try:
+            # plugin_manager 注册的插件通常以类名或 id 为键
+            pm = self.plugin_manager
+            # 尝试常见的字典路径
+            plugins = getattr(pm, 'plugins', None) or getattr(pm, '_plugins', {})
+            for key, plugin in (plugins.items() if hasattr(plugins, 'items') else []):
+                if hasattr(plugin, 'web_view'):
+                    return plugin.web_view
+        except Exception:
+            pass
+        return None
 
     def show_about(self) -> None:
         QMessageBox.about(self, t('dialogs.about_title'), t('dialogs.about_text'))

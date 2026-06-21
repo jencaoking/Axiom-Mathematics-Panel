@@ -2,7 +2,20 @@ import re
 import numpy as np
 from typing import Any, Dict, Optional
 
+from PySide6.QtCore import QObject, Signal
+
 from mathlab.core.num_engine import NumEngine
+
+
+class BridgeSignals(QObject):
+    """
+    OctaveBridge 专属信号总线。
+
+    使用独立的 QObject 子类持有信号，让 OctaveBridge 本身不必继承 QObject，
+    保持纯 Python 的轻量级封装。
+    """
+    # 包含绘图配置的字典：类型、x/y 数据、标题、颜色等
+    plot_requested = Signal(dict)
 
 
 class OctaveBridgeError(Exception):
@@ -28,6 +41,9 @@ class OctaveBridge:
 
     def __init__(self, engine: Optional[NumEngine] = None):
         self.engine = engine or NumEngine()
+
+        # ── Qt 信号总线（其他组件可监听）─────────────────────────────
+        self.signals = BridgeSignals()
 
         # ── 执行上下文 (用户工作区) ──────────────────────────────────────
         # 注意: eval/exec 共享此同一字典，确保赋值后变量对后续表达式可见。
@@ -123,6 +139,12 @@ class OctaveBridge:
             # ── 统计回归 (路由到 NumEngine) ───────────────────────────
             "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)["coefficients"],
             "polyval": np.polyval,
+
+            # ── ✨ UI 联动：绘图函数（发射 Qt 信号）───────────────────────
+            "plot":    self._builtin_plot,
+            "scatter": self._builtin_scatter,
+            "bar":     self._builtin_bar,
+            "stem":    self._builtin_stem,
         }
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -308,3 +330,139 @@ class OctaveBridge:
             if not k.startswith("__") and not callable(v)
             and k not in ("np",)
         }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 内置绘图函数 (Built-in Plot Helpers)
+    # 每个函数负责：
+    #   1. 参数校验 + 数据标准化
+    #   2. 打包 payload 字典
+    #   3. 通过 self.signals.plot_requested 发射 Qt 信号（异步通知 ECharts）
+    #   4. 返回控制台提示字符串
+    # ──────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _to_list(arr) -> list:
+        """将任意数值类型展平为 Python list，保留有限精度"""
+        import numpy as _np
+        a = _np.asarray(arr, dtype=float).flatten()
+        return [round(float(v), 8) for v in a]
+
+    def _emit_plot(self, payload: dict) -> str:
+        """发射 plot_requested 信号并返回控制台提示"""
+        n = len(payload.get("y", []))
+        self.signals.plot_requested.emit(payload)
+        chart_type = payload.get("type", "line")
+        return f"[✓ 图表已发送至 ECharts 渲染 · 类型={chart_type} · {n} 个数据点]"
+
+    def _builtin_plot(self, *args, **kwargs) -> str:
+        """
+        plot(y)          — 以 0,1,2,... 为 x，绘制折线图
+        plot(x, y)       — 指定 x 轴数据，绘制折线图
+        plot(x, y, title="标题")  — 带标题
+        """
+        if len(args) == 0:
+            raise OctaveBridgeError("plot() 需要至少一个参数。")
+
+        if len(args) == 1:
+            y = self._to_list(args[0])
+            x = list(range(len(y)))
+        else:
+            x = self._to_list(args[0])
+            y = self._to_list(args[1])
+
+        if len(x) != len(y):
+            raise OctaveBridgeError(
+                f"plot 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
+            )
+
+        return self._emit_plot({
+            "type":  "line",
+            "x":     x,
+            "y":     y,
+            "title": kwargs.get("title", "2D 折线图"),
+            "smooth": True,
+            "color": "#4EC9B0",
+            "area":  True,
+        })
+
+    def _builtin_scatter(self, *args, **kwargs) -> str:
+        """
+        scatter(y)       — 散点图（自动 x）
+        scatter(x, y)    — 指定 x、y 的散点图
+        """
+        if len(args) == 0:
+            raise OctaveBridgeError("scatter() 需要至少一个参数。")
+
+        if len(args) == 1:
+            y = self._to_list(args[0])
+            x = list(range(len(y)))
+        else:
+            x = self._to_list(args[0])
+            y = self._to_list(args[1])
+
+        if len(x) != len(y):
+            raise OctaveBridgeError(
+                f"scatter 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
+            )
+
+        return self._emit_plot({
+            "type":  "scatter",
+            "x":     x,
+            "y":     y,
+            "title": kwargs.get("title", "散点图"),
+            "color": "#C586C0",
+            "area":  False,
+        })
+
+    def _builtin_bar(self, *args, **kwargs) -> str:
+        """
+        bar(y)           — 柱状图（类别自动编号）
+        bar(x, y)        — 指定类别标签和高度
+        """
+        if len(args) == 0:
+            raise OctaveBridgeError("bar() 需要至少一个参数。")
+
+        if len(args) == 1:
+            y = self._to_list(args[0])
+            x = list(range(len(y)))
+        else:
+            # x 可以是字符串列表或数值数组
+            try:
+                x = self._to_list(args[0])
+            except Exception:
+                x = list(args[0])
+            y = self._to_list(args[1])
+
+        return self._emit_plot({
+            "type":  "bar",
+            "x":     x,
+            "y":     y,
+            "title": kwargs.get("title", "柱状图"),
+            "color": "#569CD6",
+            "area":  False,
+        })
+
+    def _builtin_stem(self, *args, **kwargs) -> str:
+        """
+        stem(y)          — 茎叶图（以竖线 + 点表示离散信号）
+        stem(x, y)       — 指定 x 的茎叶图
+        """
+        if len(args) == 0:
+            raise OctaveBridgeError("stem() 需要至少一个参数。")
+
+        if len(args) == 1:
+            y = self._to_list(args[0])
+            x = list(range(len(y)))
+        else:
+            x = self._to_list(args[0])
+            y = self._to_list(args[1])
+
+        return self._emit_plot({
+            "type":  "stem",      # 前端将渲染为带 markLine 的散点图
+            "x":     x,
+            "y":     y,
+            "title": kwargs.get("title", "茎叶图 (Stem Plot)"),
+            "color": "#DCDCAA",
+            "area":  False,
+        })
+

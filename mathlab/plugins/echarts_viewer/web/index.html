@@ -1,69 +1,304 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>MathLab ECharts Engine</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #1e1e1e; }
-        #chart-container { width: 100%; height: 100vh; }
-    </style>
+  <meta charset="UTF-8">
+  <title>MathLab ECharts Engine</title>
+  <!-- ECharts 5 核心库 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <!-- Qt WebChannel 通信桥 -->
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+      width: 100%; height: 100%;
+      background: #13131A;
+      font-family: 'Consolas', 'Courier New', monospace;
+      color: #d4d4d4;
+      overflow: hidden;
+    }
+
+    /* ── 工具栏 ── */
+    #toolbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      background: #1E1E28;
+      border-bottom: 1px solid #2E2E42;
+      height: 38px;
+    }
+    #toolbar .title {
+      color: #00A67E; font-weight: bold; font-size: 12px;
+      flex: 1;
+    }
+    .tb-btn {
+      background: #252535; color: #9CDCFE;
+      border: 1px solid #3A3A52; border-radius: 4px;
+      padding: 2px 10px; font-size: 11px; cursor: pointer;
+      transition: all .15s;
+    }
+    .tb-btn:hover { background: #2E2E44; color: white; }
+    #status {
+      font-size: 10px; color: #6A6A7A;
+      white-space: nowrap;
+    }
+
+    /* ── 图表容器 ── */
+    #chart-container {
+      width: 100%;
+      height: calc(100vh - 38px);
+    }
+
+    /* ── 欢迎占位 ── */
+    #placeholder {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center; color: #3A3A52;
+      pointer-events: none;
+    }
+    #placeholder h2 { font-size: 28px; margin-bottom: 8px; }
+    #placeholder p  { font-size: 13px; line-height: 1.8; }
+    #placeholder code {
+      color: #569CD6; background: #1E1E28;
+      padding: 1px 6px; border-radius: 3px;
+    }
+  </style>
 </head>
 <body>
-    <div id="chart-container"></div>
 
-    <script>
-        // 初始化 ECharts 实例 (使用深色主题)
-        var myChart = echarts.init(document.getElementById('chart-container'), 'dark');
-        var pythonBackend = null;
+<!-- 工具栏 -->
+<div id="toolbar">
+  <span class="title">⟩ ECharts 图表面板</span>
+  <button class="tb-btn" onclick="toggleDataZoom()">缩放</button>
+  <button class="tb-btn" onclick="myChart.clear(); showPlaceholder()">清空</button>
+  <button class="tb-btn" onclick="myChart.resize()">适配</button>
+  <span id="status">等待数据...</span>
+</div>
 
-        // 设置 WebChannel 与 Python 建立连接
-        new QWebChannel(qt.webChannelTransport, function(channel) {
-            pythonBackend = channel.objects.py_bridge;
-            pythonBackend.js_log("ECharts 渲染引擎已就绪！");
-        });
+<!-- 占位提示 -->
+<div id="placeholder">
+  <h2>📈</h2>
+  <p>在底部 <strong>交互终端</strong> 中输入：<br>
+    <code>x = linspace(-10, 10, 200)</code><br>
+    <code>y = sin(x) .* exp(-0.1 * x.^2)</code><br>
+    <code>plot(x, y)</code>
+  </p>
+</div>
 
-        // 暴露给 Python 调用的全局渲染函数
-        window.renderChart = function(jsonData) {
-            const payload = JSON.parse(jsonData);
-            
-            // 组装 ECharts 配置项
-            const option = {
-                backgroundColor: 'transparent',
-                tooltip: { trigger: 'axis' }, // 鼠标悬浮提示
-                dataZoom: [{ type: 'inside' }, { type: 'slider' }], // 允许滚轮缩放
-                xAxis: { type: 'category', data: payload.x_data },
-                yAxis: { type: 'value' },
-                series: [{
-                    name: payload.title || 'Data',
-                    data: payload.y_data,
-                    type: 'line',
-                    smooth: true, // 平滑曲线
-                    symbolSize: 6,
-                    itemStyle: { color: '#007acc' },
-                    areaStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            {offset: 0, color: 'rgba(0,122,204,0.5)'},
-                            {offset: 1, color: 'rgba(0,122,204,0.0)'}
-                        ])
-                    }
-                }]
-            };
-            
-            myChart.setOption(option);
-            if(pythonBackend) pythonBackend.js_log("图表已成功渲染 " + payload.x_data.length + " 个数据点。");
+<!-- 图表容器 -->
+<div id="chart-container"></div>
+
+<script>
+  // ── 初始化 ECharts（暗色主题）──────────────────────────────────────────────
+  var myChart = echarts.init(document.getElementById('chart-container'), 'dark', {
+    renderer: 'canvas'
+  });
+  var pythonBackend = null;
+  var dataZoomEnabled = true;
+
+  // ── Qt WebChannel 连接 ─────────────────────────────────────────────────────
+  if (typeof QWebChannel !== 'undefined') {
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+      pythonBackend = channel.objects.py_bridge;
+      setStatus('ECharts 引擎就绪', '#00A67E');
+      if (pythonBackend) pythonBackend.js_log('ECharts 渲染引擎已就绪');
+    });
+  } else {
+    setStatus('独立模式（无 WebChannel）', '#F0A500');
+  }
+
+  // ── 占位显隐 ───────────────────────────────────────────────────────────────
+  function showPlaceholder() {
+    document.getElementById('placeholder').style.display = 'block';
+    setStatus('等待数据...', '#6A6A7A');
+  }
+  function hidePlaceholder() {
+    document.getElementById('placeholder').style.display = 'none';
+  }
+
+  function setStatus(msg, color) {
+    var el = document.getElementById('status');
+    el.textContent = msg;
+    el.style.color = color || '#6A6A7A';
+  }
+
+  function toggleDataZoom() {
+    dataZoomEnabled = !dataZoomEnabled;
+    myChart.dispatchAction({ type: dataZoomEnabled ? 'dataZoomReset' : 'restore' });
+  }
+
+  // ── 核心渲染函数（支持旧协议 renderChart 向后兼容）───────────────────────
+  window.renderChart = function(jsonData) {
+    var payload = (typeof jsonData === 'string') ? JSON.parse(jsonData) : jsonData;
+    // 旧协议兼容（x_data / y_data）
+    if (payload.x_data !== undefined) {
+      payload = {
+        type:  'line',
+        x:     payload.x_data,
+        y:     payload.y_data,
+        title: payload.title || '数据图表',
+        color: '#007ACC',
+        area:  true,
+        smooth: true
+      };
+    }
+    _doRender(payload);
+  };
+
+  // ── 新协议：由 Python 槽函数调用 ──────────────────────────────────────────
+  window.renderPlotData = function(jsonData) {
+    var payload = (typeof jsonData === 'string') ? JSON.parse(jsonData) : jsonData;
+    _doRender(payload);
+  };
+
+  // ── 内部渲染逻辑 ───────────────────────────────────────────────────────────
+  function _doRender(payload) {
+    hidePlaceholder();
+    var type   = payload.type   || 'line';
+    var x      = payload.x      || [];
+    var y      = payload.y      || [];
+    var title  = payload.title  || '图表';
+    var color  = payload.color  || '#4EC9B0';
+    var smooth = payload.smooth !== false;
+    var area   = payload.area   === true;
+
+    // x 轴类型：scatter/stem 用 value，其余用 category
+    var xAxisType = (type === 'scatter' || type === 'stem') ? 'value' : 'category';
+
+    var seriesData;
+    if (xAxisType === 'value') {
+      // scatter / stem: data = [[x0,y0],[x1,y1],...]
+      seriesData = x.map(function(v, i) { return [v, y[i]]; });
+    } else {
+      seriesData = y;
+    }
+
+    var series = [];
+
+    if (type === 'stem') {
+      // 茎叶图：散点 + 从 y=0 到数据点的竖线标注
+      series.push({
+        name: title,
+        type: 'scatter',
+        data: seriesData,
+        symbolSize: 8,
+        itemStyle: { color: color }
+      });
+      // 用 markLine 从基线 y=0 画竖线
+      var markLines = seriesData.map(function(pt) {
+        return [{ coord: [pt[0], 0] }, { coord: [pt[0], pt[1]] }];
+      });
+      series[0].markLine = {
+        silent: true,
+        symbol: ['none', 'none'],
+        lineStyle: { color: color, width: 1.5, opacity: 0.7 },
+        data: markLines
+      };
+    } else if (type === 'scatter') {
+      series.push({
+        name: title, type: 'scatter',
+        data: seriesData,
+        symbolSize: 6,
+        itemStyle: { color: color }
+      });
+    } else if (type === 'bar') {
+      series.push({
+        name: title, type: 'bar',
+        data: seriesData,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0,   color: color },
+            { offset: 1,   color: color + '66' }
+          ])
+        },
+        barMaxWidth: 40
+      });
+    } else {
+      // line（默认）
+      var seriesCfg = {
+        name: title, type: 'line',
+        data: seriesData,
+        smooth: smooth,
+        symbolSize: x.length > 100 ? 0 : 4,
+        itemStyle: { color: color },
+        lineStyle: { color: color, width: 2 }
+      };
+      if (area) {
+        seriesCfg.areaStyle = {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: color + '55' },
+            { offset: 1, color: color + '00' }
+          ])
         };
+      }
+      series.push(seriesCfg);
+    }
 
-        // 监听图表点击事件，并回传给 Python
-        myChart.on('click', function (params) {
-            if(pythonBackend) {
-                pythonBackend.handle_chart_click(params.seriesName, parseFloat(params.name), parseFloat(params.value));
-            }
-        });
-        
-        // 窗口缩放自适应
-        window.addEventListener('resize', () => myChart.resize());
-    </script>
+    var option = {
+      backgroundColor: 'transparent',
+      animation: true,
+      animationDuration: 400,
+      title: {
+        text: title,
+        textStyle: { color: '#D4D4D4', fontSize: 13, fontWeight: 'normal' },
+        left: 14, top: 8
+      },
+      tooltip: {
+        trigger: (type === 'scatter' || type === 'stem') ? 'item' : 'axis',
+        axisPointer: { type: 'cross', lineStyle: { color: '#555' } },
+        backgroundColor: '#1E1E28',
+        borderColor: '#3A3A52',
+        textStyle: { color: '#D4D4D4', fontSize: 11 }
+      },
+      dataZoom: dataZoomEnabled ? [
+        { type: 'inside', xAxisIndex: 0 },
+        { type: 'slider', xAxisIndex: 0, height: 20,
+          backgroundColor: '#1A1A28', fillerColor: color + '33',
+          borderColor: '#3A3A52', handleStyle: { color: color } }
+      ] : [],
+      grid: {
+        left: '6%', right: '4%',
+        top: '12%', bottom: dataZoomEnabled ? '15%' : '8%',
+        containLabel: true
+      },
+      xAxis: {
+        type: xAxisType,
+        data: (xAxisType === 'category') ? x : undefined,
+        axisLine:  { lineStyle: { color: '#3A3A52' } },
+        axisLabel: { color: '#6A6A7A', fontSize: 10 },
+        splitLine: { lineStyle: { color: '#252535' } }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine:  { lineStyle: { color: '#3A3A52' } },
+        axisLabel: { color: '#6A6A7A', fontSize: 10 },
+        splitLine: { lineStyle: { color: '#252535', type: 'dashed' } }
+      },
+      series: series
+    };
+
+    myChart.setOption(option, { notMerge: true });
+    setStatus('✓ ' + x.length + ' 个数据点 · ' + type, '#00A67E');
+
+    if (pythonBackend) {
+      pythonBackend.js_log('图表已渲染 · 类型=' + type + ' · ' + x.length + ' 个点');
+    }
+  }
+
+  // ── 图表点击回调 ───────────────────────────────────────────────────────────
+  myChart.on('click', function(params) {
+    if (pythonBackend) {
+      var xVal = Array.isArray(params.data) ? params.data[0] : parseFloat(params.name);
+      var yVal = Array.isArray(params.data) ? params.data[1] : parseFloat(params.value);
+      pythonBackend.handle_chart_click(
+        params.seriesName || '',
+        isNaN(xVal) ? 0 : xVal,
+        isNaN(yVal) ? 0 : yVal
+      );
+    }
+  });
+
+  // ── 窗口自适应 ─────────────────────────────────────────────────────────────
+  window.addEventListener('resize', function() { myChart.resize(); });
+</script>
 </body>
 </html>
