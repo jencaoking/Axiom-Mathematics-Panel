@@ -127,3 +127,29 @@ class TaskManager(QObject):
         else:
             if group_id in self._running_groups:
                 self._running_groups.remove(group_id)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# AI 专用 Worker 占位类 (Stub)
+# 待 AI 模块完整实现后，替换以下 stub 为真正的业务逻辑类。
+# main_window.py 需要导入这些名字；这里先提供空实现防止 ImportError。
+# ──────────────────────────────────────────────────────────────────────────────
+
+class AIFitWorker(TaskWorker):
+    """散点拟合 AI Worker（占位，待实现）"""
+    pass
+
+
+class AIClusterWorker(TaskWorker):
+    """聚类分析 AI Worker（占位，待实现）"""
+    pass
+
+
+class AIRecognizeWorker(TaskWorker):
+    """手写识别 AI Worker（占位，待实现）"""
+    pass
+
+
+class AIGeneratePointsWorker(TaskWorker):
+    """AI 生成数据点 Worker（占位，待实现）"""
+    pass

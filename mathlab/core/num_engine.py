@@ -1,8 +1,27 @@
 import numpy as np
 import scipy.linalg as la
 import scipy.integrate as integrate
-from scipy.misc import derivative
-from typing import Dict, Any, Callable, Union
+try:
+    # SciPy >= 1.14 / 2.x: scipy.misc.derivative 已被移除
+    from scipy.differentiate import derivative as _scipy_derivative
+    def _finite_diff(func, x, dx, n):
+        return float(_scipy_derivative(func, x, tolerances={"atol": dx}).df)
+except ImportError:
+    # 降级：五点中心差分手动实现，兼容旧版本
+    def _finite_diff(func, x, dx, n):
+        if n == 1:
+            return (-func(x + 2*dx) + 8*func(x + dx) - 8*func(x - dx) + func(x - 2*dx)) / (12 * dx)
+        elif n == 2:
+            return (-func(x + 2*dx) + 16*func(x + dx) - 30*func(x) + 16*func(x - dx) - func(x - 2*dx)) / (12 * dx**2)
+        else:
+            # 递归降阶
+            return (_finite_diff(lambda t: _finite_diff(func, t, dx, n-1), x, dx, 1))
+
+import scipy.optimize as opt          # 优化模块
+import scipy.signal as sig            # 信号处理模块
+import scipy.stats as stats           # 统计模块
+import scipy.fft as fft              # 傅里叶变换模块
+from typing import Dict, Any, Callable, Union, List, Optional, Tuple
 
 
 class NumEngineError(Exception):
@@ -156,7 +175,8 @@ class NumEngine:
         if order < 1:
             raise NumEngineError("导数阶数 order 必须为正整数。")
         try:
-            return float(derivative(func, x, dx=dx, n=order))
+            return float(_finite_diff(func, x, dx, order))
+
         except Exception as e:
             raise NumEngineError(f"数值求导失败: {e}")
 
@@ -212,3 +232,261 @@ class NumEngine:
             }
         except Exception as e:
             raise NumEngineError(f"二重数值积分计算失败: {e}")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 优化模块 (Optimization & Root Finding)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def minimize(
+        self,
+        func: Callable[[np.ndarray], float],
+        x0: Union[list, np.ndarray],
+        method: str = "BFGS",
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        寻找多元/一元函数的局部极小值。
+
+        :param func:   目标函数，输入为 np.ndarray
+        :param x0:     初始猜测点
+        :param method: 优化算法，默认 BFGS；有界约束时推荐 'L-BFGS-B'
+        :param bounds:  变量边界列表，如 [(0, None), (-1, 1)]
+        :returns: 包含 'success'、'x'、'fun'、'message' 的字典
+        :raises NumEngineError: 优化求解失败时抛出
+        """
+        try:
+            res = opt.minimize(func, np.asarray(x0, dtype=float), method=method, bounds=bounds)
+            return {
+                "success": bool(res.success),
+                "x": res.x,
+                "fun": float(res.fun),
+                "message": res.message,
+            }
+        except Exception as e:
+            raise NumEngineError(f"优化求解失败: {e}")
+
+    def root_finding(
+        self,
+        func: Callable[[float], float],
+        bracket: List[float],
+    ) -> float:
+        """
+        寻找标量函数在给定区间内的根（Brent 法）。
+
+        :param func:    目标标量函数 f: R → R
+        :param bracket: 包围根的区间 [a, b]，要求 f(a) 与 f(b) 异号
+        :returns: 根的近似值 (浮点数)
+        :raises NumEngineError: 区间无效或未收敛时抛出
+        """
+        if len(bracket) != 2:
+            raise NumEngineError("求根需要提供两元素区间 bracket=[a, b]。")
+        try:
+            res = opt.root_scalar(func, bracket=bracket, method="brentq")
+            if res.converged:
+                return float(res.root)
+            raise NumEngineError("求根迭代未收敛。")
+        except NumEngineError:
+            raise
+        except Exception as e:
+            raise NumEngineError(f"求根计算失败: {e}")
+
+    def minimize_scalar(
+        self,
+        func: Callable[[float], float],
+        bounds: Optional[Tuple[float, float]] = None,
+        method: str = "brent",
+    ) -> Dict[str, Any]:
+        """
+        寻找一元标量函数的极小值。
+
+        :param func:   一元目标函数 f: R → R
+        :param bounds: 搜索边界 (a, b)；若提供则自动使用 'bounded' 方法
+        :param method: 优化算法，默认 'brent'
+        :returns: 包含 'x'、'fun'、'success' 的字典
+        """
+        try:
+            if bounds is not None:
+                res = opt.minimize_scalar(func, bounds=bounds, method="bounded")
+            else:
+                res = opt.minimize_scalar(func, method=method)
+            return {
+                "success": bool(res.success) if hasattr(res, "success") else True,
+                "x": float(res.x),
+                "fun": float(res.fun),
+            }
+        except Exception as e:
+            raise NumEngineError(f"一元极值求解失败: {e}")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 信号处理模块 (Signal Processing)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def fft_transform(
+        self,
+        signal: Union[list, np.ndarray],
+        sample_rate: float = 1.0,
+    ) -> Dict[str, np.ndarray]:
+        """
+        一维快速傅里叶变换 (FFT)，同时返回对应频率轴。
+
+        :param signal:      时域信号
+        :param sample_rate: 采样率（Hz），用于计算频率轴，默认 1.0
+        :returns: 包含 'spectrum'（复数频谱）和 'frequencies'（频率轴）的字典
+        """
+        try:
+            arr = np.asarray(signal, dtype=complex)
+            spectrum = fft.fft(arr)
+            freqs = fft.fftfreq(len(arr), d=1.0 / sample_rate)
+            return {"spectrum": spectrum, "frequencies": freqs}
+        except Exception as e:
+            raise NumEngineError(f"FFT 失败: {e}")
+
+    def ifft_transform(
+        self,
+        spectrum: Union[list, np.ndarray],
+    ) -> np.ndarray:
+        """
+        一维快速傅里叶逆变换 (IFFT)。
+
+        :param spectrum: 频域复数谱
+        :returns: 时域信号（复数数组，实际信号取 .real 即可）
+        """
+        try:
+            return fft.ifft(np.asarray(spectrum, dtype=complex))
+        except Exception as e:
+            raise NumEngineError(f"IFFT 失败: {e}")
+
+    def convolve(
+        self,
+        signal1: Union[list, np.ndarray],
+        signal2: Union[list, np.ndarray],
+        mode: str = "full",
+    ) -> np.ndarray:
+        """
+        一维离散卷积。
+
+        :param signal1: 第一个输入信号
+        :param signal2: 第二个输入信号（卷积核）
+        :param mode:    输出模式 'full' | 'same' | 'valid'，默认 'full'
+        :returns: 卷积结果数组
+        """
+        try:
+            return sig.convolve(
+                np.asarray(signal1, dtype=float),
+                np.asarray(signal2, dtype=float),
+                mode=mode,
+            )
+        except Exception as e:
+            raise NumEngineError(f"卷积计算失败: {e}")
+
+    def find_peaks(
+        self,
+        signal: Union[list, np.ndarray],
+        height: Optional[float] = None,
+        distance: Optional[int] = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        检测一维信号中的局部峰值。
+
+        :param signal:   输入信号
+        :param height:   峰值最小高度阈值
+        :param distance: 相邻峰值的最小间距（采样点数）
+        :returns: 包含 'peak_indices' 和 'peak_values' 的字典
+        """
+        try:
+            arr = np.asarray(signal, dtype=float)
+            kwargs: Dict[str, Any] = {}
+            if height is not None:
+                kwargs["height"] = height
+            if distance is not None:
+                kwargs["distance"] = distance
+            indices, _ = sig.find_peaks(arr, **kwargs)
+            return {
+                "peak_indices": indices,
+                "peak_values": arr[indices],
+            }
+        except Exception as e:
+            raise NumEngineError(f"峰值检测失败: {e}")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # 统计与回归模块 (Statistics & Regression)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def linear_regression(
+        self,
+        x: Union[list, np.ndarray],
+        y: Union[list, np.ndarray],
+    ) -> Dict[str, float]:
+        """
+        一元线性回归拟合 (y = slope·x + intercept)。
+
+        :param x: 自变量序列
+        :param y: 因变量序列
+        :returns: 包含 'slope'、'intercept'、'r_value'、'p_value'、'std_err' 的字典
+        """
+        try:
+            res = stats.linregress(np.asarray(x, dtype=float), np.asarray(y, dtype=float))
+            return {
+                "slope": float(res.slope),
+                "intercept": float(res.intercept),
+                "r_value": float(res.rvalue),
+                "p_value": float(res.pvalue),
+                "std_err": float(res.stderr),
+            }
+        except Exception as e:
+            raise NumEngineError(f"线性回归失败: {e}")
+
+    def polynomial_fit(
+        self,
+        x: Union[list, np.ndarray],
+        y: Union[list, np.ndarray],
+        deg: int = 2,
+    ) -> Dict[str, Any]:
+        """
+        多项式最小二乘拟合。
+
+        :param x:   自变量序列
+        :param y:   因变量序列
+        :param deg: 多项式阶数，默认 2（二次曲线）
+        :returns: 包含 'coefficients'（高次到低次）和 'residuals' 的字典
+        """
+        try:
+            coeffs, residuals, rank, sv, rcond = np.polyfit(
+                np.asarray(x, dtype=float),
+                np.asarray(y, dtype=float),
+                deg,
+                full=True,
+            )
+            return {
+                "coefficients": coeffs,
+                "residuals": residuals if len(residuals) > 0 else np.array([0.0]),
+                "rank": int(rank),
+            }
+        except Exception as e:
+            raise NumEngineError(f"多项式拟合失败: {e}")
+
+    def descriptive_stats(
+        self,
+        data: Union[list, np.ndarray],
+    ) -> Dict[str, float]:
+        """
+        计算一组数据的基本描述性统计量。
+
+        :param data: 输入数据序列
+        :returns: 包含 'mean'、'median'、'std'、'variance'、'skewness'、'kurtosis'、
+                  'min'、'max' 的字典
+        """
+        try:
+            arr = np.asarray(data, dtype=float)
+            return {
+                "mean": float(np.mean(arr)),
+                "median": float(np.median(arr)),
+                "std": float(np.std(arr, ddof=1)),
+                "variance": float(np.var(arr, ddof=1)),
+                "skewness": float(stats.skew(arr)),
+                "kurtosis": float(stats.kurtosis(arr)),
+                "min": float(np.min(arr)),
+                "max": float(np.max(arr)),
+            }
+        except Exception as e:
+            raise NumEngineError(f"描述性统计计算失败: {e}")
