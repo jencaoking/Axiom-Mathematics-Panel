@@ -55,7 +55,7 @@ class PluginManager:
                         logger.error("插件 [%s] 加载失败: %s", item, e, exc_info=True)
 
     def _activate_plugin(self, plugin_instance: MathLabPlugin):
-        plugin_id = plugin_instance.name
+        plugin_id = plugin_instance.name if plugin_instance.name != "Unnamed Plugin" else plugin_instance.__class__.__name__
         if plugin_id in self.active_plugins:
             logger.warning("插件 [%s] 已加载，跳过重复激活。", plugin_id)
             return

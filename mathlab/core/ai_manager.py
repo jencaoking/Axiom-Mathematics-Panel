@@ -21,6 +21,7 @@ except ImportError:
     except ImportError:
         QT_AVAILABLE = False
         QThread = object  # 降级占位，避免语法报错
+        Signal = object
 
 
 def _strip_markdown_json(text: str) -> str:
@@ -210,7 +211,7 @@ class AIRequestWorker(QThread):
         urls = {
             AIProvider.OPENAI: "https://api.openai.com/v1/chat/completions",
             AIProvider.CLAUDE: "https://api.anthropic.com/v1/messages",
-            AIProvider.GEMINI: "https://generativetoolkit.googleapis.com/v1beta/openai/chat/completions",
+            AIProvider.GEMINI: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
             AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions",
             AIProvider.KIMI: "https://api.moonshot.cn/v1/chat/completions",
             AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
@@ -296,9 +297,20 @@ class AIRequestWorker(QThread):
                                         pass
                                 start_idx = buffer.find('{', start_idx + 1)
                                 
-                            self.chunk_received.emit(content)
+                            safe_idx = buffer.find('{')
+                            if safe_idx == -1:
+                                if buffer:
+                                    self.chunk_received.emit(buffer)
+                                    buffer = ""
+                            else:
+                                safe_text = buffer[:safe_idx]
+                                if safe_text:
+                                    self.chunk_received.emit(safe_text)
+                                buffer = buffer[safe_idx:]
                     except json.JSONDecodeError:
                         pass
+            if buffer:
+                self.chunk_received.emit(buffer)
         except requests.exceptions.RequestException as e:
             self.error_signal.emit(str(e))
 

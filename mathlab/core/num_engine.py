@@ -1,21 +1,15 @@
 import numpy as np
 import scipy.linalg as la
 import scipy.integrate as integrate
-try:
-    # SciPy >= 1.14 / 2.x: scipy.misc.derivative 已被移除
-    from scipy.differentiate import derivative as _scipy_derivative
-    def _finite_diff(func, x, dx, n):
-        return float(_scipy_derivative(func, x, tolerances={"atol": dx}).df)
-except ImportError:
-    # 降级：五点中心差分手动实现，兼容旧版本
-    def _finite_diff(func, x, dx, n):
-        if n == 1:
-            return (-func(x + 2*dx) + 8*func(x + dx) - 8*func(x - dx) + func(x - 2*dx)) / (12 * dx)
-        elif n == 2:
-            return (-func(x + 2*dx) + 16*func(x + dx) - 30*func(x) + 16*func(x - dx) - func(x - 2*dx)) / (12 * dx**2)
-        else:
-            # 递归降阶
-            return (_finite_diff(lambda t: _finite_diff(func, t, dx, n-1), x, dx, 1))
+# 采用五点中心差分手动实现，支持任意阶导数计算 (通过递归降阶)
+def _finite_diff(func, x, dx, n):
+    if n == 1:
+        return (-func(x + 2*dx) + 8*func(x + dx) - 8*func(x - dx) + func(x - 2*dx)) / (12 * dx)
+    elif n == 2:
+        return (-func(x + 2*dx) + 16*func(x + dx) - 30*func(x) + 16*func(x - dx) - func(x - 2*dx)) / (12 * dx**2)
+    else:
+        # 递归降阶
+        return (_finite_diff(lambda t: _finite_diff(func, t, dx, n-1), x, dx, 1))
 
 import scipy.optimize as opt          # 优化模块
 import scipy.signal as sig            # 信号处理模块

@@ -143,6 +143,8 @@ class OctaveBridge:
             "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)["coefficients"],
             "polyval": np.polyval,
 
+            "__smart_mul__": lambda a, b: (a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b),
+
             # ── ✨ UI 联动：绘图函数（发射 Qt 信号）───────────────────────
             "plot":    self._builtin_plot,
             "scatter": self._builtin_scatter,
@@ -220,16 +222,30 @@ class OctaveBridge:
           ~     → not          (逻辑非，仅处理简单场景)
           %...  → #...         (注释符)
         """
-        # 1. 转置：变量名/右括号/右方括号后紧跟单引号
+        # 1. 保护字符串字面量，防止转置正则误伤
+        protected_strs: Dict[str, str] = {}
+        str_counter = [0]
+        
+        def protect_string(m):
+            prefix = m.group(1)
+            string_literal = m.group(2)
+            key = f"__STRINGLIT{str_counter[0]}__"
+            protected_strs[key] = string_literal
+            str_counter[0] += 1
+            return prefix + key
+            
+        code = re.sub(r"(^|[^A-Za-z0-9_\]\)])('[^']*')", protect_string, code)
+        code = re.sub(r'("[^"]*")', lambda m: protect_string(re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))), code)
+
+        # 2. 转置：变量名/右括号/右方括号后紧跟单引号
         code = re.sub(r"([A-Za-z0-9_\]\)]+)'", r"\1.T", code)
 
-        # 2. 保护逐元素运算符（避免被后续步骤污染）
+        # 3. 保护逐元素运算符（避免被后续步骤污染）
         code = code.replace(".*", "__DOT_MUL__")
         code = code.replace("./", "__DOT_DIV__")
         code = code.replace(".^", "__DOT_POW__")
 
-        # 3. 矩阵乘法：* → @（MATLAB 默认 * 为矩阵乘）
-        code = code.replace("*", "@")
+        # （注意：* 保留为 *，在 evaluate 阶段通过 AST 替换为 __smart_mul__ 以兼容标量）
 
         # 4. 幂运算：^ → **
         code = code.replace("^", "**")
@@ -245,6 +261,10 @@ class OctaveBridge:
 
         # 7. 注释符：% → #
         code = re.sub(r"%", "#", code)
+
+        # 还原字符串字面量
+        for key, val in protected_strs.items():
+            code = code.replace(key, val)
 
         return code
 
@@ -285,14 +305,34 @@ class OctaveBridge:
         """
         python_code = self.translate(code)
 
+        import ast
+        class SmartMulTransformer(ast.NodeTransformer):
+            def visit_BinOp(self, node):
+                self.generic_visit(node)
+                if isinstance(node.op, ast.Mult):
+                    return ast.Call(
+                        func=ast.Name(id='__smart_mul__', ctx=ast.Load()),
+                        args=[node.left, node.right],
+                        keywords=[]
+                    )
+                return node
+
         try:
             # 尝试作为表达式 eval（eval/exec 共享 self.env，变量跨调用可见）
-            result = eval(python_code, self.env, self.env)
+            tree = ast.parse(python_code, mode='eval')
+            tree = SmartMulTransformer().visit(tree)
+            ast.fix_missing_locations(tree)
+            compiled = compile(tree, '<string>', 'eval')
+            result = eval(compiled, self.env, self.env)
             return result
         except SyntaxError:
             # 可能是赋值语句或含有多行的代码块，改用 exec
             try:
-                exec(python_code, self.env, self.env)
+                tree = ast.parse(python_code, mode='exec')
+                tree = SmartMulTransformer().visit(tree)
+                ast.fix_missing_locations(tree)
+                compiled = compile(tree, '<string>', 'exec')
+                exec(compiled, self.env, self.env)
                 # 启发式：如果是简单赋值 "VAR = ..."，返回该变量
                 stripped = python_code.strip()
                 if "=" in stripped and not any(
@@ -331,7 +371,7 @@ class OctaveBridge:
         return {
             k: v for k, v in self.env.items()
             if not k.startswith("__") and not callable(v)
-            and k not in ("np",)
+            and k not in ("np", "pi", "e", "Inf", "inf", "NaN", "nan", "true", "false")
         }
 
     # ──────────────────────────────────────────────────────────────────────────

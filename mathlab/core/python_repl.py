@@ -42,6 +42,10 @@ class PythonREPL:
         
         if code_str.strip():
             self.history.append(code_str)
+            
+        # 如果禁用了会话模式，强制重启沙箱进程
+        if not self._session_mode:
+            self._sandbox.terminate()
         
         # 委托给沙箱进程执行
         sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)

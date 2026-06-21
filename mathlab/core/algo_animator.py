@@ -610,6 +610,10 @@ class AlgoAnimator:
         if points is None:
             points = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(15)]
         
+        if k > len(points):
+            yield {'type': 'error', 'description': f'K-means 失败：点数 ({len(points)}) 小于簇数 ({k})'}
+            return
+        
         centers = random.sample(points, k)
         clusters = [[] for _ in range(k)]
         
