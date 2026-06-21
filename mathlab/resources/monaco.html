@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Monaco Editor</title>
+    <title>MathLab Monaco Editor</title>
     <style>
         html, body, #container { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #1e1e1e; }
     </style>
@@ -11,23 +11,113 @@
     <div id="container"></div>
 
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    
     <script src="../monaco-editor/vs/loader.js"></script>
     
     <script>
-        // 配置本地资源路径
         require.config({ paths: { 'vs': '../monaco-editor/vs' } });
 
         require(['vs/editor/editor.main'], function() {
+            
+            // 🌟 1. 注册专属的新语言 🌟
+            monaco.languages.register({ id: 'mathlab' });
+
+            // 🌟 2. 编写 Monarch 词法解析规则 🌟
+            monaco.languages.setMonarchTokensProvider('mathlab', {
+                // 基础流程控制关键字
+                keywords: [
+                    'function', 'end', 'if', 'else', 'elseif', 'while', 'for', 'return', 'break', 'continue'
+                ],
+                // 你的 NumEngine 和核心 API (专属高亮)
+                builtins: [
+                    'eig', 'svd', 'lu', 'chol', 'fft', 'ifft', 'plot',
+                    'zeros', 'ones', 'eye', 'linspace', 'find', 'size', 'length',
+                    'sin', 'cos', 'exp', 'pi', 'e'
+                ],
+                // 操作符 (包含 MATLAB 特色的逐元素运算和转置)
+                operators: [
+                    '=', '>', '<', '==', '<=', '>=', '~=', 
+                    '+', '-', '*', '/', '^', '.*', './', '.^', "'"
+                ],
+                
+                // 符号扫描定义
+                symbols:  /[=><!~?:&|+\-*\/\^%]+/,
+
+                // 扫描与分词逻辑
+                tokenizer: {
+                    root: [
+                        // 匹配标识符并分类
+                        [/[a-zA-Z_]\w*/, {
+                            cases: {
+                                '@keywords': 'keyword',           // 匹配到关键字
+                                '@builtins': 'type.identifier',   // 匹配到内置函数
+                                '@default': 'identifier'          // 普通变量名
+                            }
+                        }],
+                        
+                        // 空白与注释
+                        { include: '@whitespace' },
+                        
+                        // 数字 (支持浮点和科学计数)
+                        [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                        [/\d+/, 'number'],
+                        
+                        // 操作符分隔
+                        [/[{}()\[\]]/, '@brackets'],
+                        [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
+                        
+                        // 字符串 (使用双引号避免和转置操作符 ' 冲突)
+                        [/"([^"\\]|\\.)*$/, 'string.invalid'], 
+                        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' } ]
+                    ],
+                    
+                    whitespace: [
+                        [/[ \t\r\n]+/, 'white'],
+                        [/(^% .*$)/, 'comment'], // 支持 MATLAB 风格的 % 注释
+                        [/(^# .*$)/, 'comment'], // 支持 Python 风格的 # 注释
+                        [/% .*$/, 'comment'], // 补充：支持行内 MATLAB 风格的 % 注释
+                        [/# .*$/, 'comment'], // 补充：支持行内 Python 风格的 # 注释
+                    ],
+                    
+                    string: [
+                        [/[^\\"]+/, 'string'],
+                        [/\\./, 'string.escape.invalid'],
+                        [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' } ]
+                    ],
+                }
+            });
+
+            // 🌟 3. 定义 MathLab 专属深色主题 🌟
+            monaco.editor.defineTheme('mathlab-dark', {
+                base: 'vs-dark', // 继承基础暗色
+                inherit: true,
+                rules: [
+                    { token: 'keyword', foreground: 'C586C0', fontStyle: 'bold' },    // 关键字：紫色加粗
+                    { token: 'type.identifier', foreground: '4EC9B0', fontStyle: 'bold' }, // API/内置函数：青色亮眼
+                    { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },  // 注释：柔和绿色斜体
+                    { token: 'string', foreground: 'CE9178' },                        // 字符串：橘黄色
+                    { token: 'number', foreground: 'B5CEA8' },                        // 数字：浅绿色
+                    { token: 'operator', foreground: 'D4D4D4' }                       // 符号：亮灰色
+                ],
+                colors: {
+                    'editor.background': '#1e1e1e',             // 纯正极客背景
+                    'editorLineNumber.foreground': '#5A5A5A',   // 弱化行号颜色
+                    'editor.selectionBackground': '#264F78',    // 选中高亮颜色
+                    'editorCursor.foreground': '#007acc'        // 蓝色光标
+                }
+            });
+
+            // 🌟 4. 初始化编辑器并应用新语言与主题 🌟
             window.editor = monaco.editor.create(document.getElementById('container'), {
                 value: '%INITIAL_CODE%',
-                language: 'python',
-                theme: 'vs-dark',
+                language: 'mathlab',      // 使用刚才注册的专属语言
+                theme: 'mathlab-dark',    // 使用专属配色
                 automaticLayout: true,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
-                fontSize: 14,
-                fontFamily: "Consolas, 'Courier New', monospace"
+                fontSize: 15, // 字号稍微调大一点，适合看数学公式
+                fontFamily: "Consolas, 'Courier New', monospace",
+                lineHeight: 24, // 增加行高，提升代码呼吸感
+                renderLineHighlight: "all" // 高亮当前行
             });
 
             new QWebChannel(qt.webChannelTransport, function(channel) {
