@@ -133,9 +133,9 @@ class PreferencesDialog(QDialog):
         }
 
     def _connect_change_signals(self):
-        for widget in self.findChildren((QComboBox, QFontComboBox)):
+        for widget in self.findChildren(QComboBox) + self.findChildren(QFontComboBox):
             widget.currentIndexChanged.connect(self._on_setting_changed)
-        for widget in self.findChildren((QSpinBox, QDoubleSpinBox)):
+        for widget in self.findChildren(QSpinBox) + self.findChildren(QDoubleSpinBox):
             widget.valueChanged.connect(self._on_setting_changed)
         for widget in self.findChildren(QCheckBox):
             widget.toggled.connect(self._on_setting_changed)
@@ -335,6 +335,10 @@ class PreferencesDialog(QDialog):
         font_label = QLabel(t("preferences.interface_font"))
         font_label.setStyleSheet("font-size: 12px; color: #434655;")
         self.ui_font_combo = QFontComboBox()
+        self.ui_font_combo.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white; color: #0b1c30;"
+        )
         self.ui_font_size_spin = QSpinBox()
         self.ui_font_size_spin.setRange(8, 24)
         self.ui_font_size_spin.setSuffix(" pt")
@@ -464,6 +468,10 @@ class PreferencesDialog(QDialog):
         font_label = QLabel(t("preferences.console_font"))
         font_label.setStyleSheet("font-size: 12px; color: #434655;")
         self.con_font_combo = QFontComboBox()
+        self.con_font_combo.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white; color: #0b1c30;"
+        )
         self.con_font_size_spin = QSpinBox()
         self.con_font_size_spin.setRange(8, 30)
         self.con_font_size_spin.setSuffix(" pt")

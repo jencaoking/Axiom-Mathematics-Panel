@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QPushButton, QHBoxLayout, QLabel, QTextBrowser
 )
 from PySide6.QtGui import QTextCursor, QFont
-from PySide6.QtCore import Qt, Signal, Slot, QTimer
+from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
 
 try:
     from ..utils.i18n_manager import t
