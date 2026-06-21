@@ -41,16 +41,25 @@ jobs:
 
     # 🌟 [新增] 自动下载 Monaco Editor 离线包
     # 防止因 Git 忽略了大量 JS 文件导致打包后编辑器白屏
+    # 使用 rsync 清空目标目录再合并，避免 "Directory not empty" 错误
     - name: Download Monaco Editor Assets
       shell: bash
       run: |
-        mkdir -p mathlab/resources/monaco-editor
+        set -e
         cd mathlab/resources
-        curl -O "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz"
+        # 先把已有的 vs/ 目录清空(可能残留旧的或部分提交的文件)
+        if [ -d monaco-editor/vs ]; then
+          rm -rf monaco-editor/vs
+        fi
+        mkdir -p monaco-editor
+        # 下载并解压 npm 包
+        curl -L -o monaco-editor-0.43.0.tgz "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz"
         tar -xzf monaco-editor-0.43.0.tgz
+        # 把 min/vs 移到目标位置(目录此时一定是空的)
         mv package/min/vs monaco-editor/vs
         rm -rf package monaco-editor-0.43.0.tgz
         echo "Monaco Editor downloaded and extracted to resources/monaco-editor/vs"
+        ls monaco-editor/vs | head -5
 
     - name: Set Asset Filename
       id: vars
