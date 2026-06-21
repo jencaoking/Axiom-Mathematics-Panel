@@ -1,28 +1,33 @@
 # -*- mode: python ; coding: utf-8 -*-
 # PyInstaller spec — Axiom Mathematics Panel
 #
-# 体积优化策略：
-#   1. excludes  —— 排除不需要打包的大型库（torch、matplotlib 后端等）
-#   2. collect_submodules —— 只收集真正用到的子模块
-#   3. upx=True  —— UPX 压缩（需要额外安装 UPX）
-#   4. strip=True —— 剥离调试符号（仅 Linux/macOS 有效）
-#
 # 运行方式：
 #   pyinstaller build_spec.spec
-#
-# UPX 安装（Windows）：
-#   winget install upx  或  scoop install upx
 
 import sys
 import os
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
-block_cipher = None
+# ── 1. 动态收集本地依赖的静态资源 (极其关键) ───────────────────────────────────
+app_datas = [
+    ('locale', 'locale'),           # 多语言文件
+    ('ui/styles.qss', 'ui'),         # 全局样式
+    ('ui/icons', 'ui/icons'),       # SVG 图标
+    ('docs', 'docs'),               # 文档
+    ('resources', 'resources'),     # 资源文件
+]
 
-# ── 排除列表（体积最大贡献者优先）──────────────────────────────────────
+# 动态遍历 plugins 目录，把所有 Web 前端工程都打包进去
+plugins_dir = 'plugins'
+if os.path.exists(plugins_dir):
+    for plugin_name in os.listdir(plugins_dir):
+        web_path = os.path.join(plugins_dir, plugin_name, 'web')
+        if os.path.exists(web_path):
+            app_datas.append((web_path, f'plugins/{plugin_name}/web'))
+
+# ── 2. 排除列表（体积优化）──────────────────────────────────────────────────
 EXCLUDES = [
-    # PyTorch 全家桶（~800 MB CPU / ~2 GB CUDA）
-    # ai_manager.py 已用 try/except 软依赖，运行时缺失只影响神经网络特性
+    # PyTorch 全家桶
     'torch',
     'torchvision',
     'torchaudio',
@@ -31,11 +36,11 @@ EXCLUDES = [
     'torch.testing',
     'torch.utils.tensorboard',
 
-    # ONNX Runtime（~80 MB），同为软依赖
+    # ONNX
     'onnxruntime',
     'onnx',
 
-    # Matplotlib 后端（只留 Agg，其余后端无需打包）
+    # Matplotlib 无用后端
     'matplotlib.backends.backend_gtk3agg',
     'matplotlib.backends.backend_gtk3cairo',
     'matplotlib.backends.backend_macosx',
@@ -95,7 +100,7 @@ EXCLUDES = [
     'scipy.spatial',
     'scipy.stats',
 
-    # sklearn 中不需要的模块（项目只用 linear_model + preprocessing + cluster + metrics）
+    # sklearn 中不需要的模块
     'sklearn.neural_network',
     'sklearn.svm',
     'sklearn.tree',
@@ -118,26 +123,21 @@ EXCLUDES = [
     'numba',
     'Cython',
     'cffi',
-    'gi',  # GTK
-    'wx',  # wxPython
-    'PyQt5',
-    'PyQt6',
+    'gi',
+    'wx',
 ]
 
-# ── 数据文件（locale、样式表、资源）──────────────────────────────────────
-datas = [
-    ('locale',    'locale'),
-    ('ui/styles.qss', 'mathlab/ui'),
-    ('resources', 'resources'),
-]
-
-# ── 分析阶段 ────────────────────────────────────────────────────────────
+# ── 3. 分析阶段 ────────────────────────────────────────────────────────────
 a = Analysis(
     ['main.py'],
     pathex=[os.path.abspath('.')],
     binaries=[],
-    datas=datas,
+    datas=app_datas,
     hiddenimports=[
+        # WebEngine / PyQt5 依赖
+        'PyQt5.QtWebEngineWidgets',
+        'PyQt5.QtWebChannel',
+        'PyQt5.QtCore',
         # sympy 动态加载的子模块
         'sympy.parsing.sympy_parser',
         'sympy.core.add',
@@ -164,17 +164,17 @@ a = Analysis(
         # networkx
         'networkx.algorithms',
         'networkx.classes',
+        'numpy',
     ],
     excludes=EXCLUDES,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
-    cipher=block_cipher,
+    cipher=None,
     noarchive=False,
 )
 
 # ── 去掉 PySide6 插件目录中不需要的插件 ────────────────────────────────
 def filter_binaries(binaries):
-    """移除不需要的 Qt 插件，进一步压缩体积。"""
     SKIP_PATTERNS = [
         'qtvirtualkeyboard',
         'qtwebengine',
@@ -193,7 +193,7 @@ def filter_binaries(binaries):
         'QtSerialPort',
         'QtStateMachine',
         'QtTextToSpeech',
-        'opengl32sw',   # Mesa 软件渲染，体积大，硬件足够时不需要
+        'opengl32sw',   # Mesa 软件渲染
     ]
     result = []
     for name, path, type_ in binaries:
@@ -202,43 +202,26 @@ def filter_binaries(binaries):
             result.append((name, path, type_))
     return result
 
-
 a.binaries = filter_binaries(a.binaries)
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-# ── 启动动画 (Splash Screen) ──────────────────────────────────────────────
-splash = Splash(
-    'mathlab/resources/icons/app_icon.png',
-    binaries=a.binaries,
-    datas=a.datas,
-    text_pos=None,
-    text_size=12,
-    minify_script=True,
-    always_on_top=True
-)
+pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
 # ── 图标路径检测 ────────────────────────────────────────────────────────
 icon_path = 'resources/icons/app_icon.ico' if os.path.exists('resources/icons/app_icon.ico') else ('mathlab/resources/icons/app_icon.ico' if os.path.exists('mathlab/resources/icons/app_icon.ico') else None)
 
-# ── 单文件输出 ───────────────────────────────────────────────────────────
+# ── 4. 单目录模式 (ONEDIR) ────────────────────────────────────────────────
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    splash,
-    splash.binaries,
     [],
+    exclude_binaries=True,
     name='MathLab',
     icon=icon_path,
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,           # Windows 上 strip 无效，保持 False
-    upx=True,              # 需要系统安装 UPX：winget install upx
+    strip=False,
+    upx=True,
     upx_exclude=[
-        # 这些库压缩后启动变慢，不值得压缩
         'vcruntime140.dll',
         'python3*.dll',
         'PySide6*.dll',
@@ -251,10 +234,23 @@ exe = EXE(
     codesign_identity=None,
 )
 
-# ── macOS Bundle ────────────────────────────────────────────────────────
-app = BUNDLE(
+coll = COLLECT(
     exe,
-    name='MathLab.app',
-    icon=icon_path,
-    bundle_identifier='com.mathlab.axiom',
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='MathLab',
 )
+
+# ── macOS BUNDLE ────────────────────────────────────────────────────────
+# 仅在 macOS 上构建 .app Bundle
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        coll,
+        name='MathLab.app',
+        icon=icon_path,
+        bundle_identifier='com.mathlab.axiom',
+    )
