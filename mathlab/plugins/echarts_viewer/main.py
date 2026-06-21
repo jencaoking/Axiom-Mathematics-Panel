@@ -39,11 +39,11 @@ class EChartsViewerPlugin(MathLabPlugin):
             action=self._render_demo_data,
             category="Web图表"
         )
-        api.print_to_console("[ECharts Plugin] 模块加载完毕。", color="#aaffaa")
+        api.print_to_console("[ECharts Plugin] 模块已激活。", color_or_level="#aaffaa")
 
     def _render_demo_data(self):
         """模拟 Python 后端计算大量数据，并推给前端渲染"""
-        self.api.print_to_console("正在生成 1000 个采样点...", color="#cccccc")
+        self.api.print_to_console("正在生成 1000 个采样点...", color_or_level="#cccccc")
         
         # 使用 numpy 生成 x 和 y 坐标 (模拟高强度计算)
         # f(x) = sin(x) * e^(-0.1x)

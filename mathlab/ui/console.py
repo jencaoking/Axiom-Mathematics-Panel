@@ -80,7 +80,7 @@ class PythonConsole(QDockWidget):
     def eventFilter(self, obj, event):
         if obj == self.input_line:
             try:
-                if event.type() == Qt.KeyPress:
+                if event.type() == QEvent.KeyPress:
                     if event.key() == Qt.Key_Up:
                         self.navigate_history(-1)
                         return True
@@ -307,12 +307,12 @@ class PythonConsole(QDockWidget):
                 encoded_err = urllib.parse.quote(message)
                 html_msg += f'<br><br><a href="ask_ai:{encoded_err}" style="color: #00A67E; text-decoration: none; font-weight: bold;">[🤖 报错了？点击让 AI 导师帮你分析原因并修复代码]</a><br>'
                 
-            self.output_area.appendHtml(html_msg)
-            self.output_area.appendHtml("<br>")
+            self.output_area.append(html_msg)
+            self.output_area.append("<br>")
         else:
             safe_msg = message.replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
-            self.output_area.appendHtml(f'<span style="color: {color};">{safe_msg}</span><br>')
-            self.output_area.appendHtml("<br>")
+            self.output_area.append(f'<span style="color: {color};">{safe_msg}</span><br>')
+            self.output_area.append("<br>")
 
     def on_anchor_clicked(self, url):
         """处理控制台内的超链接点击事件"""
