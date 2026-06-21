@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         self._register_commands()  # 注册命令面板命令
 
         get_i18n().add_language_change_listener(self._on_language_changed)
+        self.apply_theme(get_current_theme())
 
     def setup_ui(self):
         self.central_widget = GeometryCanvas(self)

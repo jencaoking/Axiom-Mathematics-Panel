@@ -1,5 +1,29 @@
+import os
+import json
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
+
+SETTINGS_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json'
+)
+
+def load_settings() -> dict:
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load settings: {e}")
+    return {}
+
+def save_settings(settings: dict) -> None:
+    try:
+        current = load_settings()
+        current.update(settings)
+        with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(current, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Warning: Could not save settings: {e}")
 
 THEMES = {
     'light': {
@@ -59,6 +83,9 @@ THEMES = {
 }
 
 def get_current_theme():
+    settings = load_settings()
+    if 'theme' in settings and settings['theme'] in THEMES:
+        return settings['theme']
     app = QApplication.instance()
     if app is None:
         return 'light'
@@ -143,6 +170,7 @@ def set_theme(theme_name):
         }}
     """)
 
+    save_settings({'theme': theme_name})
     return True
 
 def get_theme_colors(theme_name=None):
