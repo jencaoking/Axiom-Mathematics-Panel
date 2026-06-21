@@ -222,6 +222,38 @@ class JupyterPanel(QWidget):
 
     def _on_load_finished(self, success: bool) -> None:
         if success:
+            # 🌟 核心：注入自定义 CSS，实现完美视觉融合 🌟
+            magic_css = """
+            /* 1. 隐藏顶部菜单栏 (File, Edit, View...) */
+            #jp-TopPanel { display: none !important; }
+            
+            /* 2. 隐藏左侧文件浏览器和侧边栏 */
+            #jp-left-stack, .jp-SideBar { display: none !important; }
+            
+            /* 3. 隐藏底部状态栏 */
+            #jp-bottom-panel { display: none !important; }
+            
+            /* 4. 统一全局背景色，完美匹配 Qt 的 #1e1e1e */
+            body, .jp-LabShell, .jp-NotebookPanel { 
+                background-color: #1e1e1e !important; 
+            }
+            
+            /* 5. 调整 Notebook 内部的间距，让它看起来更像原生文本框 */
+            .jp-Cell { padding-left: 10px !important; padding-right: 10px !important; }
+            .jp-Toolbar { display: none !important; } /* 隐藏 Notebook 自己的小工具栏 */
+            """
+            
+            # 将 CSS 包装成一段 JavaScript 执行
+            js_code = f"""
+            var style = document.createElement('style');
+            style.type = 'text/css';
+            style.innerHTML = `{magic_css}`;
+            document.head.appendChild(style);
+            """
+            
+            # 在 Web 引擎中静默执行
+            self._browser.page().runJavaScript(js_code)
+            
             self._card.show_success_hint()
             # 淡入 browser，淡出 card
             self._card.hide()

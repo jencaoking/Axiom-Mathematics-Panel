@@ -46,6 +46,7 @@ try:
     from core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from core.command_manager import CommandManager, Command
     from core.ipc_server import JupyterIPCServer
+    from core.ipc_client import JupyterIPCClient
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
@@ -54,6 +55,7 @@ except ImportError:
     from ..core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from ..core.command_manager import CommandManager, Command
     from ..core.ipc_server import JupyterIPCServer
+    from ..core.ipc_client import JupyterIPCClient
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -106,7 +108,13 @@ class MainWindow(QMainWindow):
         self.ipc_server.command_received.connect(self.handle_kernel_command)
         self.ipc_server.start()
 
+        # 🌟 2. 实例化发送器 (发给 Jupyter) 🌟
+        self.ipc_client = JupyterIPCClient(port=45679)
+
         self.setup_ui()
+        
+        # 将客户端挂载到画板上，供画板使用
+        self.central_widget.ipc_client = self.ipc_client
         self.setup_menus()
         self.setup_toolbar()
         self.setup_docks()
@@ -133,6 +141,8 @@ class MainWindow(QMainWindow):
         try:
             from .geometry_panel import GeometryPanel
             self.geogebra_panel = GeometryPanel(self)
+            if hasattr(self.geogebra_panel, 'canvas'):
+                self.geogebra_panel.canvas.ipc_client = self.ipc_client
         except ImportError:
             self.geogebra_panel = None
 

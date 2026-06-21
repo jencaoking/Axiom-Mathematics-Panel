@@ -35,7 +35,8 @@ class JupyterManager:
         self.port: int = self._get_free_port()
         self.process: Optional[subprocess.Popen] = None
         # 禁用 Token/密码（纯本地沙盒），允许跨域嵌入
-        self.url: str = f"http://localhost:{self.port}/lab"
+        # 🌟 魔法参数：强制暗色主题 + 简单模式
+        self.url: str = f"http://localhost:{self.port}/lab?theme=JupyterLab%20Dark&simple=1"
         self._is_ready: bool = False
         self._lock = threading.Lock()
 

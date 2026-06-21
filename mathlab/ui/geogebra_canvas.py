@@ -36,6 +36,13 @@ class QGeoPointItem(QGraphicsEllipseItem):
         if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
             self.geo_entity.set_coords(new_pos.x(), new_pos.y())
+            
+            canvas = self.engine_ui_link
+            # 🌟 灵魂连击：拖动的瞬间，向 Jupyter 狂发坐标数据 🌟
+            if hasattr(canvas, 'ipc_client') and canvas.ipc_client:
+                canvas.ipc_client.sync_variable(f"{self.geo_entity.name}_x", new_pos.x())
+                canvas.ipc_client.sync_variable(f"{self.geo_entity.name}_y", new_pos.y())
+                
             self.engine_ui_link.sync_ui_from_engine()
         return super().itemChange(change, value)
 
