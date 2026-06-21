@@ -298,33 +298,41 @@ class Intersection(GeometricObject):
         return [(x, y)]
     
     def _line_circle_intersection(self, line, circle):
-        """求解直线与圆的交点"""
+        """求解直线与圆的交点（垂足+切向量法）"""
         if line.type == 'Segment':
             x1, y1 = line.coordinates.get('x1', 0), line.coordinates.get('y1', 0)
             x2, y2 = line.coordinates.get('x2', 0), line.coordinates.get('y2', 0)
             a, b, c = y2 - y1, x1 - x2, x2 * y1 - x1 * y2
         else:
             a, b, c = line.a, line.b, line.c
-        
+
         cx, cy = circle.coordinates.get('cx', 0), circle.coordinates.get('cy', 0)
         r = circle.coordinates.get('r', 1)
-        
-        d = abs(a * cx + b * cy + c) / np.sqrt(a**2 + b**2)
-        if d > r:
+        n2 = a**2 + b**2
+        if n2 < 1e-10:
             return []
-        
+
+        # 圆心到直线的有符号距离分子 k = a*cx + b*cy + c
+        k = a * cx + b * cy + c
+        n = np.sqrt(n2)
+        d = abs(k) / n  # 圆心到直线的距离
+
+        if d > r + 1e-10:
+            return []
+
+        # 垂足坐标
+        fx = cx - a * k / n2
+        fy = cy - b * k / n2
+
         if abs(d - r) < 1e-10:
-            t = -(a * cx + b * cy + c) / (a**2 + b**2)
-            x = cx + a * t
-            y = cy + b * t
-            return [(x, y)]
-        
-        t1 = (- (a * cx + b * cy + c) + np.sqrt((a * cx + b * cy + c)**2 - (a**2 + b**2) * (cx**2 + cy**2 + c**2/(a**2 + b**2) - r**2))) / (a**2 + b**2)
-        t2 = (- (a * cx + b * cy + c) - np.sqrt((a * cx + b * cy + c)**2 - (a**2 + b**2) * (cx**2 + cy**2 + c**2/(a**2 + b**2) - r**2))) / (a**2 + b**2)
-        
-        x1, y1 = cx + a * t1, cy + b * t1
-        x2, y2 = cx + a * t2, cy + b * t2
-        return [(x1, y1), (x2, y2)]
+            # 相切：唯一交点即为垂足
+            return [(fx, fy)]
+
+        # 半弦长，沿直线切向量 (-b, a)/n 偏移
+        h = np.sqrt(max(r**2 - d**2, 0.0))
+        x1_r, y1_r = fx - h * b / n, fy + h * a / n
+        x2_r, y2_r = fx + h * b / n, fy - h * a / n
+        return [(x1_r, y1_r), (x2_r, y2_r)]
     
     def _circle_circle_intersection(self, circle1, circle2):
         """求解两个圆的交点"""

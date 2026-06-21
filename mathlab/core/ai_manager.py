@@ -80,14 +80,14 @@ class AIRequestWorker:
 {{"action": "add_point", "x": 1, "y": 2, "name": "A"}}
 
 支持的操作:
-- add_point: 添加点 {"action": "add_point", "x": number, "y": number, "name": string}
-- add_segment: 添加线段 {"action": "add_segment", "point1_id": string, "point2_id": string}
-- add_circle: 添加圆 {"action": "add_circle", "center_id": string, "radius": number}
-- add_polygon: 添加多边形 {"action": "add_polygon", "point_ids": [string]}
-- update_point: 更新点 {"action": "update_point", "point_id": string, "x": number, "y": number}
-- remove_object: 删除对象 {"action": "remove_object", "obj_id": string}
-- clear: 清空画布 {"action": "clear"}
-- solve: 求解 {"action": "solve", "expression": string}
+- add_point: 添加点 {{"action": "add_point", "x": number, "y": number, "name": string}}
+- add_segment: 添加线段 {{"action": "add_segment", "point1_id": string, "point2_id": string}}
+- add_circle: 添加圆 {{"action": "add_circle", "center_id": string, "radius": number}}
+- add_polygon: 添加多边形 {{"action": "add_polygon", "point_ids": [string]}}
+- update_point: 更新点 {{"action": "update_point", "point_id": string, "x": number, "y": number}}
+- remove_object: 删除对象 {{"action": "remove_object", "obj_id": string}}
+- clear: 清空画布 {{"action": "clear"}}
+- solve: 求解 {{"action": "solve", "expression": string}}
 
 如果只是回答问题，请直接输出文本，不要输出JSON。
 """
@@ -139,16 +139,23 @@ class AIRequestWorker:
             'Authorization': f'Bearer {self.config.api_key}'
         }
 
-        payload = {
-            'messages': messages,
-            'stream': True,
-            'max_tokens': 2048
+        model_names = {
+            AIProvider.MINIMAX: "abab6.5s-chat",
+            AIProvider.KIMI: "moonshot-v1-8k",
+            AIProvider.DEEPSEEK: "deepseek-chat"
         }
 
         urls = {
             AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
             AIProvider.KIMI: "https://api.moonshot.cn/v1/chat/completions",
             AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions"
+        }
+
+        payload = {
+            'model': model_names.get(self.config.provider, ""),
+            'messages': messages,
+            'stream': True,
+            'max_tokens': 2048
         }
 
         url = self.config.base_url or urls.get(self.config.provider)
@@ -265,9 +272,10 @@ class AIManager:
         mse = float(mean_squared_error(y, predictions))
         
         # 规范化公式字符串，避免多行输出
+        # coefficients 已经是低次到高次排列（经过 [::-1] 反转），i 即为幂次
         terms = []
         for i, c in enumerate(coefficients):
-            power = len(coefficients) - 1 - i
+            power = i
             if abs(c) < 1e-10:
                 continue
             if power == 0:
@@ -281,7 +289,7 @@ class AIManager:
         return {
             'success': True,
             'coefficients': coefficients.tolist(),
-            'intercept': float(coefficients[-1]),
+            'intercept': float(coefficients[0]),  # coefficients[0] 是常数项（低次在前）
             'equation': equation,
             'mse': mse,
             'predictions': predictions.tolist()
@@ -319,9 +327,11 @@ class AIManager:
             optimizer.step()
             
             loss_history.append(float(loss.item()))
-            
+
             if epoch % 10 == 0:
-                pass
+                # 通知训练进度（百分比 + 当前 loss）
+                progress = int((epoch + 1) / epochs * 100)
+                self.emit('training_progress', progress, float(loss.item()))
         
         with torch.no_grad():
             predictions = model(X).numpy().flatten()

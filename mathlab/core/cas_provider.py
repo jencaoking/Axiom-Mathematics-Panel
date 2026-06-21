@@ -68,8 +68,8 @@ class CASProvider:
         try:
             x = self._get_symbol(variable)
             
-            # 使用正则表达式精确匹配单个等号，避免误截断 >= 或 <=
-            match = re.search(r'(?<!>)=(?!>)', equation_str)
+            # 使用正则表达式精确匹配单个等号，排除 >=, <=, ==
+            match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
             if match:
                 left_str = equation_str[:match.start()]
                 right_str = equation_str[match.end():]
@@ -231,7 +231,7 @@ class CASProvider:
             
             x, y = symbols('x y')
             
-            match = re.search(r'(?<!>)=(?!>)', equation_str)
+            match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
             if match:
                 left_str = equation_str[:match.start()]
                 right_str = equation_str[match.end():]
