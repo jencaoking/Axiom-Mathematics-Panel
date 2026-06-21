@@ -35,7 +35,11 @@ class I18nManager:
     # Translation loading
     # ------------------------------------------------------------------
     def _load_translations(self):
-        locale_dir = os.path.join(os.path.dirname(__file__), '..', 'locale')
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        locale_dir = os.path.join(base_dir, 'locale')
+
+        if not os.path.exists(locale_dir):
+            print(f"[I18n Error] Locale directory not found: {locale_dir}")
 
         for lang_code in SUPPORTED_LANGUAGES:
             file_path = os.path.join(locale_dir, f'{lang_code}.json')
@@ -43,8 +47,13 @@ class I18nManager:
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         self.translations[lang_code] = json.load(f)
+                    print(f"[I18n Success] Loaded language package: {lang_code}")
+                except json.JSONDecodeError as e:
+                    print(f"[I18n Fatal] JSON corrupted {lang_code}.json: {e}")
                 except Exception as e:
-                    print(f'[i18n] Error loading {file_path}: {e}')
+                    print(f'[I18n Error] loading {file_path}: {e}')
+            else:
+                print(f"[I18n Error] Language file not found: {file_path}")
 
     # ------------------------------------------------------------------
     # Language management

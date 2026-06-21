@@ -1384,12 +1384,16 @@ class MainWindow(QMainWindow):
         self.console.setWindowTitle(t('console.title').upper())
         self.algo_vis_panel.setWindowTitle(t('algo_vis.title').upper())
         self.ai_tools_panel.setWindowTitle(t('ai_tools.title').upper())
+        # [I18n 修复] 补充遗漏的函数探索器标题刷新
+        self.function_explorer.setWindowTitle(t('function_explorer.title').upper())
 
         self.algebra_panel.retranslate_ui()
         self.properties_panel.retranslate_ui()
         self.console.retranslate_ui()
         self.algo_vis_panel.retranslate_ui()
         self.ai_tools_panel.retranslate_ui()
+        # [I18n 修复] 级联调用函数探索器的重绘
+        self.function_explorer.retranslate_ui()
 
     def add_dynamic_panel(self, panel_name: str, widget, icon=None):
         """允许插件添加一个新的 UI 面板到主窗口侧边栏"""
