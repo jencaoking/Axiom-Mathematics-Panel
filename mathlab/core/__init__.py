@@ -1,4 +1,4 @@
-from .geometry_engine import GeometryEngine, GeometricObject, Point, Segment, Circle
+from .geometry_engine import GeometryEngine, GeoEntity, GeoPoint, GeoLine
 from .cas_provider import CASProvider
 from .algo_animator import AlgoAnimator
 from .python_repl import PythonREPL
@@ -11,10 +11,9 @@ from .plugin_manager import PluginManager
 
 __all__ = [
     'GeometryEngine',
-    'GeometricObject',
-    'Point',
-    'Segment',
-    'Circle',
+    'GeoEntity',
+    'GeoPoint',
+    'GeoLine',
     'CASProvider',
     'AlgoAnimator',
     'PythonREPL',
