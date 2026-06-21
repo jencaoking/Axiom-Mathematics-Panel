@@ -6,6 +6,7 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QUrl
 from mathlab.core.plugin_base import MathLabPlugin
 from .bridge import ThreeJSBridge
+from mathlab.utils.i18n_manager import t
 
 class ThreeJSViewerPlugin(MathLabPlugin):
     name = "3D Geometry Viewer"
@@ -26,7 +27,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         self.web_view.load(QUrl.fromLocalFile(html_path))
         
         # 核心：将 3D 面板挂载到主窗口
-        self.dock = api.add_sidebar_panel("3D 视图", self.web_view)
+        self.dock = api.add_sidebar_panel(t("plugins.3d_viewer"), self.web_view)
         
         # 核心：监听底层几何引擎的拓扑变化！
         if hasattr(self.api, 'geometry_engine'):

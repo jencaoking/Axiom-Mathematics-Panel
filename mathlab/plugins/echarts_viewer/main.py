@@ -7,6 +7,7 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QUrl
 from mathlab.core.plugin_base import MathLabPlugin
 from .bridge import EChartsBridge
+from mathlab.utils.i18n_manager import t
 
 class EChartsViewerPlugin(MathLabPlugin):
     name = "ECharts Data Viewer"
@@ -30,7 +31,7 @@ class EChartsViewerPlugin(MathLabPlugin):
         self.web_view.load(QUrl.fromLocalFile(html_path))
         
         # 4. 添加到 MathLab 侧边栏
-        api.add_sidebar_panel("高级数据视图", self.web_view)
+        api.add_sidebar_panel(t("plugins.echarts"), self.web_view)
         
         # 5. 注册控制台测试指令
         api.register_command(

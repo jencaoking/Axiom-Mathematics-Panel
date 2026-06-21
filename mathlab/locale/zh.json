@@ -269,6 +269,13 @@
     "title": "交互式笔记本",
     "add_code": "+ 代码",
     "add_markdown": "+ 文本",
-    "run": "▶ 运行"
+    "run": "▶ 运行",
+    "run_all": "▶ 运行全部",
+    "clear_all": "清空输出"
+  },
+  "plugins": {
+    "echarts": "高级数据视图",
+    "matrix": "矩阵工具",
+    "3d_viewer": "3D 视图"
   }
 }

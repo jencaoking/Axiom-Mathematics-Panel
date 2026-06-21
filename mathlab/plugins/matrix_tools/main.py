@@ -2,6 +2,7 @@
 from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.core.extension_api import MathLabAPI
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from mathlab.utils.i18n_manager import t
 
 class MatrixPanelWidget(QWidget):
     def __init__(self, api: MathLabAPI, parent=None):
@@ -57,7 +58,7 @@ class MatrixToolsPlugin(MathLabPlugin):
         
         # 2. 注册并添加侧边栏面板
         self.widget = MatrixPanelWidget(api)
-        api.add_sidebar_panel("矩阵工具", self.widget)
+        api.add_sidebar_panel(t("plugins.matrix"), self.widget)
         
         api.print_to_console("[Matrix Extension] 插件已成功加载并激活！", color_or_level="info")
 

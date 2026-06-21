@@ -118,10 +118,10 @@ class NotebookPanel(QWidget):
         toolbar_layout = QHBoxLayout(self.toolbar)
         toolbar_layout.setContentsMargins(10, 0, 10, 0)
 
-        self.btn_add_code = self._create_toolbar_btn("+ 代码", "#007acc")
-        self.btn_add_markdown = self._create_toolbar_btn("+ 文本", "#608b4e")
-        self.btn_run_all = self._create_toolbar_btn("▶ 运行全部", "#c586c0")
-        self.btn_clear_all = self._create_toolbar_btn("清空输出", "#858585")
+        self.btn_add_code = self._create_toolbar_btn(t("notebook.add_code"), "#007acc")
+        self.btn_add_markdown = self._create_toolbar_btn(t("notebook.add_markdown"), "#608b4e")
+        self.btn_run_all = self._create_toolbar_btn(t("notebook.run_all"), "#c586c0")
+        self.btn_clear_all = self._create_toolbar_btn(t("notebook.clear_all"), "#858585")
 
         toolbar_layout.addWidget(self.btn_add_code)
         toolbar_layout.addWidget(self.btn_add_markdown)

@@ -269,6 +269,13 @@
     "title": "Interactive Notebook",
     "add_code": "+ Code",
     "add_markdown": "+ Markdown",
-    "run": "▶ Run"
+    "run": "▶ Run",
+    "run_all": "▶ Run All",
+    "clear_all": "Clear Outputs"
+  },
+  "plugins": {
+    "echarts": "Advanced Data View",
+    "matrix": "Matrix Tools",
+    "3d_viewer": "3D View"
   }
 }
