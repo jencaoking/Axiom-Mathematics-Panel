@@ -45,6 +45,7 @@ try:
     from core.cas_provider import CASProvider
     from core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from core.command_manager import CommandManager, Command
+    from core.ipc_server import JupyterIPCServer
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
@@ -52,6 +53,7 @@ except ImportError:
     from ..core.cas_provider import CASProvider
     from ..core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from ..core.command_manager import CommandManager, Command
+    from ..core.ipc_server import JupyterIPCServer
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -98,6 +100,11 @@ class MainWindow(QMainWindow):
 
         # 命令管理器（必须在 setup_ui 前创建，供各面板注册命令）
         self.cmd_manager = CommandManager()
+
+        # 🌟 1. 启动跨进程监听服务 🌟
+        self.ipc_server = JupyterIPCServer(port=45678, parent=self)
+        self.ipc_server.command_received.connect(self.handle_kernel_command)
+        self.ipc_server.start()
 
         self.setup_ui()
         self.setup_menus()
@@ -584,6 +591,34 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'python_repl'):
             completions = self.python_repl.get_completions(code_text, line, column)
             self.ai_tools_panel.code_editor.set_completions(completions)
+
+    # 🌟 2. 处理来自 Jupyter 的指令 🌟
+    def handle_kernel_command(self, msg: dict):
+        cmd = msg.get("cmd")
+        
+        # 获取底层几何引擎
+        engine = self.geometry_engine
+        
+        try:
+            if cmd == "draw_point":
+                # 调用核心几何引擎
+                engine.add_point(msg["x"], msg["y"], name=msg.get("name"))
+                
+            elif cmd == "draw_line":
+                p1_id = None
+                p2_id = None
+                for obj_id, entity in engine.objects.items():
+                    if entity.name == msg.get("p1"): p1_id = obj_id
+                    if entity.name == msg.get("p2"): p2_id = obj_id
+                    
+                if p1_id and p2_id:
+                    engine.add_segment(p1_id, p2_id, name=msg.get("name"))
+                    
+            elif cmd == "clear":
+                engine.clear()
+            
+        except Exception as e:
+            logger.error(f"执行几何指令失败: {e}")
 
     def _add_object(self, obj_data: dict) -> None:
         obj_id = obj_data['id']
@@ -1733,6 +1768,10 @@ class MainWindow(QMainWindow):
                 worker.wait(1000)
             except Exception:
                 pass
+                
+        if hasattr(self, 'ipc_server') and self.ipc_server is not None:
+            self.ipc_server.stop()
+            
         # 🛑 优雅关闭 JupyterLab 后台进程
         if hasattr(self, 'jupyter_mgr') and self.jupyter_mgr is not None:
             try:
