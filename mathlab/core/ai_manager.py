@@ -242,6 +242,7 @@ class AIRequestWorker(QThread):
             )
             response.raise_for_status()
 
+            buffer = ""
             for line in response.iter_lines():
                 if not self._is_running:
                     break
@@ -269,15 +270,32 @@ class AIRequestWorker(QThread):
                                 content = delta['text']
 
                         if content:
-                            # 尝试识别完整 JSON 动作指令
-                            cleaned = _strip_markdown_json(content)
-                            try:
-                                action_data = json.loads(cleaned)
-                                if isinstance(action_data, dict) and 'action' in action_data:
-                                    self.action_required.emit(cleaned)
-                                    continue
-                            except (json.JSONDecodeError, ValueError):
-                                pass
+                            buffer += content
+                            start_idx = buffer.find('{')
+                            while start_idx != -1:
+                                brace_count = 0
+                                end_idx = -1
+                                for i in range(start_idx, len(buffer)):
+                                    if buffer[i] == '{':
+                                        brace_count += 1
+                                    elif buffer[i] == '}':
+                                        brace_count -= 1
+                                        if brace_count == 0:
+                                            end_idx = i
+                                            break
+                                if end_idx != -1:
+                                    possible_json = buffer[start_idx:end_idx+1]
+                                    try:
+                                        action_data = json.loads(possible_json)
+                                        if isinstance(action_data, dict) and 'action' in action_data:
+                                            self.action_required.emit(possible_json)
+                                            buffer = buffer[:start_idx] + buffer[end_idx+1:]
+                                            start_idx = buffer.find('{')
+                                            continue
+                                    except Exception:
+                                        pass
+                                start_idx = buffer.find('{', start_idx + 1)
+                                
                             self.chunk_received.emit(content)
                     except json.JSONDecodeError:
                         pass

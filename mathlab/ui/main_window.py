@@ -761,6 +761,7 @@ class MainWindow(QMainWindow):
                 fn=self.cas_provider.extract_line_control_points,
                 on_success=on_success,
                 on_error=on_error,
+                group_id=f"eq_{obj_id}",
                 equation_str=new_equation
             )
 

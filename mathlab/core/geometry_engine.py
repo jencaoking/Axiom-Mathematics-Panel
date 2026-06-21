@@ -310,7 +310,7 @@ class Intersection(GeometricObject):
         
         if hasattr(engine, 'cas_provider') and engine.cas_provider:
             # 引入全局异步调度中心
-            from mathlab.core.async_workers import TaskManager
+            from .async_workers import TaskManager
             
             def on_success(points):
                 if points and len(points) > self.index:
@@ -1369,11 +1369,8 @@ class GeometryEngine:
         if obj_id not in self.objects:
             return
 
-        # 用 BFS 收集以 obj_id 为根的整棵依赖子树（拓扑序，叶子在前）
-        # get_dependents 只做 DFS 后序，已能覆盖全树；逆序后叶子在前，
-        # 保证先删叶子再删父节点，DAG 边不会残留
+        # get_dependents 返回拓扑序（父→子），reversed 后保证叶子先删。
         all_dependents = self.dependencies.get_dependents(obj_id)
-        # get_dependents 返回 [根排第一, ..., 叶子排最后]，逆序后叶子优先删
         for dep_id in reversed(all_dependents):
             if dep_id in self.objects:
                 self._name_set.discard(self.objects[dep_id].name)
@@ -1517,7 +1514,13 @@ class GeometryEngine:
                 z_idx = var_to_idx.get((point.id, 'z'))
                 if x_idx is not None and y_idx is not None and z_idx is not None:
                     # 5. 更新点坐标
-                    self.update_point(point.id, x=result[x_idx], y=result[y_idx], z=result[z_idx])
+                    try:
+                        x_val = float(getattr(result[x_idx], 'evalf', lambda: result[x_idx])())
+                        y_val = float(getattr(result[y_idx], 'evalf', lambda: result[y_idx])())
+                        z_val = float(getattr(result[z_idx], 'evalf', lambda: result[z_idx])())
+                        self.update_point(point.id, x=x_val, y=y_val, z=z_val)
+                    except Exception:
+                        pass
             
             return {'success': True, 'solution': result.tolist()}
         except Exception as e:
