@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-2.0.0-orange.svg)]()
 
-> **MathLab (Version 1.0)** 是一款交互式数学与AI教学桌面软件，集动态几何画板、Python编程学习环境、算法可视化和AI辅助学习于一体。本版本为全新的 **1.0 正式版本**，引入了全新的自适应前景色矢量图标、微动画转场以及偏好设置自动持久化等多项交互与易用性优化。
+> **MathLab (Version 2.0)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（支持 2D 与 3D）、Python 编程学习环境、算法可视化和 AI 具身学习于一体。本版本为全新的 **2.0 正式版本**，引入了异步计算中枢、实时 3D 渲染引擎、AI 具身交互、Fluent Design 暗黑主题以及一系列性能与 UI 优化。
 
 ## 目录
 
