@@ -117,8 +117,11 @@ def set_theme(theme_name):
     app.setProperty('current_theme', theme_name)
 
     app.setStyleSheet(f"""
-        QMainWindow {{
+        QMainWindow, QDialog {{
             background-color: {theme['background']};
+            color: {theme['foreground']};
+        }}
+        QLabel {{
             color: {theme['foreground']};
         }}
         QDockWidget {{
@@ -163,10 +166,21 @@ def set_theme(theme_name):
             background-color: {theme['console_bg']};
             color: {theme['console_fg']};
         }}
-        QLineEdit {{
+        QLineEdit, QComboBox, QSpinBox {{
             background-color: {theme['panel_bg']};
             color: {theme['foreground']};
             border: 1px solid {theme['panel_border']};
+        }}
+        QComboBox QAbstractItemView {{
+            background-color: {theme['panel_bg']};
+            color: {theme['foreground']};
+            selection-background-color: {theme['accent']};
+        }}
+        QPushButton {{
+            background-color: {theme['panel_bg']};
+            color: {theme['foreground']};
+            border: 1px solid {theme['panel_border']};
+            padding: 4px 12px;
         }}
     """)
 
