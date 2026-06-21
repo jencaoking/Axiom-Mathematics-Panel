@@ -258,6 +258,10 @@ class MainWindow(QMainWindow):
         self.function_explorer_action.triggered.connect(self.toggle_function_explorer)
         self.math_console_action.triggered.connect(self.toggle_math_console)
 
+        self.geometry_tool_action.triggered.connect(self._show_command_palette)
+        self.algebra_tool_action.triggered.connect(lambda: self.toggle_algebra_panel(True))
+        self.ai_tool_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
+
         self.theme_action.triggered.connect(self.show_theme_dialog)
         self.language_action.triggered.connect(self.show_language_dialog)
         self.preferences_action.triggered.connect(self.show_preferences_dialog)

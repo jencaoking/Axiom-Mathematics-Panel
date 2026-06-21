@@ -276,7 +276,7 @@ class CommandPalette(QWidget):
         layout = QHBoxLayout(w)
         layout.setContentsMargins(16, 0, 16, 0)
         lbl = QLabel(category.upper())
-        lbl.setStyleSheet("color: #5a5c78; font-size: 10px; font-weight: bold; letter-spacing: 1px;")
+        lbl.setStyleSheet("background: transparent; color: #5a5c78; font-size: 10px; font-weight: bold; letter-spacing: 1px;")
         layout.addWidget(lbl)
         layout.addStretch()
         return w
@@ -296,7 +296,7 @@ class CommandPalette(QWidget):
 
         # 图标占位（可后期换成真实图标）
         icon_lbl = QLabel("›")
-        icon_lbl.setStyleSheet("color: #5a5c78; font-size: 14px; min-width:16px;")
+        icon_lbl.setStyleSheet("background: transparent; color: #5a5c78; font-size: 14px; min-width:16px;")
         icon_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_lbl)
 
@@ -304,12 +304,12 @@ class CommandPalette(QWidget):
         text_col = QVBoxLayout()
         text_col.setSpacing(1)
         title_lbl = QLabel(cmd.title)
-        title_lbl.setStyleSheet("color: #e8eaf0; font-size: 13px;")
+        title_lbl.setStyleSheet("background: transparent; color: #e8eaf0; font-size: 13px;")
         text_col.addWidget(title_lbl)
 
         if cmd.description:
             desc_lbl = QLabel(cmd.description)
-            desc_lbl.setStyleSheet("color: #6b6d84; font-size: 11px;")
+            desc_lbl.setStyleSheet("background: transparent; color: #6b6d84; font-size: 11px;")
             text_col.addWidget(desc_lbl)
 
         layout.addLayout(text_col)
