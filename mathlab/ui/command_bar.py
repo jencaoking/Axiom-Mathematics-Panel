@@ -406,8 +406,9 @@ class CommandBar(QToolBar):
         super().__init__("Command Bar", parent)
 
         self.command_edit = QLineEdit()
+        from mathlab.utils.i18n_manager import get_i18n
         self.command_edit.setPlaceholderText(
-            t('command_bar.placeholder') or "Enter command (Ctrl+Shift+P to open Command Palette)"
+            get_i18n().t('command_bar.placeholder') or "Enter command (Ctrl+Shift+P to open Command Palette)"
         )
         self.command_edit.setStyleSheet("""
             QLineEdit {

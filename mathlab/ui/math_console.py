@@ -48,7 +48,7 @@ class MathConsole(QDockWidget):
     """
 
     def __init__(self, parent=None):
-        from mathlab.locale import get_i18n
+        from mathlab.utils.i18n_manager import get_i18n
         t = get_i18n().t
         super().__init__(f"{t('math_console.title') or 'Interactive Console'} (Octave / NumEngine)", parent)
         self.setAllowedAreas(

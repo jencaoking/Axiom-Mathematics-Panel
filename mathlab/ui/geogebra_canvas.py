@@ -183,3 +183,6 @@ class GeoGebraCanvas(QGraphicsView):
             elif isinstance(entity, GeoCircle):
                 item.setRect(entity.center_x - entity.r, entity.center_y - entity.r, 
                              entity.r * 2, entity.r * 2)
+
+        if hasattr(self, 'on_engine_updated') and self.on_engine_updated:
+            self.on_engine_updated()

@@ -1,5 +1,6 @@
 import uuid
 import math
+import re
 from typing import List, Dict
 
 class GeoEntity:
@@ -10,6 +11,12 @@ class GeoEntity:
         self.children = []
         self.is_visible = True
         
+    def get_algebra_string(self) -> str:
+        return "Undefined"
+        
+    def update_from_string(self, expr: str) -> bool:
+        return False
+
     def add_child(self, child: 'GeoEntity'):
         if child not in self.children:
             self.children.append(child)
@@ -35,6 +42,20 @@ class GeoPoint(GeoEntity):
             self.y = y
             self.notify_update()
 
+    def get_algebra_string(self) -> str:
+        return f"({self.x:.2f}, {self.y:.2f})"
+
+    def update_from_string(self, expr: str) -> bool:
+        if self.parents:
+            return False
+            
+        match = re.search(r'\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)', expr)
+        if match:
+            new_x, new_y = float(match.group(1)), float(match.group(2))
+            self.set_coords(new_x, new_y)
+            return True
+        return False
+
 class GeoLine(GeoEntity):
     def __init__(self, name: str, p1: GeoPoint, p2: GeoPoint):
         super().__init__(name, parents=[p1, p2])
@@ -44,6 +65,21 @@ class GeoLine(GeoEntity):
         
     def compute(self):
         pass
+
+    def get_algebra_string(self) -> str:
+        x1, y1 = self.parents[0].x, self.parents[0].y
+        x2, y2 = self.parents[1].x, self.parents[1].y
+        dx = x2 - x1
+        dy = y2 - y1
+        
+        if abs(dx) < 1e-6:
+            return f"x = {x1:.2f}"
+            
+        k = dy / dx
+        b = y1 - k * x1
+        
+        sign = "+" if b >= 0 else "-"
+        return f"y = {k:.2f}x {sign} {abs(b):.2f}"
 
 class GeoCircle(GeoEntity):
     """由圆心和圆上一点定义的圆"""
@@ -136,6 +172,11 @@ class GeoIntersection(GeoPoint):
             self.is_visible = True
         else:
             self.is_visible = False
+
+    def get_algebra_string(self) -> str:
+        if not self.is_visible:
+            return "无实数解"
+        return f"交点 ({self.x:.2f}, {self.y:.2f})"
 
 
 class GeometryEngine:
