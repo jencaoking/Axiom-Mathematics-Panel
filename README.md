@@ -34,6 +34,8 @@
 | **算法可视化** | 排序、搜索、图论等算法的逐步动画演示 |
 | **AI辅助学习** | 线性/多项式回归、K-Means聚类、神经网络训练等ML功能 |
 | **全局命令面板** | VS Code 风格的全局命令控制台，支持模糊搜索、快捷执行 |
+| **界面交互与微动画**| 引入自适应前景色 Feather Icons 矢量图标；基于 `QPropertyAnimation` 对侧边栏提供 200ms 柔和淡入淡出转场 |
+| **主题设置持久化** | 用户的主题选择自动写入 `settings.json` 配置文件，并在启动时秒级恢复历史记忆 |
 
 ### 🔒 安全特性
 
@@ -162,6 +164,7 @@ mathlab/
 │   ├── algo_vis_panel.py       # 算法可视化面板
 │   ├── ai_tools_panel.py       # AI 工具面板
 │   ├── preferences_dialog.py   # 设置对话框
+│   ├── animations.py           # 动画辅助驱动 (淡入淡出过渡)
 │   └── styles.qss              # 样式表
 │
 ├── core/                      # 后端内核模块
