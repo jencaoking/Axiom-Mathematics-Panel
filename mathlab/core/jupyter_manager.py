@@ -70,20 +70,17 @@ class JupyterManager:
             if self.process is not None:
                 return self._is_ready  # 防重入
 
-        # 优先用 venv 内的 jupyter 可执行文件
-        jupyter_exe = self._resolve_jupyter()
-
+        # 🌟 适配 PyInstaller 环境的启动方式 🌟
+        # sys.executable 在打包后指向 MathLab.exe，在开发时指向 python.exe
+        # 我们使用 -m jupyterlab 来确保它从当前解释器环境中寻找模块
         cmd = [
-            jupyter_exe,
-            "lab",
-            "--no-browser",
-            f"--port={self.port}",
-            "--ServerApp.token=''",
+            sys.executable, "-m", "jupyterlab", 
+            "--no-browser", 
+            f"--port={self.port}", 
+            "--ServerApp.token=''", 
             "--ServerApp.password=''",
-            "--ServerApp.allow_origin=*",
-            "--ServerApp.disable_check_xsrf=True",
-            # 关闭不必要的扩展，加速首次启动
-            "--LabApp.check_for_updates_class=jupyterlab.NeverCheckForUpdate",
+            "--ServerApp.allow_origin='*'",
+            "--ServerApp.disable_check_xsrf=True"
         ]
 
         kwargs: dict = {

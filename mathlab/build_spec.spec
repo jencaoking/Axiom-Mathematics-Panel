@@ -6,7 +6,12 @@
 
 import sys
 import os
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files, copy_metadata
+
+# 1. 强制收集 JupyterLab 及其底层依赖的所有静态网页资源 (HTML/JS/CSS)
+jupyter_datas = collect_data_files('jupyterlab')
+jupyter_datas += collect_data_files('notebook')
+jupyter_datas += collect_data_files('ipykernel')
 
 # ── 1. 动态收集本地依赖的静态资源 (极其关键) ───────────────────────────────────
 app_datas = [
@@ -15,7 +20,7 @@ app_datas = [
     ('ui/icons', 'ui/icons'),       # SVG 图标
     ('docs', 'docs'),               # 文档
     ('resources', 'resources'),     # 资源文件
-]
+] + jupyter_datas
 
 # 动态遍历 plugins 目录，把所有 Web 前端工程都打包进去
 plugins_dir = 'plugins'
@@ -139,6 +144,8 @@ a = Analysis(
     binaries=[],
     datas=app_datas,
     hiddenimports=[
+        'jupyterlab', 'notebook', 'ipykernel', 'zmq', 
+        'IPython', 'requests',
         # WebEngine / PySide6 依赖
         'PySide6.QtWebEngineWidgets',
         'PySide6.QtWebChannel',

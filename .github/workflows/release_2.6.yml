@@ -1,0 +1,96 @@
+name: CD - Build and Release MathLab 2.6
+
+on:
+  push:
+    tags:
+      - 'v2.6.*'  # 专属 2.6 版本的触发器
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build MathLab on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            asset_suffix: Windows.zip
+          - os: macos-latest
+            asset_suffix: macOS.zip
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install Core and Jupyter Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r mathlab/requirements.txt
+        # 🌟 显式安装 2.6 版本引入的核心依赖 🌟
+        pip install jupyterlab PyQt6-WebEngine requests
+        pip install pyinstaller
+
+    - name: Download Monaco Editor Assets
+      shell: bash
+      run: |
+        mkdir -p mathlab/resources/monaco-editor
+        cd mathlab/resources
+        curl -O https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz
+        tar -xzf monaco-editor-0.43.0.tgz
+        mv package/min/vs monaco-editor/vs
+        rm -rf package monaco-editor-0.43.0.tgz
+        echo "Monaco Editor 离线包下载完成！"
+
+    - name: Set Asset Filename
+      id: vars
+      shell: bash
+      run: |
+        SAFE_REF=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9.-]/_/g')
+        echo "safe_ref=$SAFE_REF" >> $GITHUB_OUTPUT
+
+    - name: Build with PyInstaller
+      run: |
+        cd mathlab
+        pyinstaller build_spec.spec
+
+    # Windows 打包压缩
+    - name: Archive Release (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        Compress-Archive -Path mathlab\dist\MathLab -DestinationPath MathLab-${{ steps.vars.outputs.safe_ref }}-Windows.zip
+        echo "ZIP_NAME=MathLab-${{ steps.vars.outputs.safe_ref }}-Windows.zip" >> $env:GITHUB_ENV
+
+    # macOS 打包压缩
+    - name: Archive Release (macOS)
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        cd mathlab/dist
+        zip -r "../../MathLab-${{ steps.vars.outputs.safe_ref }}-macOS.zip" MathLab.app
+        cd ../..
+        echo "ZIP_NAME=MathLab-${{ steps.vars.outputs.safe_ref }}-macOS.zip" >> $GITHUB_ENV
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MathLab-${{ matrix.os }}-${{ steps.vars.outputs.safe_ref }}
+        path: ${{ env.ZIP_NAME }}
+
+    # 自动创建 Release 并上传附件
+    - name: Upload to GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.ZIP_NAME }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
