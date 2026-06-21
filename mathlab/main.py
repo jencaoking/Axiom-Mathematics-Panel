@@ -98,6 +98,19 @@ def main():
     
     window.algo_animator.step_ready = on_algorithm_step
     
+    # ── 初始化并启动插件化框架 ─────────────────────────────────────
+    from mathlab.core.extension_api import MathLabAPI
+    from mathlab.core.plugin_manager import PluginManager
+
+    window.mathlab_api = MathLabAPI(
+        main_window=window,
+        cmd_manager=window.cmd_manager,
+        console=window.console
+    )
+    window.plugin_manager = PluginManager(window.mathlab_api)
+    window.plugin_manager.load_all_plugins()
+    # ─────────────────────────────────────────────────────────────
+
     window.show()
     
     sys.exit(app.exec())

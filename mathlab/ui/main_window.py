@@ -1285,3 +1285,31 @@ class MainWindow(QMainWindow):
         self.console.retranslate_ui()
         self.algo_vis_panel.retranslate_ui()
         self.ai_tools_panel.retranslate_ui()
+
+    def add_dynamic_panel(self, panel_name: str, widget, icon=None):
+        """允许插件添加一个新的 UI 面板到主窗口侧边栏"""
+        dock = QDockWidget(panel_name.upper(), self)
+        dock.setObjectName(f"dock_dynamic_{panel_name}")
+        dock.setWidget(widget)
+        self.addDockWidget(Qt.RightDockWidgetArea, dock)
+        if hasattr(self, 'ai_tools_panel'):
+            self.tabifyDockWidget(self.ai_tools_panel, dock)
+        dock.show()
+        return dock
+
+    def closeEvent(self, event):
+        """在窗口关闭时卸载所有插件，释放资源"""
+        if hasattr(self, 'plugin_manager'):
+            try:
+                self.plugin_manager.unload_all()
+            except Exception as e:
+                print(f"Error unloading plugins on close: {e}")
+        # 清理所有活动的异步线程
+        for worker in list(self.active_workers):
+            try:
+                worker.terminate()
+                worker.wait()
+            except Exception:
+                pass
+        super().closeEvent(event)
+

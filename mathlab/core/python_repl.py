@@ -21,10 +21,16 @@ class PythonREPL:
         self.running = False
         self._sandbox = SandboxProcess()  # 单例沙箱实例
         self._session_mode = session_mode  # 会话模式开关
-        self._session_context = []  # 累积的会话上下文（所有成功执行的代码）
+        self.namespace = namespace or {}
     
+    def update_namespace(self, vars_dict):
+        """更新本地命名空间（用于向 REPL 环境中注入函数/变量）"""
+        self.namespace.update(vars_dict)
+        
+    def get_namespace(self):
+        """获取当前本地命名空间"""
+        return self.namespace
 
-    
     def execute(self, code_str, timeout=5):
         """
         在独立沙箱中执行代码，确保主程序永不卡死
