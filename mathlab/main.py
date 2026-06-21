@@ -126,6 +126,16 @@ def main():
         # ─────────────────────────────────────────────────────────────
 
         window.show()
+        
+        # ── 关闭 PyInstaller Splash Screen ──
+        try:
+            import pyi_splash
+            if pyi_splash.is_alive():
+                pyi_splash.close()
+                logger.info("已关闭 PyInstaller 启动画面。")
+        except ImportError:
+            pass
+
         logger.info("主窗口加载完毕，进入 Qt 事件循环。")
         sys.exit(app.exec())
 

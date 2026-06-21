@@ -207,6 +207,17 @@ a.binaries = filter_binaries(a.binaries)
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# ── 启动动画 (Splash Screen) ──────────────────────────────────────────────
+splash = Splash(
+    'mathlab/resources/icons/app_icon.png',
+    binaries=a.binaries,
+    datas=a.datas,
+    text_pos=None,
+    text_size=12,
+    minify_script=True,
+    always_on_top=True
+)
+
 # ── 图标路径检测 ────────────────────────────────────────────────────────
 icon_path = 'resources/icons/app_icon.ico' if os.path.exists('resources/icons/app_icon.ico') else ('mathlab/resources/icons/app_icon.ico' if os.path.exists('mathlab/resources/icons/app_icon.ico') else None)
 
@@ -217,6 +228,8 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
+    splash,
+    splash.binaries,
     [],
     name='MathLab',
     icon=icon_path,

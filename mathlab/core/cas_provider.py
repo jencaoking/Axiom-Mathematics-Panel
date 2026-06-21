@@ -1,16 +1,24 @@
-import sympy
 import re
-from sympy import (
-    symbols, Symbol, Eq, solve, simplify, expand, factor,
-    diff, integrate, limit, latex, sin, cos, tan, log, exp,
-    sqrt, pi, Rational, Function, Derivative, Integral, sympify
-)
+
+_sympy_loaded = False
+def _load_sympy():
+    global _sympy_loaded
+    if _sympy_loaded: return
+    import sympy
+    from sympy import (
+        symbols, Symbol, Eq, solve, simplify, expand, factor,
+        diff, integrate, limit, latex, sin, cos, tan, log, exp,
+        sqrt, pi, Rational, Function, Derivative, Integral, sympify
+    )
+    globals().update(locals())
+    _sympy_loaded = True
 
 class CASProvider:
     def __init__(self):
         self.symbols_cache = {}
     
     def _get_symbol(self, name):
+        _load_sympy()
         if name in self.symbols_cache:
             return self.symbols_cache[name]
         
@@ -21,6 +29,7 @@ class CASProvider:
         return self.symbols_cache[name]
     
     def parse_expression(self, expr_str):
+        _load_sympy()
         try:
             result = sympify(expr_str, locals=self.symbols_cache)
             for symbol in result.free_symbols:
@@ -167,6 +176,7 @@ class CASProvider:
     
     def solve_intersection(self, obj1, obj2):
         """求解两个几何对象的交点"""
+        _load_sympy()
         try:
             x, y = symbols('x y')
             
@@ -226,6 +236,7 @@ class CASProvider:
     
     def extract_line_control_points(self, equation_str):
         """从直线方程中提取两个控制点坐标"""
+        _load_sympy()
         try:
             from sympy.parsing.sympy_parser import parse_expr, standard_transformations
             

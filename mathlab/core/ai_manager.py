@@ -1,12 +1,10 @@
 import numpy as np
 
-try:
-    from sklearn.linear_model import LinearRegression
-    from sklearn.preprocessing import PolynomialFeatures
-    from sklearn.cluster import KMeans, DBSCAN
-    from sklearn.metrics import mean_squared_error
+import importlib.util
+
+if importlib.util.find_spec('sklearn') is not None:
     SKLEARN_AVAILABLE = True
-except ImportError:
+else:
     SKLEARN_AVAILABLE = False
 import os
 import json
@@ -244,6 +242,9 @@ class AIManager:
         if len(points) < 2:
             return {'success': False, 'error': 'Need at least 2 points'}
         
+        from sklearn.linear_model import LinearRegression
+        from sklearn.metrics import mean_squared_error
+        
         X = np.array([[p[0]] for p in points], dtype=np.float32)
         y = np.array([p[1] for p in points], dtype=np.float32)
         
@@ -270,6 +271,8 @@ class AIManager:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < degree + 1:
             return {'success': False, 'error': f'Need at least {degree + 1} points'}
+        
+        from sklearn.metrics import mean_squared_error
         
         X = np.array([p[0] for p in points], dtype=np.float64)
         y = np.array([p[1] for p in points], dtype=np.float64)
@@ -361,6 +364,8 @@ class AIManager:
         if len(points) < n_clusters:
             return {'success': False, 'error': 'Not enough points for clusters'}
         
+        from sklearn.cluster import KMeans
+        
         X = np.array(points, dtype=np.float32)
         
         model = KMeans(n_clusters=n_clusters, n_init=10)
@@ -381,6 +386,8 @@ class AIManager:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < min_samples:
             return {'success': False, 'error': 'Not enough points'}
+        
+        from sklearn.cluster import DBSCAN
         
         X = np.array(points, dtype=np.float32)
         
