@@ -218,9 +218,16 @@ class AIToolsPanel(QDockWidget):
 
         self.provider_combo = QComboBox()
         self.provider_combo.addItem('Local Demo', AIProvider.LOCAL.value)
-        self.provider_combo.addItem('Minimax', AIProvider.MINIMAX.value)
-        self.provider_combo.addItem('Kimi', AIProvider.KIMI.value)
+        self.provider_combo.addItem('OpenAI', AIProvider.OPENAI.value)
+        self.provider_combo.addItem('Claude', AIProvider.CLAUDE.value)
+        self.provider_combo.addItem('Gemini', AIProvider.GEMINI.value)
         self.provider_combo.addItem('DeepSeek', AIProvider.DEEPSEEK.value)
+        self.provider_combo.addItem('Kimi', AIProvider.KIMI.value)
+        self.provider_combo.addItem('Minimax', AIProvider.MINIMAX.value)
+        self.provider_combo.addItem('Qwen (通义千问)', AIProvider.QWEN.value)
+        self.provider_combo.addItem('Zhipu (智谱清言)', AIProvider.ZHIPU.value)
+        self.provider_combo.addItem('Doubao (豆包)', AIProvider.DOUBAO.value)
+        self.provider_combo.addItem('Ollama', AIProvider.OLLAMA.value)
 
         input_layout = QHBoxLayout()
         input_layout.addWidget(self.chat_input)

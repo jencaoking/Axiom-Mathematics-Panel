@@ -29,14 +29,14 @@ try:
     from core.python_repl import PythonREPL
     from core.ai_manager import AIManager
     from core.cas_provider import CASProvider
-    from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker, TaskManager
+    from core.async_workers import TaskManager
     from core.command_manager import CommandManager, Command
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
     from ..core.cas_provider import CASProvider
-    from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker, TaskManager
+    from ..core.async_workers import TaskManager
     from ..core.command_manager import CommandManager, Command
 
 try:

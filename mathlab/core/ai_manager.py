@@ -65,9 +65,16 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 class AIProvider(Enum):
-    MINIMAX = "minimax"
-    KIMI = "kimi"
+    OPENAI = "openai"
+    CLAUDE = "claude"
+    GEMINI = "gemini"
     DEEPSEEK = "deepseek"
+    KIMI = "kimi"
+    MINIMAX = "minimax"
+    QWEN = "qwen"
+    ZHIPU = "zhipu"
+    DOUBAO = "doubao"
+    OLLAMA = "ollama"
     LOCAL = "local"
 
 class AIRequestConfig:
@@ -180,19 +187,37 @@ class AIRequestWorker(QThread):
 
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.config.api_key}'
         }
+        if self.config.provider == AIProvider.CLAUDE:
+            headers['x-api-key'] = self.config.api_key
+            headers['anthropic-version'] = '2023-06-01'
+        else:
+            headers['Authorization'] = f'Bearer {self.config.api_key}'
 
         model_names = {
-            AIProvider.MINIMAX: "abab6.5s-chat",
+            AIProvider.OPENAI: "gpt-4o",
+            AIProvider.CLAUDE: "claude-3-5-sonnet-20241022",
+            AIProvider.GEMINI: "gemini-1.5-flash",
+            AIProvider.DEEPSEEK: "deepseek-chat",
             AIProvider.KIMI: "moonshot-v1-8k",
-            AIProvider.DEEPSEEK: "deepseek-chat"
+            AIProvider.MINIMAX: "abab6.5s-chat",
+            AIProvider.QWEN: "qwen-plus",
+            AIProvider.ZHIPU: "glm-4",
+            AIProvider.DOUBAO: "doubao-pro-4k",
+            AIProvider.OLLAMA: "qwen2",
         }
 
         urls = {
-            AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
+            AIProvider.OPENAI: "https://api.openai.com/v1/chat/completions",
+            AIProvider.CLAUDE: "https://api.anthropic.com/v1/messages",
+            AIProvider.GEMINI: "https://generativetoolkit.googleapis.com/v1beta/openai/chat/completions",
+            AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions",
             AIProvider.KIMI: "https://api.moonshot.cn/v1/chat/completions",
-            AIProvider.DEEPSEEK: "https://api.deepseek.com/v1/chat/completions"
+            AIProvider.MINIMAX: "https://api.minimax.chat/v1/text/chatcompletion",
+            AIProvider.QWEN: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            AIProvider.ZHIPU: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+            AIProvider.DOUBAO: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+            AIProvider.OLLAMA: "http://localhost:11434/v1/chat/completions",
         }
 
         payload = {
@@ -230,20 +255,30 @@ class AIRequestWorker(QThread):
                         # ── 隐患二修复：剥离 LLM 输出中可能包裹的 Markdown 标记 ──
                         decoded = _strip_markdown_json(decoded)
                         data = json.loads(decoded)
+                        
+                        content = ""
+                        # OpenAI / standard format
                         if 'choices' in data and len(data['choices']) > 0:
                             delta = data['choices'][0].get('delta', {})
                             if 'content' in delta:
                                 content = delta['content']
-                                # 尝试识别完整 JSON 动作指令
-                                cleaned = _strip_markdown_json(content)
-                                try:
-                                    action_data = json.loads(cleaned)
-                                    if isinstance(action_data, dict) and 'action' in action_data:
-                                        self.action_required.emit(cleaned)
-                                        continue
-                                except (json.JSONDecodeError, ValueError):
-                                    pass
-                                self.chunk_received.emit(content)
+                        # Anthropic Claude format
+                        elif data.get('type') == 'content_block_delta':
+                            delta = data.get('delta', {})
+                            if 'text' in delta:
+                                content = delta['text']
+
+                        if content:
+                            # 尝试识别完整 JSON 动作指令
+                            cleaned = _strip_markdown_json(content)
+                            try:
+                                action_data = json.loads(cleaned)
+                                if isinstance(action_data, dict) and 'action' in action_data:
+                                    self.action_required.emit(cleaned)
+                                    continue
+                            except (json.JSONDecodeError, ValueError):
+                                pass
+                            self.chunk_received.emit(content)
                     except json.JSONDecodeError:
                         pass
         except requests.exceptions.RequestException as e:
