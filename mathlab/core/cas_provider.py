@@ -1,4 +1,5 @@
 import re
+import functools
 
 _sympy_loaded = False
 def _load_sympy():
@@ -12,6 +13,18 @@ def _load_sympy():
     )
     globals().update(locals())
     _sympy_loaded = True
+
+@functools.lru_cache(maxsize=1024)
+def _cached_sympify(expr_str):
+    _load_sympy()
+    from sympy import sympify
+    return sympify(expr_str)
+
+@functools.lru_cache(maxsize=1024)
+def _cached_parse_expr(expr_str):
+    _load_sympy()
+    from sympy.parsing.sympy_parser import parse_expr, standard_transformations
+    return parse_expr(expr_str, transformations=standard_transformations)
 
 class CASProvider:
     def __init__(self):
@@ -31,7 +44,7 @@ class CASProvider:
     def parse_expression(self, expr_str):
         _load_sympy()
         try:
-            result = sympify(expr_str, locals=self.symbols_cache)
+            result = _cached_sympify(expr_str)
             for symbol in result.free_symbols:
                 sym_name = str(symbol)
                 if not hasattr(sympy, sym_name):
@@ -82,11 +95,11 @@ class CASProvider:
             if match:
                 left_str = equation_str[:match.start()]
                 right_str = equation_str[match.end():]
-                left_expr = sympify(left_str.strip(), locals=self.symbols_cache)
-                right_expr = sympify(right_str.strip(), locals=self.symbols_cache)
+                left_expr = _cached_sympify(left_str.strip())
+                right_expr = _cached_sympify(right_str.strip())
                 eq = Eq(left_expr, right_expr)
             else:
-                left_expr = sympify(equation_str, locals=self.symbols_cache)
+                left_expr = _cached_sympify(equation_str.strip())
                 eq = Eq(left_expr, 0)
             
             solutions = solve(eq, x)
@@ -238,19 +251,17 @@ class CASProvider:
         """从直线方程中提取两个控制点坐标"""
         _load_sympy()
         try:
-            from sympy.parsing.sympy_parser import parse_expr, standard_transformations
-            
             x, y = symbols('x y')
             
             match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
             if match:
                 left_str = equation_str[:match.start()]
                 right_str = equation_str[match.end():]
-                left_expr = parse_expr(left_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
-                right_expr = parse_expr(right_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
+                left_expr = _cached_parse_expr(left_str.strip())
+                right_expr = _cached_parse_expr(right_str.strip())
                 eq = left_expr - right_expr
             else:
-                eq = parse_expr(equation_str.strip(), local_dict={'x': x, 'y': y}, transformations=standard_transformations)
+                eq = _cached_parse_expr(equation_str.strip())
             
             eq = simplify(eq)
             
