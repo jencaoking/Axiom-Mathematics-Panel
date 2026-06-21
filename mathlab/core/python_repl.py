@@ -119,6 +119,7 @@ class PythonREPL:
     def clear_session(self):
         """清空会话上下文"""
         self._sandbox.terminate()
+        self.history.clear()
     
     def get_session_context_length(self):
         return len(self.history)

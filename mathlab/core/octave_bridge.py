@@ -245,7 +245,9 @@ class OctaveBridge:
         code = code.replace("./", "__DOT_DIV__")
         code = code.replace(".^", "__DOT_POW__")
 
-        # （注意：* 保留为 *，在 evaluate 阶段通过 AST 替换为 __smart_mul__ 以兼容标量）
+        # 将矩阵乘法 operator * 替换为 @，而 element-wise 乘法 .* 会被还原为 *。
+        # 在 evaluate 阶段通过 AST 将 @ 替换为 __smart_mul__ 以兼容标量乘法。
+        code = code.replace("*", "@")
 
         # 4. 幂运算：^ → **
         code = code.replace("^", "**")
@@ -277,7 +279,7 @@ class OctaveBridge:
             2. 运算符映射
 
         :param code: MATLAB/Octave 源代码字符串
-        :returns: 等价的 Python 代码字符串
+        :returns: 等价 of Python 代码字符串
         """
         code = code.strip()
         code = self._translate_matrix_literals(code)
@@ -309,7 +311,7 @@ class OctaveBridge:
         class SmartMulTransformer(ast.NodeTransformer):
             def visit_BinOp(self, node):
                 self.generic_visit(node)
-                if isinstance(node.op, ast.Mult):
+                if isinstance(node.op, ast.MatMult):
                     return ast.Call(
                         func=ast.Name(id='__smart_mul__', ctx=ast.Load()),
                         args=[node.left, node.right],

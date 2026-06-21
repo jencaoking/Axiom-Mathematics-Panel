@@ -74,7 +74,7 @@ def execute_code(code):
             
         output = output_buffer.getvalue()
         return {'success': True, 'output': output, 'error': ''}
-    except Exception as e:
+    except BaseException as e:
         output = output_buffer.getvalue()
         return {'success': False, 'output': output, 'error': str(e)}
 
@@ -90,7 +90,7 @@ def main():
             out_str = json.dumps(res) + '\n'
             sys.stdout.write(out_str)
             sys.stdout.flush()
-        except Exception as e:
+        except BaseException as e:
             sys.stdout.write(json.dumps({'success': False, 'output': '', 'error': str(e)}) + '\n')
             sys.stdout.flush()
 

@@ -549,15 +549,24 @@ class Ellipse(GeometricObject):
         self.rotation = rotation  # 旋转角度（弧度）
         self.depends_on = [center_id]
     
+    def _generate_ellipse_points(self, cx, cy, a, b, rotation, num_points=200):
+        t = np.linspace(0, 2 * np.pi, num_points)
+        x = cx + a * np.cos(t) * np.cos(rotation) - b * np.sin(t) * np.sin(rotation)
+        y = cy + a * np.cos(t) * np.sin(rotation) + b * np.sin(t) * np.cos(rotation)
+        return list(zip(x.tolist(), y.tolist()))
+
     def update_coordinates(self, engine):
         center = engine.objects.get(self.center_id)
         if center:
+            cx = center.coordinates['x']
+            cy = center.coordinates['y']
             self.coordinates = {
-                'cx': center.coordinates['x'],
-                'cy': center.coordinates['y'],
+                'cx': cx,
+                'cy': cy,
                 'a': self.a,
                 'b': self.b,
-                'rotation': self.rotation
+                'rotation': self.rotation,
+                'points': self._generate_ellipse_points(cx, cy, self.a, self.b, self.rotation)
             }
     
     def to_latex(self):
