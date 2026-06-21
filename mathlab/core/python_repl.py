@@ -21,6 +21,7 @@ class PythonREPL:
         self.running = False
         self._sandbox = SandboxProcess()  # 单例沙箱实例
         self._session_mode = session_mode  # 会话模式开关
+        self._session_context = []  # 存储已成功执行的会话代码上下文
         self.namespace = namespace or {}
     
     def update_namespace(self, vars_dict):

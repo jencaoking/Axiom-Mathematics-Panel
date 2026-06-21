@@ -16,6 +16,9 @@ def test_parameter_extraction():
     print("测试1: 参数提取")
     print("=" * 60)
     
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
     panel = FunctionExplorerPanel()
     
     test_cases = [

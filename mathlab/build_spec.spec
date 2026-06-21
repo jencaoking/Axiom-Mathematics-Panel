@@ -249,6 +249,13 @@ exe = EXE(
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    entitlements_file=None,
     icon='resources/icon.ico' if os.path.exists('resources/icon.ico') else None,
+)
+
+# ── macOS Bundle ────────────────────────────────────────────────────────
+app = BUNDLE(
+    exe,
+    name='MathLab.app',
+    icon='resources/icon.ico' if os.path.exists('resources/icon.ico') else None,
+    bundle_identifier='com.mathlab.axiom',
 )

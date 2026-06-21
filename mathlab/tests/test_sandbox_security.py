@@ -89,7 +89,7 @@ def test_sandbox_isolation():
     
     try:
         from mathlab.core.python_repl import PythonREPL
-        repl = PythonREPL()
+        repl = PythonREPL(session_mode=False)
     except ImportError as e:
         print(f"无法导入 PythonREPL: {e}")
         print("跳过此测试（需要完整的环境依赖）\n")
