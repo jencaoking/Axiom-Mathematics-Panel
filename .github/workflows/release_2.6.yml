@@ -46,6 +46,7 @@ jobs:
         cd mathlab/resources
         curl -O https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz
         tar -xzf monaco-editor-0.43.0.tgz
+        rm -rf monaco-editor/vs  # Remove existing vs directory if it exists
         mv package/min/vs monaco-editor/vs
         rm -rf package monaco-editor-0.43.0.tgz
         echo "Monaco Editor 离线包下载完成！"
