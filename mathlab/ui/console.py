@@ -223,3 +223,59 @@ class PythonConsole(QDockWidget):
         self.output_area.clear()
         self.append_output(t('console.welcome') + '\n')
         self.append_prompt()
+
+    # ──────────────────────────────────────────────────────────────
+    #  命令面板 API
+    # ──────────────────────────────────────────────────────────────
+
+    def inject_variable(self, var_name: str, value_expr: str) -> None:
+        """向 REPL 静默注入一个变量赋值，不在输出区打印执行回显。
+
+        注入成功后在控制台显示一条系统提示；若 REPL 未初始化则仅显示提示。
+        用法示例（由命令面板调用）::
+
+            console.inject_variable('PI', '3.141592653589793')
+        """
+        script = f"{var_name} = {value_expr}"
+        if self.python_repl is not None:
+            try:
+                result = self.python_repl.execute(script)
+                if result.get('error'):
+                    self.display_system_message(
+                        f"[注入失败] {var_name}: {result['error']}", level='error'
+                    )
+                    return
+            except Exception as e:
+                self.display_system_message(f"[注入异常] {e}", level='error')
+                return
+        self.display_system_message(f"已注入变量: {var_name} = {value_expr}")
+
+    def insert_text_at_cursor(self, text: str) -> None:
+        """将文本插入到输入框当前光标位置，焦点自动移到输入框。
+
+        适合命令面板插入常用公式或函数模板::
+
+            console.insert_text_at_cursor('integrate(x**2, x)')
+        """
+        self.input_line.insert(text)
+        self.input_line.setFocus()
+
+    def display_system_message(self, message: str, level: str = 'info') -> None:
+        """在输出区显示一条系统级提示（与用户执行输出视觉区分）。
+
+        Parameters
+        ----------
+        message : str
+            要显示的消息文字。
+        level : str
+            'info'  — 蓝灰色提示（默认）
+            'warn'  — 橙色警告
+            'error' — 红色错误
+        """
+        # 使用 HTML 富文本着色（QPlainTextEdit 默认不支持 HTML，改用纯文本 + 前缀标识）
+        prefix = {
+            'info':  '[系统] ',
+            'warn':  '[警告] ',
+            'error': '[错误] ',
+        }.get(level, '[系统] ')
+        self.append_output(f"{prefix}{message}\n")

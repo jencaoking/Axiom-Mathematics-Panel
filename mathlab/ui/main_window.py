@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QLabel, QComboBox, QPushButton, QHBoxLayout,
     QSpacerItem, QSizePolicy
 )
-from PySide6.QtGui import QAction, QPainter as QtPainter
+from PySide6.QtGui import QAction, QPainter as QtPainter, QShortcut, QKeySequence
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtSvg import QSvgGenerator
 
@@ -16,7 +16,7 @@ from .canvas import GeometryCanvas
 from .algebra_panel import AlgebraPanel
 from .console import PythonConsole
 from .properties_panel import PropertiesPanel
-from .command_bar import CommandBar
+from .command_bar import CommandBar, CommandPalette
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
@@ -27,12 +27,14 @@ try:
     from core.ai_manager import AIManager
     from core.cas_provider import CASProvider
     from core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+    from core.command_manager import CommandManager, Command
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
     from ..core.cas_provider import CASProvider
     from ..core.async_workers import AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+    from ..core.command_manager import CommandManager, Command
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -70,6 +72,9 @@ class MainWindow(QMainWindow):
         self.python_repl = PythonREPL()
         self.ai_manager = AIManager()
 
+        # 命令管理器（必须在 setup_ui 前创建，供各面板注册命令）
+        self.cmd_manager = CommandManager()
+
         self.setup_ui()
         self.setup_menus()
         self.setup_toolbar()
@@ -82,6 +87,7 @@ class MainWindow(QMainWindow):
         self.active_workers = set()
 
         self.connect_signals()
+        self._register_commands()  # 注册命令面板命令
 
         get_i18n().add_language_change_listener(self._on_language_changed)
 
@@ -372,6 +378,17 @@ class MainWindow(QMainWindow):
         self.ai_tools_panel.hide()
 
         self.tabifyDockWidget(self.algo_vis_panel, self.ai_tools_panel)
+
+        # ── 命令面板（悬浮层，必须在 setup_docks 结尾创建） ───────────────────────
+        self.cmd_palette = CommandPalette(self.cmd_manager, self)
+
+        # Ctrl+Shift+P 唤醒命令面板
+        palette_shortcut = QShortcut(QKeySequence('Ctrl+Shift+P'), self)
+        palette_shortcut.activated.connect(self._show_command_palette)
+
+        # Ctrl+P 备用快捷键
+        palette_shortcut2 = QShortcut(QKeySequence('Ctrl+P'), self)
+        palette_shortcut2.activated.connect(self._show_command_palette)
 
     def load_stylesheet(self):
         try:
@@ -862,6 +879,94 @@ class MainWindow(QMainWindow):
                 t('dialogs.error'),
                 t('dialogs.invalid_command', str(e)),
             )
+
+    # ─────────────────────────────────────────────────────────────
+    #  命令面板相关方法
+    # ─────────────────────────────────────────────────────────────
+
+    def _show_command_palette(self) -> None:
+        """居中显示命令面板层。"""
+        self.cmd_palette.show_centered_on(self)
+
+    def _register_commands(self) -> None:
+        """向 CommandManager 注册所有默认命令。
+
+        分类设计：
+          视图   — 面板切换、dock 显隐
+          文件   — 新建、打开、保存、导出
+          画布   — 清空、缩放、工具切换
+          变量   — 常用数学常量注入
+          模板   — 向控制台插入常用公式模板
+          系统   — 主题、语言、首选项
+        """
+        reg = self.cmd_manager.register
+        C   = Command
+
+        # ── 视图 ────────────────────────────────────────────────────────
+        reg(C('view.algebra',    '显示 代数面板',         lambda: self.algebra_panel.show(),            '视图', 'Ctrl+1'))
+        reg(C('view.properties', '显示 属性面板',         lambda: self.properties_panel.show(),        '视图', 'Ctrl+2'))
+        reg(C('view.console',    '显示 Python 控制台',      lambda: self.console.show(),                 '视图', 'Ctrl+3'))
+        reg(C('view.algo',       '显示 算法可视化面板',   lambda: (self.algo_vis_panel.show(), self.algo_vis_panel.raise_()),  '视图'))
+        reg(C('view.ai',         '显示 AI 工具面板',      lambda: (self.ai_tools_panel.show(), self.ai_tools_panel.raise_()),   '视图'))
+        reg(C('view.function',   '显示 函数探索器',       lambda: (self.function_explorer.show(), self.function_explorer.raise_()), '视图'))
+
+        reg(C('view.hide.algebra',    '隐藏 代数面板',         lambda: self.algebra_panel.hide(),    '视图'))
+        reg(C('view.hide.properties', '隐藏 属性面板',         lambda: self.properties_panel.hide(), '视图'))
+        reg(C('view.hide.console',    '隐藏 Python 控制台',      lambda: self.console.hide(),          '视图'))
+        reg(C('view.hide.algo',       '隐藏 算法可视化面板',   lambda: self.algo_vis_panel.hide(),   '视图'))
+        reg(C('view.hide.ai',         '隐藏 AI 工具面板',      lambda: self.ai_tools_panel.hide(),   '视图'))
+
+        # ── 文件 ────────────────────────────────────────────────────────
+        reg(C('file.new',        '新建项目',             self.on_new_project,     '文件', 'Ctrl+N'))
+        reg(C('file.open',       '打开项目…',          self.on_open_project,    '文件', 'Ctrl+O'))
+        reg(C('file.save',       '保存项目',             self.on_save_project,    '文件', 'Ctrl+S'))
+        reg(C('file.save_as',    '另存项目…',          self.on_save_project_as, '文件', 'Ctrl+Shift+S'))
+        reg(C('file.export.png', '导出 PNG 图片',         self.on_export_png,      '文件'))
+        reg(C('file.export.svg', '导出 SVG 矢量图',       self.on_export_svg,      '文件'))
+        reg(C('file.export.tex', '导出 LaTeX 文档',        self.on_export_latex,    '文件'))
+
+        # ── 画布 ────────────────────────────────────────────────────────
+        reg(C('canvas.clear',    '清空画布与变量',       self.on_new_project,                          '画布'))
+        reg(C('canvas.zoom_in',  '放大画布',             lambda: self.central_widget.zoom_in(),        '画布', 'Ctrl+='))
+        reg(C('canvas.zoom_out', '缩小画布',             lambda: self.central_widget.zoom_out(),       '画布', 'Ctrl+-'))
+        reg(C('tool.select',     '切换工具: 选择',       lambda: self.on_action_selected('select'),     '画布', 'S'))
+        reg(C('tool.point',      '切换工具: 点',         lambda: self.on_action_selected('point'),      '画布', 'P'))
+        reg(C('tool.segment',    '切换工具: 线段',       lambda: self.on_action_selected('segment'),    '画布', 'L'))
+        reg(C('tool.circle',     '切换工具: 圆',         lambda: self.on_action_selected('circle'),     '画布', 'C'))
+        reg(C('tool.polygon',    '切换工具: 多边形',       lambda: self.on_action_selected('polygon'),    '画布', 'G'))
+        reg(C('tool.pan',        '切换工具: 平移画布',     lambda: self.on_action_selected('pan'),        '画布', 'H'))
+
+        # ── 变量注入 ────────────────────────────────────────────────────
+        def _inject(name, expr):
+            self.console.inject_variable(name, expr)
+
+        reg(C('var.pi',     '注入常量: 圆周率 PI',          lambda: _inject('PI',  '3.141592653589793'),  '变量', '', '≈ 3.14159'))
+        reg(C('var.e',      '注入常量: 自然常数 E',         lambda: _inject('E',   '2.718281828459045'),  '变量', '', '≈ 2.71828'))
+        reg(C('var.phi',    '注入常量: 黄金分割比 PHI',       lambda: _inject('PHI', '1.618033988749895'),  '变量', '', '≈ 1.61803'))
+        reg(C('var.sqrt2',  '注入常量: 根号 2 SQRT2',         lambda: _inject('SQRT2', '1.4142135623730951'), '变量', '', '≈ 1.41421'))
+        reg(C('var.inf',    '注入常量: 正无穷 INF',          lambda: _inject('INF', 'float("inf")'),       '变量'))
+        reg(C('var.deg',    '注入常量: 度转弧系数 DEG2RAD',    lambda: _inject('DEG2RAD', '0.017453292519943295'), '变量', '', '° → rad'))
+
+        # ── 模板插入 ────────────────────────────────────────────────────
+        def _insert(text):
+            self.console.insert_text_at_cursor(text)
+
+        reg(C('tpl.integrate',   '插入模板: 不定积分',     lambda: _insert('integrate(f, x)'),            '模板'))
+        reg(C('tpl.diff',        '插入模板: 导数',         lambda: _insert('diff(f, x)'),                 '模板'))
+        reg(C('tpl.limit',       '插入模板: 极限',         lambda: _insert('limit(f, x, 0)'),             '模板'))
+        reg(C('tpl.solve',       '插入模板: 方程求解',     lambda: _insert('solve(f, x)'),                '模板'))
+        reg(C('tpl.matrix',      '插入模板: 2x2 矩阵',     lambda: _insert('Matrix([[1,0],[0,1]])'),       '模板'))
+        reg(C('tpl.plot_sin',    '插入模板: 正弦函数绘图',   lambda: _insert('sin(x)'),                     '模板'))
+        reg(C('tpl.plot_cos',    '插入模板: 余弦函数绘图',   lambda: _insert('cos(x)'),                     '模板'))
+        reg(C('tpl.plot_normal', '插入模板: 正态分布函数',   lambda: _insert('exp(-x**2/2)'),               '模板'))
+        reg(C('tpl.taylor',      '插入模板: Taylor 展开',  lambda: _insert('series(f, x, 0, 6)'),         '模板'))
+
+        # ── 系统 ────────────────────────────────────────────────────────
+        reg(C('sys.preferences', '打开首选项',          self.show_preferences_dialog, '系统', 'Ctrl+,'))
+        reg(C('sys.theme',       '切换主题',             self.show_theme_dialog,       '系统'))
+        reg(C('sys.language',    '切换语言',             self.show_language_dialog,    '系统'))
+        reg(C('sys.about',       '关于 Axiom Mathematics', self.show_about,              '系统'))
+        reg(C('sys.console.clear', '清空控制台',         self.console.clear,           '系统'))
 
     def on_new_project(self) -> None:
         self.central_widget.clear_canvas()
