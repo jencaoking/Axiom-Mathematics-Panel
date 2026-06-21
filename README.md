@@ -1,11 +1,11 @@
-# MathLab
+# MathLab (代号: Axiom)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-2.0.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-2.5.0-orange.svg)]()
 
-> **MathLab (Version 2.0)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（支持 2D 与 3D）、Python 编程学习环境、算法可视化和 AI 具身学习于一体。本版本为全新的 **2.0 正式版本**，引入了异步计算中枢、实时 3D 渲染引擎、AI 具身交互、Fluent Design 暗黑主题以及一系列性能与 UI 优化。
+> **MathLab 2.5 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.0 的基础上引入 **GeoGebra 级几何约束求解引擎**、**SageMath 风格交互笔记本**、**Manim 级动画引擎**、**Octave 级矩阵/数值计算桥**、**多引擎 CAS 总线**以及**统一插件系统**，朝着"一体化数学实验室"的目标持续演进。
 
 ## 目录
 
@@ -15,6 +15,7 @@
 - [目录结构](#目录结构)
 - [技术架构](#技术架构)
 - [核心模块](#核心模块)
+- [插件系统](#插件系统)
 - [开发指南](#开发指南)
 - [测试](#测试)
 - [许可证](#许可证)
@@ -28,32 +29,40 @@
 
 | 功能 | 描述 |
 |------|------|
-| **动态几何画板** | 支持点、线段、圆、多边形等几何对象，基于依赖DAG实现实时联动 |
-| **Python编程环境** | 内置安全沙箱的交互式Python REPL，支持代码补全和历史记录 |
-| **符号计算系统** | 基于SymPy的完整CAS，支持化简、求导、积分、方程求解 |
-| **算法可视化** | 排序、搜索、图论等算法的逐步动画演示 |
-| **AI辅助学习** | 线性/多项式回归、K-Means聚类、神经网络训练等ML功能 |
+| **动态几何画板 (2D)** | 基于依赖 DAG 的实时联动几何对象：点、线段、圆、多边形等 |
+| **GeoGebra 级几何引擎** | 全新约束求解器，支持平行/垂直/共线/共圆/中点/相切等丰富约束 |
+| **实时 3D 动态几何画板** | 基于 Three.js + Qt WebChannel，支持点/线/球的实时交互与约束求解 |
+| **Python 编程环境** | 内置安全沙箱的交互式 Python REPL，支持代码补全、历史记录与子进程隔离 |
+| **符号计算系统 (CAS)** | 基于 SymPy 的 CAS，并预留多引擎 CAS 总线 (SymPy / Maxima / Giac) 接入能力 |
+| **数值计算引擎** | 面向 Octave 级矩阵运算与 BLAS/LAPACK 数值计算的 `NumEngine` + `OctaveBridge` |
+| **交互笔记本** | SageMath 风格的多 Cell 笔记本（代码、Markdown、几何对象混合编排） |
+| **算法可视化** | 排序、搜索、图论、凸包、K-Means 等算法的逐步动画演示 |
+| **动画引擎** | 借鉴 Manim 的数学动画时间轴与缓动，支持关键帧与过渡曲线 |
+| **AI 辅助学习** | 线性/多项式回归、K-Means/DBSCAN 聚类、ONNX 推理、可选 PyTorch 神经网络 |
 | **全局命令面板** | VS Code 风格的全局命令控制台，支持模糊搜索、快捷执行 |
-| **界面交互与微动画**| 引入自适应前景色 Feather Icons 矢量图标；基于 `QPropertyAnimation` 对侧边栏提供 200ms 柔和淡入淡出转场 |
-| **实时 3D 动态几何画板** | 基于 Three.js 与 Qt WebChannel 的双向数据流，支持点/线/球的实时交互与约束求解，2D 投影与代数面板同步更新 |
-| **主题设置持久化** | 用户的主题选择自动写入 `settings.json` 配置文件，并在启动时秒级恢复历史记忆 |
+| **界面交互与微动画** | 自适应前景色 Feather Icons；侧边栏 200ms 柔和淡入淡出转场 |
+| **主题设置持久化** | 用户主题选择自动写入 `settings.json`，启动时秒级恢复 |
+| **插件系统** | 统一 `Plugin` 基类 + 插件管理器，支持生命周期、热加载与扩展 API |
 
 ### 🔒 安全特性
 
 - **进程隔离**: 用户代码在独立子进程中执行
 - **超时控制**: 防止无限循环和死锁
-- **资源限制**: 内存和执行时间双重保护
+- **资源限制**: 内存与执行时间双重保护
 - **命名空间隔离**: 用户代码与系统环境分离
+- **WebEngine 沙箱**: 浏览器侧渲染进程可显式释放，避免内存泄漏
 
 ### 🛠️ 技术栈
 
 ```
-GUI框架:     PySide6 (Qt for Python)
-符号计算:    SymPy
-数值计算:    NumPy / SciPy
-机器学习:    scikit-learn / PyTorch / ONNX Runtime
-可视化:      matplotlib / pyqtgraph / networkx
-打包工具:    PyInstaller
+GUI框架:        PySide6 (Qt for Python) + Qt WebEngine
+符号计算:       SymPy (预留 Maxima / Giac 多引擎总线)
+数值计算:       NumPy / SciPy / OctaveBridge
+机器学习:       scikit-learn / PyTorch (可选) / ONNX Runtime (可选)
+可视化:         matplotlib / pyqtgraph / Three.js (3D) / ECharts (2D 插件)
+动画:           自研 Animation Engine (Manim 风格关键帧)
+笔记本:         自研 Notebook (SageMath 风格 Cell)
+打包工具:       PyInstaller / Nuitka
 ```
 
 ---
@@ -64,10 +73,11 @@ GUI框架:     PySide6 (Qt for Python)
 
 - Python 3.10 或更高版本
 - Windows 10+ / macOS 10.14+ / Ubuntu 20.04+
+- 推荐至少 8 GB 内存（启用 3D 渲染与 AI 功能时建议 16 GB）
 
 ### 安装
 
-#### 方式一：从源码安装
+#### 方式一：从源码运行（推荐）
 
 ```bash
 # 克隆项目
@@ -76,21 +86,34 @@ cd Axiom-Mathematics-Panel
 
 # 创建虚拟环境（推荐）
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
-.\venv\Scripts\Activate.ps1  # Windows
+source venv/bin/activate              # Linux/macOS
+.\venv\Scripts\Activate.ps1           # Windows
 
-# 安装依赖
+# 安装核心依赖
 pip install -r mathlab/requirements.txt
 
-# 运行
+# 按需启用可选功能
+pip install scikit-learn matplotlib pyqtgraph onnxruntime   # 轻量 AI + 可视化
+# pip install torch --index-url https://download.pytorch.org/whl/cpu   # 神经网络
+
+# 启动 MathLab
 cd mathlab
 python main.py
 ```
 
-#### 方式二：使用 pip 安装
+#### 方式二：使用 pip 安装（含可选扩展）
 
 ```bash
+# 仅核心
 pip install mathlab
+
+# 选择性扩展
+pip install "mathlab[ai]"            # scikit-learn + ONNX Runtime
+pip install "mathlab[neural]"        # PyTorch
+pip install "mathlab[visualization]" # matplotlib + pyqtgraph
+pip install "mathlab[full]"          # 上述全部
+
+# 启动
 mathlab
 ```
 
@@ -105,14 +128,13 @@ python main.py
 
 ## 功能演示
 
-### 几何作图
+### 几何作图（控制台 REPL）
 
 ```python
-# 在控制台输入以下命令
->>> draw_point(0, 0)    # 绘制点
->>> draw_point(3, 4)    # 绘制点
->>> draw_segment(p1, p2)  # 绘制线段
->>> draw_circle(p1, 5)   # 绘制圆
+>>> draw_point(0, 0)            # 绘制点
+>>> draw_point(3, 4)
+>>> draw_segment(p1, p2)        # 绘制线段
+>>> draw_circle(p1, 5)          # 绘制圆
 ```
 
 ### 符号计算
@@ -127,19 +149,31 @@ python main.py
 ### 算法可视化
 
 支持的可视化算法：
+
 - **排序算法**: 冒泡排序、快速排序、归并排序
 - **搜索算法**: 二分搜索、线性搜索
-- **图论算法**: BFS、DFS、Dijkstra最短路径
-- **几何算法**: 凸包
-- **机器学习**: K-Means聚类
+- **图论算法**: BFS、DFS、Dijkstra 最短路径
+- **几何算法**: Graham 扫描凸包
+- **机器学习**: K-Means 聚类
 
-### AI机器学习
+### AI / 机器学习
 
 ```python
 >>> fit_linear(points)              # 线性回归
 >>> fit_polynomial(points, 3)       # 多项式回归
->>> cluster_kmeans(data, n=3)       # K-Means聚类
+>>> cluster_kmeans(data, n=3)       # K-Means 聚类
 >>> generate_random_points(n=100)   # 生成随机数据
+```
+
+### 交互笔记本（Notebook）
+
+```python
+# 在 .mlnb 笔记本中混合编排代码、Markdown 与几何对象
+nb = Notebook()
+nb.add_markdown_cell("## 勾股定理演示")
+nb.add_code_cell("draw_triangle(0, 0, 3, 0, 0, 4)")
+nb.add_code_cell("simplify('a**2 + b**2 - c**2')")
+nb.run_all()
 ```
 
 ---
@@ -147,111 +181,148 @@ python main.py
 ## 目录结构
 
 ```
-mathlab/
-├── main.py                    # 程序入口
-├── setup.py                   # 安装配置
-├── requirements.txt           # 依赖列表
+Axiom-Mathematics-Panel/
+├── main.py                       # 程序入口
+├── setup.py                      # 安装配置（含 extras_require）
+├── requirements.txt              # 核心依赖
+├── requirements-optional.txt     # 可选依赖说明
 │
-├── ui/                        # 前端界面模块
-│   ├── __init__.py
-│   ├── main_window.py         # 主窗口布局
-│   ├── canvas.py               # 几何画布 (QGraphicsView)
-│   ├── code_editor.py          # 代码编辑器
-│   ├── function_explorer_panel.py  # 函数 explorer 面板
-│   ├── algebra_panel.py        # 代数侧边栏
-│   ├── console.py              # Python 控制台
-│   ├── properties_panel.py     # 属性面板
-│   ├── command_bar.py          # 命令输入栏
-│   ├── algo_vis_panel.py       # 算法可视化面板
-│   ├── ai_tools_panel.py       # AI 工具面板
-│   ├── preferences_dialog.py   # 设置对话框
-│   ├── animations.py           # 动画辅助驱动 (淡入淡出过渡)
-│   └── styles.qss              # 样式表
+├── mathlab/
+│   ├── ui/                       # 前端界面模块
+│   │   ├── main_window.py        # 主窗口布局
+│   │   ├── canvas.py             # 几何画布 (QGraphicsView)
+│   │   ├── geogebra_canvas.py    # GeoGebra 级几何画布
+│   │   ├── code_editor.py        # 代码编辑器 (Monaco)
+│   │   ├── function_explorer_panel.py   # 函数 explorer 面板
+│   │   ├── algebra_panel.py      # 代数侧边栏
+│   │   ├── geogebra_algebra_panel.py    # GeoGebra 代数面板
+│   │   ├── notebook_panel.py     # 笔记本面板
+│   │   ├── markdown_cell.py      # Markdown 单元格
+│   │   ├── console.py            # Python 控制台
+│   │   ├── math_console.py       # 数学控制台
+│   │   ├── properties_panel.py   # 属性面板
+│   │   ├── command_bar.py        # 命令输入栏
+│   │   ├── algo_vis_panel.py     # 算法可视化面板
+│   │   ├── ai_tools_panel.py     # AI 工具面板
+│   │   ├── interactive_widgets.py # 交互控件
+│   │   ├── preferences_dialog.py # 设置对话框
+│   │   ├── animations.py         # 动画辅助驱动
+│   │   └── styles.qss            # 样式表
+│   │
+│   ├── core/                     # 后端内核模块
+│   │   ├── geometry_engine.py        # 几何引擎 (DAG)
+│   │   ├── geometry_engine_v1.py     # 几何引擎 v1 兼容层
+│   │   ├── geogebra_engine.py        # GeoGebra 级约束求解引擎
+│   │   ├── cas_provider.py           # 符号计算服务 (SymPy 封装)
+│   │   ├── algo_animator.py          # 算法动画框架
+│   │   ├── animation.py              # 通用动画引擎
+│   │   ├── ai_manager.py             # AI 管理器
+│   │   ├── python_repl.py            # Python REPL 内核
+│   │   ├── sandbox.py                # 沙箱子进程
+│   │   ├── sandbox_script.py         # 沙箱脚本
+│   │   ├── async_workers.py          # 异步工作线程
+│   │   ├── notebook.py               # 笔记本核心
+│   │   ├── num_engine.py             # 数值计算引擎
+│   │   ├── octave_bridge.py          # Octave 桥接
+│   │   ├── plugin_base.py            # 插件基类
+│   │   ├── plugin_manager.py         # 插件管理器
+│   │   ├── command_manager.py        # 命令管理器
+│   │   ├── extension_api.py          # 扩展 API
+│   │   └── signals.py                # 信号定义
+│   │
+│   ├── data/                     # 数据存储
+│   │   ├── project.py            # 项目文件管理
+│   │   └── file_manager.py       # 文件分类与检索
+│   │
+│   ├── utils/                    # 工具函数
+│   │   ├── latex_renderer.py     # LaTeX 渲染
+│   │   ├── theme_manager.py      # 主题切换
+│   │   ├── i18n_manager.py       # 国际化
+│   │   ├── helpers.py            # 通用辅助函数
+│   │   └── logger.py             # 全局日志
+│   │
+│   ├── plugins/                  # 内置插件
+│   │   ├── plugin_3d_viewer/     # Three.js 3D 查看器
+│   │   ├── echarts_viewer/       # ECharts 2D 图表
+│   │   └── matrix_tools/         # 矩阵工具
+│   │
+│   ├── tests/                    # 单元测试
+│   │   ├── test_core.py
+│   │   ├── test_utils.py
+│   │   ├── test_num_engine.py
+│   │   ├── test_octave_bridge.py
+│   │   ├── test_function_explorer.py
+│   │   ├── test_analytic_geometry.py
+│   │   ├── test_sandbox_security.py
+│   │   └── test_session_context.py
+│   │
+│   ├── docs/                     # 项目文档
+│   │   ├── api.md                # API 文档
+│   │   ├── user_guide.md         # 用户指南
+│   │   ├── analytic_geometry_guide.md
+│   │   ├── function_explorer_guide.md
+│   │   ├── function_explorer_implementation.md
+│   │   ├── function_explorer_quickstart.md
+│   │   ├── session_mode_guide.md
+│   │   └── sandbox_security_refactor.md
+│   │
+│   ├── locale/                   # 国际化资源
+│   │   ├── en.json
+│   │   └── zh.json
+│   │
+│   └── resources/                # 资源文件
+│       ├── icons/
+│       ├── monaco-editor/
+│       ├── markdown.html
+│       └── monaco.html
 │
-├── core/                      # 后端内核模块
-│   ├── __init__.py
-│   ├── geometry_engine.py      # 几何引擎 (DAG 依赖管理)
-│   ├── cas_provider.py          # 符号计算服务 (SymPy 封装)
-│   ├── algo_animator.py         # 算法动画框架
-│   ├── ai_manager.py            # AI 管理器
-│   ├── python_repl.py           # Python 控制台内核
-│   ├── sandbox.py              # 沙箱子进程
-│   ├── sandbox_script.py       # 沙箱脚本
-│   ├── async_workers.py        # 异步工作线程
-│   └── signals.py              # 信号定义
-│
-├── data/                      # 数据存储
-│   ├── __init__.py
-│   ├── project.py              # 项目文件管理
-│   └── file_manager.py         # 文件分类与检索
-│
-├── utils/                     # 工具函数
-│   ├── __init__.py
-│   ├── latex_renderer.py       # LaTeX 渲染
-│   ├── theme_manager.py        # 主题切换
-│   ├── i18n_manager.py         # 国际化
-│   └── helpers.py              # 通用辅助函数
-│
-├── tests/                     # 单元测试
-│   ├── __init__.py
-│   ├── test_core.py            # 核心模块测试
-│   └── test_utils.py           # 工具模块测试
-│
-├── docs/                      # 文档
-│   ├── api.md                  # API 文档
-│   └── user_guide.md           # 用户指南
-│
-├── locale/                    # 国际化资源
-│   ├── en.json                 # 英文
-│   └── zh.json                 # 中文
-│
-├── resources/                 # 资源文件
-│   └── resources.qrc          # Qt 资源文件
-│
-├── LICENSE                    # Apache 2.0 许可证
-└── docs/                      # 项目文档
-    ├── analytic_geometry_guide.md       # 解析几何指南
-    ├── function_explorer_guide.md       # 函数 explorer 指南
-    ├── function_explorer_implementation.md  # 函数 explorer 实现
-    ├── function_explorer_quickstart.md  # 函数 explorer 快速开始
-    ├── session_mode_guide.md            # 会话模式指南
-    └── sandbox_security_refactor.md     # 沙箱安全重构文档
+├── LICENSE                       # Apache 2.0
+├── DEVELOPMENT_PLAN.md           # 2.0 路线图
+├── MATHLAB_2.5_PLAN.md           # 2.5 (Axiom) 路线图
+└── README.md
 ```
 
 ---
 
 ## 技术架构
 
-### 系统架构图
+### 2.5 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         用户界面层                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
-│  │  几何画布   │  │  代数面板   │  │  控制台     │  │ AI面板  │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│                         核心业务层                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
-│  │  几何引擎   │  │  CAS计算    │  │ 算法动画    │  │ AI管理  │ │
-│  │  (DAG)     │  │  (SymPy)   │  │ (生成器)   │  │ (ML)    │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│                         安全隔离层                               │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │                    Python REPL + 沙箱进程                    ││
-│  └─────────────────────────────────────────────────────────────┘│
-├─────────────────────────────────────────────────────────────────┤
-│                         数据持久层                               │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  项目管理   │  │  文件管理   │  │  主题配置   │              │
-│  └─────────────┘  └─────────────┘  └─────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        用户界面层 (UI Layer)                          │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ │
+│  │2D 画板 │ │3D 画板 │ │笔记本  │ │动画编辑│ │命令面板│ │AI 面板 │ │
+│  │Canvas  │ │WebGL   │ │Notebook│ │Timeline│ │CmdBar  │ │AI Tools│ │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ │
+├──────────────────────────────────────────────────────────────────────┤
+│                       业务逻辑层 (Core Layer)                         │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │ Geometry Engine v2 │ CAS Bus   │ Animation  │  NumEngine      │  │
+│  │ (DAG + Constraints)│ (SymPy +) │ (Manim 风格)│ (BLAS/Octave)  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│                       扩展能力层 (Extension Layer)                    │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │ Plugin Manager │ Command Manager │ Extension API              │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│                       安全隔离层 (Sandbox Layer)                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  Python REPL (subprocess)  │  WebEngine Sandbox  │  Plugin VM  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+├──────────────────────────────────────────────────────────────────────┤
+│                       数据与协作层 (Data Layer)                       │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐                       │
+│  │ 项目   │ │ 资源库 │ │ 日志   │ │ i18n   │                       │
+│  │(.mlnb) │ │        │ │系统    │ │        │                       │
+│  └────────┘ └────────┘ └────────┘ └────────┘                       │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 核心类设计
 
-#### GeometryEngine
+#### GeometryEngine / GeoGebraEngine
 
 ```python
 class GeometryEngine:
@@ -265,6 +336,13 @@ class GeometryEngine:
     def solve_constraints(self) -> None
     def serialize_all(self) -> dict
     def deserialize_all(self, data) -> None
+
+class GeoGebraEngine(GeometryEngine):
+    """GeoGebra 级约束求解引擎：parallel / perpendicular / collinear /
+    concyclic / midpoint / tangent / on_line / on_circle 等。"""
+    def add_constraint(self, ctype, *args) -> str
+    def remove_constraint(self, constraint_id) -> None
+    def solve(self, tolerance=1e-8, max_iter=100) -> dict
 ```
 
 #### CASProvider
@@ -279,7 +357,7 @@ class CASProvider:
     def limit(self, expr_str, variable, point) -> dict
 ```
 
-#### AlgoAnimator
+#### AlgoAnimator / Animation
 
 ```python
 class AlgoAnimator:
@@ -287,6 +365,45 @@ class AlgoAnimator:
     def step(self) -> dict
     def reset(self) -> None
     def get_state(self) -> dict
+
+class AnimationEngine:
+    """Manim 风格关键帧动画：缓动函数 + 时间轴 + 多目标并行。"""
+    def play(self, keyframes, easing="ease_in_out") -> None
+    def pause(self) -> None
+    def seek(self, t: float) -> None
+```
+
+#### NumEngine / OctaveBridge
+
+```python
+class NumEngine:
+    """面向矩阵/数值计算的高层封装，底层走 NumPy / SciPy / LAPACK。"""
+    def matmul(self, a, b)
+    def eig(self, a)
+    def svd(self, a)
+    def solve_linear(self, A, b)
+
+class OctaveBridge:
+    """当系统已安装 Octave 时，可委托更重的数值任务执行。"""
+    def call(self, script: str) -> dict
+```
+
+#### Notebook / PluginManager
+
+```python
+class Notebook:
+    def add_markdown_cell(self, source) -> str
+    def add_code_cell(self, source) -> str
+    def run_cell(self, cell_id) -> Any
+    def run_all(self) -> None
+    def save(self, path) -> None
+    def load(self, path) -> None
+
+class PluginManager:
+    def register(self, plugin: Plugin) -> None
+    def activate(self, name) -> None
+    def deactivate(self, name) -> None
+    def list_plugins(self) -> list[dict]
 ```
 
 ---
@@ -295,43 +412,107 @@ class AlgoAnimator:
 
 ### 几何引擎 (GeometryEngine)
 
-基于有向无环图(DAG)的依赖管理，支持：
+基于有向无环图 (DAG) 的依赖管理，支持：
 - 点、线段、圆、多边形等几何对象
 - 约束求解和实时联动
 - 对象序列化与反序列化
 
+### GeoGebra 级几何引擎 (GeoGebraEngine)
+
+继承自 `GeometryEngine`，提供：
+- 平行、垂直、共线、共圆、中点、相切等约束
+- 数值迭代求解器 (Newton-Raphson)
+- 与代数面板双向同步
+
 ### 符号计算 (CASProvider)
 
-封装SymPy提供：
+封装 SymPy 提供：
 - 表达式化简与展开
-- 方程(组)求解
+- 方程 (组) 求解
 - 微积分运算
-- LaTeX输出
+- LaTeX 输出
+- 预留多引擎总线 (Maxima / Giac) 接入点
+
+### 数值计算 (NumEngine / OctaveBridge)
+
+- `NumEngine`：基于 NumPy / SciPy 的高性能矩阵运算
+- `OctaveBridge`：可调用本地 Octave 处理更复杂的数值任务
+
+### 笔记本 (Notebook)
+
+SageMath 风格多 Cell 笔记本：
+- Markdown 单元格（实时渲染）
+- 代码单元格（沙箱执行）
+- 几何对象嵌入与回放
+- `.mlnb` 格式持久化
+
+### 动画引擎 (AnimationEngine)
+
+Manim 风格关键帧动画：
+- 缓动函数 (linear, ease_in, ease_out, ease_in_out)
+- 时间轴与并行/串行播放
+- 与几何对象、UI 控件统一驱动
 
 ### 算法动画 (AlgoAnimator)
 
-基于Python生成器的算法可视化框架：
+基于 Python 生成器的算法可视化框架：
 - 排序算法：冒泡、快速、归并
 - 搜索算法：二分、线性
 - 图论算法：BFS、DFS、Dijkstra
-- 几何算法：Graham扫描凸包
+- 几何算法：Graham 扫描凸包
 - 机器学习：K-Means
 
 ### Python REPL
 
-安全的交互式Python解释器：
+安全的交互式 Python 解释器：
 - 命名空间隔离
 - 超时控制
-- 魔法命令（%clear, %history, %vars）
-- 代码补全
+- 魔法命令 (`%clear`, `%history`, `%vars`)
+- 代码补全（Jedi）
 
-### AI管理器 (AIManager)
+### AI 管理器 (AIManager)
 
 集成多种机器学习功能：
-- 线性/多项式回归
-- K-Means/DBSCAN聚类
-- ONNX模型推理
-- PyTorch神经网络
+- 线性 / 多项式回归
+- K-Means / DBSCAN 聚类
+- ONNX 模型推理
+- PyTorch 神经网络（可选）
+
+---
+
+## 插件系统
+
+MathLab 2.5 提供统一的插件体系，所有插件均位于 `mathlab/plugins/`：
+
+| 插件 | 功能 |
+|------|------|
+| `plugin_3d_viewer` | 基于 Three.js + Qt WebChannel 的 3D 几何/曲面查看器 |
+| `echarts_viewer` | 基于 ECharts 的 2D 交互图表 |
+| `matrix_tools` | 矩阵运算辅助工具集 |
+
+### 开发自定义插件
+
+```python
+# mathlab/plugins/my_plugin/main.py
+from mathlab.core.plugin_base import Plugin
+
+class MyPlugin(Plugin):
+    name = "my_plugin"
+    version = "0.1.0"
+
+    def activate(self, ctx):
+        # 注册面板、命令、菜单项等
+        ctx.register_command("hello", self.say_hello)
+
+    def deactivate(self, ctx):
+        # 释放 WebEngine 等资源
+        pass
+
+    def say_hello(self, ctx):
+        ctx.notify("Hello from MyPlugin!")
+```
+
+插件规范与扩展 API 详见 [docs/api.md](mathlab/docs/api.md)。
 
 ---
 
@@ -341,43 +522,55 @@ class AlgoAnimator:
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/your-repo/mathlab.git
-cd mathlab
+git clone https://github.com/jencaoking/Axiom-Mathematics-Panel.git
+cd Axiom-Mathematics-Panel
 
 # 2. 创建虚拟环境
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
-.\venv\Scripts\Activate.ps1  # Windows
+source venv/bin/activate              # Linux/macOS
+.\venv\Scripts\Activate.ps1           # Windows
 
 # 3. 安装开发依赖
 pip install -r mathlab/requirements.txt
+pip install scikit-learn matplotlib pyqtgraph
 
-# 4. 安装pre-commit钩子（可选）
+# 4. 安装 pre-commit 钩子（可选）
 pip install pre-commit
 pre-commit install
 ```
 
 ### 代码规范
 
-项目遵循以下代码规范：
-- **PEP 8**: Python代码风格指南
-- **类型提示**: 公共API添加类型标注
-- **docstring**: 使用Google风格文档字符串
+- **PEP 8**: Python 代码风格指南
+- **类型提示**: 公共 API 添加类型标注
+- **docstring**: 使用 Google 风格文档字符串
 
 ### 添加新功能
 
-1. **创建新模块**: 在 `core/` 或 `utils/` 添加新模块
-2. **编写测试**: 在 `tests/` 添加对应的测试文件
-3. **更新文档**: 在 `docs/` 更新相关文档
-4. **提交代码**: 使用 conventional commits 规范
+1. 在 `core/` 或 `utils/` 添加新模块；若是 UI 在 `ui/` 添加面板
+2. 在 `tests/` 添加对应的测试文件
+3. 在 `docs/` 更新相关文档
+4. 若是可视化扩展，优先实现为插件
+5. 提交代码，使用 Conventional Commits 规范
 
 ### 构建打包
 
 ```bash
-# 使用 Nuitka 打包（需要额外安装）
+# 使用 PyInstaller
+pip install pyinstaller
+pyinstaller mathlab/build_spec.spec
+
+# 或使用 Nuitka
 pip install nuitka
 python -m nuitka --standalone --enable-plugin=pyside6 mathlab/main.py
 ```
+
+### CI/CD
+
+项目已配置 GitHub Actions：
+
+- `.github/workflows/test.yml`：单元测试与覆盖率
+- `.github/workflows/release.yml`：标签发布自动打包
 
 ---
 
@@ -387,52 +580,41 @@ python -m nuitka --standalone --enable-plugin=pyside6 mathlab/main.py
 
 ```bash
 cd mathlab
-python -m unittest discover -s tests -v
+python -m pytest tests/ -v
 ```
 
 ### 运行特定测试
 
 ```bash
-# 核心模块测试
-python -m unittest tests.test_core -v
-
-# 工具模块测试
-python -m unittest tests.test_utils -v
+python -m pytest tests/test_core.py -v
+python -m pytest tests/test_sandbox_security.py -v
+python -m pytest tests/test_function_explorer.py -v
+python -m pytest tests/test_octave_bridge.py -v
 ```
+
+测试覆盖：
+
+- 核心模块（几何、CAS、算法动画、AI、笔记本）
+- 工具模块（主题、i18n、LaTeX、日志）
+- 沙箱安全与会话隔离
+- Octave 桥接与数值计算
+- 函数 explorer 与解析几何
+
+---
+
+## 路线图
+
+- **2.0 (已完成 · speed)**: 异步计算中枢、3D 渲染引擎、AI 集成、Fluent Design 主题
+- **2.5 (进行中 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
+- **3.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
+
+详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md)。
 
 ---
 
 ## 许可证
 
-本项目采用 **Apache License 2.0** 开源许可证。
-
-```
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-   2. Grant of Copyright License.
-
-   3. Grant of Patent License.
-
-   4. Redistribution.
-
-   5. Submission of Contributions.
-
-   6. Trademarks.
-
-   7. Disclaimer of Warranty.
-
-   8. Limitation of Liability.
-
-   9. Accepting Warranty or Additional Liability.
-```
-
-完整许可证文本请参阅 [LICENSE](LICENSE) 文件。
+本项目采用 **Apache License 2.0** 开源许可证。完整许可证文本请参阅 [LICENSE](LICENSE) 文件。
 
 ---
 
@@ -440,9 +622,9 @@ python -m unittest tests.test_utils -v
 
 | 渠道 | 信息 |
 |------|------|
-| **项目主页** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git |
-| **问题反馈** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git/issues |
-| **讨论社区** | https://github.com/jencaoking/Axiom-Mathematics-Panel.git/discussions |
+| **项目主页** | https://github.com/jencaoking/Axiom-Mathematics-Panel |
+| **问题反馈** | https://github.com/jencaoking/Axiom-Mathematics-Panel/issues |
+| **讨论社区** | https://github.com/jencaoking/Axiom-Mathematics-Panel/discussions |
 | **邮箱** | jencaoking@outlook.com |
 
 ---
@@ -452,11 +634,14 @@ python -m unittest tests.test_utils -v
 MathLab 受益于以下开源项目：
 
 - **SymPy** - 符号数学库
-- **NumPy** - 数值计算库
+- **NumPy / SciPy** - 数值计算库
 - **scikit-learn** - 机器学习库
 - **PyTorch** - 深度学习框架
 - **PySide6** - Qt for Python
-- **Jedi** - Python自动补全
+- **Jedi** - Python 自动补全
+- **Three.js** - 3D 渲染
+- **ECharts** - 图表可视化
+- **Monaco Editor** - 代码编辑
 
 感谢所有贡献者的付出！
 
@@ -467,12 +652,12 @@ MathLab 受益于以下开源项目：
 如果您在学术项目中使用了 MathLab，请按以下格式引用：
 
 ```
-@software{mathlab2024,
-  title = {MathLab: Interactive Mathematics and AI Teaching Software},
+@software{mathlab_axiom,
+  title  = {MathLab (Axiom): Interactive Mathematics, AI and 3D Teaching Software},
   author = {MathLab Team},
-  version = {1.0.0},
-  year = {2024},
-  url = {https://github.com/jencaoking/Axiom-Mathematics-Panel.git}
+  version = {2.5.0},
+  year   = {2026},
+  url    = {https://github.com/jencaoking/Axiom-Mathematics-Panel}
 }
 ```
 
