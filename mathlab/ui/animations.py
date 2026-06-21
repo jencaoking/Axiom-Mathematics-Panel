@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup
 from PySide6.QtWidgets import QWidget, QGraphicsOpacityEffect
 
 def get_opacity_effect(widget: QWidget) -> QGraphicsOpacityEffect:
@@ -64,3 +64,32 @@ def fade_out(widget: QWidget, duration: int = 200, callback = None):
         # Fallback: 直接执行回调
         if callback:
             callback()
+
+def start_breathing_effect(widget, property_name=b"opacity", duration=800):
+    """
+    为控件添加连续的“呼吸”微动效（如正在计算中的 AI 图标或按钮）
+    """
+    effect = get_opacity_effect(widget)
+    
+    # 渐暗
+    anim_out = QPropertyAnimation(effect, property_name)
+    anim_out.setDuration(duration)
+    anim_out.setStartValue(1.0)
+    anim_out.setEndValue(0.4)
+    anim_out.setEasingCurve(QEasingCurve.InOutSine)
+    
+    # 渐亮
+    anim_in = QPropertyAnimation(effect, property_name)
+    anim_in.setDuration(duration)
+    anim_in.setStartValue(0.4)
+    anim_in.setEndValue(1.0)
+    anim_in.setEasingCurve(QEasingCurve.InOutSine)
+    
+    # 组合为无限循环
+    group = QSequentialAnimationGroup(widget)
+    group.addAnimation(anim_out)
+    group.addAnimation(anim_in)
+    group.setLoopCount(-1) # 无限循环
+    group.start()
+    
+    return group # 返回组对象，以便在计算完成后调用 group.stop()

@@ -23,6 +23,11 @@ try:
 except ImportError:
     from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
 
+try:
+    from ..ui.animations import start_breathing_effect
+except ImportError:
+    from ui.animations import start_breathing_effect
+
 class AIToolsPanel(QDockWidget):
     fit_requested = Signal(list, str, dict)
     cluster_requested = Signal(list, str, dict)
@@ -479,6 +484,7 @@ class AIToolsPanel(QDockWidget):
         self.worker.error_signal.connect(self.on_request_error)
 
         self.worker.start()  # 启动 QThread，自动在后台调用 run()
+        self.breath_anim = start_breathing_effect(self.send_button)
 
         self.chat_display.append(f"<b style='color: #006058;'>{t('ai_tools.assistant')}:</b> ")
 
@@ -514,6 +520,15 @@ class AIToolsPanel(QDockWidget):
         self.chat_input.setEnabled(True)
         self.send_button.setEnabled(True)
         self.chat_input.setFocus()
+        
+        if hasattr(self, 'breath_anim'):
+            self.breath_anim.stop()
+            # 导入 get_opacity_effect 以重置透明度
+            try:
+                from ..ui.animations import get_opacity_effect
+            except ImportError:
+                from ui.animations import get_opacity_effect
+            get_opacity_effect(self.send_button).setOpacity(1.0)
 
         if self.worker:
             # quit() 通知线程退出事件循环，wait() 等待完成，deleteLater() 延迟释放 C++ 对象

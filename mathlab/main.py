@@ -21,7 +21,8 @@ logger.info("日志系统初始化完毕，开始加载 MathLab 模块...")
 # ─────────────────────────────────────────────────────────────────────────────
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QFont
+from PySide6.QtCore import Qt
 
 from mathlab.ui.main_window import MainWindow
 from mathlab.core.geometry_engine import GeometryEngine
@@ -37,6 +38,18 @@ def main():
     logger.info("正在初始化 QApplication...")
     try:
         app = QApplication(sys.argv)
+        
+        # 🚨 1. 注入现代抗锯齿字体策略
+        font = QFont("San Francisco Display, Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif", 10)
+        font.setStyleStrategy(QFont.PreferAntialias)
+        app.setFont(font)
+        
+        # 🚨 2. 开启高 DPI 缩放支持
+        if hasattr(Qt, 'AA_EnableHighDpiScaling'):
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
         app.setApplicationName('MathLab')
         app.setApplicationVersion('1.0')
         
