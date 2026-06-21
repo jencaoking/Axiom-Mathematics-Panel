@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         self.ai_tools_action = QAction(t('main_window.ai_tools'), self)
         self.ai_tools_action.setCheckable(True)
 
-        self.notebook_action = QAction("Notebook", self)
+        self.notebook_action = QAction(t('main_window.notebook'), self)
         self.notebook_action.setCheckable(True)
 
         self.function_explorer_action = QAction(t('function_explorer.title'), self)

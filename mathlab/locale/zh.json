@@ -25,6 +25,7 @@
     "console": "控制台",
     "algorithm_visualization": "算法可视化",
     "ai_tools": "AI 工具",
+    "notebook": "交互式笔记本",
     "theme": "主题...",
     "language": "语言...",
     "preferences": "首选项...",
@@ -263,5 +264,11 @@
     "template_hyperbola": "反比例函数 a/x",
     "empty_expression": "请输入函数表达式",
     "transform_error": "变换失败"
+  },
+  "notebook": {
+    "title": "交互式笔记本",
+    "add_code": "+ 代码",
+    "add_markdown": "+ 文本",
+    "run": "▶ 运行"
   }
 }

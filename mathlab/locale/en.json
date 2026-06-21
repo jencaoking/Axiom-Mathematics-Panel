@@ -25,6 +25,7 @@
     "console": "Console",
     "algorithm_visualization": "Algorithm Visualization",
     "ai_tools": "AI Tools",
+    "notebook": "Notebook",
     "theme": "Theme...",
     "language": "Language...",
     "preferences": "Preferences...",
@@ -263,5 +264,11 @@
     "template_hyperbola": "Inverse a/x",
     "empty_expression": "Please enter a function expression",
     "transform_error": "Transformation failed"
+  },
+  "notebook": {
+    "title": "Interactive Notebook",
+    "add_code": "+ Code",
+    "add_markdown": "+ Markdown",
+    "run": "▶ Run"
   }
 }

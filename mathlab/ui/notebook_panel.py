@@ -5,6 +5,7 @@ from PySide6.QtCore import Signal, Qt
 
 from mathlab.ui.code_editor import MonacoCodeEditor
 from mathlab.core.notebook import MathLabNotebook, CellType
+from mathlab.utils.i18n_manager import t
 
 class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
@@ -52,7 +53,7 @@ class VSCodeStyleCellWidget(QFrame):
         
         toolbar_layout.addStretch()
         
-        run_btn = QPushButton("▶ Run")
+        run_btn = QPushButton(t("notebook.run"))
         run_btn.clicked.connect(self.on_run_clicked)
         toolbar_layout.addWidget(run_btn)
 
@@ -93,7 +94,7 @@ class VSCodeStyleCellWidget(QFrame):
 
 class NotebookPanel(QDockWidget):
     def __init__(self, parent=None):
-        super().__init__("MathLab Notebook", parent)
+        super().__init__(t('notebook.title'), parent)
         self.notebook = MathLabNotebook()
         
         self.main_widget = QWidget()
@@ -104,8 +105,8 @@ class NotebookPanel(QDockWidget):
         # Toolbar
         self.toolbar = QWidget()
         t_layout = QHBoxLayout(self.toolbar)
-        self.add_code_btn = QPushButton("+ Code")
-        self.add_md_btn = QPushButton("+ Markdown")
+        self.add_code_btn = QPushButton(t('notebook.add_code'))
+        self.add_md_btn = QPushButton(t('notebook.add_markdown'))
         
         self.add_code_btn.clicked.connect(lambda: self.add_cell("code"))
         self.add_md_btn.clicked.connect(lambda: self.add_cell("markdown"))
