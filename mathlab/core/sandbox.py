@@ -7,6 +7,9 @@ import time
 import tempfile
 import signal
 from queue import Queue
+from mathlab.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # 强烈建议在环境依赖中添加 psutil 库（pip install psutil）
 # 如果没有安装，我们将使用降级方案，但 psutil 是跨平台精准监控内存的最佳手段
@@ -91,6 +94,8 @@ class SandboxProcess:
             [sys.executable, sandbox_script_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            creationflags=creation_flags,
+            preexec_fn=preexec_fn,
             text=True
         )
         self.running = True

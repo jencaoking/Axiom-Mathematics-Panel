@@ -79,30 +79,20 @@ def execute_code(code):
         return {'success': False, 'output': output, 'error': str(e)}
 
 def main():
-    import time
-    with open('sandbox_debug.log', 'a') as f:
-        f.write(f"[{time.time()}] Started\\n")
-        f.flush()
-        while True:
-            line = sys.stdin.readline()
-            f.write(f"[{time.time()}] Read line: {repr(line)}\\n")
-            f.flush()
-            if not line:
-                break
-            try:
-                req = json.loads(line)
-                code = req.get('code', '')
-                res = execute_code(code)
-                out_str = json.dumps(res) + '\\n'
-                f.write(f"[{time.time()}] Writing: {repr(out_str)}\\n")
-                f.flush()
-                sys.stdout.write(out_str)
-                sys.stdout.flush()
-            except Exception as e:
-                f.write(f"[{time.time()}] Error: {e}\\n")
-                f.flush()
-                sys.stdout.write(json.dumps({'success': False, 'output': '', 'error': str(e)}) + '\\n')
-                sys.stdout.flush()
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        try:
+            req = json.loads(line)
+            code = req.get('code', '')
+            res = execute_code(code)
+            out_str = json.dumps(res) + '\n'
+            sys.stdout.write(out_str)
+            sys.stdout.flush()
+        except Exception as e:
+            sys.stdout.write(json.dumps({'success': False, 'output': '', 'error': str(e)}) + '\n')
+            sys.stdout.flush()
 
 if __name__ == '__main__':
     main()
