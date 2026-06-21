@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QLabel, QComboBox, QPushButton, QHBoxLayout,
     QSpacerItem, QSizePolicy
 )
-from PySide6.QtGui import QAction, QPainter as QtPainter, QShortcut, QKeySequence
+from PySide6.QtGui import QAction, QPainter as QtPainter, QShortcut, QKeySequence, QIcon
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtSvg import QSvgGenerator
 
@@ -326,22 +326,20 @@ class MainWindow(QMainWindow):
             'QPushButton{'
             '  background:transparent;'
             '  border:none;'
-            '  font-size:16px;'
-            '  color:#434655;'
             '}'
             'QPushButton:hover{'
             '  background:#e5eeff;'
             '  border-radius:4px;'
-            '  color:#004ac6;'
             '}'
         )
-        self.settings_btn.setText('⚙')
+        self.settings_btn.setIconSize(QSize(18, 18))
         self.settings_btn.clicked.connect(self.show_preferences_dialog)
         self.toolbar.addWidget(self.settings_btn)
 
         self.addToolBar(Qt.TopToolBarArea, self.toolbar)
 
         self._connect_tool_actions()
+        self.update_toolbar_icons()
 
     def _connect_tool_actions(self):
         tool_map = [
@@ -1089,6 +1087,56 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, t('dialogs.error'), t('dialogs.failed_to_export', str(e)))
 
+    def get_themed_icon(self, name: str, theme_name: str = None) -> QIcon:
+        """获取带有当前主题前景色渲染的 SVG 图标。"""
+        if theme_name is None:
+            theme_name = get_current_theme()
+        
+        icon_path = os.path.join(
+            os.path.dirname(__file__), 'icons', f"{name}.svg"
+        )
+        if not os.path.exists(icon_path):
+            return QIcon()
+        
+        try:
+            with open(icon_path, 'r', encoding='utf-8') as f:
+                svg_content = f.read()
+            
+            foreground = THEMES.get(theme_name, {}).get('foreground', '#434655')
+            svg_content = svg_content.replace('currentColor', foreground)
+            
+            from PySide6.QtGui import QPixmap
+            pixmap = QPixmap()
+            pixmap.loadFromData(svg_content.encode('utf-8'), 'SVG')
+            return QIcon(pixmap)
+        except Exception as e:
+            print(f"Warning: Could not load themed icon {name}: {e}")
+            return QIcon(icon_path)
+
+    def update_toolbar_icons(self, theme_name: str = None) -> None:
+        """刷新工具栏上所有按钮的图标颜色。"""
+        if theme_name is None:
+            theme_name = get_current_theme()
+        
+        self.select_action.setIcon(self.get_themed_icon('mouse-pointer', theme_name))
+        self.point_action.setIcon(self.get_themed_icon('target', theme_name))
+        self.segment_action.setIcon(self.get_themed_icon('segment', theme_name))
+        self.circle_action.setIcon(self.get_themed_icon('circle', theme_name))
+        self.polygon_action.setIcon(self.get_themed_icon('polygon', theme_name))
+        self.pan_action.setIcon(self.get_themed_icon('move', theme_name))
+        
+        self._zoom_in_action.setIcon(self.get_themed_icon('zoom-in', theme_name))
+        self._zoom_out_action.setIcon(self.get_themed_icon('zoom-out', theme_name))
+        
+        self.settings_btn.setIcon(self.get_themed_icon('settings', theme_name))
+
+    def apply_theme(self, theme_key: str) -> None:
+        """全局应用指定主题，并更新主题敏感组件。"""
+        if theme_key not in THEMES:
+            return
+        set_theme(theme_key)
+        self.update_toolbar_icons(theme_key)
+
     def on_export_latex(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self, t('dialogs.export_latex'), '', 'LaTeX Files (*.tex)'
@@ -1143,9 +1191,15 @@ class MainWindow(QMainWindow):
             self.show_theme_dialog()
             return
         dlg = PreferencesDialog(self)
-        dlg.theme_changed.connect(lambda name: set_theme(
-            next((k for k, v in THEMES.items() if v['name'] == name), 'light')
-        ))
+        
+        def on_theme_changed(name_or_key):
+            if name_or_key in THEMES:
+                theme_key = name_or_key
+            else:
+                theme_key = next((k for k, v in THEMES.items() if v['name'] == name_or_key), 'light')
+            self.apply_theme(theme_key)
+
+        dlg.theme_changed.connect(on_theme_changed)
         dlg.exec()
 
     def show_theme_dialog(self) -> None:
@@ -1173,7 +1227,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(btn_layout)
 
         def on_apply():
-            set_theme(combo.currentData())
+            self.apply_theme(combo.currentData())
             dialog.accept()
 
         ok_btn.clicked.connect(on_apply)
