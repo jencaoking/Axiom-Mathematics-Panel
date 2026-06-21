@@ -86,23 +86,7 @@ EXCLUDES = [
     'PySide6.QtWebSockets',
     'PySide6.QtXml',
 
-    # 标准库中不需要的大型模块
     'tkinter',
-    'unittest',
-    'email',
-    'html',
-    'http',
-    'xmlrpc',
-    'ftplib',
-    'telnetlib',
-    'curses',
-    'difflib',
-    'doctest',
-    'pdb',
-    'profile',
-    'pstats',
-    'timeit',
-    'trace',
 
     # 科学计算中不需要的子包
     'scipy.io.matlab',
