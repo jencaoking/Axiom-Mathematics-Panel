@@ -1,4 +1,4 @@
-name: CD - Build and Release MathLab 2.0
+name: CD - Build and Release MathLab 2.5
 
 on:
   push:
@@ -38,6 +38,19 @@ jobs:
         pip install -r mathlab/requirements.txt
         pip install -r mathlab/requirements-optional.txt
         pip install pyinstaller
+
+    # 🌟 [新增] 自动下载 Monaco Editor 离线包
+    # 防止因 Git 忽略了大量 JS 文件导致打包后编辑器白屏
+    - name: Download Monaco Editor Assets
+      shell: bash
+      run: |
+        mkdir -p mathlab/resources/monaco-editor
+        cd mathlab/resources
+        curl -O "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz"
+        tar -xzf monaco-editor-0.43.0.tgz
+        mv package/min/vs monaco-editor/vs
+        rm -rf package monaco-editor-0.43.0.tgz
+        echo "Monaco Editor downloaded and extracted to resources/monaco-editor/vs"
 
     - name: Set Asset Filename
       id: vars
