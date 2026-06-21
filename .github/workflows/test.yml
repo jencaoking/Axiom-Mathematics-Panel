@@ -32,10 +32,10 @@ jobs:
         pip install PyQt5 PyQtWebEngine pytest pytest-qt
 
     - name: Install System Dependencies for Qt/WebEngine
-      # 安装虚拟显示器环境，防止 Qt 在云端服务器报错
+      # 将 libegl1-mesa 替换为 libegl1，并补充其他 Qt 必须的底层库
       run: |
         sudo apt-get update
-        sudo apt-get install -y xvfb libegl1-mesa libxcb-xinerama0
+        sudo apt-get install -y xvfb libegl1 libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0 libnss3 libasound2t64
 
     - name: Run Tests with xvfb
       # 使用 xvfb-run 包装 pytest 运行，模拟真实的图形界面环境
