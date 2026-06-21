@@ -1,0 +1,108 @@
+name: CD - Build and Release MathLab 2.5
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build MathLab on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            asset_suffix: Windows.zip
+          - os: macos-latest
+            asset_suffix: macOS.zip
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r mathlab/requirements.txt
+        pip install -r mathlab/requirements-optional.txt
+        pip install pyinstaller
+
+    # 🌟 [新增] 自动下载 Monaco Editor 离线包
+    # 防止因 Git 忽略了大量 JS 文件导致打包后编辑器白屏
+    # 使用 rsync 清空目标目录再合并，避免 "Directory not empty" 错误
+    - name: Download Monaco Editor Assets
+      shell: bash
+      run: |
+        set -e
+        cd mathlab/resources
+        # 先把已有的 vs/ 目录清空(可能残留旧的或部分提交的文件)
+        if [ -d monaco-editor/vs ]; then
+          rm -rf monaco-editor/vs
+        fi
+        mkdir -p monaco-editor
+        # 下载并解压 npm 包
+        curl -L -o monaco-editor-0.43.0.tgz "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.43.0.tgz"
+        tar -xzf monaco-editor-0.43.0.tgz
+        # 把 min/vs 移到目标位置(目录此时一定是空的)
+        mv package/min/vs monaco-editor/vs
+        rm -rf package monaco-editor-0.43.0.tgz
+        echo "Monaco Editor downloaded and extracted to resources/monaco-editor/vs"
+        ls monaco-editor/vs | head -5
+
+    - name: Set Asset Filename
+      id: vars
+      shell: bash
+      run: |
+        # Replace characters not allowed/safe in filenames
+        SAFE_REF=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9.-]/_/g')
+        echo "safe_ref=$SAFE_REF" >> $GITHUB_OUTPUT
+
+    - name: Build with PyInstaller
+      run: |
+        cd mathlab
+        pyinstaller build_spec.spec
+
+    # Windows 打包压缩 (将 dist/MathLab 文件夹压缩为 zip)
+    - name: Archive Release (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        Compress-Archive -Path mathlab\dist\MathLab -DestinationPath MathLab-${{ steps.vars.outputs.safe_ref }}-Windows.zip
+        echo "ZIP_NAME=MathLab-${{ steps.vars.outputs.safe_ref }}-Windows.zip" >> $env:GITHUB_ENV
+
+    # macOS 打包压缩 (.app 实际上也是个文件夹，必须压缩)
+    - name: Archive Release (macOS)
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        cd mathlab/dist
+        zip -r "../../MathLab-${{ steps.vars.outputs.safe_ref }}-macOS.zip" MathLab.app
+        cd ../..
+        echo "ZIP_NAME=MathLab-${{ steps.vars.outputs.safe_ref }}-macOS.zip" >> $GITHUB_ENV
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MathLab-${{ matrix.os }}-${{ steps.vars.outputs.safe_ref }}
+        path: ${{ env.ZIP_NAME }}
+
+    # 自动创建 Release 并上传附件
+    - name: Upload to GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.ZIP_NAME }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
