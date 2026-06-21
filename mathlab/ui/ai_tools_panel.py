@@ -442,10 +442,34 @@ class AIToolsPanel(QDockWidget):
 
         system_context = self._get_system_context()
 
+        # 🚨 1. 提取当前“具身”上下文：活的几何拓扑树
+        main_win = self.window()
+        engine = main_win.geometry_engine if hasattr(main_win, 'geometry_engine') else None
+        live_context = ""
+        
+        if engine:
+            import json
+            objects = engine.get_all_objects()
+            simplified_state = []
+            for obj in objects:
+                simplified_state.append({
+                    "id": obj.id,
+                    "type": obj.type,
+                    "name": obj.name,
+                    # 获取实时坐标 (包含 z 轴)
+                    "coords": {k: round(v, 3) for k, v in obj.coordinates.items() if isinstance(v, (int, float))}
+                })
+            
+            if simplified_state:
+                live_context = f"\n[系统后台自动附加] 当前 2D/3D 画布状态:\n{json.dumps(simplified_state, ensure_ascii=False)}"
+
+        # 🚨 2. 将用户输入与实时画板状态“缝合”后发送给底层 Worker
+        enhanced_prompt = user_text + live_context
+
         provider = AIProvider(self.provider_combo.currentData())
         config = AIRequestConfig(provider=provider)
 
-        self.worker = AIRequestWorker(user_text, system_context, config)
+        self.worker = AIRequestWorker(enhanced_prompt, system_context, config)
 
         # 直接连接 AIRequestWorker(QThread) 的原生 Qt 信号
         # Qt 自动将跨线程信号设为 QueuedConnection，主线程安全更新 UI

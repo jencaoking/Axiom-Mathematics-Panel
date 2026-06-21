@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QDockWidget, QPlainTextEdit, QLineEdit, QWidget, QVBoxLayout,
-    QPushButton, QHBoxLayout, QLabel
+    QPushButton, QHBoxLayout, QLabel, QTextBrowser
 )
 from PySide6.QtGui import QTextCursor, QFont
 from PySide6.QtCore import Qt, Signal, Slot, QTimer
@@ -47,7 +47,9 @@ class PythonConsole(QDockWidget):
         self.header_layout.addWidget(self.kernel_status_label)
         self.layout.addLayout(self.header_layout)
 
-        self.output_area = QPlainTextEdit()
+        self.output_area = QTextBrowser()
+        self.output_area.setOpenLinks(False)
+        self.output_area.anchorClicked.connect(self.on_anchor_clicked)
         self.output_area.setReadOnly(True)
         self.output_area.setFont(QFont('Consolas', 12))
         self.output_area.setObjectName("console_output")
@@ -135,7 +137,7 @@ class PythonConsole(QDockWidget):
             self.append_output(result['output'])
 
         if result.get('error'):
-            self.append_output(f'Error: {result["error"]}\n')
+            self.display_system_message(result['error'], level='error')
 
         if not result.get('more', False):
             self.append_prompt()
@@ -286,21 +288,47 @@ class PythonConsole(QDockWidget):
         self.input_line.setFocus()
 
     def display_system_message(self, message: str, level: str = 'info') -> None:
-        """在输出区显示一条系统级提示（与用户执行输出视觉区分）。
+        """向终端显示系统信息，支持错误 AI 拦截"""
+        color = {
+            'info': '#475569',
+            'warn': '#f59e0b',
+            'error': '#dc2626'
+        }.get(level, '#475569')
+        
+        if level == 'error':
+            safe_msg = message.replace('<', '&lt;').replace('>', '&gt;')
+            safe_msg = safe_msg.replace('\n', '<br>')
+            html_msg = f'<span style="color: {color};">{safe_msg}</span>'
+            
+            # 🚨 核心魔法：如果检测到 Python 异常堆栈，自动附加 AI 诊断链接！
+            if "Traceback" in message or "Error:" in message or "Exception:" in message:
+                import urllib.parse
+                # 将错误信息进行 URL 编码，隐藏在链接中
+                encoded_err = urllib.parse.quote(message)
+                html_msg += f'<br><br><a href="ask_ai:{encoded_err}" style="color: #00A67E; text-decoration: none; font-weight: bold;">[🤖 报错了？点击让 AI 导师帮你分析原因并修复代码]</a><br>'
+                
+            self.output_area.appendHtml(html_msg)
+            self.output_area.appendHtml("<br>")
+        else:
+            safe_msg = message.replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
+            self.output_area.appendHtml(f'<span style="color: {color};">{safe_msg}</span><br>')
+            self.output_area.appendHtml("<br>")
 
-        Parameters
-        ----------
-        message : str
-            要显示的消息文字。
-        level : str
-            'info'  — 蓝灰色提示（默认）
-            'warn'  — 橙色警告
-            'error' — 红色错误
-        """
-        # 使用 HTML 富文本着色（QPlainTextEdit 默认不支持 HTML，改用纯文本 + 前缀标识）
-        prefix = {
-            'info':  '[系统] ',
-            'warn':  '[警告] ',
-            'error': '[错误] ',
-        }.get(level, '[系统] ')
-        self.append_output(f"{prefix}{message}\n")
+    def on_anchor_clicked(self, url):
+        """处理控制台内的超链接点击事件"""
+        if url.scheme() == "ask_ai":
+            import urllib.parse
+            # 1. 解码出错误信息
+            error_trace = urllib.parse.unquote(url.path())
+            
+            # 2. 调出 AI 面板
+            main_win = self.window()
+            if hasattr(main_win, 'ai_tools_panel'):
+                ai_panel = main_win.ai_tools_panel
+                ai_panel.show()
+                ai_panel.raise_()
+                
+                # 3. 自动帮用户填入 Prompt 并发送
+                prompt = f"我在运行 Python 沙箱代码时遇到了以下报错，请用初学者能听懂的话解释原因，并给出修复后的代码：\n```python\n{error_trace}\n```"
+                ai_panel.chat_input.setText(prompt)
+                ai_panel.on_send_message()
