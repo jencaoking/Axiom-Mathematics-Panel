@@ -122,8 +122,15 @@
 
             new QWebChannel(qt.webChannelTransport, function(channel) {
                 window.pyBridge = channel.objects.pyBridge;
+                
+                // 1. 监听 Shift+Enter (用于执行)
                 window.editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, function() {
                     window.pyBridge.receiveCodeExecution(window.editor.getValue());
+                });
+                
+                // 2. 监听内容实时变化 (心跳同步，用于无损保存)
+                window.editor.onDidChangeModelContent(function() {
+                    window.pyBridge.receiveCodeSync(window.editor.getValue());
                 });
             });
         });

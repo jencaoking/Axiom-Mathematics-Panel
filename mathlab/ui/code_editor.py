@@ -81,11 +81,17 @@ class AutocompleteTextEdit(QPlainTextEdit):
 class Bridge(QObject):
     """通信桥梁：负责接收来自 JS 的信号"""
     execute_requested = Signal(str)
+    code_synced = Signal(str)  # 新增：内容同步信号
 
     @Slot(str)
     def receiveCodeExecution(self, code: str):
         """JS 按下 Shift+Enter 时会调用这个函数"""
         self.execute_requested.emit(code)
+
+    @Slot(str)
+    def receiveCodeSync(self, code: str):
+        """接收前端每次敲击键盘传来的最新代码"""
+        self.code_synced.emit(code)
 
 class MonacoCodeEditor(QWidget):
     """
@@ -94,6 +100,7 @@ class MonacoCodeEditor(QWidget):
     """
     # 转发桥接器的信号给外部 UI
     execute_requested = Signal(str)
+    code_synced = Signal(str) # 转发给上层
 
     def __init__(self, initial_text="", parent=None):
         super().__init__(parent)
@@ -110,14 +117,15 @@ class MonacoCodeEditor(QWidget):
         # 2. 注册通信信道
         self.channel = QWebChannel()
         self.bridge = Bridge()
-        # 将信号接通
-        self.bridge.execute_requested.connect(self.execute_requested.emit)
-        # 暴露给 JS，JS 中通过 channel.objects.pyBridge 访问
         self.channel.registerObject("pyBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        # 3. 读取 HTML 并注入初始代码
-        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources', 'monaco.html'))
+        # 连接桥接器信号到外部
+        self.bridge.execute_requested.connect(self.execute_requested.emit)
+        self.bridge.code_synced.connect(self.code_synced.emit) # 接通线路
+
+        # 加载本地 Monaco HTML
+        html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resources', 'monaco.html')
         with open(html_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         

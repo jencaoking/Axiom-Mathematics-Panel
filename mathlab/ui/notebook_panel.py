@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget, QSpacerItem, QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget, QSpacerItem, QSizePolicy, QFileDialog, QMessageBox
 )
 from PySide6.QtCore import Signal, Qt
 
@@ -132,17 +132,23 @@ class NotebookPanel(QWidget):
         toolbar_layout = QHBoxLayout(self.toolbar)
         toolbar_layout.setContentsMargins(10, 0, 10, 0)
 
+        self.btn_save = self._create_toolbar_btn("💾 保存", "#d7ba7d")
+        self.btn_load = self._create_toolbar_btn("📂 打开", "#d7ba7d")
         self.btn_add_code = self._create_toolbar_btn(t("notebook.add_code"), "#007acc")
         self.btn_add_markdown = self._create_toolbar_btn(t("notebook.add_markdown"), "#608b4e")
         self.btn_run_all = self._create_toolbar_btn(t("notebook.run_all"), "#c586c0")
         self.btn_clear_all = self._create_toolbar_btn(t("notebook.clear_all"), "#858585")
 
+        toolbar_layout.addWidget(self.btn_load)
+        toolbar_layout.addWidget(self.btn_save)
         toolbar_layout.addWidget(self.btn_add_code)
         toolbar_layout.addWidget(self.btn_add_markdown)
         toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         toolbar_layout.addWidget(self.btn_run_all)
         toolbar_layout.addWidget(self.btn_clear_all)
 
+        self.btn_save.clicked.connect(self.save_notebook)
+        self.btn_load.clicked.connect(self.load_notebook)
         self.btn_add_code.clicked.connect(lambda: self.add_new_cell(CellType.CODE))
         self.btn_add_markdown.clicked.connect(lambda: self.add_new_cell(CellType.MARKDOWN))
         self.btn_run_all.clicked.connect(self.run_all_cells)
@@ -177,19 +183,47 @@ class NotebookPanel(QWidget):
         return btn
 
     def add_new_cell(self, cell_type: CellType):
+        """用户点击 '+' 时新增格子"""
         backend_cell = self.backend.add_cell(cell_type, "")
-        
-        if cell_type == CellType.CODE:
-            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", "")
-            ui_cell.execute_requested.connect(lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code))
-        else:
-            sample_math = "### 奇异值分解定理\n设 $A$ 是一个 $m \\times n$ 实矩阵，则存在正交矩阵 $U$ 和 $V$，使得：\n$$ A = U \\Sigma V^T $$"
-            backend_cell.content = sample_math
-            ui_cell = MarkdownCellWidget(backend_cell.id, sample_math)
+        if cell_type == CellType.MARKDOWN:
+            backend_cell.content = "### 奇异值分解定理\n设 $A$ 是一个 $m \\times n$ 实矩阵，则存在正交矩阵 $U$ 和 $V$，使得：\n$$ A = U \\Sigma V^T $$"
+        self._create_ui_from_backend(backend_cell)
+
+    def _create_ui_from_backend(self, backend_cell):
+        """
+        统一的 UI 工厂方法：无论是新建还是从文件加载，都走这里
+        """
+        # 创建 UI
+        if backend_cell.type == CellType.CODE:
+            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", backend_cell.content)
+            
+            # 监听执行信号
+            ui_cell.execute_requested.connect(
+                lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code)
+            )
+            
+            # 监听心跳同步，时刻更新 backend 的数据防丢失
+            ui_cell.input_editor.code_synced.connect(
+                lambda code, cid=backend_cell.id: self._sync_backend_content(cid, code)
+            )
+            
+        else: # Markdown
+            ui_cell = MarkdownCellWidget(backend_cell.id, backend_cell.content)
             ui_cell.btn_delete.clicked.connect(lambda _, cid=backend_cell.id: self.delete_cell(cid))
-        
+            
+            # 为了能在 load 的时候自动显示公式而不是显示源码，你可以直接调用渲染
+            if backend_cell.content:
+                ui_cell.switch_to_view()
+
         self.ui_cells[backend_cell.id] = ui_cell
         self.canvas_layout.insertWidget(self.canvas_layout.count() - 1, ui_cell)
+
+    def _sync_backend_content(self, cell_id: str, new_code: str):
+        """心跳同步回调"""
+        for cell in self.backend.cells:
+            if cell.id == cell_id:
+                cell.content = new_code
+                break
 
     def delete_cell(self, cell_id: str):
         if cell_id in self.ui_cells:
@@ -253,9 +287,68 @@ class NotebookPanel(QWidget):
             self._render_cell_output(backend_cell.id)
 
     def clear_all_outputs(self):
-        for cell_id, ui_cell in self.ui_cells.items():
-            ui_cell.output_browser.clear()
-            ui_cell.output_browser.hide()
+        for ui_cell in self.ui_cells.values():
+            if ui_cell.cell_type == "code":
+                ui_cell.set_output("")
+                
+    # ──────────────────────────────────────────────────────────
+    # 核心持久化逻辑
+    # ──────────────────────────────────────────────────────────
+
+    def save_notebook(self):
+        """将当前笔记本保存到磁盘"""
+        # 1. 弹出保存对话框
+        import os
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "保存 MathLab 笔记本", 
+            "", # 默认路径
+            "MathLab Notebook (*.mlnb);;所有文件 (*.*)"
+        )
+        if not file_path:
+            return # 用户取消了保存
+
+        # 2. 自动补全后缀名
+        if not file_path.endswith(".mlnb"):
+            file_path += ".mlnb"
+
+        # 3. 调用我们在 core/notebook.py 里写好的保存逻辑
+        try:
+            # 注意：因为有了心跳同步，此时 backend 里的 content 绝对是最新的
+            self.backend.save_to_file(file_path)
+            # 在状态栏或弹窗提示成功
+            QMessageBox.information(self, "保存成功", f"笔记本已安全保存至:\n{os.path.basename(file_path)}")
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"无法写入文件:\n{str(e)}")
+
+    def load_notebook(self):
+        """从磁盘读取并重建笔记本现场"""
+        # 1. 弹出打开对话框
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "打开 MathLab 笔记本", 
+            "", 
+            "MathLab Notebook (*.mlnb);;所有文件 (*.*)"
+        )
+        if not file_path:
+            return
+
+        try:
+            # 2. 从文件解析 JSON 到内存 (调用 core 的逻辑)
+            self.backend.load_from_file(file_path)
+
+            # 3. 核弹级清理：把当前 UI 上的所有格子炸掉
+            for ui_cell in self.ui_cells.values():
+                self.canvas_layout.removeWidget(ui_cell)
+                ui_cell.deleteLater()
+            self.ui_cells.clear()
+
+            # 4. 根据读入的 backend_cell 数据重建整个 UI
+            for backend_cell in self.backend.cells:
+                self._create_ui_from_backend(backend_cell)
+
+        except Exception as e:
+            QMessageBox.critical(self, "加载失败", f"文件解析错误:\n{str(e)}")
 
     def _render_cell_output(self, cell_id: str):
         backend_cell = next((c for c in self.backend.cells if c.id == cell_id), None)
