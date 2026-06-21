@@ -2,6 +2,8 @@ name: CD - Build and Release
 
 on:
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
 
@@ -16,9 +18,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            asset_path: mathlab/dist/MathLab-${{ github.ref_name }}-Windows.exe
+            asset_suffix: Windows.exe
           - os: macos-latest
-            asset_path: MathLab-${{ github.ref_name }}-macOS.zip
+            asset_suffix: macOS.zip
 
     steps:
     - name: Checkout code
@@ -37,6 +39,14 @@ jobs:
         pip install -r mathlab/requirements-optional.txt
         pip install pyinstaller
 
+    - name: Set Asset Filename
+      id: vars
+      shell: bash
+      run: |
+        # Replace characters not allowed/safe in filenames
+        SAFE_REF=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9.-]/_/g')
+        echo "safe_ref=$SAFE_REF" >> $GITHUB_OUTPUT
+
     - name: Build with PyInstaller
       run: |
         cd mathlab
@@ -46,18 +56,30 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: bash
       run: |
-        # Rename exe to include version tag
-        mv mathlab/dist/MathLab.exe "${{ matrix.asset_path }}"
+        ASSET_PATH="mathlab/dist/MathLab-${{ steps.vars.outputs.safe_ref }}-Windows.exe"
+        mv mathlab/dist/MathLab.exe "$ASSET_PATH"
+        echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
 
     - name: Prepare macOS Asset
       if: matrix.os == 'macos-latest'
+      shell: bash
       run: |
+        ASSET_PATH="MathLab-${{ steps.vars.outputs.safe_ref }}-macOS.zip"
         cd mathlab/dist
-        zip -r "../../${{ matrix.asset_path }}" MathLab.app
+        zip -r "../../$ASSET_PATH" MathLab.app
+        cd ../..
+        echo "ASSET_PATH=$ASSET_PATH" >> $GITHUB_ENV
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MathLab-${{ matrix.os }}-${{ steps.vars.outputs.safe_ref }}
+        path: ${{ env.ASSET_PATH }}
 
     - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ matrix.asset_path }}
+        files: ${{ env.ASSET_PATH }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
