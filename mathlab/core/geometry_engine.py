@@ -52,7 +52,7 @@ def _build_general_quadratic_latex(A, B, C, D, E, F, threshold=1e-10):
 
 class GeometricObject:
     TYPES = ['Point', 'Line', 'Segment', 'Circle', 'Polygon', 'Ray', 'Angle', 
-             'Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus', 'Intersection']
+             'Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 'FunctionPlot', 'ImplicitPlot', 'PolarPlot', 'Locus', 'Intersection', 'Sphere', 'Plane3D']
     
     def __init__(self, obj_id, name, obj_type):
         self.id = obj_id
@@ -113,8 +113,10 @@ class GeometricObject:
         elif obj_type == 'Locus':
             obj = Locus.deserialize(data)
         elif obj_type == 'Point':
+            obj = Point.deserialize(data)
+        elif obj_type == 'Sphere':
             coords = data.get('coordinates', {})
-            obj = Point(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0))
+            obj = Sphere(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1.0))
         elif obj_type == 'Segment':
             obj = Segment(data['id'], data['name'], data.get('point1_id', ''), data.get('point2_id', ''))
         elif obj_type == 'Line':
@@ -137,20 +139,77 @@ class GeometricObject:
         return obj
 
 class Point(GeometricObject):
-    def __init__(self, obj_id, name, x=0, y=0):
+    # 将默认参数扩展为 x, y, z
+    def __init__(self, obj_id, name, x=0, y=0, z=0):
         super().__init__(obj_id, name, 'Point')
-        self.coordinates = {'x': x, 'y': y}
-        self.symbolic_expr = (symbols(f'x_{name}'), symbols(f'y_{name}'))
+        self.coordinates = {'x': x, 'y': y, 'z': z}  # 新增 z
+        # 符号表达式也增加 z 维度，用于 3D 约束求解
+        self.symbolic_expr = (symbols(f'x_{name}'), symbols(f'y_{name}'), symbols(f'z_{name}'))
     
-    def update_coordinates(self, x=None, y=None):
+    def update_coordinates(self, x=None, y=None, z=None):
         if x is not None:
             self.coordinates['x'] = x
         if y is not None:
             self.coordinates['y'] = y
+        if z is not None:
+            self.coordinates['z'] = z
     
     def to_latex(self):
-        x, y = self.coordinates['x'], self.coordinates['y']
-        return rf'{self.name} = ({latex(x)}, {latex(y)})'
+        x = self.coordinates.get('x', 0)
+        y = self.coordinates.get('y', 0)
+        z = self.coordinates.get('z', 0)
+        # 动态判断：如果 z 为 0，依然显示 2D 格式，保持界面清爽
+        if abs(z) < 1e-10:
+            return rf'{self.name} = ({latex(x)}, {latex(y)})'
+        return rf'{self.name} = ({latex(x)}, {latex(y)}, {latex(z)})'
+    
+    @classmethod
+    def deserialize(cls, data):
+        # 兼容旧版本保存的仅有 x, y 的项目文件
+        coords = data.get('coordinates', {})
+        obj = cls(data['id'], data['name'], coords.get('x', 0), coords.get('y', 0), coords.get('z', 0))
+        return obj
+
+class Sphere(GeometricObject):
+    """3D 球体：由球心和半径定义"""
+    def __init__(self, obj_id, name, center_id, radius=1.0):
+        super().__init__(obj_id, name, 'Sphere')
+        self.center_id = center_id
+        self.radius = radius
+        self.depends_on = [center_id]
+    
+    def update_coordinates(self, engine):
+        center = engine.objects.get(self.center_id)
+        if center:
+            self.coordinates = {
+                'cx': center.coordinates.get('x', 0),
+                'cy': center.coordinates.get('y', 0),
+                'cz': center.coordinates.get('z', 0),  # 获取 z
+                'r': self.radius
+            }
+    
+    def to_latex(self):
+        cx = self.coordinates.get('cx', 0)
+        cy = self.coordinates.get('cy', 0)
+        cz = self.coordinates.get('cz', 0)
+        return rf'(x-{cx})^2 + (y-{cy})^2 + (z-{cz})^2 = {self.radius}^2'
+    
+    def serialize(self):
+        data = super().serialize()
+        data['center_id'] = self.center_id
+        data['radius'] = self.radius
+        return data
+
+class Plane3D(GeometricObject):
+    """3D 平面：通过一般方程 Ax + By + Cz + D = 0 定义"""
+    def __init__(self, obj_id, name, A=0, B=0, C=1, D=0):
+        super().__init__(obj_id, name, 'Plane3D')
+        self.A, self.B, self.C, self.D = A, B, C, D
+        self.coordinates = {'A': A, 'B': B, 'C': C, 'D': D}
+
+    def to_latex(self):
+        # 简单输出，可以参考 2D Line 改进
+        return rf'{self.A}x + {self.B}y + {self.C}z + {self.D} = 0'
 
 class Line(GeometricObject):
     """无限长直线：通过两个点定义，支持符号表达式"""
@@ -1094,13 +1153,26 @@ class GeometryEngine:
         for listener in self.listeners:
             listener(event_type, data)
     
-    def add_point(self, x=0, y=0, name=None):
+    def add_point(self, x=0, y=0, z=0, name=None):
         obj_id = self._generate_id()
         if name is None:
             name = self._generate_name('Point')
-        point = Point(obj_id, name, x, y)
+        point = Point(obj_id, name, x, y, z)  # 传入 z
         self.objects[obj_id] = point
         self._notify('object_added', point.serialize())
+        return obj_id
+
+    def add_sphere(self, center_id, radius=1.0, name=None):
+        if center_id not in self.objects:
+            raise ValueError('Center point not found')
+        obj_id = self._generate_id()
+        if name is None:
+            name = self._generate_name('Sphere')
+        sphere = Sphere(obj_id, name, center_id, radius)
+        self.objects[obj_id] = sphere
+        self.dependencies.add_edge(center_id, obj_id)
+        sphere.update_coordinates(self)
+        self._notify('object_added', sphere.serialize())
         return obj_id
     
     def add_segment(self, point1_id, point2_id, name=None):
@@ -1314,7 +1386,7 @@ class GeometryEngine:
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
     
-    def update_point(self, obj_id, x=None, y=None):
+    def update_point(self, obj_id, x=None, y=None, z=None):
         if obj_id not in self.objects:
             return
         
@@ -1323,6 +1395,8 @@ class GeometryEngine:
             point.coordinates['x'] = x
         if y is not None:
             point.coordinates['y'] = y
+        if z is not None:
+            point.coordinates['z'] = z
         
         dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in dependents:
@@ -1357,9 +1431,12 @@ class GeometryEngine:
             safe_id = point.id.replace('-', '_')
             x_sym = symbols(f'x_{safe_id}')
             y_sym = symbols(f'y_{safe_id}')
+            z_sym = symbols(f'z_{safe_id}') # 1. 注册 z_sym
+            
             var_to_idx[(point.id, 'x')] = len(variables)
             var_to_idx[(point.id, 'y')] = len(variables) + 1
-            variables.extend([x_sym, y_sym])
+            var_to_idx[(point.id, 'z')] = len(variables) + 2 # 2. 索引映射
+            variables.extend([x_sym, y_sym, z_sym])
         
         for obj in self.objects.values():
             for constraint in obj.constraints:
@@ -1381,6 +1458,7 @@ class GeometryEngine:
                             safe_id = point.id.replace('-', '_')
                             allowed_symbols[f'x_{safe_id}'] = symbols(f'x_{safe_id}')
                             allowed_symbols[f'y_{safe_id}'] = symbols(f'y_{safe_id}')
+                            allowed_symbols[f'z_{safe_id}'] = symbols(f'z_{safe_id}') # 3. 允许用户输入含 z 的约束方程
                         eq = parse_expr(constraint, local_dict=allowed_symbols, transformations=standard_transformations)
                         equations.append(eq)
                     except Exception:
@@ -1416,6 +1494,7 @@ class GeometryEngine:
         for point in points:
             initial_guess.append(point.coordinates.get('x', 0.0))
             initial_guess.append(point.coordinates.get('y', 0.0))
+            initial_guess.append(point.coordinates.get('z', 0.0)) # 4. 初始猜测值
         
         try:
             # 自动选择 least_squares 算法：
@@ -1435,8 +1514,10 @@ class GeometryEngine:
             for point in points:
                 x_idx = var_to_idx.get((point.id, 'x'))
                 y_idx = var_to_idx.get((point.id, 'y'))
-                if x_idx is not None and y_idx is not None:
-                    self.update_point(point.id, x=result[x_idx], y=result[y_idx])
+                z_idx = var_to_idx.get((point.id, 'z'))
+                if x_idx is not None and y_idx is not None and z_idx is not None:
+                    # 5. 更新点坐标
+                    self.update_point(point.id, x=result[x_idx], y=result[y_idx], z=result[z_idx])
             
             return {'success': True, 'solution': result.tolist()}
         except Exception as e:
