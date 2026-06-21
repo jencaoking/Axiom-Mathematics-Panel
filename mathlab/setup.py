@@ -12,6 +12,7 @@ setup(
         'sympy>=1.12',
         'numpy>=1.26',
         'scipy>=1.11',
+        'networkx>=3.1',
         'jedi>=0.19',
         'psutil>=5.9',
     ],

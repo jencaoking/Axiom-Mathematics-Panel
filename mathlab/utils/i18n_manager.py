@@ -11,6 +11,7 @@ SUPPORTED_LANGUAGES = {
 class I18nManager:
     """Singleton i18n manager with language-change notification support."""
     _instance = None
+    _CACHE_MAX_SIZE = 256  # LRU 缓存上限
 
     def __new__(cls):
         if cls._instance is None:
@@ -26,6 +27,7 @@ class I18nManager:
         self.current_language = DEFAULT_LANGUAGE
         self.translations: dict = {}
         self._listeners: list = []   # list[callable]
+        self._lookup_cache: dict = {}  # {(lang, key): raw_value} — 翻译键查找缓存
 
         self._load_translations()
 
@@ -54,6 +56,7 @@ class I18nManager:
         if lang_code == self.current_language:
             return True
         self.current_language = lang_code
+        self._lookup_cache.clear()  # 语言切换时清空缓存
         self._notify_listeners(lang_code)
         return True
 
@@ -93,25 +96,37 @@ class I18nManager:
         Returns the *key* itself when a translation is not found so the UI
         always shows something useful instead of crashing.
         """
-        keys = key.split('.')
-        value = self.translations.get(self.current_language, {})
+        # 缓存键 = (语言, 翻译键)，加速高频重复查找
+        cache_key = (self.current_language, key)
+        raw_value = self._lookup_cache.get(cache_key)
+        if raw_value is None:
+            keys = key.split('.')
+            value = self.translations.get(self.current_language, {})
 
-        for k in keys:
-            if not isinstance(value, dict):
-                return key
-            value = value.get(k)
-            if value is None:
+            for k in keys:
+                if not isinstance(value, dict):
+                    return key
+                value = value.get(k)
+                if value is None:
+                    return key
+
+            if not isinstance(value, str):
                 return key
 
-        if not isinstance(value, str):
-            return key
+            raw_value = value
+            # LRU 淘汰：缓存满时删除最早条目
+            if len(self._lookup_cache) >= self._CACHE_MAX_SIZE:
+                self._lookup_cache.pop(next(iter(self._lookup_cache)))
+            self._lookup_cache[cache_key] = raw_value
+
+        # 格式化参数
+        if not args and not kwargs:
+            return raw_value
 
         try:
-            value = value.format(*args, **kwargs)
+            return raw_value.format(*args, **kwargs)
         except (IndexError, KeyError):
-            pass
-
-        return value
+            return raw_value
 
 
 # ---------------------------------------------------------------------------

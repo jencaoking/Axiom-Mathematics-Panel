@@ -39,7 +39,9 @@ def test_ui_creation():
     print("\n测试2: UI创建")
     print("=" * 60)
     
-    app = QApplication(sys.argv)
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
     panel = FunctionExplorerPanel()
     
     print("✓ 面板创建成功")

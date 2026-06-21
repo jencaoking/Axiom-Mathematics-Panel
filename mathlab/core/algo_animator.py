@@ -304,6 +304,9 @@ class AlgoAnimator:
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
         
+        # 预计算：避免每步 yield 都重复 list() 转换
+        _nodes = list(graph.nodes())
+        _edges = list(graph.edges())
         adj_list = {n: list(graph.neighbors(n)) for n in graph.nodes()}
         visited = {n: False for n in graph.nodes()}
         queue = deque([start])
@@ -312,8 +315,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'graph',
-            'nodes': list(graph.nodes()),
-            'edges': list(graph.edges()),
+            'nodes': _nodes,
+            'edges': _edges,
             'visited': visited.copy(),
             'current': start,
             'queue': list(queue),
@@ -327,8 +330,8 @@ class AlgoAnimator:
             
             yield {
                 'type': 'graph',
-                'nodes': list(graph.nodes()),
-                'edges': list(graph.edges()),
+                'nodes': _nodes,
+                'edges': _edges,
                 'visited': visited.copy(),
                 'current': node,
                 'queue': queue.copy(),
@@ -343,8 +346,8 @@ class AlgoAnimator:
                     
                     yield {
                         'type': 'graph',
-                        'nodes': list(graph.nodes()),
-                        'edges': list(graph.edges()),
+                        'nodes': _nodes,
+                        'edges': _edges,
                         'visited': visited.copy(),
                         'current': neighbor,
                         'queue': queue.copy(),
@@ -354,8 +357,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'graph',
-            'nodes': list(graph.nodes()),
-            'edges': list(graph.edges()),
+            'nodes': _nodes,
+            'edges': _edges,
             'visited': visited.copy(),
             'current': -1,
             'queue': [],
@@ -367,6 +370,9 @@ class AlgoAnimator:
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
         
+        # 预计算：避免每步 yield 都重复 list() 转换
+        _nodes = list(graph.nodes())
+        _edges = list(graph.edges())
         adj_list = {n: list(graph.neighbors(n)) for n in graph.nodes()}
         visited = {n: False for n in graph.nodes()}
         stack = [start]
@@ -374,8 +380,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'graph',
-            'nodes': list(graph.nodes()),
-            'edges': list(graph.edges()),
+            'nodes': _nodes,
+            'edges': _edges,
             'visited': visited.copy(),
             'current': start,
             'stack': stack.copy(),
@@ -394,8 +400,8 @@ class AlgoAnimator:
             
             yield {
                 'type': 'graph',
-                'nodes': list(graph.nodes()),
-                'edges': list(graph.edges()),
+                'nodes': _nodes,
+                'edges': _edges,
                 'visited': visited.copy(),
                 'current': node,
                 'stack': stack.copy(),
@@ -409,8 +415,8 @@ class AlgoAnimator:
                     
                     yield {
                         'type': 'graph',
-                        'nodes': list(graph.nodes()),
-                        'edges': list(graph.edges()),
+                        'nodes': _nodes,
+                        'edges': _edges,
                         'visited': visited.copy(),
                         'current': neighbor,
                         'stack': stack.copy(),
@@ -420,8 +426,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'graph',
-            'nodes': list(graph.nodes()),
-            'edges': list(graph.edges()),
+            'nodes': _nodes,
+            'edges': _edges,
             'visited': visited.copy(),
             'current': -1,
             'stack': [],
@@ -433,11 +439,14 @@ class AlgoAnimator:
         if graph is None:
             graph = nx.complete_graph(5)
         
-        # 仅在 generator 内部处理缺失权重的情况，避免在 load_algorithm 中重复修改
+        # 确保所有边有权重
         for u, v in graph.edges():
             if 'weight' not in graph[u][v]:
                 graph[u][v]['weight'] = random.randint(1, 10)
         
+        # 预计算：避免每步 yield 都重复 list comprehension
+        _nodes = list(graph.nodes())
+        _edges = [(u, v, graph[u][v]['weight']) for u, v in graph.edges()]
         adj_list = {n: [(neighbor, graph[n][neighbor]['weight']) 
                         for neighbor in graph.neighbors(n)] 
                     for n in graph.nodes()}
@@ -450,8 +459,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'shortest_path',
-            'nodes': list(graph.nodes()),
-            'edges': [(u, v, graph[u][v]['weight']) for u, v in graph.edges()],
+            'nodes': _nodes,
+            'edges': _edges,
             'distances': distances.copy(),
             'visited': visited.copy(),
             'current': start,
@@ -468,8 +477,8 @@ class AlgoAnimator:
             
             yield {
                 'type': 'shortest_path',
-                'nodes': list(graph.nodes()),
-                'edges': [(u, v, graph[u][v]['weight']) for u, v in graph.edges()],
+                'nodes': _nodes,
+                'edges': _edges,
                 'distances': distances.copy(),
                 'visited': visited.copy(),
                 'current': u,
@@ -484,8 +493,8 @@ class AlgoAnimator:
                     
                     yield {
                         'type': 'shortest_path',
-                        'nodes': list(graph.nodes()),
-                        'edges': [(u, v, graph[u][v]['weight']) for u, v in graph.edges()],
+                        'nodes': _nodes,
+                        'edges': _edges,
                         'distances': distances.copy(),
                         'visited': visited.copy(),
                         'current': v,
@@ -494,8 +503,8 @@ class AlgoAnimator:
         
         yield {
             'type': 'shortest_path',
-            'nodes': list(graph.nodes()),
-            'edges': [(u, v, graph[u][v]['weight']) for u, v in graph.edges()],
+            'nodes': _nodes,
+            'edges': _edges,
             'distances': distances.copy(),
             'visited': visited.copy(),
             'current': -1,

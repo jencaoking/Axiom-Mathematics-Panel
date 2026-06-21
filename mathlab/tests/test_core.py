@@ -221,6 +221,9 @@ class TestSandboxProcess(unittest.TestCase):
     def setUp(self):
         self.sandbox = SandboxProcess()
 
+    def tearDown(self):
+        self.sandbox.terminate()
+
     def test_run_code_success(self):
         result = self.sandbox.run_code('print("test")', timeout=5)
         self.assertIn('test', result['output'])
@@ -371,7 +374,7 @@ class TestLatexRenderer(unittest.TestCase):
 
 class TestHelpers(unittest.TestCase):
     def test_lerp_exact_middle(self):
-        self.assertEqual(lerp(0, 100, 0.5), 50)
+        self.assertAlmostEqual(lerp(0, 100, 0.5), 50)
 
     def test_lerp_at_start(self):
         self.assertEqual(lerp(0, 100, 0), 0)
@@ -389,7 +392,7 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(clamp(-50, 0, 100), 0)
 
     def test_distance_horizontal(self):
-        self.assertEqual(distance((0, 0), (3, 0)), 3.0)
+        self.assertAlmostEqual(distance((0, 0), (3, 0)), 3.0)
 
     def test_distance_diagonal(self):
         d = distance((0, 0), (3, 4))

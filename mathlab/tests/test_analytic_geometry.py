@@ -81,7 +81,6 @@ def test_function_plots():
     
     # 测试正弦函数
     print("\n2.2 绘制正弦函数 y = sin(x)...")
-    from sympy import sin
     func2_id = engine.add_function_plot('sin(x)', x_range=(-6.28, 6.28), num_points=300)
     func2 = engine.get_object(func2_id)
     print(f"   正弦函数创建成功: {func2.name}")

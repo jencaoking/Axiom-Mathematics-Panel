@@ -772,9 +772,6 @@ class MainWindow(QMainWindow):
             self.active_workers.remove(worker)
             worker.deleteLater()
 
-    def on_fit_worker_finished(self, result: dict):
-        pass  # Deprecated, handled by on_ai_worker_finished
-
     def on_ai_cluster_requested(self, points: list, method: str, params: dict) -> None:
         if not points:
             return
@@ -788,9 +785,6 @@ class MainWindow(QMainWindow):
         self.cluster_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.cluster_worker))
         self.cluster_worker.start()
 
-    def on_cluster_worker_finished(self, result: dict):
-        pass  # Deprecated, handled by on_ai_worker_finished
-
     def on_ai_recognize_requested(self, image_data: list) -> None:
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage("正在识别数字...")
@@ -800,9 +794,6 @@ class MainWindow(QMainWindow):
         self.recognize_worker.finished.connect(lambda res: self.on_ai_worker_finished(res, self.recognize_worker))
         self.recognize_worker.error.connect(lambda msg: self.on_ai_worker_error(msg, self.recognize_worker))
         self.recognize_worker.start()
-
-    def on_recognize_worker_finished(self, result: dict):
-        pass  # Deprecated, handled by on_ai_worker_finished
 
     def on_ai_worker_error(self, error_msg: str, worker=None):
         if worker and worker in self.active_workers:

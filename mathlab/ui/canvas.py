@@ -3,9 +3,9 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsPolygonItem,
     QGraphicsTextItem, QMenu, QGraphicsSceneMouseEvent
 )
-from PySide6.QtGui import QPolygonF, QPainterPath
-from PySide6.QtGui import QPen, QBrush, QColor, QFont, QCursor, QPainter
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer
+from PySide6.QtGui import QPolygonF
+from PySide6.QtGui import QPen, QBrush, QColor, QFont, QCursor, QPainter, QPainterPath
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer, QLineF
 from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtSvg import QSvgRenderer
 
@@ -133,8 +133,12 @@ class GeometryCanvas(QGraphicsView):
         self.setRenderHint(QPainter.Antialiasing)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+        # 性能优化：禁用不必要的渲染更新
+        self.setOptimizationFlag(QGraphicsView.DontAdjustForAntialiasing, True)
+        self.setViewportUpdateMode(QGraphicsView.MinimalViewportUpdate)
 
-        self.init_grid()
+        self.scene_obj.setBackgroundBrush(QColor('#ffffff'))
+        self.scene_obj.setSceneRect(-500, -500, 1000, 1000)
 
         self.current_tool = 'select'
         self.selected_item = None
@@ -166,24 +170,42 @@ class GeometryCanvas(QGraphicsView):
         self._is_dragging = False  # 全局拖拽状态标记
 
     # ------------------------------------------------------------------
-    # 网格初始化
+    # 网格绘制（重写 drawBackground，只绘制可见区域，无独立 Item 开销）
     # ------------------------------------------------------------------
-    def init_grid(self):
-        self.scene_obj.setBackgroundBrush(QColor('#ffffff'))
+    def drawBackground(self, painter: QPainter, rect: QRectF):
+        """重写背景绘制：使用单次 Painter 调用绘制网格，替代 404 个 QGraphicsLineItem"""
+        super().drawBackground(painter, rect)
 
         grid_pen = QPen(QColor('#d3e4fe'), 0.5)
         grid_pen.setStyle(Qt.DashLine)
+        painter.setPen(grid_pen)
 
-        for i in range(-100, 101):
-            x = i * 20
-            self.scene_obj.addLine(x, -1000, x, 1000, grid_pen)
-            self.scene_obj.addLine(-1000, x, 1000, x, grid_pen)
+        # 计算可见区域范围内的网格线（避免绘制不可见区域）
+        grid_spacing = 20
+        left   = int(rect.left()   // grid_spacing) * grid_spacing
+        right  = int(rect.right()  // grid_spacing + 1) * grid_spacing
+        top    = int(rect.top()    // grid_spacing) * grid_spacing
+        bottom = int(rect.bottom() // grid_spacing + 1) * grid_spacing
 
+        # 批量绘制垂直线
+        path_v = QPainterPath()
+        for x in range(left, right + 1, grid_spacing):
+            path_v.moveTo(x, top)
+            path_v.lineTo(x, bottom)
+        painter.drawPath(path_v)
+
+        # 批量绘制水平线
+        path_h = QPainterPath()
+        for y in range(top, bottom + 1, grid_spacing):
+            path_h.moveTo(left, y)
+            path_h.lineTo(right, y)
+        painter.drawPath(path_h)
+
+        # 坐标轴
         origin_pen = QPen(QColor('#737686'), 1)
-        self.scene_obj.addLine(0, -1000, 0, 1000, origin_pen)
-        self.scene_obj.addLine(-1000, 0, 1000, 0, origin_pen)
-
-        self.scene_obj.setSceneRect(-500, -500, 1000, 1000)
+        painter.setPen(origin_pen)
+        painter.drawLine(QLineF(0, top, 0, bottom))
+        painter.drawLine(QLineF(left, 0, right, 0))
 
     # ------------------------------------------------------------------
     # 缩放
@@ -400,7 +422,6 @@ class GeometryCanvas(QGraphicsView):
     # ------------------------------------------------------------------
     def clear_canvas(self):
         self.scene_obj.clear()
-        self.init_grid()
         self.object_map.clear()
         self.point_items.clear()
         self.segment_items.clear()

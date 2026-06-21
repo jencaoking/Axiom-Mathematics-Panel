@@ -602,38 +602,42 @@ class ConicSection(GeometricObject):
         self.points_data = []  # 存储离散点用于绘制
     
     def generate_points(self, num_points=500):
-        """通过隐函数求解生成离散点"""
+        """通过矢量化隐函数求解生成离散点"""
         try:
-            x_sym, y_sym = symbols('x y')
-            eq = self.A * x_sym**2 + self.B * x_sym * y_sym + self.C * y_sym**2 + self.D * x_sym + self.E * y_sym + self.F
-            
-            points = []
             x_vals = np.linspace(self.x_range[0], self.x_range[1], num_points)
-            
-            for x_val in x_vals:
-                # 对于每个 x，解关于 y 的二次方程
-                a_coeff = float(self.C)
-                b_coeff = float(self.B * x_val + self.E)
-                c_coeff = float(self.A * x_val**2 + self.D * x_val + self.F)
-                
-                if abs(a_coeff) < 1e-10:
-                    # 退化为线性方程
-                    if abs(b_coeff) > 1e-10:
-                        y_val = -c_coeff / b_coeff
-                        if self.y_range[0] <= y_val <= self.y_range[1]:
-                            points.append((float(x_val), float(y_val)))
-                else:
-                    discriminant = b_coeff**2 - 4*a_coeff*c_coeff
-                    if discriminant >= 0:
-                        sqrt_disc = np.sqrt(discriminant)
-                        y1 = (-b_coeff + sqrt_disc) / (2*a_coeff)
-                        y2 = (-b_coeff - sqrt_disc) / (2*a_coeff)
-                        
-                        if self.y_range[0] <= y1 <= self.y_range[1]:
-                            points.append((float(x_val), float(y1)))
-                        if self.y_range[0] <= y2 <= self.y_range[1] and abs(y2 - y1) > 1e-6:
-                            points.append((float(x_val), float(y2)))
-            
+            a_coeff = float(self.C)
+            b_coeff = float(self.B) * x_vals + float(self.E)
+            c_coeff = float(self.A) * x_vals**2 + float(self.D) * x_vals + float(self.F)
+
+            discriminant = b_coeff**2 - 4 * a_coeff * c_coeff
+            valid = discriminant >= 0
+
+            points = []
+            if a_coeff == 0:
+                # 退化线性：y = -c / b（非零 b 处有效）
+                linear_mask = valid & (np.abs(b_coeff) > 1e-10)
+                if np.any(linear_mask):
+                    y_vals = -c_coeff[linear_mask] / b_coeff[linear_mask]
+                    in_range = (y_vals >= self.y_range[0]) & (y_vals <= self.y_range[1])
+                    x_valid = x_vals[linear_mask][in_range]
+                    y_valid = y_vals[in_range]
+                    points = list(zip(x_valid.tolist(), y_valid.tolist()))
+            else:
+                sqrt_disc = np.sqrt(discriminant[valid])
+                x_valid = x_vals[valid]
+                bv = b_coeff[valid]
+                y1 = (-bv + sqrt_disc) / (2 * a_coeff)
+                y2 = (-bv - sqrt_disc) / (2 * a_coeff)
+
+                in_range1 = (y1 >= self.y_range[0]) & (y1 <= self.y_range[1])
+                in_range2 = (y2 >= self.y_range[0]) & (y2 <= self.y_range[1])
+
+                points = list(zip(x_valid[in_range1].tolist(), y1[in_range1].tolist()))
+                # 避免重复点（当 y1 ≈ y2 时）
+                distinct = in_range2 & (np.abs(y2 - y1) > 1e-6)
+                if np.any(distinct):
+                    points += list(zip(x_valid[distinct].tolist(), y2[distinct].tolist()))
+
             self.points_data = points
             self.coordinates = {'points': points}
             return points
@@ -1028,6 +1032,7 @@ class GeometryEngine:
     def __init__(self):
         self.objects = {}
         self.name_counter = defaultdict(int)
+        self._name_set = set()  # 缓存所有对象名称，避免 _generate_name 每次 O(n) 重建
         self.dependencies = DAG()
         self.listeners = []
         self._signals_blocked = False
@@ -1047,13 +1052,12 @@ class GeometryEngine:
     
     def _generate_name(self, obj_type):
         prefix = obj_type[0].upper()
-        # 构建一次名称 set，O(n)；之后用 name_counter 作起始偏移，O(1) 查找
-        existing_names = {obj.name for obj in self.objects.values()}
         self.name_counter[obj_type] += 1
         name = f'{prefix}{self.name_counter[obj_type]}'
-        while name in existing_names:  # set 查找 O(1)
+        while name in self._name_set:
             self.name_counter[obj_type] += 1
             name = f'{prefix}{self.name_counter[obj_type]}'
+        self._name_set.add(name)
         return name
     
     def add_listener(self, listener):
@@ -1275,10 +1279,12 @@ class GeometryEngine:
         # get_dependents 返回 [根排第一, ..., 叶子排最后]，逆序后叶子优先删
         for dep_id in reversed(all_dependents):
             if dep_id in self.objects:
+                self._name_set.discard(self.objects[dep_id].name)
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
 
+        self._name_set.discard(self.objects[obj_id].name)
         self.dependencies.remove_node(obj_id)
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
@@ -1437,12 +1443,14 @@ class GeometryEngine:
     
     def deserialize_all(self, data):
         self.objects.clear()
+        self._name_set.clear()
         self.name_counter = defaultdict(int, data.get('name_counter', {}))
         self.dependencies = DAG()
         
         for obj_id, obj_data in data.get('objects', {}).items():
             obj = GeometricObject.deserialize(obj_data)
             self.objects[obj_id] = obj
+            self._name_set.add(obj.name)
             for dep in obj.depends_on:
                 self.dependencies.add_edge(dep, obj_id)
         
@@ -1457,6 +1465,7 @@ class GeometryEngine:
     
     def clear(self):
         self.objects.clear()
+        self._name_set.clear()
         self.name_counter.clear()
         self.dependencies = DAG()
         self._notify('canvas_cleared', None)

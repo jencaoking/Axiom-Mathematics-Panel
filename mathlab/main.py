@@ -1,5 +1,8 @@
 import sys
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # PyInstaller打包后路径处理
 if getattr(sys, 'frozen', False):
@@ -10,18 +13,19 @@ else:
     application_path = os.path.dirname(os.path.abspath(__file__))
 
 mathlab_dir = application_path
-sys.path.insert(0, mathlab_dir)
 sys.path.insert(0, os.path.dirname(mathlab_dir))
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 
-from ui.main_window import MainWindow
-from core.geometry_engine import GeometryEngine
-from core.cas_provider import CASProvider
-from core.algo_animator import AlgoAnimator
-from core.python_repl import PythonREPL
-from core.ai_manager import AIManager
+from mathlab.ui.main_window import MainWindow
+from mathlab.core.geometry_engine import GeometryEngine
+from mathlab.core.cas_provider import CASProvider
+from mathlab.core.algo_animator import AlgoAnimator
+from mathlab.core.python_repl import PythonREPL
+from mathlab.core.ai_manager import AIManager
+from mathlab.core.sandbox import SandboxManager
+from mathlab.data.project import ProjectManager
 
 def main():
     app = QApplication(sys.argv)
@@ -32,8 +36,10 @@ def main():
         stylesheet_path = os.path.join(mathlab_dir, 'ui', 'styles.qss')
         with open(stylesheet_path, 'r', encoding='utf-8') as f:
             app.setStyleSheet(f.read())
-    except Exception:
-        pass
+    except FileNotFoundError:
+        logger.warning('Stylesheet not found: %s', stylesheet_path)
+    except Exception as e:
+        logger.warning('Failed to load stylesheet: %s', e)
     
     window = MainWindow()
     
@@ -42,6 +48,8 @@ def main():
     window.algo_animator = AlgoAnimator()
     window.python_repl = PythonREPL()
     window.ai_manager = AIManager()
+    window.project_manager = ProjectManager()
+    window.sandbox_manager = SandboxManager()
     
     window.python_repl.update_namespace({
         'draw_point': lambda x, y: window.geometry_engine.add_point(x, y),
@@ -69,6 +77,8 @@ def main():
     })
     
     def on_geometry_event(event_type, data):
+        if not hasattr(window, 'algebra_panel') or not hasattr(window, 'central_widget'):
+            return
         if event_type == 'object_added':
             window.algebra_panel.add_object(data)
             window.central_widget.draw_object(data['id'], data)
@@ -83,7 +93,8 @@ def main():
     window.geometry_engine.add_listener(on_geometry_event)
     
     def on_algorithm_step(state):
-        window.algo_vis_panel.update_visualization(state)
+        if hasattr(window, 'algo_vis_panel'):
+            window.algo_vis_panel.update_visualization(state)
     
     window.algo_animator.step_ready = on_algorithm_step
     

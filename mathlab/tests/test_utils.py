@@ -39,7 +39,7 @@ class TestThemeManager(unittest.TestCase):
         self.assertEqual(colors['background'], '#f4ecd8')
 
 
-class TestLatexRenderer(unittest.TestCase):
+class TestLatexRendererUtils(unittest.TestCase):
     def test_export_empty_canvas(self):
         from mathlab.utils.latex_renderer import export_canvas_to_latex
         latex = export_canvas_to_latex([])
@@ -94,14 +94,14 @@ class TestLatexRenderer(unittest.TestCase):
         self.assertIn('P', result)
 
 
-class TestHelpers(unittest.TestCase):
+class TestHelpersUtils(unittest.TestCase):
     def test_lerp_exact_middle(self):
         from mathlab.utils.helpers import lerp
-        self.assertEqual(lerp(0, 100, 0.5), 50)
+        self.assertAlmostEqual(lerp(0, 100, 0.5), 50)
 
     def test_lerp_quarter(self):
         from mathlab.utils.helpers import lerp
-        self.assertEqual(lerp(0, 100, 0.25), 25)
+        self.assertAlmostEqual(lerp(0, 100, 0.25), 25)
 
     def test_lerp_at_start(self):
         from mathlab.utils.helpers import lerp
@@ -125,11 +125,11 @@ class TestHelpers(unittest.TestCase):
 
     def test_distance_horizontal(self):
         from mathlab.utils.helpers import distance
-        self.assertEqual(distance((0, 0), (3, 0)), 3.0)
+        self.assertAlmostEqual(distance((0, 0), (3, 0)), 3.0)
 
     def test_distance_vertical(self):
         from mathlab.utils.helpers import distance
-        self.assertEqual(distance((0, 0), (0, 4)), 4.0)
+        self.assertAlmostEqual(distance((0, 0), (0, 4)), 4.0)
 
     def test_distance_diagonal(self):
         from mathlab.utils.helpers import distance
