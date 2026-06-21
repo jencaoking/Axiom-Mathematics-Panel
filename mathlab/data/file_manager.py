@@ -6,6 +6,12 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Dict, Optional, Any
 
+# 进程级 MD5 缓存，key = (abspath, file_size, mtime_ns)
+# 避免同一文件未改动时重复读盘计算，减少主线程 I/O 阻塞。
+# 最多缓存 512 条，防止长期运行内存无限增长。
+_CHECKSUM_CACHE: Dict[tuple, str] = {}
+_CHECKSUM_CACHE_MAX = 512
+
 class FileCategory(Enum):
     GEOMETRY = 'geometry'
     ALGEBRA = 'algebra'
@@ -90,12 +96,31 @@ class FileMetadata:
             self.checksum = None
 
     def _calculate_checksum(self) -> str:
+        """计算文件 MD5，优先返回进程级缓存结果。
+
+        缓存 key = (abspath, file_size, mtime_ns)，当文件内容未变动时
+        直接命中缓存，无需重新读盘，避免阻塞主线程。
+        """
         try:
+            stat = os.stat(self.file_path)
+            cache_key = (self.file_path, stat.st_size, stat.st_mtime_ns)
+            cached = _CHECKSUM_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
+
             md5 = hashlib.md5()
             with open(self.file_path, 'rb') as f:
                 while chunk := f.read(65536):
                     md5.update(chunk)
-            return md5.hexdigest()
+            result = md5.hexdigest()
+
+            # 超出容量时淘汰最早的一批（简单策略：清掉一半）
+            if len(_CHECKSUM_CACHE) >= _CHECKSUM_CACHE_MAX:
+                drop = list(_CHECKSUM_CACHE.keys())[:_CHECKSUM_CACHE_MAX // 2]
+                for k in drop:
+                    _CHECKSUM_CACHE.pop(k, None)
+            _CHECKSUM_CACHE[cache_key] = result
+            return result
         except (OSError, IOError):
             return ''
 
