@@ -110,9 +110,17 @@ class MainWindow(QMainWindow):
 
         self.central_widget = GeometryCanvas(self)
         self.notebook = NotebookPanel(self)
+        
+        try:
+            from .geometry_panel import GeometryPanel
+            self.geogebra_panel = GeometryPanel(self)
+        except ImportError:
+            self.geogebra_panel = None
 
         self.central_tabs.addTab(self.notebook, t('notebook.title') or "Interactive Notebook")
         self.central_tabs.addTab(self.central_widget, t('main_window.geometry_tools') or "Geometry Canvas")
+        if self.geogebra_panel:
+            self.central_tabs.addTab(self.geogebra_panel, "Mini GeoGebra")
 
         self.setCentralWidget(self.central_tabs)
 
