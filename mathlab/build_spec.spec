@@ -92,7 +92,6 @@ EXCLUDES = [
     'email',
     'html',
     'http',
-    'urllib',
     'xmlrpc',
     'ftplib',
     'telnetlib',
