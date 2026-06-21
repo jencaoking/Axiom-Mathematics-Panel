@@ -1,5 +1,5 @@
 import numpy as np
-
+import re
 import importlib.util
 
 if importlib.util.find_spec('sklearn') is not None:
@@ -10,6 +10,40 @@ import os
 import json
 import time
 from enum import Enum
+
+try:
+    from PyQt5.QtCore import QThread, pyqtSignal as Signal
+    QT_AVAILABLE = True
+except ImportError:
+    try:
+        from PySide6.QtCore import QThread, Signal
+        QT_AVAILABLE = True
+    except ImportError:
+        QT_AVAILABLE = False
+        QThread = object  # 降级占位，避免语法报错
+
+
+def _strip_markdown_json(text: str) -> str:
+    """剥离 LLM 输出中包裹 JSON 的 Markdown 代码块标记。
+
+    例如将::
+
+        ```json
+        {"action": "solve"}
+        ```
+
+    转换为::
+
+        {"action": "solve"}
+
+    同时兼容不带语言标识的 ``` 包裹形式。
+    """
+    # 匹配形如 ```json ... ``` 或 ``` ... ``` 的代码块（允许前后有空白）
+    pattern = r'^```(?:json)?\s*\n?(.*?)\n?```$'
+    match = re.search(pattern, text.strip(), re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return text.strip()
 
 try:
     import torch
@@ -42,35 +76,39 @@ class AIRequestConfig:
         self.api_key = api_key
         self.base_url = base_url
 
-class AIRequestWorker:
-    def __init__(self, prompt: str, system_context: dict, config: AIRequestConfig = None):
+class AIRequestWorker(QThread):
+    """AI 请求工作线程。
+
+    继承 QThread，确保阻塞网络请求在后台执行，不阻塞主 UI 线程。
+    所有信号均通过 Qt 信号槽机制跨线程安全传递，避免直接在子线程操作 UI。
+    """
+
+    # ── Qt 信号定义（跨线程安全） ────────────────────────────────────────────
+    chunk_received = Signal(str)
+    action_required = Signal(str)
+    finished_signal = Signal()
+    error_signal = Signal(str)
+
+    def __init__(self, prompt: str, system_context: dict, config: 'AIRequestConfig' = None):
+        if QT_AVAILABLE:
+            super().__init__()
+        else:
+            object.__init__(self)
         self.prompt = prompt
         self.system_context = system_context
         self.config = config or AIRequestConfig()
         self._is_running = False
-        self._callbacks = {
-            'chunk_received': [],
-            'action_required': [],
-            'finished': [],
-            'error': []
-        }
-
-    def on(self, event: str, callback):
-        if event in self._callbacks:
-            self._callbacks[event].append(callback)
-
-    def emit(self, event: str, *args):
-        for callback in self._callbacks.get(event, []):
-            callback(*args)
 
     def stop(self):
+        """请求停止（设置标志位，run() 内部会在下次循环检查后退出）。"""
         self._is_running = False
 
+    # ── QThread 入口：由 Qt 在后台线程中自动调用 ─────────────────────────────
     def run(self):
         self._is_running = True
         try:
             context_str = json.dumps(self.system_context, ensure_ascii=False)
-            
+
             system_prompt = f"""你是一个数学助手，运行在MathLab交互式数学软件中。
 当前画布状态: {context_str}
 
@@ -79,7 +117,7 @@ class AIRequestWorker:
 2. 分析几何图形
 3. 通过JSON指令操作画布
 
-如果需要在画布上操作，请输出纯JSON，格式如:
+如果需要在画布上操作，请输出纯JSON（不要包裹在 Markdown 代码块中），格式如:
 {{"action": "add_point", "x": 1, "y": 2, "name": "A"}}
 
 支持的操作:
@@ -106,9 +144,9 @@ class AIRequestWorker:
                 self._make_api_request(messages)
 
         except Exception as e:
-            self.emit('error', str(e))
+            self.error_signal.emit(str(e))
         finally:
-            self.emit('finished')
+            self.finished_signal.emit()
 
     def _simulate_local_response(self, messages):
         responses = [
@@ -122,19 +160,19 @@ class AIRequestWorker:
         for text_chunk, action in responses:
             if not self._is_running:
                 break
-            
+
             for word in text_chunk:
                 if not self._is_running:
                     break
-                self.emit('chunk_received', word)
+                self.chunk_received.emit(word)  # Qt 信号，跨线程安全
                 time.sleep(0.05)
-            
+
             if action:
-                self.emit('action_required', action)
+                self.action_required.emit(action)
 
     def _make_api_request(self, messages):
         if not REQUESTS_AVAILABLE:
-            self.emit('error', 'requests library not available')
+            self.error_signal.emit('requests library not available')
             return
 
         headers = {
@@ -163,7 +201,7 @@ class AIRequestWorker:
 
         url = self.config.base_url or urls.get(self.config.provider)
         if not url:
-            self.emit('error', 'Invalid provider or base URL')
+            self.error_signal.emit('Invalid provider or base URL')
             return
 
         try:
@@ -186,15 +224,27 @@ class AIRequestWorker:
                             decoded = decoded[6:]
                         if decoded.strip() == '[DONE]':
                             break
+                        # ── 隐患二修复：剥离 LLM 输出中可能包裹的 Markdown 标记 ──
+                        decoded = _strip_markdown_json(decoded)
                         data = json.loads(decoded)
                         if 'choices' in data and len(data['choices']) > 0:
                             delta = data['choices'][0].get('delta', {})
                             if 'content' in delta:
-                                self.emit('chunk_received', delta['content'])
+                                content = delta['content']
+                                # 尝试识别完整 JSON 动作指令
+                                cleaned = _strip_markdown_json(content)
+                                try:
+                                    action_data = json.loads(cleaned)
+                                    if isinstance(action_data, dict) and 'action' in action_data:
+                                        self.action_required.emit(cleaned)
+                                        continue
+                                except (json.JSONDecodeError, ValueError):
+                                    pass
+                                self.chunk_received.emit(content)
                     except json.JSONDecodeError:
                         pass
         except requests.exceptions.RequestException as e:
-            self.emit('error', str(e))
+            self.error_signal.emit(str(e))
 
 class AIManager:
     def __init__(self):

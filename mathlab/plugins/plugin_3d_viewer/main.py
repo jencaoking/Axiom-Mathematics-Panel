@@ -139,6 +139,10 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         self.web_view.page().runJavaScript(js_script)
 
     def on_deactivate(self):
-        """释放 WebEngine 页面资源"""
+        """释放 WebEngine 页面资源，彻底终止 Chromium 渲染子进程。"""
         if hasattr(self, "web_view") and self.web_view:
             self.web_view.page().setWebChannel(None)
+            # deleteLater() 延迟至 Qt 事件循环空闲时销毁 C++ 层对象，
+            # 从而终止 Chromium 渲染子进程并回收显存与内存。
+            self.web_view.deleteLater()
+            self.web_view = None

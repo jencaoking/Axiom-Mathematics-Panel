@@ -23,26 +23,6 @@ try:
 except ImportError:
     from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
 
-class WorkerSignals(QObject):
-    chunk_received = Signal(str)
-    action_required = Signal(dict)
-    finished = Signal()
-    error = Signal(str)
-
-class WorkerThread(QThread):
-    def __init__(self, worker):
-        super().__init__()
-        self.worker = worker
-        self.signals = WorkerSignals()
-        self.worker.on('chunk_received', self.signals.chunk_received.emit)
-        self.worker.on('action_required', self.signals.action_required.emit)
-        self.worker.on('finished', self.signals.finished.emit)
-        self.worker.on('error', self.signals.error.emit)
-        
-    def run(self):
-        self.worker.run()
-
-
 class AIToolsPanel(QDockWidget):
     fit_requested = Signal(list, str, dict)
     cluster_requested = Signal(list, str, dict)
@@ -53,8 +33,7 @@ class AIToolsPanel(QDockWidget):
     def __init__(self, parent=None):
         super().__init__(t('ai_tools.title'), parent)
         self.setAllowedAreas(Qt.RightDockWidgetArea)
-        self.worker = None
-        self.worker_thread = None
+        self.worker = None  # AIRequestWorker(QThread) 实例
 
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
@@ -461,13 +440,14 @@ class AIToolsPanel(QDockWidget):
 
         self.worker = AIRequestWorker(user_text, system_context, config)
 
-        self.worker_thread = WorkerThread(self.worker)
-        self.worker_thread.signals.chunk_received.connect(self.on_chunk_received)
-        self.worker_thread.signals.action_required.connect(self.on_action_required)
-        self.worker_thread.signals.finished.connect(self.on_request_finished)
-        self.worker_thread.signals.error.connect(self.on_request_error)
+        # 直接连接 AIRequestWorker(QThread) 的原生 Qt 信号
+        # Qt 自动将跨线程信号设为 QueuedConnection，主线程安全更新 UI
+        self.worker.chunk_received.connect(self.on_chunk_received)
+        self.worker.action_required.connect(self.on_action_required)
+        self.worker.finished_signal.connect(self.on_request_finished)
+        self.worker.error_signal.connect(self.on_request_error)
 
-        self.worker_thread.start()
+        self.worker.start()  # 启动 QThread，自动在后台调用 run()
 
         self.chat_display.append(f"<b style='color: #006058;'>{t('ai_tools.assistant')}:</b> ")
 
@@ -503,14 +483,13 @@ class AIToolsPanel(QDockWidget):
         self.chat_input.setEnabled(True)
         self.send_button.setEnabled(True)
         self.chat_input.setFocus()
-        
-        if self.worker_thread:
-            self.worker_thread.quit()
-            self.worker_thread.wait()
-            # 清理线程和 worker，防止内存泄漏
-            self.worker_thread.deleteLater()
-            self.worker_thread = None
-        self.worker = None
+
+        if self.worker:
+            # quit() 通知线程退出事件循环，wait() 等待完成，deleteLater() 延迟释放 C++ 对象
+            self.worker.quit()
+            self.worker.wait(3000)  # 最多等 3 秒，防止无限阻塞
+            self.worker.deleteLater()
+            self.worker = None
 
     def on_request_error(self, error_msg: str):
         self.chat_display.append(f"<span style='color: #dc2626;'>{t('ai_tools.error')}: {error_msg}</span>")
