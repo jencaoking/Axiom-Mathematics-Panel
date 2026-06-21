@@ -207,6 +207,9 @@ a.binaries = filter_binaries(a.binaries)
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# ── 图标路径检测 ────────────────────────────────────────────────────────
+icon_path = 'resources/icons/app_icon.ico' if os.path.exists('resources/icons/app_icon.ico') else ('mathlab/resources/icons/app_icon.ico' if os.path.exists('mathlab/resources/icons/app_icon.ico') else None)
+
 # ── 单文件输出 ───────────────────────────────────────────────────────────
 exe = EXE(
     pyz,
@@ -216,7 +219,7 @@ exe = EXE(
     a.datas,
     [],
     name='MathLab',
-    icon='mathlab/resources/icons/app_icon.ico',
+    icon=icon_path,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,           # Windows 上 strip 无效，保持 False
@@ -233,13 +236,12 @@ exe = EXE(
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    icon='resources/icon.ico' if os.path.exists('resources/icon.ico') else None,
 )
 
 # ── macOS Bundle ────────────────────────────────────────────────────────
 app = BUNDLE(
     exe,
     name='MathLab.app',
-    icon='resources/icon.ico' if os.path.exists('resources/icon.ico') else None,
+    icon=icon_path,
     bundle_identifier='com.mathlab.axiom',
 )
