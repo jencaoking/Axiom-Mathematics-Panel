@@ -1,5 +1,6 @@
 import sys
 import os
+import platform
 
 # PyInstaller打包后路径处理
 if getattr(sys, 'frozen', False):
@@ -39,9 +40,20 @@ def main():
     try:
         app = QApplication(sys.argv)
         
-        # 🚨 1. 注入现代抗锯齿字体策略
-        font = QFont("San Francisco Display, Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif", 10)
-        font.setStyleStrategy(QFont.PreferAntialias)
+        # 🚨 修复字体环境：根据不同操作系统注入最完美的无衬线黑体
+        sys_os = platform.system()
+        if sys_os == "Windows":
+            # 强制使用微软雅黑，防宋体发虚
+            font_family = "Microsoft YaHei" 
+        elif sys_os == "Darwin":
+            # macOS 原生苹方/SF字体
+            font_family = ".AppleSystemUIFont" 
+        else:
+            # Linux 备选
+            font_family = "Ubuntu" 
+            
+        font = QFont(font_family, 10)
+        font.setStyleStrategy(QFont.PreferAntialias) # 开启抗锯齿
         app.setFont(font)
         
         # 🚨 2. 开启高 DPI 缩放支持

@@ -211,7 +211,7 @@ a.binaries = filter_binaries(a.binaries)
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
 # ── 图标路径检测 ────────────────────────────────────────────────────────
-icon_path = 'resources/icons/app_icon.ico' if os.path.exists('resources/icons/app_icon.ico') else ('mathlab/resources/icons/app_icon.ico' if os.path.exists('mathlab/resources/icons/app_icon.ico') else None)
+icon_path = os.path.abspath('resources/icons/app_icon.ico') if os.path.exists('resources/icons/app_icon.ico') else (os.path.abspath('mathlab/resources/icons/app_icon.ico') if os.path.exists('mathlab/resources/icons/app_icon.ico') else None)
 
 # ── 4. 单目录模式 (ONEDIR) ────────────────────────────────────────────────
 exe = EXE(

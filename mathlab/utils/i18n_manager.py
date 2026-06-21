@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 DEFAULT_LANGUAGE = 'en'
 SUPPORTED_LANGUAGES = {
@@ -35,7 +36,14 @@ class I18nManager:
     # Translation loading
     # ------------------------------------------------------------------
     def _load_translations(self):
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # 🚨 动态判断运行环境
+        if getattr(sys, 'frozen', False):
+            # PyInstaller 打包后的临时运行目录
+            base_dir = sys._MEIPASS
+        else:
+            # 本地源码开发环境
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
         locale_dir = os.path.join(base_dir, 'locale')
 
         if not os.path.exists(locale_dir):
