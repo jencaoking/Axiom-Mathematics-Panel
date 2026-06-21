@@ -39,6 +39,9 @@ def main():
         app = QApplication(sys.argv)
         app.setApplicationName('MathLab')
         app.setApplicationVersion('1.0')
+        
+        icon_path = os.path.join(mathlab_dir, 'resources', 'icons', 'app_icon.png')
+        app.setWindowIcon(QIcon(icon_path))
 
         try:
             stylesheet_path = os.path.join(mathlab_dir, 'ui', 'styles.qss')

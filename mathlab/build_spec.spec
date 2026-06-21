@@ -232,6 +232,7 @@ exe = EXE(
     a.datas,
     [],
     name='MathLab',
+    icon='mathlab/resources/icons/app_icon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,           # Windows 上 strip 无效，保持 False
