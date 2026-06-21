@@ -109,7 +109,6 @@ class _AlgebraItem(QFrame):
         self._equation_edit.setObjectName("equation_edit")
         self._equation_edit.hide()
         self._equation_edit.returnPressed.connect(self._on_equation_edit_finished)
-        self._equation_edit.editingFinished.connect(self._on_equation_edit_finished)
 
         text_layout = QVBoxLayout()
         text_layout.setContentsMargins(0, 0, 0, 0)
@@ -396,9 +395,10 @@ class AlgebraPanel(QDockWidget):
             cy_str = f"{abs(cy):.2f}"
             x_eq_sign = "-" if cx >= 0 else "+"
             y_eq_sign = "-" if cy >= 0 else "+"
+            r_sq = r * r
             return (
                 f"(x {x_eq_sign} {cx_str})\u00b2 + "
-                f"(y {y_eq_sign} {cy_str})\u00b2 = r\u00b2"
+                f"(y {y_eq_sign} {cy_str})\u00b2 = {r_sq:.2f}"
             )
 
         elif obj_type == 'Segment':

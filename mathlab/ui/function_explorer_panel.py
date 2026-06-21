@@ -401,11 +401,11 @@ class FunctionExplorerPanel(QDockWidget):
                 # 平移: f(x-a) + b
                 if factor_x != 0:
                     # 水平平移: x -> (x - shift)，使用正则整词匹配避免替换 exp、max 等
-                    shift = factor_x * 1.0  # 每次平移1个单位
+                    shift = factor_x
                     transformed_expr = re.sub(r'\bx\b', f'(x - {shift})', transformed_expr)
                 if factor_y != 0:
                     # 垂直平移: f(x) + shift
-                    shift = factor_y * 1.0
+                    shift = factor_y
                     transformed_expr = f'({transformed_expr}) + {shift}'
             
             elif transform_type == 'scale':

@@ -286,6 +286,16 @@ class MainWindow(QMainWindow):
 
         self.toolbar.addSeparator()
 
+        self._zoom_in_action = QAction(t('main_window.zoom_in'), self)
+        self.toolbar.addAction(self._zoom_in_action)
+        self._zoom_in_action.triggered.connect(self.on_zoom_in)
+
+        self._zoom_out_action = QAction(t('main_window.zoom_out'), self)
+        self.toolbar.addAction(self._zoom_out_action)
+        self._zoom_out_action.triggered.connect(self.on_zoom_out)
+
+        self.toolbar.addSeparator()
+
         self.lang_btn = QPushButton('EN/ZH')
         self.lang_btn.setToolTip(t('main_window.language'))
         self.lang_btn.setObjectName('lang_btn')
@@ -1284,19 +1294,3 @@ class MainWindow(QMainWindow):
         self.console.retranslate_ui()
         self.algo_vis_panel.retranslate_ui()
         self.ai_tools_panel.retranslate_ui()
-
-    @property
-    def zoom_in_action(self):
-        if not hasattr(self, '_zoom_in_action'):
-            self._zoom_in_action = QAction(t('main_window.zoom_in'), self)
-            self.toolbar.addAction(self._zoom_in_action)
-            self._zoom_in_action.triggered.connect(self.on_zoom_in)
-        return self._zoom_in_action
-
-    @property
-    def zoom_out_action(self):
-        if not hasattr(self, '_zoom_out_action'):
-            self._zoom_out_action = QAction(t('main_window.zoom_out'), self)
-            self.toolbar.addAction(self._zoom_out_action)
-            self._zoom_out_action.triggered.connect(self.on_zoom_out)
-        return self._zoom_out_action

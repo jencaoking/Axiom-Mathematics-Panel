@@ -11,7 +11,7 @@ try:
 except ImportError:
     from code_editor import AutocompleteTextEdit
 from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
-from PySide6.QtCore import Qt, Signal, QThread
+from PySide6.QtCore import Qt, Signal, QThread, QObject
 
 try:
     from ..utils.i18n_manager import t
@@ -22,6 +22,25 @@ try:
     from ..core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
 except ImportError:
     from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
+
+class WorkerSignals(QObject):
+    chunk_received = Signal(str)
+    action_required = Signal(dict)
+    finished = Signal()
+    error = Signal(str)
+
+class WorkerThread(QThread):
+    def __init__(self, worker):
+        super().__init__()
+        self.worker = worker
+        self.signals = WorkerSignals()
+        self.worker.on('chunk_received', self.signals.chunk_received.emit)
+        self.worker.on('action_required', self.signals.action_required.emit)
+        self.worker.on('finished', self.signals.finished.emit)
+        self.worker.on('error', self.signals.error.emit)
+        
+    def run(self):
+        self.worker.run()
 
 
 class AIToolsPanel(QDockWidget):
@@ -441,22 +460,20 @@ class AIToolsPanel(QDockWidget):
         config = AIRequestConfig(provider=provider)
 
         self.worker = AIRequestWorker(user_text, system_context, config)
-        self.worker.on('chunk_received', self.on_chunk_received)
-        self.worker.on('action_required', self.on_action_required)
-        self.worker.on('finished', self.on_request_finished)
-        self.worker.on('error', self.on_request_error)
 
-        self.worker_thread = QThread()
-        self.worker.moveToThread(self.worker_thread)
-        
-        self.worker_thread.started.connect(self.worker.run)
+        self.worker_thread = WorkerThread(self.worker)
+        self.worker_thread.signals.chunk_received.connect(self.on_chunk_received)
+        self.worker_thread.signals.action_required.connect(self.on_action_required)
+        self.worker_thread.signals.finished.connect(self.on_request_finished)
+        self.worker_thread.signals.error.connect(self.on_request_error)
+
         self.worker_thread.start()
 
         self.chat_display.append(f"<b style='color: #006058;'>{t('ai_tools.assistant')}:</b> ")
 
     def _get_system_context(self):
         system_context = {}
-        main_win = self.parent()
+        main_win = self.window()
         
         if hasattr(main_win, 'geometry_engine'):
             try:
@@ -493,9 +510,7 @@ class AIToolsPanel(QDockWidget):
             # 清理线程和 worker，防止内存泄漏
             self.worker_thread.deleteLater()
             self.worker_thread = None
-        if self.worker:
-            self.worker.deleteLater()
-            self.worker = None
+        self.worker = None
 
     def on_request_error(self, error_msg: str):
         self.chat_display.append(f"<span style='color: #dc2626;'>{t('ai_tools.error')}: {error_msg}</span>")

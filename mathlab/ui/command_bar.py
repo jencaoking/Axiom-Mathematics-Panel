@@ -209,6 +209,11 @@ class CommandPalette(QWidget):
         # 点击面板外部时关闭
         if event.type() == QEvent.WindowDeactivate:
             self.hide()
+        elif event.type() == QEvent.MouseButtonPress:
+            from PySide6.QtWidgets import QApplication
+            widget = QApplication.widgetAt(event.globalPos())
+            if widget is None or not self.isAncestorOf(widget):
+                self.hide()
 
         return super().eventFilter(obj, event)
 

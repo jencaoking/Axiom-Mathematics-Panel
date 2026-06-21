@@ -10,9 +10,13 @@ from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtSvg import QSvgRenderer
 
 # 导入 LaTeX 渲染缓存
-from mathlab.utils.latex_renderer import (
-    SharedSvgRendererCache, is_latex_rendering_available
-)
+try:
+    from mathlab.utils.latex_renderer import (
+        SharedSvgRendererCache, is_latex_rendering_available
+    )
+except ImportError:
+    SharedSvgRendererCache = None
+    is_latex_rendering_available = lambda: False
 
 
 class MathGraphicsItem(QGraphicsSvgItem):

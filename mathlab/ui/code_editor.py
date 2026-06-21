@@ -33,13 +33,11 @@ class AutocompleteTextEdit(QPlainTextEdit):
     def insert_completion(self, completion: str):
         tc = self.textCursor()
         prefix = self.completer.completionPrefix()
-        extra = len(completion) - len(prefix)
         
-        # 当 extra > 0 时才插入剩余部分，避免重复插入
-        if extra > 0:
-            tc.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, extra)
-            tc.insertText(completion[-extra:])
-            self.setTextCursor(tc)
+        if len(prefix) > 0:
+            tc.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, len(prefix))
+        tc.insertText(completion)
+        self.setTextCursor(tc)
         self.completer.popup().hide()
 
     def text_under_cursor(self):
@@ -49,7 +47,11 @@ class AutocompleteTextEdit(QPlainTextEdit):
 
     def keyPressEvent(self, event):
         if self.completer.popup().isVisible():
-            if event.key() in (Qt.Key_Enter, Qt.Key_Return, Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
+            if event.key() in (Qt.Key_Enter, Qt.Key_Return):
+                self.completer.activated.emit(self.completer.currentCompletion())
+                event.accept()
+                return
+            if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
                 event.ignore()
                 return
 
