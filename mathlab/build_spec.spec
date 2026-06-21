@@ -148,6 +148,7 @@ a = Analysis(
         'IPython', 'requests',
         # WebEngine / PySide6 依赖
         'PySide6.QtWebEngineWidgets',
+        'PySide6.QtWebEngineCore',
         'PySide6.QtWebChannel',
         'PySide6.QtCore',
         # sympy 动态加载的子模块

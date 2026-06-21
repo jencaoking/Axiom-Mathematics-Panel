@@ -8,24 +8,32 @@ from PySide6.QtWidgets import (
 
 try:
     from .code_editor import AutocompleteTextEdit
-except ImportError:
+except ImportError as e:
+    if "attempted relative import" not in str(e) and "No module named" not in str(e):
+        raise
     from code_editor import AutocompleteTextEdit
 from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
 from PySide6.QtCore import Qt, Signal, QThread, QObject
 
 try:
     from ..utils.i18n_manager import t
-except ImportError:
+except ImportError as e:
+    if "attempted relative import" not in str(e) and "No module named" not in str(e):
+        raise
     from utils.i18n_manager import t
 
 try:
     from ..core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
-except ImportError:
+except ImportError as e:
+    if "attempted relative import" not in str(e) and "No module named" not in str(e):
+        raise
     from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
 
 try:
     from ..ui.animations import start_breathing_effect
-except ImportError:
+except ImportError as e:
+    if "attempted relative import" not in str(e) and "No module named" not in str(e):
+        raise
     from ui.animations import start_breathing_effect
 
 class AIToolsPanel(QDockWidget):
@@ -541,7 +549,9 @@ class AIToolsPanel(QDockWidget):
             # 导入 get_opacity_effect 以重置透明度
             try:
                 from ..ui.animations import get_opacity_effect
-            except ImportError:
+            except ImportError as e:
+                if "attempted relative import" not in str(e) and "No module named" not in str(e):
+                    raise
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
 
