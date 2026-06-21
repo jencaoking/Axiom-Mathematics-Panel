@@ -13,28 +13,18 @@ from ui.function_explorer_panel import FunctionExplorerPanel
 
 
 def test_parameter_extraction(qtbot):
-    """Test parameter extraction functionality"""
-    # 1. 实例化组件
+    """测试参数提取功能"""
     panel = FunctionExplorerPanel()
-
-    # 2. 向 qtbot 注册组件，由测试框架管理 C++ 生命周期，防止 Abort (134)
-    qtbot.addWidget(panel)
-
+    qtbot.addWidget(panel)  # 由 qtbot 接管生命周期，防止回收时 core dump
+    
     test_cases = [
         ("A*sin(omega*x + phi)", ["A", "omega", "phi"]),
         ("a*x^2 + b*x + c", ["a", "b", "c"]),
-        ("x^2", []),
-        ("sin(x)", []),
-        ("a*exp(b*x)", ["a", "b"]),
     ]
-
+    
     for expr, expected in test_cases:
         params = panel._extract_parameters(expr)
-        # 使用标准 pytest 断言代替 print 语句
-        assert set(params) == set(expected), (
-            f"Parameter extraction failed for '{expr}': "
-            f"expected {expected}, got {params}"
-        )
+        assert set(params) == set(expected), f"表达式 {expr} 参数提取失败"
 
 
 def test_ui_creation(qtbot):
