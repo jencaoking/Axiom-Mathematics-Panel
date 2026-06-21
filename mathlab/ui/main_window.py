@@ -26,6 +26,18 @@ from .animations import fade_in, fade_out
 from .math_console import MathConsole
 from .notebook_panel import NotebookPanel
 
+# ── JupyterLab 嵌入组件（软依赖：WebEngine 不存在时降级为占位面板） ──────────
+try:
+    from .jupyter_panel import JupyterPanel
+    from core.jupyter_manager import JupyterManager
+except ImportError:
+    try:
+        from .jupyter_panel import JupyterPanel
+        from ..core.jupyter_manager import JupyterManager
+    except ImportError:
+        JupyterPanel = None
+        JupyterManager = None
+
 try:
     from core.geometry_engine import GeometryEngine
     from core.python_repl import PythonREPL
@@ -122,7 +134,50 @@ class MainWindow(QMainWindow):
         if self.geogebra_panel:
             self.central_tabs.addTab(self.geogebra_panel, "Mini GeoGebra")
 
+        # ── 🌌 JupyterLab 嵌入工作区 ────────────────────────────────────────────
+        self._init_jupyter_tab()
+
         self.setCentralWidget(self.central_tabs)
+
+    def _init_jupyter_tab(self):
+        """在后台线程启动 JupyterLab，避免阻塞 UI 初始化"""
+        self.jupyter_mgr = None
+        self.jupyter_workspace = None
+
+        if JupyterManager is None or JupyterPanel is None:
+            logger.warning("JupyterManager / JupyterPanel 未能导入，Jupyter 标签页已跳过。")
+            return
+
+        try:
+            self.jupyter_mgr = JupyterManager()
+            # 创建面板（此时服务还未就绪，面板显示加载动画）
+            self.jupyter_workspace = JupyterPanel(
+                self.jupyter_mgr.url, self
+            )
+            self.central_tabs.addTab(
+                self.jupyter_workspace, "🌌 Jupyter 工作区"
+            )
+
+            # 在后台线程启动服务，就绪后触发页面加载
+            import threading
+            def _start_and_load():
+                self.jupyter_mgr.start(timeout=30)
+                # 切回主线程加载页面（Qt 要求 UI 操作在主线程）
+                from PySide6.QtCore import QMetaObject, Qt
+                QMetaObject.invokeMethod(
+                    self.jupyter_workspace,
+                    "load_workspace",
+                    Qt.ConnectionType.QueuedConnection,
+                )
+
+            t_jupyter = threading.Thread(
+                target=_start_and_load, daemon=True, name="JupyterStartup"
+            )
+            t_jupyter.start()
+            logger.info("JupyterLab 后台启动线程已派发，端口：%s", self.jupyter_mgr.port)
+
+        except Exception as exc:
+            logger.warning("Jupyter 初始化失败（不影响其他功能）：%s", exc)
 
     def setup_menus(self):
         menu_bar = QMenuBar(self)
@@ -1678,5 +1733,11 @@ class MainWindow(QMainWindow):
                 worker.wait(1000)
             except Exception:
                 pass
+        # 🛑 优雅关闭 JupyterLab 后台进程
+        if hasattr(self, 'jupyter_mgr') and self.jupyter_mgr is not None:
+            try:
+                self.jupyter_mgr.stop()
+            except Exception as e:
+                logger.warning("关闭 JupyterLab 后台时出错：%s", e)
         super().closeEvent(event)
 
