@@ -10,6 +10,8 @@ try:
 except ImportError:
     from utils.i18n_manager import t
 
+from mathlab.core.async_workers import TaskManager
+
 class PythonConsole(QDockWidget):
     execute_command = Signal(str)
     stop_execution = Signal()
@@ -165,35 +167,52 @@ class PythonConsole(QDockWidget):
         line = 1
         column = cursor_pos
 
-        jedi_completions = self.get_jedi_completions(current_text, line, column)
-        
-        if jedi_completions:
-            names = [c['name'] for c in jedi_completions]
-            
-            if len(names) == 1:
-                last_word_start = current_text.rfind(' ', 0, cursor_pos) + 1
-                prefix = current_text[last_word_start:cursor_pos]
-                completion = names[0]
-                if completion.startswith(prefix):
-                    new_text = current_text[:last_word_start] + completion + current_text[cursor_pos:]
-                    self.input_line.setText(new_text)
-                    self.input_line.setCursorPosition(last_word_start + len(completion))
-            elif len(names) > 1:
-                self.append_output('\n' + '\n'.join(names) + '\n')
-                self.append_prompt()
-                self.input_line.setText(current_text)
-        else:
-            words = current_text.split()
-            if words:
-                last_word = words[-1]
-                completions = self.get_completions(last_word)
+        def process_completions(jedi_completions):
+            if self.input_line.text() != current_text:
+                return
 
-                if len(completions) == 1:
-                    self.input_line.setText(current_text[:-len(last_word)] + completions[0])
-                elif len(completions) > 1:
-                    self.append_output('\n'.join(completions) + '\n')
+            if jedi_completions:
+                names = [c['name'] for c in jedi_completions]
+                
+                if len(names) == 1:
+                    last_word_start = current_text.rfind(' ', 0, cursor_pos) + 1
+                    prefix = current_text[last_word_start:cursor_pos]
+                    completion = names[0]
+                    if completion.startswith(prefix):
+                        new_text = current_text[:last_word_start] + completion + current_text[cursor_pos:]
+                        self.input_line.setText(new_text)
+                        self.input_line.setCursorPosition(last_word_start + len(completion))
+                elif len(names) > 1:
+                    self.append_output('\n' + '\n'.join(names) + '\n')
                     self.append_prompt()
                     self.input_line.setText(current_text)
+            else:
+                words = current_text.split()
+                if words:
+                    last_word = words[-1]
+                    completions = self.get_completions(last_word)
+
+                    if len(completions) == 1:
+                        self.input_line.setText(current_text[:-len(last_word)] + completions[0])
+                    elif len(completions) > 1:
+                        self.append_output('\n'.join(completions) + '\n')
+                        self.append_prompt()
+                        self.input_line.setText(current_text)
+
+        def on_error(err_msg):
+            self.display_system_message(f"[补全异常] {err_msg}", level='error')
+
+        if self.python_repl:
+            TaskManager().submit(
+                fn=self.python_repl.get_completions,
+                on_success=process_completions,
+                on_error=on_error,
+                code_str=current_text,
+                line=line,
+                column=column
+            )
+        else:
+            process_completions([])
 
     def set_python_repl(self, repl):
         self.python_repl = repl
@@ -229,26 +248,32 @@ class PythonConsole(QDockWidget):
     # ──────────────────────────────────────────────────────────────
 
     def inject_variable(self, var_name: str, value_expr: str) -> None:
-        """向 REPL 静默注入一个变量赋值，不在输出区打印执行回显。
-
-        注入成功后在控制台显示一条系统提示；若 REPL 未初始化则仅显示提示。
-        用法示例（由命令面板调用）::
-
-            console.inject_variable('PI', '3.141592653589793')
-        """
+        """向 REPL 静默注入一个变量赋值 (异步改造版)"""
         script = f"{var_name} = {value_expr}"
+        
         if self.python_repl is not None:
-            try:
-                result = self.python_repl.execute(script)
-                if result.get('error'):
+            # 1. 定义成功后的 UI 更新回调
+            def on_success(result):
+                if isinstance(result, dict) and result.get('error'):
                     self.display_system_message(
                         f"[注入失败] {var_name}: {result['error']}", level='error'
                     )
-                    return
-            except Exception as e:
-                self.display_system_message(f"[注入异常] {e}", level='error')
-                return
-        self.display_system_message(f"已注入变量: {var_name} = {value_expr}")
+                else:
+                    self.display_system_message(f"已异步注入变量: {var_name} = {value_expr}")
+
+            # 2. 定义失败后的 UI 更新回调
+            def on_error(err_msg):
+                self.display_system_message(f"[注入异常] {err_msg}", level='error')
+
+            # 3. 将阻塞的 execute 踢给后台线程池！主界面瞬间解放。
+            TaskManager().submit(
+                fn=self.python_repl.execute,
+                on_success=on_success,
+                on_error=on_error,
+                code=script  # 传递给 execute 的参数
+            )
+        else:
+            self.display_system_message(f"已注入变量(仅提示): {var_name} = {value_expr}")
 
     def insert_text_at_cursor(self, text: str) -> None:
         """将文本插入到输入框当前光标位置，焦点自动移到输入框。
