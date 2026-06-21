@@ -29,15 +29,21 @@ class _SectionHeader(QLabel):
     toggled = Signal(bool)
 
     def __init__(self, text: str, parent=None):
-        super().__init__(text, parent)
+        super().__init__("", parent)
         self.setObjectName("section_label")
         self._collapsed = False
         self._body: QWidget | None = None
+        self._base_text = text
+        self._arrow = "▾"
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._apply_style()
 
+    def setText(self, text: str):
+        self._base_text = text
+        super().setText(f"{self._arrow} {text}")
+
     def _apply_style(self):
-        arrow = "▸" if self._collapsed else "▾"
+        self._arrow = "▸" if self._collapsed else "▾"
         self.setStyleSheet(
             "QLabel#section_label {"
             "  font-size: 11px;"
@@ -47,8 +53,7 @@ class _SectionHeader(QLabel):
             "  padding: 6px 0px 4px 0px;"
             "}"
         )
-        # store base text for retranslation support
-        self._arrow = arrow
+        super().setText(f"{self._arrow} {self._base_text}")
 
     def set_body(self, body: QWidget):
         self._body = body
@@ -87,7 +92,6 @@ class _ColorDot(QPushButton):
                 f"  background-color: {self.hex_color};"
                 f"  border-radius: 12px;"
                 f"  border: 2.5px solid #ffffff;"
-                f"  outline: 2.5px solid {self.hex_color};"
                 f"}}"
                 # outer ring via box-shadow is not supported in Qt;
                 # we paint it manually in paintEvent instead

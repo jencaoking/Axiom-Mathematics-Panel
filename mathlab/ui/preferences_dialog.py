@@ -325,6 +325,7 @@ class PreferencesDialog(QDialog):
             btn.setStyleSheet(
                 f"background-color:{color}; border-radius:13px; border:2px solid transparent;"
             )
+            btn.setToolTip(t("preferences.accent_tooltip", "Click Apply or OK to save the accent color."))
             btn.clicked.connect(lambda _checked, c=color: self._set_accent(c))
             accent_row.addWidget(btn)
             self.accent_btns.append((color, btn))
@@ -691,10 +692,12 @@ class PreferencesDialog(QDialog):
         self.autosave_spin.setValue(s.get("autosave_interval", 5))
 
         shortcuts = s.get("shortcuts", {})
+        self.shortcut_table.blockSignals(True)
         self.shortcut_table.setRowCount(len(shortcuts))
         for row, (action, key) in enumerate(shortcuts.items()):
             self.shortcut_table.setItem(row, 0, QTableWidgetItem(action))
             self.shortcut_table.setItem(row, 1, QTableWidgetItem(key))
+        self.shortcut_table.blockSignals(False)
 
     def _set_accent(self, hex_color: str):
         self.settings["accent"] = hex_color
@@ -710,7 +713,7 @@ class PreferencesDialog(QDialog):
         lang_code = self.lang_combo.itemData(index)
         if not lang_code:
             return
-        if lang_code != get_i18n().get_language():
+        if self.isVisible() and lang_code != get_i18n().get_language():
             get_i18n().set_language(lang_code)
             self.language_changed.emit(lang_code)
 

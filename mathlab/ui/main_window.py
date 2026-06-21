@@ -29,14 +29,14 @@ try:
     from core.python_repl import PythonREPL
     from core.ai_manager import AIManager
     from core.cas_provider import CASProvider
-    from core.async_workers import TaskManager
+    from core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from core.command_manager import CommandManager, Command
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
     from ..core.cas_provider import CASProvider
-    from ..core.async_workers import TaskManager
+    from ..core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
     from ..core.command_manager import CommandManager, Command
 
 try:
@@ -567,7 +567,11 @@ class MainWindow(QMainWindow):
             
             # 使用传入的 obj_id 定位对象
             last_func = self.geometry_engine.get_object(obj_id)
-            if last_func and hasattr(last_func, '_generate_points'):
+            if not last_func:
+                logger.warning("函数已被删除")
+                return
+                
+            if hasattr(last_func, '_generate_points'):
                 last_func.expression = expression
                 last_func._generate_points()
                 
@@ -847,6 +851,9 @@ class MainWindow(QMainWindow):
         if not points:
             return
 
+        if hasattr(self, 'fit_worker') and self.fit_worker.isRunning():
+            return
+
         if params is None:
             params = {}
 
@@ -880,6 +887,9 @@ class MainWindow(QMainWindow):
         if not points:
             return
 
+        if hasattr(self, 'cluster_worker') and self.cluster_worker.isRunning():
+            return
+
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage(f"正在进行 {method} 聚类分析...")
 
@@ -890,6 +900,9 @@ class MainWindow(QMainWindow):
         self.cluster_worker.start()
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
+        if hasattr(self, 'recognize_worker') and self.recognize_worker.isRunning():
+            return
+            
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage("正在识别数字...")
 
@@ -908,6 +921,9 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"后台运算出错: {error_msg}", 5000)
 
     def on_ai_generate_points(self, n: int) -> None:
+        if hasattr(self, 'generate_points_worker') and self.generate_points_worker.isRunning():
+            return
+            
         self.ai_tools_panel.set_loading_state(True)
         self.statusBar().showMessage("正在生成随机点...")
 

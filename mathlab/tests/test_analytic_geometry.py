@@ -58,6 +58,9 @@ def test_conic_sections():
     print(f"   方程: {conic.to_latex()}")
     print(f"   生成点数: {len(conic.points_data)}")
     
+    assert len(ellipse.coordinates.get('points', [])) > 0, "椭圆未生成任何点"
+    assert len(conic.points_data) > 0, "一般圆锥曲线未生成任何点"
+    
     print("\n✓ 圆锥曲线测试通过!")
 
 
@@ -102,6 +105,15 @@ def test_function_plots():
     print(f"   表达式: {polar.expression}")
     print(f"   生成点数: {len(polar.points_data)}")
     
+    assert 'x**2' in func1.expression, "显函数表达式不匹配"
+    assert len(func1.points_data) > 0, "显函数未生成点"
+    assert 'sin(x)' in func2.expression, "正弦函数表达式不匹配"
+    assert len(func2.points_data) > 0, "正弦函数未生成点"
+    assert 'x**2 + y**2 - 1' in impl.expression, "隐函数表达式不匹配"
+    assert len(impl.points_data) > 0, "隐函数未生成点"
+    assert '2*cos(theta)' in polar.expression, "极坐标表达式不匹配"
+    assert len(polar.points_data) > 0, "极坐标未生成点"
+    
     print("\n✓ 函数绘图测试通过!")
 
 
@@ -145,6 +157,8 @@ def test_locus():
     if locus.trail_points:
         print(f"   前3个点: {locus.trail_points[:3]}")
     
+    assert len(locus.trail_points) > 0, "轨迹点未生成"
+    
     print("\n✓ 动点轨迹测试通过!")
 
 
@@ -176,6 +190,10 @@ def test_serialization():
     # 验证对象
     for obj_id, obj in engine2.objects.items():
         print(f"   - {obj.type}: {obj.name}")
+        
+    assert len(engine2.objects) == len(data['objects']), "反序列化后对象数量不匹配"
+    names = [obj.name for obj in engine2.objects.values()]
+    assert 'Center' in names, "缺少测试点 Center"
     
     print("\n✓ 序列化/反序列化测试通过!")
 
