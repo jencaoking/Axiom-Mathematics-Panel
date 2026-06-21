@@ -53,23 +53,77 @@ class TaskManager(QObject):
         import multiprocessing
         max_threads = max(1, multiprocessing.cpu_count() - 1)
         self.thread_pool.setMaxThreadCount(max_threads)
+        # 用于防抖与任务覆盖：跟踪各组是否有任务运行及挂起的最新请求
+        self._running_groups = set()
+        self._pending_requests = {}
+        
         logger.info(f"TaskManager 启动，最大并发线程数: {max_threads}")
 
-    def submit(self, fn, on_success=None, on_error=None, *args, **kwargs):
+    def submit(self, fn, on_success=None, on_error=None, group_id=None, *args, **kwargs):
         """
         核心 API：将阻塞任务提交至后台线程池
         
         :param fn: 需要执行的阻塞函数 (如 cas_provider.integrate)
         :param on_success: 成功后的回调槽函数 (UI 更新操作应放这里)
         :param on_error: 失败后的回调槽函数
+        :param group_id: 任务分组 ID。提供此 ID 可防抖与抽搐拦截。
+                         当同组任务正在执行时，新的请求会覆盖旧的排队请求，只执行最新一帧。
         :param args/kwargs: 传递给 fn 的参数
         """
+        if group_id is not None:
+            if group_id in self._running_groups:
+                # 已有同组任务正在执行，覆盖挂起队列中的请求
+                self._pending_requests[group_id] = {
+                    'fn': fn,
+                    'on_success': on_success,
+                    'on_error': on_error,
+                    'args': args,
+                    'kwargs': kwargs
+                }
+                return
+            else:
+                self._running_groups.add(group_id)
+                self._submit_internal(group_id, fn, on_success, on_error, *args, **kwargs)
+        else:
+            self._submit_internal(None, fn, on_success, on_error, *args, **kwargs)
+
+    def _submit_internal(self, group_id, fn, on_success, on_error, *args, **kwargs):
         worker = TaskWorker(fn, *args, **kwargs)
         
-        if on_success:
-            worker.signals.finished.connect(on_success)
-        if on_error:
-            worker.signals.error.connect(on_error)
+        def success_interceptor(result):
+            try:
+                if on_success:
+                    on_success(result)
+            finally:
+                self._check_pending(group_id)
+
+        def error_interceptor(err):
+            try:
+                if on_error:
+                    on_error(err)
+            finally:
+                self._check_pending(group_id)
+            
+        worker.signals.finished.connect(success_interceptor)
+        worker.signals.error.connect(error_interceptor)
             
         self.thread_pool.start(worker)
         logger.debug(f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}")
+
+    def _check_pending(self, group_id):
+        if group_id is None:
+            return
+            
+        if group_id in self._pending_requests:
+            req = self._pending_requests.pop(group_id)
+            self._submit_internal(
+                group_id,
+                req['fn'],
+                req['on_success'],
+                req['on_error'],
+                *req['args'],
+                **req['kwargs']
+            )
+        else:
+            if group_id in self._running_groups:
+                self._running_groups.remove(group_id)
