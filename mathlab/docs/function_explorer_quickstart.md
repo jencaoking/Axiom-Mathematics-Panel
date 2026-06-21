@@ -235,9 +235,8 @@ x^2
 
 ## 📚 延伸阅读
 
-- 完整使用指南: `FUNCTION_EXPLORER_GUIDE.md`
-- 实现细节: `FUNCTION_EXPLORER_IMPLEMENTATION.md`
-- 演示脚本: `demo_function_explorer.py`
+- 完整使用指南: `function_explorer_guide.md`
+- 实现细节: `function_explorer_implementation.md`
 
 ---
 

@@ -127,6 +127,7 @@
     "digit_recognition": "Digit Recognition",
     "clustering": "Clustering",
     "training_notebook": "Training Notebook",
+    "ai_assistant": "AI Assistant",
     "model_type": "Model Type:",
     "polynomial_degree": "Polynomial Degree:",
     "fit_data": "Fit Data",
@@ -149,7 +150,13 @@
     "kmeans": "K-Means",
     "dbscan": "DBSCAN",
     "running_training": "Running training...",
-    "cluster_count": "Clusters:"
+    "cluster_count": "Clusters:",
+    "ask_question": "Ask me any math question, or let me draw for you...",
+    "send": "Send",
+    "provider": "AI Provider:",
+    "you": "You",
+    "assistant": "AI Assistant",
+    "error": "Error"
   },
   "algo_vis": {
     "title": "Algorithm Visualization",

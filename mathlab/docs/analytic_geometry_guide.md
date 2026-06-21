@@ -149,6 +149,7 @@ polar_id = plot_polar('2*cos(theta)', theta_range=(0, 2*math.pi))
 polar_id = plot_polar('cos(3*theta)', theta_range=(0, 2*math.pi))
 
 # 绘制阿基米德螺线：r = θ
+theta_range=(0, 4*math.pi)
 polar_id = plot_polar('theta', theta_range=(0, 4*math.pi))
 
 # 绘制心形线：r = 1 - cos(θ)

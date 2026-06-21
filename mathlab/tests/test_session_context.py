@@ -7,7 +7,7 @@ import os
 import importlib.util
 
 # 直接加载 python_repl 模块（绕过 mathlab.__init__.py）
-core_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'core')
+core_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'core')
 sandbox_spec = importlib.util.spec_from_file_location("sandbox", os.path.join(core_path, "sandbox.py"))
 sandbox_module = importlib.util.module_from_spec(sandbox_spec)
 sys.modules['sandbox'] = sandbox_module  # 注册到 sys.modules

@@ -205,12 +205,13 @@ mathlab/
 │   └── resources.qrc          # Qt 资源文件
 │
 ├── LICENSE                    # Apache 2.0 许可证
-├── ANALYTIC_GEOMETRY_GUIDE.md     # 解析几何指南
-├── FUNCTION_EXPLORER_GUIDE.md      # 函数 explorer 指南
-├── FUNCTION_EXPLORER_IMPLEMENTATION.md  # 函数 explorer 实现
-├── FUNCTION_EXPLORER_QUICKSTART.md     # 函数 explorer 快速开始
-├── SESSION_MODE_GUIDE.md            # 会话模式指南
-└── SANDBOX_SECURITY_REFACTOR.md    # 沙箱安全重构文档
+└── docs/                      # 项目文档
+    ├── analytic_geometry_guide.md       # 解析几何指南
+    ├── function_explorer_guide.md       # 函数 explorer 指南
+    ├── function_explorer_implementation.md  # 函数 explorer 实现
+    ├── function_explorer_quickstart.md  # 函数 explorer 快速开始
+    ├── session_mode_guide.md            # 会话模式指南
+    └── sandbox_security_refactor.md     # 沙箱安全重构文档
 ```
 
 ---

@@ -6,7 +6,7 @@ import sys
 import os
 
 # 添加项目路径
-mathlab_dir = os.path.dirname(os.path.abspath(__file__))
+mathlab_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, mathlab_dir)
 
 # 直接导入 geometry_engine 模块，避免触发 core/__init__.py

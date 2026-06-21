@@ -107,10 +107,7 @@ class I18nManager:
             return key
 
         try:
-            if args:
-                value = value.format(*args)
-            elif kwargs:
-                value = value.format(**kwargs)
+            value = value.format(*args, **kwargs)
         except (IndexError, KeyError):
             pass
 

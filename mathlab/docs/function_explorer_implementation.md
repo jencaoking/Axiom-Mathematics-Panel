@@ -60,9 +60,8 @@ mathlab/
 │   ├── zh.json                        # 修改: 添加中文翻译
 │   └── en.json                        # 修改: 添加英文翻译
 ├── ui/main_window.py                  # 修改: 集成函数探索器
-├── FUNCTION_EXPLORER_GUIDE.md         # 新增: 使用指南
-├── demo_function_explorer.py          # 新增: 演示脚本
-└── test_function_explorer.py          # 新增: 测试脚本
+├── docs/function_explorer_guide.md    # 新增: 使用指南
+└── tests/test_function_explorer.py    # 新增: 测试脚本
 ```
 
 ## 核心组件
@@ -257,9 +256,9 @@ transformed_expr = f'({transformed_expr}) + {shift}'
 - [ ] 同时绘制多个函数测试性能
 
 ### 自动化测试
-运行演示脚本:
+运行测试脚本:
 ```bash
-python demo_function_explorer.py
+python tests/test_function_explorer.py
 ```
 
 ## 代码质量

@@ -5,7 +5,7 @@ import sys
 import os
 
 # 确保可以导入 core 模块（绕过 mathlab.__init__.py）
-core_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'core')
+core_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'core')
 sys.path.insert(0, core_path)
 
 # 直接导入 sandbox 模块
@@ -83,7 +83,7 @@ def test_sandbox_isolation():
     
     # 由于 python_repl 使用相对导入，我们需要通过 mathlab.core 路径导入
     # 先将 mathlab 目录加入 sys.path
-    mathlab_path = os.path.dirname(os.path.abspath(__file__))
+    mathlab_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if mathlab_path not in sys.path:
         sys.path.insert(0, mathlab_path)
     

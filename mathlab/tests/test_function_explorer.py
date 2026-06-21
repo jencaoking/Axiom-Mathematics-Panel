@@ -5,7 +5,7 @@ import sys
 import os
 
 # 添加mathlab目录到路径
-mathlab_dir = os.path.dirname(os.path.abspath(__file__))
+mathlab_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, mathlab_dir)
 
 from PySide6.QtWidgets import QApplication
