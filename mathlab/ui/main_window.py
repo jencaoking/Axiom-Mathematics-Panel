@@ -700,45 +700,55 @@ class MainWindow(QMainWindow):
 
     def execute_ai_action(self, action_data: dict) -> None:
         action = action_data.get('action')
+        engine = self.geometry_engine if hasattr(self, 'geometry_engine') else None
         
         if action == 'add_point':
             x = action_data.get('x', 0.0)
             y = action_data.get('y', 0.0)
+            z = action_data.get('z', 0.0)
             name = action_data.get('name', '')
-            if hasattr(self, 'geometry_engine'):
-                self.geometry_engine.add_point(x, y, name=name)
+            if engine:
+                engine.add_point(x=x, y=y, z=z, name=name)
             else:
-                # 移除错误的第三个参数，on_point_added 只接受2个参数
                 self.on_point_added(x, y)
         
         elif action == 'add_segment':
             point1_id = action_data.get('point1_id')
             point2_id = action_data.get('point2_id')
-            if point1_id and point2_id and hasattr(self, 'geometry_engine'):
-                self.geometry_engine.add_segment(point1_id, point2_id)
+            if point1_id and point2_id and engine:
+                engine.add_segment(point1_id, point2_id)
         
         elif action == 'add_circle':
             center_id = action_data.get('center_id')
             radius = action_data.get('radius', 1.0)
-            if center_id and hasattr(self, 'geometry_engine'):
-                self.geometry_engine.add_circle(center_id, radius)
+            if center_id and engine:
+                engine.add_circle(center_id, radius)
+                
+        elif action == 'add_sphere':
+            center_id = action_data.get('center_id')
+            radius = action_data.get('radius', 1.0)
+            if center_id and engine:
+                engine.add_sphere(center_id=center_id, radius=radius)
         
         elif action == 'add_polygon':
             point_ids = action_data.get('point_ids', [])
-            if len(point_ids) >= 3 and hasattr(self, 'geometry_engine'):
-                self.geometry_engine.add_polygon(point_ids)
+            if len(point_ids) >= 3 and engine:
+                engine.add_polygon(point_ids)
         
         elif action == 'update_point':
             point_id = action_data.get('point_id')
             x = action_data.get('x')
             y = action_data.get('y')
-            if point_id and (x is not None or y is not None) and hasattr(self, 'geometry_engine'):
+            z = action_data.get('z')
+            if point_id and (x is not None or y is not None or z is not None) and engine:
                 kwargs = {}
                 if x is not None:
                     kwargs['x'] = x
                 if y is not None:
                     kwargs['y'] = y
-                self.geometry_engine.update_point(point_id, **kwargs)
+                if z is not None:
+                    kwargs['z'] = z
+                engine.update_point(point_id, **kwargs)
         
         elif action == 'remove_object':
             obj_id = action_data.get('obj_id')

@@ -109,27 +109,28 @@ class AIRequestWorker(QThread):
         try:
             context_str = json.dumps(self.system_context, ensure_ascii=False)
 
-            system_prompt = f"""你是一个数学助手，运行在MathLab交互式数学软件中。
+            system_prompt = f"""你是一个数学与几何专家，运行在MathLab 2.0 (支持2D/3D交互)中。
 当前画布状态: {context_str}
 
 你的能力:
-1. 解答数学问题
-2. 分析几何图形
-3. 通过JSON指令操作画布
+1. 解答复杂的数学、微积分与代数问题
+2. 分析 2D 平面与 3D 空间几何图形的拓扑关系
+3. 通过JSON指令直接操控用户的画布
 
 如果需要在画布上操作，请输出纯JSON（不要包裹在 Markdown 代码块中），格式如:
-{{"action": "add_point", "x": 1, "y": 2, "name": "A"}}
+{{"action": "add_point", "x": 1, "y": 2, "z": 3, "name": "P"}}
 
-支持的操作:
-- add_point: 添加点 {{"action": "add_point", "x": number, "y": number, "name": string}}
+支持的指令:
+- add_point: 添加空间点 {{"action": "add_point", "x": number, "y": number, "z": number, "name": string}} (z为可选，默认0)
 - add_segment: 添加线段 {{"action": "add_segment", "point1_id": string, "point2_id": string}}
-- add_circle: 添加圆 {{"action": "add_circle", "center_id": string, "radius": number}}
-- add_polygon: 添加多边形 {{"action": "add_polygon", "point_ids": [string]}}
-- update_point: 更新点 {{"action": "update_point", "point_id": string, "x": number, "y": number}}
+- add_circle: 添加2D圆 {{"action": "add_circle", "center_id": string, "radius": number}}
+- add_sphere: 添加3D球体 {{"action": "add_sphere", "center_id": string, "radius": number}}
+- update_point: 移动点 {{"action": "update_point", "point_id": string, "x": number, "y": number, "z": number}}
 - remove_object: 删除对象 {{"action": "remove_object", "obj_id": string}}
 - clear: 清空画布 {{"action": "clear"}}
-- solve: 求解 {{"action": "solve", "expression": string}}
+- solve: 调用SymPy求解 {{"action": "solve", "expression": string}}
 
+注意：如果用户提问涉及 3D（如球体、空间坐标），请务必在指令中包含 z 坐标。
 如果只是回答问题，请直接输出文本，不要输出JSON。
 """
 
@@ -149,23 +150,25 @@ class AIRequestWorker(QThread):
             self.finished_signal.emit()
 
     def _simulate_local_response(self, messages):
+        # 模拟 AI 生成一段 3D 演示文本和动作
         responses = [
-            ("分析当前画布...\n", None),
-            ("我已识别到画布上的几何对象。\n", None),
-            ("根据你的问题，我来帮你分析：\n", None),
-            ("这是一个数学问题，我可以帮你解答。\n", None),
-            ("如果你需要我在画布上绘制图形，请告诉我具体需求。\n", None),
+            ("收到！我检测到您的 MathLab 已经升级到 2.0 版本。\n", None),
+            ("我将在您的 3D 空间中创建一个坐标为 (2, 3, 4) 的中心点...\n", None),
+            ("并在它周围生成一个半径为 5 的空间球体。\n", 
+             '{"action": "add_point", "x": 2, "y": 3, "z": 4, "name": "AI_Center"}'),
+            # 这里的动作指令由主窗口捕获后执行
+            ("请用鼠标在右侧的 3D 画板中拖拽查看效果吧！\n", None),
         ]
 
         for text_chunk, action in responses:
             if not self._is_running:
                 break
-
+            # 模拟打字机效果
             for word in text_chunk:
                 if not self._is_running:
                     break
-                self.chunk_received.emit(word)  # Qt 信号，跨线程安全
-                time.sleep(0.05)
+                self.chunk_received.emit(word)
+                time.sleep(0.03)
 
             if action:
                 self.action_required.emit(action)
