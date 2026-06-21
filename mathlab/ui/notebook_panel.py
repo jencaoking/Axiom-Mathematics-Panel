@@ -1,11 +1,12 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget, QSpacerItem, QSizePolicy
 )
 from PySide6.QtCore import Signal, Qt
 
 from mathlab.ui.code_editor import MonacoCodeEditor
 from mathlab.core.notebook import MathLabNotebook, CellType
 from mathlab.utils.i18n_manager import t
+import numpy as np
 
 class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
@@ -92,83 +93,140 @@ class VSCodeStyleCellWidget(QFrame):
             self.output_browser.setHtml(text)
             self.output_browser.show()
 
-class NotebookPanel(QDockWidget):
+class NotebookPanel(QWidget):
+    """
+    交互式笔记本的宏观容器
+    负责管理多个 Cell 的 UI 排列，并与底层的 MathLabNotebook 保持数据同步
+    """
     def __init__(self, parent=None):
-        super().__init__(t('notebook.title'), parent)
-        self.notebook = MathLabNotebook()
+        super().__init__(parent)
+        self.backend = MathLabNotebook()
+        self.ui_cells = {}
         
-        self.main_widget = QWidget()
-        self.layout = QVBoxLayout(self.main_widget)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.setWidget(self.main_widget)
-        
-        # Toolbar
-        self.toolbar = QWidget()
-        t_layout = QHBoxLayout(self.toolbar)
-        self.add_code_btn = QPushButton(t('notebook.add_code'))
-        self.add_md_btn = QPushButton(t('notebook.add_markdown'))
-        
-        self.add_code_btn.clicked.connect(lambda: self.add_cell("code"))
-        self.add_md_btn.clicked.connect(lambda: self.add_cell("markdown"))
-        
-        t_layout.addWidget(self.add_code_btn)
-        t_layout.addWidget(self.add_md_btn)
-        t_layout.addStretch()
-        self.layout.addWidget(self.toolbar)
-        
-        # Scroll Area
+        self.init_ui()
+        self.add_new_cell(CellType.CODE)
+
+    def init_ui(self):
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        # ── 1. 顶部全局工具栏 ──
+        self.toolbar = QFrame()
+        self.toolbar.setFixedHeight(40)
+        self.toolbar.setStyleSheet("background-color: #252526; border-bottom: 1px solid #333;")
+        toolbar_layout = QHBoxLayout(self.toolbar)
+        toolbar_layout.setContentsMargins(10, 0, 10, 0)
+
+        self.btn_add_code = self._create_toolbar_btn("+ 代码", "#007acc")
+        self.btn_add_markdown = self._create_toolbar_btn("+ 文本", "#608b4e")
+        self.btn_run_all = self._create_toolbar_btn("▶ 运行全部", "#c586c0")
+        self.btn_clear_all = self._create_toolbar_btn("清空输出", "#858585")
+
+        toolbar_layout.addWidget(self.btn_add_code)
+        toolbar_layout.addWidget(self.btn_add_markdown)
+        toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        toolbar_layout.addWidget(self.btn_run_all)
+        toolbar_layout.addWidget(self.btn_clear_all)
+
+        self.btn_add_code.clicked.connect(lambda: self.add_new_cell(CellType.CODE))
+        self.btn_add_markdown.clicked.connect(lambda: self.add_new_cell(CellType.MARKDOWN))
+        self.btn_run_all.clicked.connect(self.run_all_cells)
+        self.btn_clear_all.clicked.connect(self.clear_all_outputs)
+
+        # ── 2. 可滚动的画布区域 ──
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("QScrollArea { background-color: #1e1e1e; border: none; }")
+        self.scroll_area.setStyleSheet("QScrollArea { border: none; background-color: #1e1e1e; }")
         
-        self.cells_container = QWidget()
-        self.cells_container.setStyleSheet("background-color: #1e1e1e;")
-        self.cells_layout = QVBoxLayout(self.cells_container)
-        self.cells_layout.setAlignment(Qt.AlignTop)
-        
-        self.scroll_area.setWidget(self.cells_container)
-        self.layout.addWidget(self.scroll_area)
-        
-        self.cell_widgets = {} # id -> widget
-        
-        # Add an initial cell
-        self.add_cell("code", "A = [1 2; 3 4; 5 6]\nsvd(A)")
+        self.canvas_widget = QWidget()
+        self.canvas_widget.setStyleSheet("background-color: #1e1e1e;")
+        self.canvas_layout = QVBoxLayout(self.canvas_widget)
+        self.canvas_layout.setContentsMargins(40, 20, 40, 40)
+        self.canvas_layout.setSpacing(15)
+        self.canvas_layout.addStretch(1)
 
-    def add_cell(self, cell_type="code", content=""):
-        ctype = CellType.CODE if cell_type == "code" else CellType.MARKDOWN
-        cell = self.notebook.add_cell(ctype, content)
-        
-        widget = VSCodeStyleCellWidget(cell.id, cell_type, content)
-        widget.execute_requested.connect(lambda code, cid=cell.id: self.execute_cell(cid, code))
-        
-        self.cells_layout.addWidget(widget)
-        self.cell_widgets[cell.id] = widget
+        self.scroll_area.setWidget(self.canvas_widget)
 
-    def execute_cell(self, cell_id, code):
-        # Update notebook core with code
-        for c in self.notebook.cells:
-            if c.id == cell_id:
-                c.content = code
+        self.main_layout.addWidget(self.toolbar)
+        self.main_layout.addWidget(self.scroll_area)
+
+    def _create_toolbar_btn(self, text, hover_color):
+        btn = QPushButton(text)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent; color: #cccccc; border: none; padding: 6px 12px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background-color: #333333; color: {hover_color}; border-radius: 4px; }}
+        """)
+        btn.setCursor(Qt.PointingHandCursor)
+        return btn
+
+    def add_new_cell(self, cell_type: CellType):
+        backend_cell = self.backend.add_cell(cell_type, "")
+        ctype_str = "code" if cell_type == CellType.CODE else "markdown"
+        ui_cell = VSCodeStyleCellWidget(backend_cell.id, ctype_str, "")
+        
+        ui_cell.execute_requested.connect(lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code))
+        
+        self.ui_cells[backend_cell.id] = ui_cell
+        self.canvas_layout.insertWidget(self.canvas_layout.count() - 1, ui_cell)
+
+    def delete_cell(self, cell_id: str):
+        if cell_id in self.ui_cells:
+            ui_cell = self.ui_cells.pop(cell_id)
+            self.canvas_layout.removeWidget(ui_cell)
+            ui_cell.deleteLater()
+        self.backend.remove_cell(cell_id)
+
+    def execute_single_cell(self, cell_id: str, current_code: str):
+        for backend_cell in self.backend.cells:
+            if backend_cell.id == cell_id:
+                backend_cell.content = current_code
                 break
-                
-        self.notebook.execute_cell(cell_id)
-        self.update_cell_output(cell_id)
 
-    def update_cell_output(self, cell_id):
-        cell = next((c for c in self.notebook.cells if c.id == cell_id), None)
-        if not cell: return
+        self.backend.execute_cell(cell_id)
+        self._render_cell_output(cell_id)
+
+    def run_all_cells(self):
+        # Monaco editor async fetch omitted for brevity, just execute backend cells directly
+        self.backend.execute_all()
+        for backend_cell in self.backend.cells:
+            self._render_cell_output(backend_cell.id)
+
+    def clear_all_outputs(self):
+        for cell_id, ui_cell in self.ui_cells.items():
+            ui_cell.output_browser.clear()
+            ui_cell.output_browser.hide()
+
+    def _render_cell_output(self, cell_id: str):
+        backend_cell = next((c for c in self.backend.cells if c.id == cell_id), None)
+        ui_cell = self.ui_cells.get(cell_id)
         
-        widget = self.cell_widgets.get(cell_id)
-        if not widget: return
-        
-        out_text = ""
-        for out in cell.outputs:
+        if not backend_cell or not ui_cell: return
+
+        if not backend_cell.outputs:
+            ui_cell.output_browser.hide()
+            return
+
+        html_output = ""
+        for out in backend_cell.outputs:
             if out["type"] == "error":
-                out_text += f"<span style='color:red'>{out['data']}</span><br>"
+                html_output += f"<div style='color: #f14c4c; padding: 5px;'><b>错误:</b> {out['data']}</div>"
             elif out["type"] == "result":
-                # Format the result nicely
-                out_text += f"<pre style='color: #dcdcaa;'>{out['data']}</pre><br>"
+                html_output += self._format_data_to_html(out["data"])
             elif out["type"] == "markdown":
-                out_text += f"<div style='font-family: sans-serif; padding: 10px;'>{out['data']}</div><br>"
-                
-        widget.set_output(out_text)
+                html_output += f"<div style='color: #d4d4d4;'>{out['data']}</div>"
+
+        exec_count = backend_cell.execution_count or "*"
+        prefix = f"<div style='color: #569cd6; font-size: 10px; margin-bottom: 4px;'>Out [{exec_count}]:</div>"
+
+        ui_cell.set_output(prefix + html_output)
+        ui_cell.output_browser.show()
+
+    def _format_data_to_html(self, result) -> str:
+        if isinstance(result, np.ndarray):
+            return f"<span style='color: #4EC9B0;'>[NumPy Array Shape: {result.shape}]</span><br>"
+        elif isinstance(result, dict):
+            return "<span style='color: #9cdcfe;'>[Dictionary Result]</span><br>"
+        return f"<span style='color: #b5cea8;'>{result}</span><br>"

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QMenuBar, QMenu, QDockWidget, QStatusBar,
     QFileDialog, QMessageBox, QDialog, QVBoxLayout,
     QLabel, QComboBox, QPushButton, QHBoxLayout,
-    QSpacerItem, QSizePolicy
+    QSpacerItem, QSizePolicy, QTabWidget
 )
 from PySide6.QtGui import QAction, QPainter as QtPainter, QShortcut, QKeySequence, QIcon
 from PySide6.QtCore import Qt, QSize
@@ -105,8 +105,16 @@ class MainWindow(QMainWindow):
         self.apply_theme(get_current_theme())
 
     def setup_ui(self):
+        self.central_tabs = QTabWidget()
+        self.central_tabs.setStyleSheet("QTabWidget::pane { border: none; }")
+
         self.central_widget = GeometryCanvas(self)
-        self.setCentralWidget(self.central_widget)
+        self.notebook = NotebookPanel(self)
+
+        self.central_tabs.addTab(self.notebook, t('notebook.title') or "Interactive Notebook")
+        self.central_tabs.addTab(self.central_widget, t('main_window.geometry_tools') or "Geometry Canvas")
+
+        self.setCentralWidget(self.central_tabs)
 
     def setup_menus(self):
         menu_bar = QMenuBar(self)
@@ -422,12 +430,7 @@ class MainWindow(QMainWindow):
         self.ai_tools_panel.setWindowTitle(t('ai_tools.title').upper())
         self.ai_tools_panel.hide()
 
-        self.notebook_panel = NotebookPanel(self)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.notebook_panel)
-        self.notebook_panel.hide()
-
         self.tabifyDockWidget(self.algo_vis_panel, self.ai_tools_panel)
-        self.tabifyDockWidget(self.ai_tools_panel, self.notebook_panel)
 
         # ── 命令面板（悬浮层，必须在 setup_docks 结尾创建） ───────────────────────
         self.cmd_palette = CommandPalette(self.cmd_manager, self)
