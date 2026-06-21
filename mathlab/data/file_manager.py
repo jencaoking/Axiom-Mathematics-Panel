@@ -21,6 +21,9 @@ class FileFormat(Enum):
     JSON = ('json', 'JSON Data')
 
     def __init__(self, extension: str, description: str):
+        # 显式设置 _value_，使 .value 返回扩展名字符串而非整个元组
+        # 否则 FileFormat.PNG.value 会是 ('png', 'PNG Image') 而非 'png'
+        self._value_ = extension
         self.extension = extension
         self.description = description
 
@@ -74,6 +77,9 @@ class FileMetadata:
         if os.path.exists(self.file_path):
             stat = os.stat(self.file_path)
             self.size = stat.st_size
+            # st_ctime 在 Windows 上是文件创建时间，在 Linux/macOS 上是
+            # inode 元数据最后变更时间（并非真正的创建时间）。
+            # 此处仅作近似使用，跨平台场景下可能不准确。
             self.created = datetime.fromtimestamp(stat.st_ctime).isoformat()
             self.modified = datetime.fromtimestamp(stat.st_mtime).isoformat()
             self.checksum = self._calculate_checksum()
@@ -286,15 +292,16 @@ class FileManager:
         try:
             if os.path.exists(file_path):
                 backup_path = file_path + '.backup'
+                backup_created = False  # 标记本次调用是否创建了备份
+
                 if keep_backup:
                     shutil.copy2(file_path, backup_path)
-                
+                    backup_created = True
+
                 os.remove(file_path)
-                
-                if keep_backup and os.path.exists(backup_path):
-                    # 如果用户不想要备份但上面已经创建了，或者用户想要备份但删除失败
-                    pass 
-                elif not keep_backup and os.path.exists(backup_path):
+
+                # 仅删除本次调用刚刚创建的备份（keep_backup=False 且本次未建备份时不动磁盘上已有的旧备份）
+                if not keep_backup and backup_created and os.path.exists(backup_path):
                     try:
                         os.remove(backup_path)
                     except Exception:
