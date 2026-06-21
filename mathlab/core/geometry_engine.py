@@ -1451,7 +1451,7 @@ class GeometryEngine:
                 # 所有依赖其他节点（点）的几何对象都需要刷新坐标，
                 # 否则反序列化时这些对象会停留在初始默认值。
                 if type(obj).__name__ in ('Segment', 'Circle', 'Polygon',
-                                          'Ellipse', 'Hyperbola', 'Parabola', 'Locus'):
+                                          'Ellipse', 'Hyperbola', 'Parabola', 'Locus', 'Line', 'Ray', 'Intersection'):
                     obj.update_coordinates(self)
             self._notify('object_added', obj.serialize())
     

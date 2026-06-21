@@ -24,9 +24,10 @@ ALLOWED_BUILTINS = {
 }
 
 def restricted_import(name, *args, **kwargs):
-    if name in DENIED_MODULES:
+    base = name.split('.')[0]
+    if base in DENIED_MODULES:
         raise ImportError(f"Module '{name}' is strictly forbidden")
-    if name not in ALLOWED_MODULES:
+    if base not in ALLOWED_MODULES:
         raise ImportError(f"Module '{name}' is not allowed")
     return __import__(name, *args, **kwargs)
 

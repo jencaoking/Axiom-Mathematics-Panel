@@ -4,8 +4,8 @@ class GeometrySignals(QObject):
     def __init__(self):
         super().__init__()
     
-    object_added = Signal(dict)
-    object_updated = Signal(dict)
+    object_added = Signal(object)
+    object_updated = Signal(object)
     object_removed = Signal(str)
     selection_changed = Signal(str)
     equation_changed = Signal(str, str)
@@ -23,7 +23,7 @@ class AlgorithmSignals(QObject):
     def __init__(self):
         super().__init__()
     
-    step_ready = Signal(dict)
+    step_ready = Signal(object)
     animation_finished = Signal()
     progress_updated = Signal(int)
 
@@ -31,7 +31,7 @@ class AISignals(QObject):
     def __init__(self):
         super().__init__()
     
-    prediction_ready = Signal(dict)
-    training_progress = Signal(int)
-    training_finished = Signal(dict)
+    prediction_ready = Signal(object)
+    training_progress = Signal(int, float)
+    training_finished = Signal(object)
     error_occurred = Signal(str)

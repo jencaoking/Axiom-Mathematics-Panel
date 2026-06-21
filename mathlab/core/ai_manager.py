@@ -437,7 +437,10 @@ class AIManager:
         return {'success': True, 'points': points}
     
     def run_training_sandbox(self, code):
-        from .sandbox import SandboxProcess
+        try:
+            from .sandbox import SandboxProcess
+        except ImportError:
+            from sandbox import SandboxProcess
         
         sandbox = SandboxProcess()
         result = sandbox.run_code(code)
