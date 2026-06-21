@@ -40,7 +40,7 @@ class EChartsViewerPlugin(MathLabPlugin):
             action=self._render_demo_data,
             category="Web图表"
         )
-        api.print_to_console("[ECharts Plugin] 模块已激活。", color_or_level="#aaffaa")
+        api.print_to_console("[ECharts Plugin] Module activated.", color_or_level="#aaffaa")
 
     def _render_demo_data(self):
         """模拟 Python 后端计算大量数据，并推给前端渲染"""

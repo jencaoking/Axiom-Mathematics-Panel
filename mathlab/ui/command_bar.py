@@ -407,7 +407,7 @@ class CommandBar(QToolBar):
 
         self.command_edit = QLineEdit()
         self.command_edit.setPlaceholderText(
-            "Enter command  (Ctrl+Shift+P 打开命令面板)"
+            t('command_bar.placeholder') or "Enter command (Ctrl+Shift+P to open Command Palette)"
         )
         self.command_edit.setStyleSheet("""
             QLineEdit {

@@ -271,11 +271,16 @@
     "add_markdown": "+ 文本",
     "run": "▶ 运行",
     "run_all": "▶ 运行全部",
-    "clear_all": "清空输出"
+    "clear_all": "清空输出",
+    "save": "保存",
+    "open": "打开"
   },
   "plugins": {
     "echarts": "高级数据视图",
     "matrix": "矩阵工具",
     "3d_viewer": "3D 视图"
+  },
+  "command_bar": {
+    "placeholder": "输入命令 (Ctrl+Shift+P 打开命令面板)"
   }
 }

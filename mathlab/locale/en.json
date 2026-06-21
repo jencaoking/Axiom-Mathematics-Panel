@@ -271,11 +271,16 @@
     "add_markdown": "+ Markdown",
     "run": "▶ Run",
     "run_all": "▶ Run All",
-    "clear_all": "Clear Outputs"
+    "clear_all": "Clear Outputs",
+    "save": "Save",
+    "open": "Open"
   },
   "plugins": {
     "echarts": "Advanced Data View",
     "matrix": "Matrix Tools",
     "3d_viewer": "3D View"
+  },
+  "command_bar": {
+    "placeholder": "Enter command (Ctrl+Shift+P to open Command Palette)"
   }
 }

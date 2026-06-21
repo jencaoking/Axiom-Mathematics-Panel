@@ -132,8 +132,8 @@ class NotebookPanel(QWidget):
         toolbar_layout = QHBoxLayout(self.toolbar)
         toolbar_layout.setContentsMargins(10, 0, 10, 0)
 
-        self.btn_save = self._create_toolbar_btn("💾 保存", "#d7ba7d")
-        self.btn_load = self._create_toolbar_btn("📂 打开", "#d7ba7d")
+        self.btn_save = self._create_toolbar_btn(f"💾 {t('notebook.save') or 'Save'}", "#d7ba7d")
+        self.btn_load = self._create_toolbar_btn(f"📂 {t('notebook.open') or 'Open'}", "#d7ba7d")
         self.btn_add_code = self._create_toolbar_btn(t("notebook.add_code"), "#007acc")
         self.btn_add_markdown = self._create_toolbar_btn(t("notebook.add_markdown"), "#608b4e")
         self.btn_run_all = self._create_toolbar_btn(t("notebook.run_all"), "#c586c0")

@@ -60,7 +60,7 @@ class MatrixToolsPlugin(MathLabPlugin):
         self.widget = MatrixPanelWidget(api)
         api.add_sidebar_panel(t("plugins.matrix"), self.widget)
         
-        api.print_to_console("[Matrix Extension] 插件已成功加载并激活！", color_or_level="info")
+        api.print_to_console("[Matrix Extension] Plugin successfully loaded and activated!", color_or_level="info")
 
     def _inject_identity_matrix(self):
         """执行命令注入逻辑"""
