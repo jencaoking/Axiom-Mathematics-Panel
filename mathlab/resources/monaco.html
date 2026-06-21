@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Monaco Editor</title>
+    <style>
+        html, body, #container { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #1e1e1e; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    
+    <script src="../monaco-editor/vs/loader.js"></script>
+    
+    <script>
+        // 配置本地资源路径
+        require.config({ paths: { 'vs': '../monaco-editor/vs' } });
+
+        require(['vs/editor/editor.main'], function() {
+            window.editor = monaco.editor.create(document.getElementById('container'), {
+                value: '%INITIAL_CODE%',
+                language: 'python',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                fontFamily: "Consolas, 'Courier New', monospace"
+            });
+
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                window.pyBridge = channel.objects.pyBridge;
+                window.editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, function() {
+                    window.pyBridge.receiveCodeExecution(window.editor.getValue());
+                });
+            });
+        });
+
+        function setEditorValue(text) { if (window.editor) window.editor.setValue(text); }
+        function getEditorValue() { return window.editor ? window.editor.getValue() : ""; }
+    </script>
+</body>
+</html>

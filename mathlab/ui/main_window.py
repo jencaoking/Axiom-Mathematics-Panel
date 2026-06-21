@@ -24,6 +24,7 @@ from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
 from .animations import fade_in, fade_out
 from .math_console import MathConsole
+from .notebook_panel import NotebookPanel
 
 try:
     from core.geometry_engine import GeometryEngine
@@ -172,6 +173,9 @@ class MainWindow(QMainWindow):
         self.ai_tools_action = QAction(t('main_window.ai_tools'), self)
         self.ai_tools_action.setCheckable(True)
 
+        self.notebook_action = QAction("Notebook", self)
+        self.notebook_action.setCheckable(True)
+
         self.function_explorer_action = QAction(t('function_explorer.title'), self)
         self.function_explorer_action.setCheckable(True)
 
@@ -189,6 +193,7 @@ class MainWindow(QMainWindow):
         self.view_menu.addAction(self.math_console_action)
         self.view_menu.addAction(self.algo_vis_action)
         self.view_menu.addAction(self.ai_tools_action)
+        self.view_menu.addAction(self.notebook_action)
         self.view_menu.addAction(self.function_explorer_action)
         self.view_menu.addSeparator()
         self.view_menu.addAction(self.theme_action)
@@ -248,6 +253,7 @@ class MainWindow(QMainWindow):
         self.properties_panel_action.triggered.connect(self.toggle_properties_panel)
         self.console_action.triggered.connect(self.toggle_console)
         self.algo_vis_action.triggered.connect(self.toggle_algo_vis_panel)
+        self.notebook_action.triggered.connect(self.toggle_notebook_panel)
         self.ai_tools_action.triggered.connect(self.toggle_ai_tools_panel)
         self.function_explorer_action.triggered.connect(self.toggle_function_explorer)
         self.math_console_action.triggered.connect(self.toggle_math_console)
@@ -412,7 +418,12 @@ class MainWindow(QMainWindow):
         self.ai_tools_panel.setWindowTitle(t('ai_tools.title').upper())
         self.ai_tools_panel.hide()
 
+        self.notebook_panel = NotebookPanel(self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.notebook_panel)
+        self.notebook_panel.hide()
+
         self.tabifyDockWidget(self.algo_vis_panel, self.ai_tools_panel)
+        self.tabifyDockWidget(self.ai_tools_panel, self.notebook_panel)
 
         # ── 命令面板（悬浮层，必须在 setup_docks 结尾创建） ───────────────────────
         self.cmd_palette = CommandPalette(self.cmd_manager, self)
@@ -1380,6 +1391,14 @@ class MainWindow(QMainWindow):
             fade_in(self.math_console)
         else:
             fade_out(self.math_console, callback=self.math_console.hide)
+
+    def toggle_notebook_panel(self, visible: bool) -> None:
+        if visible:
+            self.notebook_panel.show()
+            self.notebook_panel.raise_()
+            fade_in(self.notebook_panel)
+        else:
+            fade_out(self.notebook_panel, callback=self.notebook_panel.hide)
 
     # ─────────────────────────────────────────────────────────────────────
     # ECharts 图表串联棕函数
