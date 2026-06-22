@@ -948,6 +948,134 @@ class GeometryCanvas(QGraphicsView):
                     text_item.set_text(latex_str)
         
         self.pending_latex_updates.clear()
+
+    # ------------------------------------------------------------------
+    # AI 双光标动画系统 (Dual Cursor)
+    # ------------------------------------------------------------------
+    def execute_commands_with_animation(self, engine, commands: list):
+        """接收 AI 下发的指令，加入排期队列"""
+        if not hasattr(self, 'ai_cursor'):
+            from mathlab.ui.ai_cursor import AICursorItem
+            self.ai_cursor = AICursorItem()
+            self.scene_obj.addItem(self.ai_cursor)
+            self._command_queue = []
+            self._is_animating = False
+
+        self._command_queue.extend(commands)
+        if not self._is_animating:
+            self._process_next_command(engine)
+
+    def _process_next_command(self, engine):
+        """递归消费指令队列"""
+        if not hasattr(self, '_command_queue') or not self._command_queue:
+            self._is_animating = False
+            # 队列耗尽，隐藏 AI 光标，深藏功与名
+            if hasattr(self, 'ai_cursor'):
+                QTimer.singleShot(1000, lambda: self.ai_cursor.setVisible(False))
+            return
+
+        self._is_animating = True
+        cmd = self._command_queue.pop(0)
+        
+        op = cmd.get("cmd")
+        # 兼容防幻觉重命名
+        if op == "draw_point": op = "add_point"
+        if op == "draw_circle": op = "add_circle"
+        if op == "draw_segment": op = "add_segment"
+        if op == "draw_polygon": op = "add_polygon"
+
+        try:
+            if op == "add_point":
+                self._animate_add_point(engine, cmd)
+            elif op == "add_segment":
+                self._animate_add_segment(engine, cmd)
+            else:
+                # 其他复杂图形（如圆/多边形），暂时降级为直接渲染
+                self._execute_single_instant(engine, cmd, op)
+                self._process_next_command(engine)
+        except Exception as e:
+            print(f"AI 动画执行失败: {e}")
+            self._process_next_command(engine) # 出错也继续下一条
+
+    def _execute_single_instant(self, engine, cmd, op):
+        try:
+            if op == "add_circle":
+                engine.add_circle(cmd["center"], cmd.get("radius", 1))
+            elif op == "add_polygon":
+                engine.add_polygon(cmd["points"])
+        except Exception as e:
+            print(f"执行指令 {op} 失败: {e}")
+
+    def _animate_add_point(self, engine, cmd):
+        """动作 1：AI 光标飞过去，然后点下一个点"""
+        target_pos = QPointF(cmd.get("x", 0), cmd.get("y", 0))
+        name = cmd.get("name", "")
+        
+        # 让光标飞跃，耗时 600ms
+        self.ai_cursor.move_to(target_pos, 600)
+        
+        def on_arrive():
+            self.ai_cursor.move_anim.finished.disconnect(on_arrive)
+            # 到达目标后，真正在画板上生成这个几何点
+            engine.add_point(target_pos.x(), target_pos.y(), name) 
+            # 停顿 200ms 后执行下一条指令，模拟人类写字的节奏
+            QTimer.singleShot(200, lambda: self._process_next_command(engine))
+            
+        self.ai_cursor.move_anim.finished.connect(on_arrive)
+
+    def _animate_add_segment(self, engine, cmd):
+        """动作 2：极其惊艳的连线动画（边移动边画线）"""
+        p1_name = cmd.get("p1")
+        p2_name = cmd.get("p2")
+        
+        start_pos = None
+        end_pos = None
+        
+        # 通过 engine 获取所有的物体，寻找物理坐标
+        if hasattr(engine, 'get_all_objects'):
+            for obj in engine.get_all_objects():
+                if obj.name == p1_name and obj.type == 'Point':
+                    start_pos = QPointF(obj.coordinates.get('x', 0), obj.coordinates.get('y', 0))
+                if obj.name == p2_name and obj.type == 'Point':
+                    end_pos = QPointF(obj.coordinates.get('x', 0), obj.coordinates.get('y', 0))
+                    
+        if not start_pos or not end_pos:
+            return self._process_next_command(engine)
+
+        # 第一阶段：AI 光标先空降到起点 p1
+        self.ai_cursor.move_to(start_pos, 400)
+        
+        def on_ready_to_draw():
+            self.ai_cursor.move_anim.finished.disconnect(on_ready_to_draw)
+            
+            # 创建一条临时的虚线，表示正在画
+            temp_line = self.scene_obj.addLine(start_pos.x(), start_pos.y(), start_pos.x(), start_pos.y())
+            temp_line.setPen(QPen(QColor(0, 191, 255), 2.0, Qt.PenStyle.DashLine))
+
+            # 绑定实时重绘事件：光标在哪，线就拉到哪
+            def update_temp_line():
+                cur_pos = self.ai_cursor.scenePos()
+                temp_line.setLine(start_pos.x(), start_pos.y(), cur_pos.x(), cur_pos.y())
+
+            self.ai_cursor.cursorPosChanged.connect(update_temp_line)
+
+            # 第二阶段：拖拽光标到终点 p2
+            self.ai_cursor.move_to(end_pos, 800) # 连线动画慢一点，800ms
+            
+            def on_draw_finished():
+                self.ai_cursor.move_anim.finished.disconnect(on_draw_finished)
+                self.ai_cursor.cursorPosChanged.disconnect(update_temp_line)
+                
+                # 画完后，销毁临时线，生成真实的几何物理线段
+                self.scene_obj.removeItem(temp_line)
+                engine.add_segment(p1_name, p2_name)
+                
+                # 停顿并执行下一跳
+                QTimer.singleShot(200, lambda: self._process_next_command(engine))
+
+            self.ai_cursor.move_anim.finished.connect(on_draw_finished)
+
+        self.ai_cursor.move_anim.finished.connect(on_ready_to_draw)
     
     def begin_drag_operation(self):
         """

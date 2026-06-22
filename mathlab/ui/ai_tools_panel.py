@@ -586,9 +586,14 @@ class AIToolsPanel(QDockWidget):
             quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
             self.card_layout.addWidget(quiz_card)
         elif tool_name == "execute_geometry_draw":
-            if hasattr(main_window, 'geometry_engine'):
-                self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
-                magic_html = "<div style='background-color: #E8F8F5; color: #27AE60; padding: 8px; border-radius: 4px; border-left: 4px solid #27AE60;'><i>✨ 魔法触发：已在左侧画板为您生成图形！</i></div><br>"
+            if hasattr(main_window, 'geometry_engine') and hasattr(main_window, 'central_widget'):
+                commands = args_dict.get("commands", [])
+                if not commands and "cmd" in args_dict:
+                    commands = [args_dict] # 兼容防幻觉单命令调用
+                    
+                # 💡 切断瞬间传送，激活双光标协作模式！
+                main_window.central_widget.execute_commands_with_animation(main_window.geometry_engine, commands)
+                magic_html = "<div style='color: #0078D7;'><i>✨ AI 助教正在您的画板上绘制...</i></div><br>"
                 self.chat_display.append(magic_html)
         elif tool_name == "highlight_geometry_elements":
             try:
