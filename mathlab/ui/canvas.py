@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (
     QGraphicsTextItem, QMenu, QGraphicsSceneMouseEvent
 )
 from PySide6.QtGui import QPolygonF
-from PySide6.QtGui import QPen, QBrush, QColor, QFont, QCursor, QPainter, QPainterPath
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer, QLineF
+from PySide6.QtGui import QPen, QBrush, QColor, QFont, QCursor, QPainter, QPainterPath, QWheelEvent
+from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer, QLineF, QVariantAnimation, QEasingCurve
 from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtSvg import QSvgRenderer
 
@@ -248,9 +248,16 @@ class GeometryCanvas(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
 
-        self.zoom_factor = 1.0
+        self._current_scale = 1.0
+        self._target_scale = 1.0
         self.min_zoom = 0.1
         self.max_zoom = 10.0
+
+        # 细节优化 2：配置 200ms 平滑缓动动画
+        self._zoom_animation = QVariantAnimation(self)
+        self._zoom_animation.setDuration(200)  # 严格限制 200ms 响应时间
+        self._zoom_animation.setEasingCurve(QEasingCurve.Type.OutCubic) 
+        self._zoom_animation.valueChanged.connect(self._on_zoom_animation_step)
 
         # 保留字典，供将来可能的其他用途；不在 add_* 方法中填充
         self.point_items   = {}
@@ -310,28 +317,45 @@ class GeometryCanvas(QGraphicsView):
     # ------------------------------------------------------------------
     # 缩放
     # ------------------------------------------------------------------
-    def wheelEvent(self, event):
-        zoom_in_factor  = 1.1
-        zoom_out_factor = 1 / 1.1
+    def wheelEvent(self, event: QWheelEvent):
+        """拦截滚轮事件，转化为动画驱动"""
+        angle_delta = event.angleDelta().y()
+        if angle_delta == 0:
+            return
+            
+        factor = 1.2 if angle_delta > 0 else 1.0 / 1.2
+        self.apply_zoom(factor)
+        event.accept()
 
-        if event.angleDelta().y() > 0:
-            zoom_factor = zoom_in_factor
-        else:
-            zoom_factor = zoom_out_factor
+    def apply_zoom(self, zoom_factor: float):
+        new_target = self._target_scale * zoom_factor
+        
+        # 细节优化 3：设置严格的缩放边界
+        new_target = max(self.min_zoom, min(self.max_zoom, new_target))
+        
+        if new_target != self._target_scale:
+            self._target_scale = new_target
+            
+            # 从当前瞬时状态平滑过渡到最新的目标状态
+            self._zoom_animation.stop()
+            self._zoom_animation.setStartValue(self._current_scale)
+            self._zoom_animation.setEndValue(self._target_scale)
+            self._zoom_animation.start()
 
-        self.apply_zoom(zoom_factor)
-
-    def apply_zoom(self, zoom_factor):
-        new_zoom = self.zoom_factor * zoom_factor
-        if self.min_zoom <= new_zoom <= self.max_zoom:
-            self.zoom_factor = new_zoom
-            self.scale(zoom_factor, zoom_factor)
+    def _on_zoom_animation_step(self, value: float):
+        """动画每帧回调：计算增量并应用缩放"""
+        if self._current_scale == 0:
+            return
+            
+        factor = value / self._current_scale
+        self.scale(factor, factor)
+        self._current_scale = value
 
     def zoom_in(self):
-        self.apply_zoom(1.1)
+        self.apply_zoom(1.2)
 
     def zoom_out(self):
-        self.apply_zoom(1 / 1.1)
+        self.apply_zoom(1.0 / 1.2)
 
     # ------------------------------------------------------------------
     # BUG3 修复：set_tool 根据工具类型设置正确的拖动模式
