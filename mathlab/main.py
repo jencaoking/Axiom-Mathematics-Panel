@@ -19,6 +19,9 @@ from mathlab.utils.logger import setup_logger, get_logger
 setup_logger()
 logger = get_logger(__name__)
 logger.info("日志系统初始化完毕，开始加载 MathLab 模块...")
+
+from mathlab.core.error_manager import install_error_handler
+install_error_handler()
 # ─────────────────────────────────────────────────────────────────────────────
 
 from PySide6.QtWidgets import QApplication

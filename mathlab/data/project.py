@@ -128,6 +128,16 @@ class ProjectManager:
     
     def _update_modified(self):
         self.settings['modified'] = datetime.now().isoformat()
+        
+    def serialize_current_state(self):
+        return {
+            'objects': self.objects,
+            'console_history': self.console_history,
+            'settings': {
+                **self.settings,
+                'modified': datetime.now().isoformat()
+            }
+        }
     
     def export_to_png(self, canvas_widget, file_path):
         try:

@@ -47,6 +47,7 @@ try:
     from core.command_manager import CommandManager, Command
     from core.ipc_server import JupyterIPCServer
     from core.ipc_client import JupyterIPCClient
+    from core.error_manager import AutoSaver
 except ImportError:
     from ..core.geometry_engine import GeometryEngine
     from ..core.python_repl import PythonREPL
@@ -56,6 +57,7 @@ except ImportError:
     from ..core.command_manager import CommandManager, Command
     from ..core.ipc_server import JupyterIPCServer
     from ..core.ipc_client import JupyterIPCClient
+    from ..core.error_manager import AutoSaver
 
 try:
     from .preferences_dialog import PreferencesDialog
@@ -134,6 +136,10 @@ class MainWindow(QMainWindow):
 
         get_i18n().add_language_change_listener(self._on_language_changed)
         self.apply_theme(get_current_theme())
+        
+        # 初始化自动存档与恢复神机
+        self.autosaver = AutoSaver(self)
+        self.autosaver.check_and_recover()
 
     def setup_ui(self):
         self.central_tabs = QTabWidget()
@@ -1773,6 +1779,9 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """在窗口关闭时卸载所有插件，释放资源"""
+        if hasattr(self, 'autosaver'):
+            self.autosaver.clean_up()
+            
         if hasattr(self, 'plugin_manager'):
             try:
                 self.plugin_manager.unload_all()
