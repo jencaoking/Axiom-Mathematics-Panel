@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-2.7.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-3.0.3-red.svg)]()
 
-> **MathLab 2.7 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.6 基础上迎来了**工业级体验打磨**：引入全局异常守护与秒级崩溃恢复（AutoSaver）、丝滑的物理级动效引擎（包含惯性平移与平滑缩放）、智能磁吸辅助线以及丰富的数学彩蛋，朝着"工业级一体化数学实验室"的目标持续演进。
+> **MathLab 3.0 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在经历了长期的底层架构重构后，正式迎来了 **v3.0.3 Agentic UI（智能代理交互）** 的全面升级！MathLab 被赋予了“看（Monaco 桥接）、画（NL2Draw 函数调用）与教（智能错题本）”的 AI 灵魂，不仅引入了基于滑动窗口记忆的底层防卡死流式通道，还将大模型工具调用与原生 Qt 渲染引擎无缝对接，彻底打破了传统作图软件的枯燥操作边界。
 
 ## 目录
 
@@ -39,7 +39,10 @@
 | **JupyterLab 深度集成** | 嵌有原生 JupyterLab 单元，剥离冗余 UI 控件，支持与 Qt 宿主的跨进程双向 UDP 数据绑定与变量同步 |
 | **算法可视化** | 排序、搜索、图论、凸包、K-Means 等算法的逐步动画演示 |
 | **动画引擎** | 借鉴 Manim 的数学动画时间轴与缓动，支持关键帧与过渡曲线 |
-| **AI 辅助学习** | 线性/多项式回归、K-Means/DBSCAN 聚类、ONNX 推理、可选 PyTorch 神经网络 |
+| **Agentic UI 与自然语言作图** | AI 不仅能聊天，更握有画板的“遥控器”，通过工具调用直接在原生画布上为您绘制图形 |
+| **智能出题与视觉错题本** | 打破文本对话框限制，直接渲染互动测验卡片，并在您答错时由 AI 手持动画笔为您绘制解析图 |
+| **Monaco 意图穿透** | 通过 JS 注入打通 Monaco Editor，AI 拥有“视觉”，能直接解读您正高亮的复杂代码 |
+| **AI 辅助探索** | 线性/多项式回归、K-Means/DBSCAN 聚类、ONNX 推理、可选 PyTorch 神经网络 |
 | **全局命令面板** | VS Code 风格的全局命令控制台，支持模糊搜索、快捷执行 |
 | **界面交互与丝滑微动画** | 自适应前景色 Feather Icons；侧边栏 200ms 柔和淡入淡出转场；几何画布的 **物理级惯性平移与平滑缩放** |
 | **智能作图与彩蛋** | 支持 10像素 物理防抖的几何控制点磁吸、临时距离辅助线，以及“欧拉彩虹”等隐藏数学彩蛋 |
@@ -159,6 +162,17 @@ python main.py
 - **图论算法**: BFS、DFS、Dijkstra 最短路径
 - **几何算法**: Graham 扫描凸包
 - **机器学习**: K-Means 聚类
+
+### Agentic UI 与自然语言作图 (NL2Draw)
+
+您无需再使用鼠标繁琐点击，只需要在右侧 AI 助手说：
+**"帮我画一个直角三角形，然后再画一个以直角顶点为圆心，半径为 2 的圆。"**
+大模型将自动解析出结构化指令，并在左侧画板**瞬间呈现**精准的图形！
+
+### 智能出题与视觉错题本 (Smart Quiz)
+
+右侧 AI 可以为您自动渲染**极具现代感的交互式测验卡片**。
+如果您故意选错答案，AI 不仅会指出您的认知误区，还会**主动拿起画笔**，在几何画布上为您画出辅助线或反例，构成最惊艳的“教育闭环”。
 
 ### AI / 机器学习
 
@@ -641,7 +655,8 @@ python -m pytest tests/test_octave_bridge.py -v
 - **2.5 (已完成 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
 - **2.6 (已完成 · Jupyter)**: 原生 JupyterLab 嵌入、跨进程双向 UDP IPC 通信、IPython 变量注入、隐藏 UI 的暗黑主题视觉融合
 - **2.7 (已完成 · Polish)**: 全局容错恢复架构、惯性平移物理模型、QVariantAnimation 丝滑滚轮缩放、智能辅助线与磁吸、全新图标库、彩虹彩蛋
-- **3.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
+- **3.0 (已完成 · Agentic UI)**: Monaco 代码意图穿透、防阻塞流式大模型基建、滑动窗口记忆管理、NL2Draw 自然语言几何作图、交互式测验卡片、视觉联动错题本
+- **4.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
 
 详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md) (及 2.7 版本实现)。
 
@@ -690,7 +705,7 @@ MathLab 受益于以下开源项目：
 @software{mathlab_jupyter,
   title  = {MathLab (Axiom): Interactive Mathematics, AI and 3D Teaching Software with JupyterLab Integration},
   author = {MathLab Team},
-  version = {2.7.0},
+  version = {3.0.3},
   year   = {2026},
   url    = {https://github.com/jencaoking/Axiom-Mathematics-Panel}
 }
