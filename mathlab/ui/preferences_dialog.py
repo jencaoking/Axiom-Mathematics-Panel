@@ -199,6 +199,7 @@ class PreferencesDialog(QDialog):
         self.tabs.addTab(self._page_graphics(),   t("preferences.graphics"))
         self.tabs.addTab(self._page_console(),    t("preferences.console_tab"))
         self.tabs.addTab(self._page_shortcuts(),  t("preferences.shortcuts"))
+        self.tabs.addTab(self._page_ai_lab(), "AI 实验室")
         self.tabs.addTab(self._page_advanced(),   t("preferences.advanced"))
 
         body_layout.addWidget(self.tabs, 1)
@@ -226,6 +227,23 @@ class PreferencesDialog(QDialog):
         )
 
         self.btn_apply  = QPushButton(t("preferences.apply"))
+        
+        self.settings["ai_base_url"] = self.ai_base_url_input.text()
+        self.settings["ai_api_key"] = self.ai_api_key_input.text()
+        self.settings["ai_model"] = self.ai_model_input.text()
+
+        import json
+        import os
+        settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+        try:
+            with open(settings_path, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, ensure_ascii=False, indent=4)
+        except Exception:
+            pass
+
+        if hasattr(self.parent(), 'ai_manager'):
+            self.parent().ai_manager.reload_config()
+
         self.btn_apply.setEnabled(False)
         self.btn_apply.setStyleSheet(
             "QPushButton {"
@@ -657,6 +675,82 @@ class PreferencesDialog(QDialog):
 
         return self._scroll(inner)
 
+    
+    def _page_ai_lab(self) -> QScrollArea:
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(24)
+
+        section = QWidget()
+        section_layout = QVBoxLayout(section)
+        section_layout.setSpacing(16)
+        section_layout.addWidget(self._create_section_header("AI 实验室"))
+
+        form = QFormLayout()
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setSpacing(16)
+
+        self.ai_provider_combo = QComboBox()
+        self.ai_provider_combo.addItems(["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"])
+        self.ai_provider_combo.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white;"
+        )
+        self.ai_provider_combo.currentTextChanged.connect(self._on_ai_provider_changed)
+
+        self.ai_base_url_input = QLineEdit()
+        self.ai_base_url_input.setPlaceholderText("例如: https://api.deepseek.com/v1")
+        self.ai_base_url_input.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white;"
+        )
+
+        self.ai_api_key_input = QLineEdit()
+        self.ai_api_key_input.setPlaceholderText("sk-...")
+        self.ai_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.ai_api_key_input.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white;"
+        )
+
+        self.ai_model_input = QLineEdit()
+        self.ai_model_input.setPlaceholderText("例如: deepseek-chat")
+        self.ai_model_input.setStyleSheet(
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
+            "border-radius: 4px; background: white;"
+        )
+
+        form.addRow("服务提供商:", self.ai_provider_combo)
+        form.addRow("Base URL:", self.ai_base_url_input)
+        form.addRow("API Key:", self.ai_api_key_input)
+        form.addRow("默认模型:", self.ai_model_input)
+
+        section_layout.addLayout(form)
+        
+        tip_label = QLabel("💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
+        tip_label.setStyleSheet("color: gray; font-size: 11px;")
+        section_layout.addWidget(tip_label)
+
+        layout.addWidget(section)
+        layout.addStretch()
+
+        return self._scroll(inner)
+
+    def _on_ai_provider_changed(self, text):
+        templates = {
+            "DeepSeek": {"url": "https://api.deepseek.com/v1", "model": "deepseek-chat"},
+            "硅基流动 (SiliconFlow)": {"url": "https://api.siliconflow.cn/v1", "model": "deepseek-ai/DeepSeek-V3"},
+            "Ollama (本地)": {"url": "http://localhost:11434/v1", "model": "llama3"},
+            "OpenAI": {"url": "https://api.openai.com/v1", "model": "gpt-4o"}
+        }
+        if text in templates:
+            self.ai_base_url_input.setText(templates[text]["url"])
+            self.ai_model_input.setText(templates[text]["model"])
+            if text == "Ollama (本地)":
+                self.ai_api_key_input.setText("ollama")
+
+
     def _load_settings(self):
         s = self.settings
 
@@ -698,6 +792,11 @@ class PreferencesDialog(QDialog):
 
         self.hw_accel_check.setChecked(s.get("hw_accel", False))
         self.autosave_spin.setValue(s.get("autosave_interval", 5))
+
+        
+        self.ai_base_url_input.setText(s.get("ai_base_url", "https://api.deepseek.com/v1"))
+        self.ai_api_key_input.setText(s.get("ai_api_key", ""))
+        self.ai_model_input.setText(s.get("ai_model", "deepseek-chat"))
 
         shortcuts = s.get("shortcuts", {})
         self.shortcut_table.blockSignals(True)

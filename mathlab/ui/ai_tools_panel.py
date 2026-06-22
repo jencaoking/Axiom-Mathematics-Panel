@@ -1,3 +1,4 @@
+import markdown
 from PySide6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QTabWidget, QPushButton, QComboBox, QSpinBox,
@@ -463,14 +464,18 @@ class AIToolsPanel(QDockWidget):
         if not user_text:
             return
 
-        self.chat_display.append(f"<b style='color: #004ac6;'>{t('ai_tools.you')}:</b> {user_text}")
+        # 在界面上追加用户消息
+        user_html = f"<div style='color: #0078D7; text-align: right;'><b>{t('ai_tools.you')}:</b> {user_text}</div><br>"
+        self.chat_display.append(user_html)
+        self.chat_display.append(f"<b>🤖 {t('ai_tools.assistant')}:</b> ")
+
         self.chat_input.clear()
         self.chat_input.setEnabled(False)
         self.send_button.setEnabled(False)
-
-        system_context = self._get_system_context()
+        self.send_button.setText("思考中...")
 
         # 🚨 1. 提取当前“具身”上下文：活的几何拓扑树
+        system_context = self._get_system_context()
         main_win = self.window()
         engine = main_win.geometry_engine if hasattr(main_win, 'geometry_engine') else None
         live_context = ""
@@ -484,32 +489,33 @@ class AIToolsPanel(QDockWidget):
                     "id": obj.id,
                     "type": obj.type,
                     "name": obj.name,
-                    # 获取实时坐标 (包含 z 轴)
                     "coords": {k: round(v, 3) for k, v in obj.coordinates.items() if isinstance(v, (int, float))}
                 })
             
             if simplified_state:
                 live_context = f"\n[系统后台自动附加] 当前 2D/3D 画布状态:\n{json.dumps(simplified_state, ensure_ascii=False)}"
 
-        # 🚨 2. 将用户输入与实时画板状态“缝合”后发送给底层 Worker
         enhanced_prompt = user_text + live_context
-
-        provider = AIProvider(self.provider_combo.currentData())
-        config = AIRequestConfig(provider=provider)
-
-        self.worker = AIRequestWorker(enhanced_prompt, system_context, config)
-
-        # 直接连接 AIRequestWorker(QThread) 的原生 Qt 信号
-        # Qt 自动将跨线程信号设为 QueuedConnection，主线程安全更新 UI
-        self.worker.chunk_received.connect(self.on_chunk_received)
-        self.worker.action_required.connect(self.on_action_required)
-        self.worker.finished_signal.connect(self.on_request_finished)
-        self.worker.error_signal.connect(self.on_request_error)
-
-        self.worker.start()  # 启动 QThread，自动在后台调用 run()
-        self.breath_anim = start_breathing_effect(self.send_button)
-
-        self.chat_display.append(f"<b style='color: #006058;'>{t('ai_tools.assistant')}:</b> ")
+        
+        sys_prompt = "你是一个名为 MathLab 的高级数学与编程助教。请尽量使用清晰的 Markdown 格式回答。遇到公式请使用 LaTeX。对于代码解释尽量详细且易懂。"
+        if system_context:
+            import json
+            sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
+            
+        self._current_response = ""
+        
+        if hasattr(main_win, 'ai_manager'):
+            main_win.ai_manager.ask(
+                user_prompt=enhanced_prompt,
+                system_prompt=sys_prompt,
+                history=[],
+                on_chunk=self.on_chunk_received,
+                on_finish=self.on_request_finished,
+                on_error=self.on_request_error
+            )
+            self.breath_anim = start_breathing_effect(self.send_button)
+        else:
+            self.on_request_error("AIManager 未初始化！")
 
     def _get_system_context(self):
         system_context = {}
@@ -527,6 +533,7 @@ class AIToolsPanel(QDockWidget):
         return system_context
 
     def on_chunk_received(self, text_chunk: str):
+        self._current_response += text_chunk
         cursor = self.chat_display.textCursor()
         cursor.movePosition(QTextCursor.End)
         cursor.insertText(text_chunk)
@@ -539,29 +546,39 @@ class AIToolsPanel(QDockWidget):
         self.action_requested.emit(action_data)
 
     def on_request_finished(self):
-        self.chat_display.append("\n")
         self.chat_input.setEnabled(True)
         self.send_button.setEnabled(True)
+        self.send_button.setText(t('ai_tools.send'))
         self.chat_input.setFocus()
         
         if hasattr(self, 'breath_anim'):
             self.breath_anim.stop()
-            # 导入 get_opacity_effect 以重置透明度
             try:
                 from ..ui.animations import get_opacity_effect
             except ImportError as e:
-                if "attempted relative import" not in str(e) and "No module named" not in str(e):
-                    raise
+                from ui.animations import get_opacity_effect
+            get_opacity_effect(self.send_button).setOpacity(1.0)
+            
+        # 重新渲染为 Markdown
+        final_html = markdown.markdown(self._current_response, extensions=['fenced_code', 'tables'])
+        # 由于流式传输是插入的纯文本，最完美的做法是：记录用户的完整历史，并在完成时清空 QTextBrowser 然后完整 append HTML
+        # 这里为了稳妥，我们在末尾追加一条分割线
+        self.chat_display.append("<br><hr>")
+        
+        # 将进度滚动到底部
+        scrollbar = self.chat_display.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def on_request_error(self, error_msg: str):
+        self.chat_display.append(f"<span style='color: #dc2626;'><b>❌ {t('ai_tools.error')}:</b> {error_msg}</span><hr>")
+        self.chat_input.setEnabled(True)
+        self.send_button.setEnabled(True)
+        self.send_button.setText(t('ai_tools.send'))
+        if hasattr(self, 'breath_anim'):
+            self.breath_anim.stop()
+            try:
+                from ..ui.animations import get_opacity_effect
+            except ImportError as e:
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
 
-        if self.worker:
-            # quit() 通知线程退出事件循环，wait() 等待完成，deleteLater() 延迟释放 C++ 对象
-            self.worker.quit()
-            self.worker.wait(3000)  # 最多等 3 秒，防止无限阻塞
-            self.worker.deleteLater()
-            self.worker = None
-
-    def on_request_error(self, error_msg: str):
-        self.chat_display.append(f"<span style='color: #dc2626;'>{t('ai_tools.error')}: {error_msg}</span>")
-        self.on_request_finished()

@@ -23,6 +23,67 @@ except ImportError:
         QThread = object  # 降级占位，避免语法报错
         Signal = object
 
+try:
+    from openai import OpenAI, AuthenticationError, APIConnectionError
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception
+
+from mathlab.utils.logger import get_logger
+logger = get_logger(__name__)
+
+class AIStreamWorker(QThread):
+    """
+    后台流式请求线程，确保大模型的网络等待和解析不阻塞 Qt 主界面
+    """
+    chunk_received = Signal(str)
+    finished_signal = Signal()
+    error_occurred = Signal(str)
+
+    def __init__(self, client: OpenAI, model: str, system_prompt: str, user_prompt: str, history: list = None):
+        super().__init__()
+        self.client = client
+        self.model = model
+        self.messages = history if history else []
+        
+        if system_prompt and not self.messages:
+            self.messages.append({"role": "system", "content": system_prompt})
+            
+        self.messages.append({"role": "user", "content": user_prompt})
+        self._is_running = False
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        self._is_running = True
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=self.messages,
+                stream=True,
+                temperature=0.7
+            )
+            
+            for chunk in response:
+                if not self._is_running:
+                    break
+                if chunk.choices and len(chunk.choices) > 0:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        self.chunk_received.emit(content)
+                    
+            self.finished_signal.emit()
+            
+        except AuthenticationError:
+            self.error_occurred.emit("API Key 认证失败，请在设置中检查。")
+        except APIConnectionError:
+            self.error_occurred.emit("网络连接失败，请检查 Base URL 或代理设置。")
+        except Exception as e:
+            self.error_occurred.emit(f"AI 请求发生错误: {str(e)}")
+
+
 
 def _strip_markdown_json(text: str) -> str:
     """剥离 LLM 输出中包裹 JSON 的 Markdown 代码块标记。
@@ -290,6 +351,52 @@ class AIManager:
     def __init__(self):
         self.models = {}
         self.sandbox = None
+        self.client = None
+        self.current_worker = None
+        self.reload_config()
+
+    def reload_config(self):
+        """当用户在偏好设置中修改 API 后，自动重载客户端"""
+        settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+        settings = {}
+        if os.path.exists(settings_path):
+            try:
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+            except Exception as e:
+                logger.error(f"加载 settings.json 失败: {e}")
+                
+        api_key = settings.get("ai_api_key", "")
+        base_url = settings.get("ai_base_url", "https://api.deepseek.com/v1")
+        self.current_model = settings.get("ai_model", "deepseek-chat")
+        
+        if api_key and OPENAI_AVAILABLE:
+            self.client = OpenAI(api_key=api_key, base_url=base_url)
+            logger.info(f"AI 引擎已初始化: {base_url} [{self.current_model}]")
+        else:
+            self.client = None
+
+    def ask(self, user_prompt: str, system_prompt: str = "", history: list = None, 
+            on_chunk=None, on_finish=None, on_error=None):
+        """发起流式对话"""
+        if not self.client:
+            if on_error:
+                on_error("未配置 API Key 或未安装 openai 库，请前往 [设置 -> AI 实验室] 配置。")
+            return
+
+        # 如果已有任务在运行，先终止旧任务（防连击）
+        if self.current_worker and self.current_worker.isRunning():
+            self.current_worker.stop()
+            self.current_worker.wait()
+
+        self.current_worker = AIStreamWorker(self.client, self.current_model, system_prompt, user_prompt, history)
+        
+        # 绑定回调信号
+        if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
+        if on_finish: self.current_worker.finished_signal.connect(on_finish)
+        if on_error: self.current_worker.error_occurred.connect(on_error)
+        
+        self.current_worker.start()
         
     def load_onnx_model(self, model_path, model_name):
         if not ONNX_AVAILABLE:
