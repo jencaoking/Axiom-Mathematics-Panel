@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Version](https://img.shields.io/badge/Version-2.6.0-orange.svg)]()
+[![Version](https://img.shields.io/badge/Version-2.7.0-orange.svg)]()
 
-> **MathLab 2.6 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.5 的基础上深度集成了 **JupyterLab** 环境，支持**跨进程双向 UDP 通信**、**IPython 命名空间变量注入**，并实现**隐形 UI 的深色主题视觉融合**，朝着"一体化数学实验室"的目标持续演进。
+> **MathLab 2.7 (代号: Axiom)** 是一款交互式数学、AI 与 3D 教学桌面软件，集动态几何画板（2D 与 3D）、Python 编程学习环境、符号/数值计算、算法可视化、AI 具身学习、交互笔记本与插件扩展于一体。本版本在 2.6 基础上迎来了**工业级体验打磨**：引入全局异常守护与秒级崩溃恢复（AutoSaver）、丝滑的物理级动效引擎（包含惯性平移与平滑缩放）、智能磁吸辅助线以及丰富的数学彩蛋，朝着"工业级一体化数学实验室"的目标持续演进。
 
 ## 目录
 
@@ -41,7 +41,9 @@
 | **动画引擎** | 借鉴 Manim 的数学动画时间轴与缓动，支持关键帧与过渡曲线 |
 | **AI 辅助学习** | 线性/多项式回归、K-Means/DBSCAN 聚类、ONNX 推理、可选 PyTorch 神经网络 |
 | **全局命令面板** | VS Code 风格的全局命令控制台，支持模糊搜索、快捷执行 |
-| **界面交互与微动画** | 自适应前景色 Feather Icons；侧边栏 200ms 柔和淡入淡出转场 |
+| **界面交互与丝滑微动画** | 自适应前景色 Feather Icons；侧边栏 200ms 柔和淡入淡出转场；几何画布的 **物理级惯性平移与平滑缩放** |
+| **智能作图与彩蛋** | 支持 10像素 物理防抖的几何控制点磁吸、临时距离辅助线，以及“欧拉彩虹”等隐藏数学彩蛋 |
+| **工业级容错与恢复** | **全局异常守护引擎 (Error Guardian)**，解析底层报错为人类语言；**30秒极速快照 AutoSaver**，崩溃重启一键恢复工作区 |
 | **主题设置持久化** | 用户主题选择自动写入 `settings.json`，启动时秒级恢复 |
 | **插件系统** | 统一 `Plugin` 基类 + 插件管理器，支持生命周期、热加载与扩展 API |
 
@@ -180,7 +182,7 @@ nb.run_all()
 
 ### JupyterLab 双向交互与通信
 
-MathLab v2.6 引入了原生 JupyterLab 嵌入及跨进程双向 UDP 通信。你可以直接在 Jupyter 单元格中使用 `mlab` 客户端：
+MathLab v2.7 引入了原生 JupyterLab 嵌入及跨进程双向 UDP 通信。你可以直接在 Jupyter 单元格中使用 `mlab` 客户端：
 
 ```python
 from mathlab_api import mlab
@@ -638,9 +640,10 @@ python -m pytest tests/test_octave_bridge.py -v
 - **2.0 (已完成 · speed)**: 异步计算中枢、3D 渲染引擎、AI 集成、Fluent Design 主题
 - **2.5 (已完成 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
 - **2.6 (已完成 · Jupyter)**: 原生 JupyterLab 嵌入、跨进程双向 UDP IPC 通信、IPython 变量注入、隐藏 UI 的暗黑主题视觉融合
+- **2.7 (已完成 · Polish)**: 全局容错恢复架构、惯性平移物理模型、QVariantAnimation 丝滑滚轮缩放、智能辅助线与磁吸、全新图标库、彩虹彩蛋
 - **3.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
 
-详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md) (及 2.6 版本实现)。
+详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md) (及 2.7 版本实现)。
 
 ---
 
@@ -687,7 +690,7 @@ MathLab 受益于以下开源项目：
 @software{mathlab_jupyter,
   title  = {MathLab (Axiom): Interactive Mathematics, AI and 3D Teaching Software with JupyterLab Integration},
   author = {MathLab Team},
-  version = {2.6.0},
+  version = {2.7.0},
   year   = {2026},
   url    = {https://github.com/jencaoking/Axiom-Mathematics-Panel}
 }

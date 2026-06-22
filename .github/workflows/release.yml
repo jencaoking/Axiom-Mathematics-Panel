@@ -1,4 +1,4 @@
-name: CD - Build and Release MathLab 2.5
+name: CD - Build and Release MathLab 2.7
 
 on:
   push:

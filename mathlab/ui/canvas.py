@@ -457,8 +457,8 @@ class GeometryCanvas(QGraphicsView):
             delta_pos = current_pos - self._last_pan_pos
             delta_time = current_time - self._last_pan_time
             
-            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta_pos.x())
-            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta_pos.y())
+            self.horizontalScrollBar().setValue(int(self.horizontalScrollBar().value() - delta_pos.x()))
+            self.verticalScrollBar().setValue(int(self.verticalScrollBar().value() - delta_pos.y()))
             
             if delta_time > 0:
                 instant_vx = delta_pos.x() 

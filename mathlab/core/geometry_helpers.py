@@ -1,6 +1,6 @@
 import math
 from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QApplication
+from PySide6.QtWidgets import QApplication
 
 class MagnetSnapper:
     """负责处理画布拖拽时的磁吸对齐逻辑"""
