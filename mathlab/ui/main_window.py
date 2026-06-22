@@ -124,6 +124,10 @@ class MainWindow(QMainWindow):
         self.current_project = None
 
         self.active_workers = set()
+        self.fit_worker = None
+        self.cluster_worker = None
+        self.recognize_worker = None
+        self.generate_points_worker = None
 
         self.connect_signals()
         self._register_commands()  # 注册命令面板命令
@@ -532,7 +536,10 @@ class MainWindow(QMainWindow):
 
     def load_stylesheet(self):
         try:
-            from utils.theme_manager import get_theme_colors
+            try:
+                from ..utils.theme_manager import get_theme_colors
+            except ImportError:
+                from utils.theme_manager import get_theme_colors
             theme = get_theme_colors()
             
             stylesheet_path = os.path.join(
@@ -1001,7 +1008,7 @@ class MainWindow(QMainWindow):
         if not points:
             return
 
-        if hasattr(self, 'fit_worker') and self.fit_worker.isRunning():
+        if self.fit_worker is not None and self.fit_worker.isRunning():
             return
 
         if params is None:
@@ -1037,7 +1044,7 @@ class MainWindow(QMainWindow):
         if not points:
             return
 
-        if hasattr(self, 'cluster_worker') and self.cluster_worker.isRunning():
+        if self.cluster_worker is not None and self.cluster_worker.isRunning():
             return
 
         self.ai_tools_panel.set_loading_state(True)
@@ -1050,7 +1057,7 @@ class MainWindow(QMainWindow):
         self.cluster_worker.start()
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
-        if hasattr(self, 'recognize_worker') and self.recognize_worker.isRunning():
+        if self.recognize_worker is not None and self.recognize_worker.isRunning():
             return
             
         self.ai_tools_panel.set_loading_state(True)
@@ -1071,7 +1078,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"后台运算出错: {error_msg}", 5000)
 
     def on_ai_generate_points(self, n: int) -> None:
-        if hasattr(self, 'generate_points_worker') and self.generate_points_worker.isRunning():
+        if self.generate_points_worker is not None and self.generate_points_worker.isRunning():
             return
             
         self.ai_tools_panel.set_loading_state(True)
