@@ -727,6 +727,7 @@ class AIManager:
             self.client = None
 
     def ask_stream(self, user_prompt: str, system_prompt: str = "", tools: list = None,
+                   canvas_state: str = None,
                    on_chunk=None, on_finish=None, on_error=None, on_tool=None, on_cancel=None):
         """
         发起带有上下文的流式对话
@@ -740,9 +741,22 @@ class AIManager:
         
         # 准备发送给模型的上下文
         messages = self.memory.get_context()
-        if system_prompt:
+        
+        # 🆕 动态组装超级 System Prompt
+        dynamic_system_prompt = system_prompt
+        if canvas_state and canvas_state != "{}":
+            dynamic_system_prompt += f"""\n\n
+【系统自动注入的视觉环境上下文】
+你可以“看到”用户当前的画板状态。以下是画板上所有几何图形的实时 JSON 快照：
+```json
+{canvas_state}
+```
+当用户问“这个图怎么解”、“为什么我画的不对”等模糊问题时，请务必参考上述快照数据进行推导和回答。
+"""
+
+        if dynamic_system_prompt:
             # System Prompt 永远强行置顶
-            messages.insert(0, {"role": "system", "content": system_prompt})
+            messages.insert(0, {"role": "system", "content": dynamic_system_prompt})
 
         # 中断上一个未完成的任务
         self.abort_current_task()

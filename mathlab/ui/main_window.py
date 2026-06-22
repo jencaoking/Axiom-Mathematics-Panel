@@ -141,6 +141,10 @@ class MainWindow(QMainWindow):
         # 初始化自动存档与恢复神机
         self.autosaver = AutoSaver(self)
         self.autosaver.check_and_recover()
+        
+        # 1. 挂载画板追踪器
+        from mathlab.core.canvas_tracker import CanvasShadowTracker
+        self.canvas_tracker = CanvasShadowTracker(self.geometry_engine)
 
     def setup_ui(self):
         self.central_tabs = QTabWidget()

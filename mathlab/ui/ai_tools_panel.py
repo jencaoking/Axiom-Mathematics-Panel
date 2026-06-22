@@ -494,25 +494,13 @@ class AIToolsPanel(QDockWidget):
 
         system_context = self._get_system_context()
         main_win = self.window()
-        engine = main_win.geometry_engine if hasattr(main_win, 'geometry_engine') else None
-        live_context = ""
         
-        if engine:
-            import json
-            objects = engine.get_all_objects()
-            simplified_state = []
-            for obj in objects:
-                simplified_state.append({
-                    "id": obj.id,
-                    "type": obj.type,
-                    "name": obj.name,
-                    "coords": {k: round(v, 3) for k, v in obj.coordinates.items() if isinstance(v, (int, float))}
-                })
-            
-            if simplified_state:
-                live_context = f"\n[系统后台自动附加] 当前 2D/3D 画布状态:\n{json.dumps(simplified_state, ensure_ascii=False)}"
+        # 获取最新的影子状态
+        current_canvas_state = None
+        if hasattr(main_win, 'canvas_tracker'):
+            current_canvas_state = main_win.canvas_tracker.current_state_json
 
-        enhanced_prompt = user_text + live_context
+        enhanced_prompt = user_text
         
         sys_prompt = prompt_manager.get_system_prompt("math_assistant")
         if system_context:
@@ -527,15 +515,11 @@ class AIToolsPanel(QDockWidget):
                 user_prompt=enhanced_prompt,
                 system_prompt=sys_prompt,
                 tools=AVAILABLE_TOOLS,
+                canvas_state=current_canvas_state,
                 on_chunk=self.on_chunk_received,
                 on_finish=self.on_request_finished,
                 on_error=self.on_request_error,
                 on_tool=self.on_tool_call_received
-            ),
-                on_chunk=self.on_chunk_received,
-                on_finish=self.on_request_finished,
-                on_error=self.on_request_error,
-                on_tool_call=self.on_tool_call_received
             )
             self.breath_anim = start_breathing_effect(self.send_button)
         else:
