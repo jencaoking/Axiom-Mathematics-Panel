@@ -207,9 +207,8 @@ class NotebookPanel(QWidget):
             # 监听心跳同步，时刻更新 backend 的数据防丢失
             ui_cell.input_editor.code_synced.connect(
                 lambda code, cid=backend_cell.id: self._sync_backend_content(cid, code)
-            
-            ui_cell.cell_ai_explain_requested.connect(self.ai_explain_requested.emit)
             )
+            ui_cell.cell_ai_explain_requested.connect(self.ai_explain_requested.emit)
             
         else: # Markdown
             ui_cell = MarkdownCellWidget(backend_cell.id, backend_cell.content)

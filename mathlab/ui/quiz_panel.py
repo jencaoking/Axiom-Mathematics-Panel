@@ -95,7 +95,7 @@ class QuizCardWidget(QWidget):
 
     def trigger_visual_explanation(self, wrong_answer):
         """将错题上下文发送给 AI，要求它讲解并在画布上作图"""
-        prompt = f\"\"\"
+        prompt = f"""
 我在做这道题时答错了：
 【题目】：{self.quiz_data.get('question_text')}
 【我的答案】：{wrong_answer}
@@ -103,7 +103,7 @@ class QuizCardWidget(QWidget):
 
 请帮我分析我为什么会做错（薄弱点在哪里）。
 为了让我更直观地理解，**请务必调用画图工具（execute_geometry_draw）**，在我的画板上画出一个辅助图形或反例来配合你的讲解。
-\"\"\"
+"""
         # 将请求扔给主界面的 AI 侧边栏进行处理
         self.ai_manager.ask(
             user_prompt=prompt,

@@ -633,5 +633,3 @@ class AIToolsPanel(QDockWidget):
             except ImportError as e:
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
-self.is_generating = False
-        

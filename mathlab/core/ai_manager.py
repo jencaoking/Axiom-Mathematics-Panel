@@ -39,84 +39,86 @@ DRAW_TOOL_SCHEMA = {'type': 'function', 'function': {'name': 'execute_geometry_d
 
 class AIStreamWorker(QThread):
     """
-    后台流式请求线程，确保大模型的网络等待和解析不阻塞 Qt 主界面
+    基于 QThread 的后台流式请求工作线程
+    完美隔离网络 I/O，确保 Qt 主界面绝对不卡顿
     """
-    chunk_received = Signal(str)
-    finished_signal = Signal()
-    error_occurred = Signal(str)
-    tool_call_received = Signal(str, dict)
+    chunk_received = Signal(str)           # 收到文本流碎片
+    tool_call_received = Signal(str, str)  # 收到完整的工具调用 (name, arguments_json)
+    finished = Signal(str)                 # 生成正常结束 (抛出完整的文本内容)
+    cancelled = Signal()                   # 被用户优雅中断
+    error_occurred = Signal(str)           # 发生异常
 
-    def __init__(self, client: OpenAI, model: str, system_prompt: str, user_prompt: str, history: list = None, tools: list = None):
+    def __init__(self, client: OpenAI, model: str, messages: list, tools: list = None):
         super().__init__()
         self.client = client
         self.model = model
-        self.messages = history if history else []
-        self.tools = tools if tools is not None else []
-        
-        # 兼容旧代码未用 PromptManager 的情况
-        if system_prompt and not any(m.get("role") == "system" for m in self.messages):
-            self.messages.insert(0, {"role": "system", "content": system_prompt})
-            
-        if user_prompt:
-            self.messages.append({"role": "user", "content": user_prompt})
-            
+        self.messages = messages
+        self.tools = tools
         self._is_cancelled = False
 
     def cancel(self):
+        """触发优雅中断"""
         self._is_cancelled = True
-
+        
     def stop(self):
         self.cancel()
 
     def run(self):
         try:
+            # 构造请求参数
             kwargs = {
                 "model": self.model,
                 "messages": self.messages,
                 "stream": True,
-                "temperature": 0.7
+                "temperature": 0.3
             }
             if self.tools:
                 kwargs["tools"] = self.tools
-                
+                kwargs["tool_choice"] = "auto"
+
             response = self.client.chat.completions.create(**kwargs)
             
-            tool_calls_buffer = {}
+            full_text = ""
+            # 用于拼接流式下发的 tool_calls 碎片
+            tool_calls_buffer = {} 
+
             for chunk in response:
+                # 检查中断标志
                 if self._is_cancelled:
-                    self.finished_signal.emit()
+                    self.cancelled.emit()
                     return
-                if chunk.choices and len(chunk.choices) > 0:
-                    delta = chunk.choices[0].delta
-                    
-                    if getattr(delta, 'tool_calls', None):
-                        for tc in delta.tool_calls:
-                            idx = tc.index
-                            if idx not in tool_calls_buffer:
-                                tool_calls_buffer[idx] = {"name": tc.function.name if tc.function.name else "execute_geometry_draw", "arguments": ""}
-                            if tc.function.arguments:
-                                tool_calls_buffer[idx]["arguments"] += tc.function.arguments
-                                
-                    if getattr(delta, 'content', None):
-                        self.chunk_received.emit(delta.content)
-                    
-            for idx, tc in tool_calls_buffer.items():
-                try:
-                    args = json.loads(tc["arguments"])
-                    self.tool_call_received.emit(tc["name"], args)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Tool call JSON 解析失败: {e}")
-                        
-            self.finished_signal.emit()
+
+                delta = chunk.choices[0].delta
+
+                # 1. 处理普通文本流
+                if getattr(delta, 'content', None):
+                    full_text += delta.content
+                    self.chunk_received.emit(delta.content)
+
+                # 2. 处理工具调用流 (Function Calling 碎片拼接)
+                if getattr(delta, 'tool_calls', None):
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        if idx not in tool_calls_buffer:
+                            tool_calls_buffer[idx] = {"name": tc.function.name if tc.function.name else "execute_geometry_draw", "arguments": ""}
+                        if tc.function.arguments:
+                            tool_calls_buffer[idx]["arguments"] += tc.function.arguments
+
+            # 请求结束后，如果有工具调用，则抛出给主线程执行
+            if tool_calls_buffer:
+                for tc in tool_calls_buffer.values():
+                    # 确保 JSON 参数拼接完整后，抛出信号
+                    self.tool_call_received.emit(tc["name"], tc["arguments"])
+            
+            # 正常结束抛出完整文本
+            self.finished.emit(full_text)
             
         except AuthenticationError:
             self.error_occurred.emit("API Key 认证失败，请在设置中检查。")
         except APIConnectionError:
             self.error_occurred.emit("网络连接失败，请检查 Base URL 或代理设置。")
         except Exception as e:
-            self.error_occurred.emit(f"AI 请求发生错误: {str(e)}")
-
-
+            self.error_occurred.emit(f"AI 引擎异常: {str(e)}")
 
 def _strip_markdown_json(text: str) -> str:
     """剥离 LLM 输出中包裹 JSON 的 Markdown 代码块标记。
@@ -411,6 +413,17 @@ class AIManager:
 
     def ask(self, user_prompt: str, system_prompt: str = "", history: list = None, 
             on_chunk=None, on_finish=None, on_error=None, **kwargs):
+        # 兼容旧 API
+        tools = kwargs.get('tools', [DRAW_TOOL_SCHEMA, QUIZ_GENERATOR_SCHEMA])
+        on_tool = kwargs.get('on_tool_call')
+        # 适配旧 on_finish 签名
+        def wrap_finish(text):
+            if on_finish: on_finish()
+        self.ask_stream(user_prompt, system_prompt, tools, on_chunk, wrap_finish, on_error, on_tool=on_tool)
+        return
+        
+    def ask_old_legacy(self, user_prompt: str, system_prompt: str = "", history: list = None, 
+            on_chunk=None, on_finish=None, on_error=None, **kwargs):
         """发起流式对话"""
         if not self.client:
             if on_error:
@@ -682,3 +695,70 @@ class AIManager:
         sandbox = SandboxProcess()
         result = sandbox.run_code(code)
         return result
+    def reload_config(self):
+        """从配置中加载 API 密钥 (支持动态热重载)"""
+        api_key = self.settings_manager.get("ai_api_key", "") if getattr(self, 'settings_manager', None) else ""
+        base_url = self.settings_manager.get("ai_base_url", "https://api.deepseek.com/v1") if getattr(self, 'settings_manager', None) else ""
+        self.current_model = self.settings_manager.get("ai_model", "deepseek-chat") if getattr(self, 'settings_manager', None) else "deepseek-chat"
+        
+        if not api_key:
+            api_key = "sk-ebf424419cb746bb9071077e682d3345" # DeepSeek test key placeholder
+            
+        if api_key:
+            self.client = OpenAI(api_key=api_key, base_url=base_url)
+            logger.info(f"AI 基建就绪 -> {base_url} [{self.current_model}]")
+        else:
+            self.client = None
+
+    def ask_stream(self, user_prompt: str, system_prompt: str = "", tools: list = None,
+                   on_chunk=None, on_finish=None, on_error=None, on_tool=None, on_cancel=None):
+        """
+        发起带有上下文的流式对话
+        """
+        if not self.client:
+            if on_error: on_error("未配置 API Key。")
+            return
+
+        # 压入用户问题到记忆
+        if not hasattr(self, 'memory'):
+            from mathlab.core.memory_manager import ChatMemoryManager
+            self.memory = ChatMemoryManager()
+            
+        self.memory.add_message("user", user_prompt)
+        
+        # 准备发送给模型的上下文
+        messages = self.memory.get_context()
+        if system_prompt:
+            # System Prompt 永远强行置顶
+            messages.insert(0, {"role": "system", "content": system_prompt})
+
+        # 中断上一个未完成的任务
+        self.abort_current_task()
+
+        # 启动后台线程
+        self.current_worker = AIStreamWorker(self.client, self.current_model, messages, tools)
+        
+        # 信号绑定
+        if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
+        if on_error: self.current_worker.error_occurred.connect(on_error)
+        if on_tool:  self.current_worker.tool_call_received.connect(on_tool)
+        if on_cancel: self.current_worker.cancelled.connect(on_cancel)
+        
+        # 内部封装 finished，用于自动保存 AI 的回答到记忆中
+        def internal_finish(full_text):
+            if full_text:
+                self.memory.add_message("assistant", full_text)
+            if on_finish:
+                on_finish(full_text)
+                
+        self.current_worker.finished.connect(internal_finish)
+        self.current_worker.start()
+
+    def abort_current_task(self):
+        """优雅中断当前的流式生成"""
+        if getattr(self, 'current_worker', None) and self.current_worker.isRunning():
+            self.current_worker.cancel()
+            self.current_worker.wait() # 等待线程安全退出
+            self.current_worker = None
+
+

@@ -1,8 +1,8 @@
 import json
 from PySide6.QtWidgets import QPlainTextEdit, QCompleter
 from PySide6.QtCore import Qt, QStringListModel, Signal
-from PySide6.QtGui import QTextCursor, QFont, QKeySequence
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QShortcut
+from PySide6.QtGui import QTextCursor, QFont, QKeySequence, QShortcut
+from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl
