@@ -688,29 +688,77 @@ class AIToolsPanel(QDockWidget):
         scrollbar = self.chat_display.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
+    def _execute_with_reflection(self, tool_name: str, args_dict: dict, retry_count: int):
+        """
+        核心反思机制：带最大尝试次数的智能容错执行器
+        """
+        MAX_RETRIES = 3 
+        
+        if retry_count >= MAX_RETRIES:
+            self.chat_display.append("<i style='color: #E74C3C;'>🚨 AI 尝试了 3 次修正均告失败，已自动中止操作。</i><br>")
+            self.action_label.setText("❌ 执行中止")
+            self.status_bar.setStyleSheet("background-color: #E74C3C; color: white;")
+            return
+
+        try:
+            commands = args_dict.get("commands", [])
+            if not commands and "cmd" in args_dict:
+                commands = [args_dict]
+
+            main_window = self.window()
+            engine = getattr(main_window, 'geometry_engine', None)
+            
+            if engine:
+                if hasattr(engine, 'begin_draft'):
+                    engine.begin_draft() # 开启草稿模式保护
+                
+                if hasattr(engine, 'validate_commands'):
+                    engine.validate_commands(commands)
+                
+                if hasattr(main_window, 'central_widget'):
+                    main_window.central_widget.execute_commands_with_animation(engine, commands)
+                
+                self._render_draft_review_card() # 弹出采纳/撤销卡片
+                self.action_label.setText("✅ 画图完成")
+                self.status_bar.setStyleSheet("background-color: #27AE60; color: white;")
+                
+                magic_html = "<div style='color: #0078D7;'><i>✨ AI 助教正在您的画板上绘制...</i></div><br>"
+                self.chat_display.append(magic_html)
+
+        except Exception as e:
+            error_msg = str(e)
+            
+            self.action_label.setText(f"🛠️ 发现逻辑错误，AI 正在进行自我修复 ({retry_count+1}/{MAX_RETRIES})...")
+            self.status_bar.setStyleSheet("background-color: #E67E22; color: white;") 
+            
+            import json
+            reflection_prompt = f"""
+你在调用 `{tool_name}` 时发生了严重的运行时错误！
+❌ 错误信息详情：
+{error_msg}
+
+原参数输出：
+{json.dumps(args_dict, ensure_ascii=False)}
+
+请立刻反思错误原因（如：是否引用了未创建的点？是否参数名称写错了？）。
+根据当前的画板状态，修正你的逻辑，并**直接再次调用画图工具**。禁止输出废话。
+"""
+            if hasattr(self, 'ai_manager'):
+                self.ai_manager.ask(
+                    user_prompt=reflection_prompt,
+                    system_prompt="你是一个具备极强自我反省能力的数学专家。当系统报错时，你必须通过再次调用工具来修复它。",
+                    tools=get_agent(self.current_agent_id).tools,
+                    on_tool=lambda name, new_args: self._execute_with_reflection(name, new_args, retry_count + 1),
+                    on_error=lambda err: print(f"静默修复网络异常: {err}")
+                )
+
     def on_tool_call_received(self, tool_name, args_dict):
         main_window = self.window()
         if tool_name == "generate_math_quiz":
             quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
             self.card_layout.addWidget(quiz_card)
         elif tool_name == "execute_geometry_draw":
-            if hasattr(main_window, 'geometry_engine') and hasattr(main_window, 'central_widget'):
-                commands = args_dict.get("commands", [])
-                if not commands and "cmd" in args_dict:
-                    commands = [args_dict] # 兼容防幻觉单命令调用
-                
-                # 1. 强制开启草稿模式
-                if hasattr(main_window.geometry_engine, 'begin_draft'):
-                    main_window.geometry_engine.begin_draft()
-                    
-                # 💡 切断瞬间传送，激活双光标协作模式！
-                main_window.central_widget.execute_commands_with_animation(main_window.geometry_engine, commands)
-                
-                # 3. 在聊天框渲染【审查卡片】
-                self._render_draft_review_card()
-                
-                magic_html = "<div style='color: #0078D7;'><i>✨ AI 助教正在您的画板上绘制...</i></div><br>"
-                self.chat_display.append(magic_html)
+            self._execute_with_reflection(tool_name, args_dict, retry_count=0)
         elif tool_name == "highlight_geometry_elements":
             try:
                 element_names = args_dict.get("element_names", [])

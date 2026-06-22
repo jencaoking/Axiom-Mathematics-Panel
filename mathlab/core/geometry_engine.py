@@ -1200,6 +1200,41 @@ class GeometryEngine:
         self.is_draft_mode = False
         self.draft_ids = []
 
+    def validate_commands(self, commands: list):
+        """
+        带严格逻辑校验的执行器预检。
+        如果存在非法引用或逻辑冲突，立即中断并抛出明确的语义错误 ValueError。
+        """
+        simulated_names = set(obj.name for obj in self.objects.values() if hasattr(obj, 'name'))
+        
+        for cmd in commands:
+            op = cmd.get("cmd")
+            
+            if op == "add_point":
+                name = cmd.get("name")
+                if name:
+                    simulated_names.add(name)
+
+            elif op == "add_segment":
+                p1, p2 = cmd.get("p1"), cmd.get("p2")
+                if p1 not in simulated_names:
+                    raise ValueError(f"无法画线：画板上根本不存在名为 '{p1}' 的点。请先添加该点，或检查名称拼写。")
+                if p2 not in simulated_names:
+                    raise ValueError(f"无法画线：画板上根本不存在名为 '{p2}' 的点。")
+                if p1 == p2:
+                    raise ValueError(f"无法画线：起点 '{p1}' 和终点 '{p2}' 是同一个点。")
+            
+            elif op == "add_circle":
+                center = cmd.get("center")
+                radius = cmd.get("radius", 0)
+                if center not in simulated_names:
+                    raise ValueError(f"无法画圆：找不到指定的圆心点 '{center}'。")
+                if radius <= 0:
+                    raise ValueError(f"无法画圆：半径必须大于 0，当前给定半径为 {radius}。")
+                    
+            elif op not in ["add_point", "add_segment", "add_circle", "add_polygon"]:
+                raise ValueError(f"引擎不支持的操作指令：'{op}'，请严格使用工具说明书里的枚举值。")
+
     def begin_draft(self):
         self.is_draft_mode = True
         self.draft_ids = []
