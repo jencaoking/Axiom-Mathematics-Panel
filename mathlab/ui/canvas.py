@@ -10,6 +10,7 @@ from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtSvg import QSvgRenderer
 
 from mathlab.core.geometry_helpers import MagnetSnapper
+from mathlab.core.smart_guides import SmartGuideManager
 
 # 实例化吸附引擎 (全局复用)
 snapper = MagnetSnapper(snap_threshold_pixels=10)
@@ -128,6 +129,50 @@ class GeometryPointItem(QGraphicsEllipseItem):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        
+        # 内部状态标志位
+        self._is_dragging = False
+
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
+        super().mousePressEvent(event)
+        self._is_dragging = True
+
+    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent):
+        # 让父类优先处理拖拽，它会触发 itemChange 更新 self.pos()
+        super().mouseMoveEvent(event)
+        
+        if self._is_dragging and self.scene():
+            view = self.canvas
+            
+            # 获取管理实例
+            manager = getattr(self.canvas, 'guide_manager', None)
+            
+            if manager and view:
+                scale_factor = view.transform().m11()
+                # 动态阈值：物理像素 5px 对应的逻辑坐标差异
+                logical_threshold = 5.0 / scale_factor if scale_factor > 0 else 0.01
+                
+                # 提取其他点的逻辑坐标
+                other_points = [
+                    item.scenePos() for item in self.scene().items() 
+                    if isinstance(item, GeometryPointItem) and item != self
+                ]
+                
+                # 调用绘制
+                manager.draw_guides(
+                    current_pos=self.scenePos(), # 此时获取的是已经被磁吸修正过的最新坐标
+                    other_points=other_points,
+                    logical_threshold=logical_threshold
+                )
+
+    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent):
+        super().mouseReleaseEvent(event)
+        self._is_dragging = False
+        
+        # 拖拽结束，擦除所有辅助线
+        manager = getattr(self.canvas, 'guide_manager', None)
+        if manager:
+            manager.clear()
 
     def itemChange(self, change, value):
         # 拦截拖拽时产生的新坐标分配
@@ -181,6 +226,9 @@ class GeometryCanvas(QGraphicsView):
         super().__init__(parent)
         self.scene_obj = QGraphicsScene(self)
         self.setScene(self.scene_obj)
+        
+        # 初始化辅助线管理器
+        self.guide_manager = SmartGuideManager(self.scene_obj)
 
         self.setRenderHint(QPainter.Antialiasing)
         self.setDragMode(QGraphicsView.ScrollHandDrag)

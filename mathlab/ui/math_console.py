@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from mathlab.core.octave_bridge import OctaveBridge, OctaveBridgeError
 from mathlab.utils.i18n_manager import t
+from mathlab.ui.easter_eggs import EasterEggDetector
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +67,9 @@ class MathConsole(QDockWidget):
         self.bridge = OctaveBridge()
         self._history: list[str] = []
         self._history_idx: int = -1
+        
+        # 初始化彩蛋检测器
+        self.egg_detector = EasterEggDetector(self.topLevelWidget())
 
         self._build_ui()
         self._print_welcome()
@@ -211,6 +215,9 @@ class MathConsole(QDockWidget):
         self._input.clear()
         self._history.append(code)
         self._history_idx = len(self._history)
+        
+        # 1. 优先检测并触发彩蛋（后台默默执行，不打断主业务流）
+        self.egg_detector.check_and_trigger(code)
 
         # 打印输入行
         safe_code = html.escape(code)
