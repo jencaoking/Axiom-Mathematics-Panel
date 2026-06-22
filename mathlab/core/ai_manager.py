@@ -93,7 +93,7 @@ class AIEngineWorker(QThread):
     """
     state_changed = Signal(AIState)
     chunk_received = Signal(str)
-    tool_call_received = Signal(str, str)
+    tool_call_received = Signal(str, object)
     usage_reported = Signal(int, int)
     finished_text = Signal(str)
     error_occurred = Signal(str)
@@ -168,7 +168,11 @@ class AIEngineWorker(QThread):
             if tool_calls_buffer:
                 self.state_changed.emit(AIState.EXECUTING_TOOL)
                 for tc in tool_calls_buffer.values():
-                    self.tool_call_received.emit(tc["name"], tc["arguments"])
+                    try:
+                        args = json.loads(tc["arguments"]) if tc["arguments"] else {}
+                    except (json.JSONDecodeError, TypeError):
+                        args = {}
+                    self.tool_call_received.emit(tc["name"], args)
             
             if not self._is_cancelled:
                 self.state_changed.emit(AIState.FINISHED)
@@ -223,7 +227,7 @@ class AIManager(QObject):
     def abort_current_task(self):
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.cancel()
-            self.current_worker.wait()
+            self.current_worker.wait(5000)
 
     def ask(self, user_prompt: str, system_prompt: str = "", tools: list = None,
             canvas_state: str = None,
@@ -252,7 +256,9 @@ class AIManager(QObject):
 
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.cancel()
-            self.current_worker.wait()
+            if not self.current_worker.wait(5000):
+                self.current_worker.disconnect()
+                self.current_worker.terminate()
 
         self.current_worker = AIEngineWorker(self.client, self.current_model, messages, tools)
         
