@@ -19,7 +19,7 @@ hidden_imports = [
 ]
 
 a = Analysis(
-    ['main.py'], 
+    ['mathlab/main.py'], 
     pathex=[],
     binaries=[],
     datas=added_files,
