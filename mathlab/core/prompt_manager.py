@@ -19,10 +19,15 @@ class PromptManager:
 
     def _load_prompts(self, config_path):
         """从 yaml 文件加载提示词字典"""
+        import sys
         if not config_path:
             # 默认去 config 目录下寻找 prompts.yaml
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            config_path = os.path.join(base_dir, 'config', 'prompts.yaml')
+            if getattr(sys, 'frozen', False):
+                base_dir = sys._MEIPASS
+                config_path = os.path.join(base_dir, 'mathlab', 'config', 'prompts.yaml')
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                config_path = os.path.join(base_dir, 'config', 'prompts.yaml')
             
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
