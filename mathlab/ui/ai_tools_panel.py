@@ -4,6 +4,7 @@ import re
 from mathlab.core.agent_registry import get_agent
 from mathlab.core.memory_manager import ChatMemoryManager
 from mathlab.core.prompt_manager import prompt_manager
+from mathlab.core.context_assembler import ContextAssembler
 import markdown
 from PySide6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
@@ -57,6 +58,7 @@ class AIToolsPanel(QDockWidget):
         super().__init__(t('ai_tools.title'), parent)
         self.setAllowedAreas(Qt.RightDockWidgetArea)
         self.worker = None  # AIRequestWorker(QThread) 实例
+        self.context_assembler = ContextAssembler(prompt_manager)
 
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
@@ -598,28 +600,24 @@ class AIToolsPanel(QDockWidget):
         self.send_button.setStyleSheet("background-color: #E74C3C; color: white;")
         self.is_generating = True
 
-        system_context = self._get_system_context()
         main_win = self.window()
-        
-        # 获取最新的影子状态
-        current_canvas_state = None
-        if hasattr(main_win, 'canvas_tracker'):
-            current_canvas_state = main_win.canvas_tracker.current_state_json
+        tracker = getattr(main_win, 'canvas_tracker', None)
+        current_canvas_state = tracker.current_state_json if tracker else None
 
-        enhanced_prompt = user_text
-        
-        sys_prompt = agent.system_prompt
-        if system_context:
-            import json
-            sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
-            
+        # ✨ 核心魔法：调用动态组装器，生成纯净且精准的超级 Prompt
+        dynamic_system_prompt = self.context_assembler.build_dynamic_system_prompt(
+            base_system_prompt=agent.system_prompt,
+            user_text=user_text,
+            canvas_tracker=tracker
+        )
+
         self._current_response = ""
         self._last_user_text = user_text
         
         if hasattr(main_win, 'ai_manager'):
             main_win.ai_manager.ask(
-                user_prompt=enhanced_prompt,
-                system_prompt=sys_prompt,
+                user_prompt=user_text,
+                system_prompt=dynamic_system_prompt,
                 tools=agent.tools,
                 canvas_state=current_canvas_state,
                 on_state_change=self._on_state_change,
@@ -743,8 +741,9 @@ class AIToolsPanel(QDockWidget):
 请立刻反思错误原因（如：是否引用了未创建的点？是否参数名称写错了？）。
 根据当前的画板状态，修正你的逻辑，并**直接再次调用画图工具**。禁止输出废话。
 """
-            if hasattr(self, 'ai_manager'):
-                self.ai_manager.ask(
+            main_window = self.window()
+            if hasattr(main_window, 'ai_manager'):
+                main_window.ai_manager.ask(
                     user_prompt=reflection_prompt,
                     system_prompt="你是一个具备极强自我反省能力的数学专家。当系统报错时，你必须通过再次调用工具来修复它。",
                     tools=get_agent(self.current_agent_id).tools,
@@ -788,8 +787,9 @@ class AIToolsPanel(QDockWidget):
             self.action_label.setText(f"🏃‍♂️ {new_agent.name} 正在接手处理...")
             self.status_bar.setStyleSheet("background-color: #8E44AD; color: white;") # 优雅的紫色代表协作流
             
-            if hasattr(self, 'ai_manager'):
-                self.ai_manager.ask(
+            main_window = self.window()
+            if hasattr(main_window, 'ai_manager'):
+                main_window.ai_manager.ask(
                     user_prompt=relay_prompt,
                     system_prompt=new_agent.system_prompt,
                     tools=new_agent.tools,
