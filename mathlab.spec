@@ -2,25 +2,28 @@
 
 block_cipher = None
 
-# 【核心配置】将所有静态资源按路径映射打包进可执行文件中
+# 1. 静态资源映射：确保 HTML 渲染器、提示词模板等被正确打包
 added_files = [
+    ('mathlab/resources/chat_renderer.html', 'mathlab/resources'),
     ('mathlab/config/prompts.yaml', 'mathlab/config'),
-    ('mathlab/resources/monaco.html', 'mathlab/resources'),
-    ('mathlab/resources/markdown.html', 'mathlab/resources'),
-    # 如果您有本地的图标文件，也加在这里：
+    # 若有本地图标，请取消下方注释
     # ('mathlab/resources/icon.ico', 'mathlab/resources')
 ]
 
+# 2. 隐式依赖声明：强制打包动态加载的引擎和代理
+hidden_imports = [
+    'PySide6.QtWebEngineCore',
+    'PySide6.QtWebEngineWidgets',
+    'mathlab.core.agent_registry',
+    'mathlab.core.context_assembler'
+]
+
 a = Analysis(
-    ['mathlab/main.py'], # 程序入口文件为 mathlab/main.py，如果在根目录没有 main.py 的话。 wait, the user spec had ['main.py']. I will check what's right.
+    ['main.py'], 
     pathex=[],
     binaries=[],
-    datas=added_files, # 注入静态资源
-    hiddenimports=[
-        # 防止部分动态加载的包被 PyInstaller 漏掉
-        'mathlab.core.ai_tools_schema',
-        'mathlab.core.prompt_manager'
-    ],
+    datas=added_files,
+    hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -33,7 +36,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# 生成可执行文件配置
+# 3. 生成 Windows 专属的可执行程序
 exe = EXE(
     pyz,
     a.scripts,
@@ -44,13 +47,12 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False, # 设为 False 隐藏黑色的命令行控制台
+    console=False, # 设为 False 以隐藏黑色控制台窗口
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='mathlab/resources/icon.ico' # 可选：指定您的软件图标
 )
 
 coll = COLLECT(
@@ -64,10 +66,10 @@ coll = COLLECT(
     name='MathLab',
 )
 
-# 针对 macOS 的专属应用包生成
+# 4. 生成 macOS 专属的 .app 应用程序包
 app = BUNDLE(
     coll,
     name='MathLab.app',
     icon=None,
-    bundle_identifier='com.yourname.mathlab',
+    bundle_identifier='com.commander.mathlab',
 )
