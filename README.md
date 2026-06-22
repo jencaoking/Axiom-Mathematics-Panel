@@ -519,7 +519,12 @@ Manim 风格关键帧动画：
 
 ### AI 管理器 (AIManager)
 
-集成多种机器学习功能：
+**流式大模型核心 (AIEngineWorker)**：
+- 基于有限状态机 (AIState) 的全生命周期感知（THINKING, GENERATING, EXECUTING_TOOL）
+- 原生 Function Calling (Tool Calls) 协议支持与 JSON 碎片严谨拼接
+- 实时 Token 消耗统计与可视化计费估算
+
+**集成多种机器学习功能**：
 - 线性 / 多项式回归
 - K-Means / DBSCAN 聚类
 - ONNX 模型推理
@@ -655,7 +660,7 @@ python -m pytest tests/test_octave_bridge.py -v
 - **2.5 (已完成 · axiom)**: GeoGebra 级约束求解、笔记本、动画引擎、Octave 桥接、插件系统
 - **2.6 (已完成 · Jupyter)**: 原生 JupyterLab 嵌入、跨进程双向 UDP IPC 通信、IPython 变量注入、隐藏 UI 的暗黑主题视觉融合
 - **2.7 (已完成 · Polish)**: 全局容错恢复架构、惯性平移物理模型、QVariantAnimation 丝滑滚轮缩放、智能辅助线与磁吸、全新图标库、彩虹彩蛋
-- **3.0 (已完成 · Agentic UI)**: Monaco 代码意图穿透、防阻塞流式大模型基建、滑动窗口记忆管理、NL2Draw 自然语言几何作图、交互式测验卡片、视觉联动错题本
+- **3.0 (已完成 · Agentic UI)**: Monaco 代码意图穿透、防阻塞流式大模型基建、滑动窗口记忆管理、NL2Draw 自然语言几何作图、交互式测验卡片、视觉联动错题本、严格生成状态机与实时 Token 计费
 - **4.0 (规划中)**: Web 同步、多人协作、插件市场、云端教学资源
 
 详见 [MATHLAB_2.5_PLAN.md](MATHLAB_2.5_PLAN.md) (及 2.7 版本实现)。
