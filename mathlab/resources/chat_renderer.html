@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* 苹果极简风格的排版基调 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #F8F9FA;
+            margin: 0;
+            padding: 15px;
+            word-wrap: break-word;
+        }
+        .message-container {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #EAEAEA;
+        }
+        .role-user { color: #0078D7; font-weight: bold; text-align: right; }
+        .role-ai { color: #27AE60; font-weight: bold; }
+        
+        /* 优雅的代码块样式 */
+        pre {
+            background-color: #2D2D2D;
+            color: #CCCCCC;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: "Consolas", monospace;
+        }
+        code {
+            background-color: #EAEAEA;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: "Consolas", monospace;
+            font-size: 0.9em;
+        }
+        pre code { background-color: transparent; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="chat-container"></div>
+
+    <script>
+        // 初始化 Marked.js 配置
+        marked.setOptions({
+            breaks: true, // 支持回车换行
+            gfm: true     // 支持 GitHub 风格 Markdown
+        });
+
+        const container = document.getElementById('chat-container');
+
+        // 供 Python 调用的全局渲染函数
+        window.updateChat = function(htmlContent) {
+            // 1. 将 Python 传来的包含 Markdown 的内容写入 DOM
+            container.innerHTML = htmlContent;
+            
+            // 2. 调用 KaTeX 的自动渲染器，极速扫描并渲染 DOM 中的所有 $$ 和 $ 公式
+            renderMathInElement(container, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "\\[", right: "\\]", display: true},
+                    {left: "$", right: "$", display: false},
+                    {left: "\\(", right: "\\)", display: false}
+                ],
+                throwOnError: false // 遇到语法错误不崩溃，直接原样显示红色源码
+            });
+
+            // 3. 自动滚动到底部
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        };
+    </script>
+</body>
+</html>

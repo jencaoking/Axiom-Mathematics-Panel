@@ -11,8 +11,10 @@ from PySide6.QtWidgets import (
     QTabWidget, QPushButton, QComboBox, QSpinBox,
     QLabel, QGraphicsView, QGraphicsScene,
     QGraphicsEllipseItem, QGraphicsLineItem,
-    QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit, QFrame
+    QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit, QFrame,
+    QListWidget, QListWidgetItem
 )
+from mathlab.ui.latex_chat_widget import LatexChatWidget
 
 try:
     from .code_editor import AutocompleteTextEdit
@@ -270,19 +272,7 @@ class AIToolsPanel(QDockWidget):
         self.teach_tab = QWidget()
         teach_layout = QVBoxLayout(self.teach_tab)
         
-        self.chat_display = QTextBrowser()
-        self.chat_display.setReadOnly(True)
-        self.chat_display.setOpenExternalLinks(True)
-        self.chat_display.setStyleSheet("""
-            QTextBrowser {
-                background-color: #ffffff;
-                color: #1a1a2e;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 14px;
-                border: 1px solid #e0e4e8;
-                border-radius: 4px;
-            }
-        """)
+        self.chat_display = LatexChatWidget()
 
         self.card_layout = QVBoxLayout()
         teach_layout.addLayout(self.card_layout)
@@ -572,18 +562,18 @@ class AIToolsPanel(QDockWidget):
             if engine:
                 if hasattr(engine, 'clear'):
                     engine.clear()
-                self.chat_display.append("<i>[系统] 画板已清空。</i><br>")
+                self.chat_display.add_message("ai", "**[系统]** 画板已清空。")
                 
         elif command == "/draft":
             if engine:
                 if not getattr(engine, 'is_draft_mode', False):
                     if hasattr(engine, 'begin_draft'):
                         engine.begin_draft()
-                    self.chat_display.append("<i>[系统] 👻 已进入画板草稿模式。</i><br>")
+                    self.chat_display.add_message("ai", "**[系统]** 👻 已进入画板草稿模式。")
                 else:
                     if hasattr(engine, 'commit_draft'):
                         engine.commit_draft()
-                    self.chat_display.append("<i>[系统] ✅ 草稿已合并至正式画板。</i><br>")
+                    self.chat_display.add_message("ai", "**[系统]** ✅ 草稿已合并至正式画板。")
 
         elif command == "/quiz":
             self.switch_agent("quiz")
@@ -599,10 +589,10 @@ class AIToolsPanel(QDockWidget):
             <kbd>/quiz [知识点]</kbd> - 强制生成测验<br>
             <kbd>@geometry</kbd> - 召唤几何专家画图<br>
             """
-            self.chat_display.append(help_text)
+            self.chat_display.add_message("ai", help_text)
 
         else:
-            self.chat_display.append(f"<i style='color: red;'>未知指令: {command}，输入 /help 查看支持的命令。</i><br>")
+            self.chat_display.add_message("ai", f"**[错误]** 未知指令: {command}，输入 /help 查看支持的命令。")
 
     def on_send_message(self):
         if self.is_generating:
@@ -610,7 +600,7 @@ class AIToolsPanel(QDockWidget):
             if hasattr(main_win, 'ai_manager') and main_win.ai_manager.current_worker:
                 main_win.ai_manager.current_worker.cancel()
             self.on_request_finished(was_cancelled=True)
-            self.chat_display.append("<br><i style='color: #E74C3C;'>[已停止生成]</i><br><hr>")
+            self.chat_display.add_message("ai", "*[已停止生成]*")
             return
 
         raw_text = self.chat_input.text().strip()
@@ -641,9 +631,7 @@ class AIToolsPanel(QDockWidget):
             self.current_agent_id = "general"
         agent = get_agent(self.current_agent_id)
 
-        user_html = f"<div style='color: #0078D7; text-align: right;'><b>{t('ai_tools.you')}:</b> {user_text}</div><br>"
-        self.chat_display.append(user_html)
-        self.chat_display.append(f"<b>{agent.icon} {agent.name}：</b> ")
+        self.chat_display.add_message("user", user_text)
 
         self.chat_input.setEnabled(False)
         self.send_button.setText("⏹ 停止生成")
@@ -697,14 +685,7 @@ class AIToolsPanel(QDockWidget):
         return system_context
 
     def on_chunk_received(self, text_chunk: str):
-        self._current_response += text_chunk
-        cursor = self.chat_display.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertText(text_chunk)
-        self.chat_display.setTextCursor(cursor)
-        self.chat_display.verticalScrollBar().setValue(
-            self.chat_display.verticalScrollBar().maximum()
-        )
+        self.chat_display.update_streaming_chunk(text_chunk)
 
     def on_action_required(self, action_data: dict):
         self.action_requested.emit(action_data)
@@ -726,15 +707,8 @@ class AIToolsPanel(QDockWidget):
             get_opacity_effect(self.send_button).setOpacity(1.0)
             
         if not was_cancelled:
-            # Memory update
-            self.chat_history.add_message("user", self._last_user_text)
-            self.chat_history.add_message("assistant", self._current_response)
-            
-            final_html = markdown.markdown(self._current_response, extensions=['fenced_code', 'tables'])
-            self.chat_display.append("<br><hr>")
-        
-        scrollbar = self.chat_display.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+            # 流式结束，固化到 WebEngine 内部状态
+            self.chat_display.finalize_streaming_message()
 
     def _execute_with_reflection(self, tool_name: str, args_dict: dict, retry_count: int):
         """
@@ -743,7 +717,7 @@ class AIToolsPanel(QDockWidget):
         MAX_RETRIES = 3 
         
         if retry_count >= MAX_RETRIES:
-            self.chat_display.append("<i style='color: #E74C3C;'>🚨 AI 尝试了 3 次修正均告失败，已自动中止操作。</i><br>")
+            self.chat_display.add_message("ai", "🚨 **AI 尝试了 3 次修正均告失败，已自动中止操作。**")
             self.action_label.setText("❌ 执行中止")
             self.status_bar.setStyleSheet("background-color: #E74C3C; color: white;")
             return
@@ -770,8 +744,7 @@ class AIToolsPanel(QDockWidget):
                 self.action_label.setText("✅ 画图完成")
                 self.status_bar.setStyleSheet("background-color: #27AE60; color: white;")
                 
-                magic_html = "<div style='color: #0078D7;'><i>✨ AI 助教正在您的画板上绘制...</i></div><br>"
-                self.chat_display.append(magic_html)
+                self.chat_display.add_message("ai", "✨ *AI 助教正在您的画板上绘制...*")
 
         except Exception as e:
             error_msg = str(e)
@@ -811,15 +784,8 @@ class AIToolsPanel(QDockWidget):
             prev_agent = get_agent(self.current_agent_id)
             
             # 1. 在聊天框打印极其极客的“内部交接日志”
-            handoff_html = f"""
-            <div style='background-color: #F8F9FA; border-left: 4px solid #8E44AD; padding: 8px; margin: 10px 0;'>
-                <span style='color: #8E44AD; font-size: 12px; font-weight: bold;'>
-                    🤝 [协作协议触发] {prev_agent.name} 将任务移交给了 @{target_agent_id}
-                </span><br>
-                <i style='color: #555; font-size: 12px;'>内部工单: "{notes}"</i>
-            </div>
-            """
-            self.chat_display.append(handoff_html)
+            handoff_msg = f"🤝 **[协作协议触发]** {prev_agent.name} 将任务移交给了 @{target_agent_id}\n\n*内部工单: \"{notes}\"*"
+            self.chat_display.add_message("ai", handoff_msg)
 
             # 2. 视觉与逻辑同步：一键切换到目标专家
             self.switch_agent(target_agent_id)
