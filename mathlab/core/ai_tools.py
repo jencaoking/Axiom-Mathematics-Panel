@@ -110,4 +110,27 @@ QUIZ_GENERATOR_SCHEMA = {
     }
 }
 
-AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA, VISUAL_HIGHLIGHT_TOOL]
+AGENT_TRANSFER_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "transfer_to_agent",
+        "description": "【核心调度工具】当用户的请求超出了你的专长，或者需要跨部门协作时（例如：你需要画图但没有画笔，你需要出题但你不是考官），必须调用此工具将任务移交给最合适的专家。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target_agent": {
+                    "type": "string", 
+                    "enum": ["geometry", "quiz", "general"],
+                    "description": "接手任务的目标专家 ID"
+                },
+                "handover_notes": {
+                    "type": "string",
+                    "description": "内部交接说明。请向下一个专家详细描述：当前的上下文是什么？你需要他具体执行什么操作？"
+                }
+            },
+            "required": ["target_agent", "handover_notes"]
+        }
+    }
+}
+
+AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA, VISUAL_HIGHLIGHT_TOOL, AGENT_TRANSFER_TOOL]

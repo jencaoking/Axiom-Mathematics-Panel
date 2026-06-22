@@ -752,9 +752,63 @@ class AIToolsPanel(QDockWidget):
                     on_error=lambda err: print(f"静默修复网络异常: {err}")
                 )
 
+    def _handle_agent_handoff(self, args_dict: dict):
+        """核心路由引擎：处理智能体之间的无缝切换"""
+        try:
+            target_agent_id = args_dict.get("target_agent")
+            notes = args_dict.get("handover_notes")
+            
+            # 获取上一个专家的身份（用于 UI 展示）
+            prev_agent = get_agent(self.current_agent_id)
+            
+            # 1. 在聊天框打印极其极客的“内部交接日志”
+            handoff_html = f"""
+            <div style='background-color: #F8F9FA; border-left: 4px solid #8E44AD; padding: 8px; margin: 10px 0;'>
+                <span style='color: #8E44AD; font-size: 12px; font-weight: bold;'>
+                    🤝 [协作协议触发] {prev_agent.name} 将任务移交给了 @{target_agent_id}
+                </span><br>
+                <i style='color: #555; font-size: 12px;'>内部工单: "{notes}"</i>
+            </div>
+            """
+            self.chat_display.append(handoff_html)
+
+            # 2. 视觉与逻辑同步：一键切换到目标专家
+            self.switch_agent(target_agent_id)
+            new_agent = get_agent(self.current_agent_id)
+            
+            # 3. 构造冰冷的“系统级指令”，强制唤醒新专家干活！
+            relay_prompt = f"""
+[系统内部工作交接单]
+前任专家给你留下了以下任务需求：
+"{notes}"
+
+请立即调动你的专业知识和专属工具执行上述任务。直接给出结果，禁止输出任何如“好的，我收到了交接单”之类的废话。
+"""
+            # 4. 静默发起内部请求（新专家开始接手跑流水线）
+            self.action_label.setText(f"🏃‍♂️ {new_agent.name} 正在接手处理...")
+            self.status_bar.setStyleSheet("background-color: #8E44AD; color: white;") # 优雅的紫色代表协作流
+            
+            if hasattr(self, 'ai_manager'):
+                self.ai_manager.ask(
+                    user_prompt=relay_prompt,
+                    system_prompt=new_agent.system_prompt,
+                    tools=new_agent.tools,
+                    on_state_change=self._on_state_change,
+                    on_tool=self.on_tool_call_received, 
+                    on_chunk=self.on_chunk_received,
+                    on_usage=self._on_usage_reported,
+                    on_finish=self.on_request_finished,
+                    on_error=self.on_request_error
+                )
+            
+        except Exception as e:
+            print(f"Agent 接力失败: {e}")
+
     def on_tool_call_received(self, tool_name, args_dict):
         main_window = self.window()
-        if tool_name == "generate_math_quiz":
+        if tool_name == "transfer_to_agent":
+            self._handle_agent_handoff(args_dict)
+        elif tool_name == "generate_math_quiz":
             quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
             self.card_layout.addWidget(quiz_card)
         elif tool_name == "execute_geometry_draw":
