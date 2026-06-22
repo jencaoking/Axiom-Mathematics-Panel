@@ -1,5 +1,7 @@
 from mathlab.core.ai_tools import AVAILABLE_TOOLS
 from mathlab.ui.quiz_panel import QuizCardWidget
+import re
+from mathlab.core.agent_registry import get_agent
 from mathlab.core.memory_manager import ChatMemoryManager
 from mathlab.core.prompt_manager import prompt_manager
 import markdown
@@ -281,7 +283,10 @@ class AIToolsPanel(QDockWidget):
         status_layout = QHBoxLayout(self.status_bar)
         status_layout.setContentsMargins(10, 0, 10, 0)
         
-        self.agent_label = QLabel("🟢 几何专家 (@geometry)")
+        self.current_agent_id = "general"
+        agent = get_agent(self.current_agent_id)
+        
+        self.agent_label = QLabel(f"{agent.icon} {agent.name} (@{agent.id})")
         self.action_label = QLabel("💤 就绪")
         self.token_label = QLabel("⚡ 0 Tokens")
         
@@ -496,6 +501,57 @@ class AIToolsPanel(QDockWidget):
     # ------------------------------------------------------------------
     # AI Assistant Chat Methods
     # ------------------------------------------------------------------
+    def switch_agent(self, agent_id: str):
+        """切换 UI 状态栏和底层上下文"""
+        agent = get_agent(agent_id)
+        self.current_agent_id = agent.id
+        self.agent_label.setText(f"{agent.icon} {agent.name} (@{agent.id})")
+
+    def _handle_slash_command(self, text: str):
+        """解析并执行 / 开头的本地指令"""
+        parts = text.split(maxsplit=1)
+        command = parts[0].lower()
+        args = parts[1] if len(parts) > 1 else ""
+
+        main_window = self.window()
+        engine = getattr(main_window, 'geometry_engine', None)
+
+        if command == "/clear":
+            if engine:
+                if hasattr(engine, 'clear'):
+                    engine.clear()
+                self.chat_display.append("<i>[系统] 画板已清空。</i><br>")
+                
+        elif command == "/draft":
+            if engine:
+                if not getattr(engine, 'is_draft_mode', False):
+                    if hasattr(engine, 'begin_draft'):
+                        engine.begin_draft()
+                    self.chat_display.append("<i>[系统] 👻 已进入画板草稿模式。</i><br>")
+                else:
+                    if hasattr(engine, 'commit_draft'):
+                        engine.commit_draft()
+                    self.chat_display.append("<i>[系统] ✅ 草稿已合并至正式画板。</i><br>")
+
+        elif command == "/quiz":
+            self.switch_agent("quiz")
+            topic = args if args else "当前画板上的几何图形"
+            self.chat_input.setText(f"请根据 {topic} 出一道测试题。")
+            self.on_send_message()
+
+        elif command == "/help":
+            help_text = """
+            <b>⚡ 快捷指令指南：</b><br>
+            <kbd>/clear</kbd> - 清空当前画板<br>
+            <kbd>/draft</kbd> - 开启/确认草稿模式<br>
+            <kbd>/quiz [知识点]</kbd> - 强制生成测验<br>
+            <kbd>@geometry</kbd> - 召唤几何专家画图<br>
+            """
+            self.chat_display.append(help_text)
+
+        else:
+            self.chat_display.append(f"<i style='color: red;'>未知指令: {command}，输入 /help 查看支持的命令。</i><br>")
+
     def on_send_message(self):
         if self.is_generating:
             main_win = self.window()
@@ -505,15 +561,38 @@ class AIToolsPanel(QDockWidget):
             self.chat_display.append("<br><i style='color: #E74C3C;'>[已停止生成]</i><br><hr>")
             return
 
-        user_text = self.chat_input.text().strip()
-        if not user_text:
+        raw_text = self.chat_input.text().strip()
+        if not raw_text:
             return
+
+        self.chat_input.clear()
+
+        # --- 1. 拦截本地快捷指令 (/) ---
+        if raw_text.startswith("/"):
+            self._handle_slash_command(raw_text)
+            return
+
+        # --- 2. 拦截专家调度指令 (@) ---
+        match = re.match(r'^@([a-zA-Z0-9_]+)\s*(.*)', raw_text)
+        if match:
+            target_agent = match.group(1).lower()
+            prompt_text = match.group(2).strip()
+            self.switch_agent(target_agent)
+            if not prompt_text:
+                return 
+            user_text = prompt_text
+        else:
+            user_text = raw_text
+
+        # --- 3. 发送给指定的专家处理 ---
+        if not hasattr(self, 'current_agent_id'):
+            self.current_agent_id = "general"
+        agent = get_agent(self.current_agent_id)
 
         user_html = f"<div style='color: #0078D7; text-align: right;'><b>{t('ai_tools.you')}:</b> {user_text}</div><br>"
         self.chat_display.append(user_html)
-        self.chat_display.append(f"<b>🤖 {t('ai_tools.assistant')}:</b> ")
+        self.chat_display.append(f"<b>{agent.icon} {agent.name}：</b> ")
 
-        self.chat_input.clear()
         self.chat_input.setEnabled(False)
         self.send_button.setText("⏹ 停止生成")
         self.send_button.setStyleSheet("background-color: #E74C3C; color: white;")
@@ -529,7 +608,7 @@ class AIToolsPanel(QDockWidget):
 
         enhanced_prompt = user_text
         
-        sys_prompt = prompt_manager.get_system("socratic_tutor")
+        sys_prompt = agent.system_prompt
         if system_context:
             import json
             sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
@@ -541,7 +620,7 @@ class AIToolsPanel(QDockWidget):
             main_win.ai_manager.ask(
                 user_prompt=enhanced_prompt,
                 system_prompt=sys_prompt,
-                tools=AVAILABLE_TOOLS,
+                tools=agent.tools,
                 canvas_state=current_canvas_state,
                 on_state_change=self._on_state_change,
                 on_chunk=self.on_chunk_received,
