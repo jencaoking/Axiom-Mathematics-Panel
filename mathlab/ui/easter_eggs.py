@@ -1,6 +1,6 @@
 import math
 import re
-from PySide6.QtCore import Qt, QTimer, QRectF
+from PySide6.QtCore import Qt, QTimer, QRectF, QVariantAnimation, QEasingCurve
 from PySide6.QtGui import QPainter, QColor, QPen
 from PySide6.QtWidgets import QWidget
 
@@ -41,23 +41,23 @@ class RainbowOverlay(QWidget):
             QColor(148, 0, 211)   # 紫
         ]
 
-        # 60fps 定时器驱动动画
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_animation)
-        self.timer.start(16)
+        # 核心替换：使用 QVariantAnimation 实现基于系统时钟的丝滑动画
+        self.anim = QVariantAnimation(self)
+        self.anim.setDuration(1500) # 1.5 秒动画周期
+        self.anim.setStartValue(0.0)
+        self.anim.setEndValue(1.2)
+        # 丝滑曲线：带有一点冲击感后极度平滑的减速展开
+        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.anim.valueChanged.connect(self._on_anim_step)
+        self.anim.finished.connect(self.deleteLater)
+        self.anim.start()
 
-    def update_animation(self):
-        # 控制动画速度
-        self.progress += 0.015 
+    def _on_anim_step(self, value: float):
+        self.progress = value
         
-        # 进度超过 0.7 时开始淡出
+        # 进度超过 0.7 时开始淡出计算：映射进度 [0.7, 1.2] 到透明度 [1.0, 0.0]
         if self.progress > 0.7:
-            self.fade_out -= 0.05
-            
-        if self.progress >= 1.2 or self.fade_out <= 0:
-            self.timer.stop()
-            self.deleteLater() # 动画结束，自动销毁组件释放内存
-            return
+            self.fade_out = max(0.0, 1.0 - (self.progress - 0.7) / 0.5)
             
         self.update() # 触发重绘
 
