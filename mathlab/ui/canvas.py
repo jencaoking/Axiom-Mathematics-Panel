@@ -231,7 +231,20 @@ class GeometryCanvas(QGraphicsView):
         self.guide_manager = SmartGuideManager(self.scene_obj)
 
         self.setRenderHint(QPainter.Antialiasing)
-        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.setDragMode(QGraphicsView.NoDrag)
+        
+        import time
+        self._is_panning = False
+        self._last_pan_pos = QPointF()
+        self._last_pan_time = 0.0
+        self._velocity_x = 0.0
+        self._velocity_y = 0.0
+        self._inertia_timer = QTimer(self)
+        self._inertia_timer.setInterval(16)
+        self._inertia_timer.timeout.connect(self._apply_inertia)
+        self._friction = 0.92
+        self._stop_threshold = 0.5
+
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         # 性能优化：禁用不必要的渲染更新
         self.setOptimizationFlag(QGraphicsView.DontAdjustForAntialiasing, True)
@@ -365,9 +378,7 @@ class GeometryCanvas(QGraphicsView):
     # ------------------------------------------------------------------
     def set_tool(self, tool):
         self.current_tool = tool
-        if tool == 'pan':
-            self.setDragMode(QGraphicsView.ScrollHandDrag)
-        elif tool == 'select':
+        if tool == 'select':
             self.setDragMode(QGraphicsView.RubberBandDrag)
         else:
             self.setDragMode(QGraphicsView.NoDrag)
@@ -376,6 +387,23 @@ class GeometryCanvas(QGraphicsView):
     # 鼠标事件
     # ------------------------------------------------------------------
     def mousePressEvent(self, event):
+        is_pan_trigger = (
+            event.button() == Qt.MiddleButton
+            or (event.button() == Qt.RightButton and self.current_tool != 'polygon')
+            or (event.button() == Qt.LeftButton and self.current_tool == 'pan')
+        )
+        if is_pan_trigger:
+            import time
+            self._is_panning = True
+            self._last_pan_pos = event.position()
+            self._last_pan_time = time.time()
+            self._inertia_timer.stop()
+            self._velocity_x = 0.0
+            self._velocity_y = 0.0
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+            return
+
         scene_pos = self.mapToScene(event.pos())
 
         if self.current_tool == 'select':
@@ -421,6 +449,28 @@ class GeometryCanvas(QGraphicsView):
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        if self._is_panning:
+            import time
+            current_pos = event.position()
+            current_time = time.time()
+            
+            delta_pos = current_pos - self._last_pan_pos
+            delta_time = current_time - self._last_pan_time
+            
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta_pos.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta_pos.y())
+            
+            if delta_time > 0:
+                instant_vx = delta_pos.x() 
+                instant_vy = delta_pos.y() 
+                self._velocity_x = self._velocity_x * 0.2 + instant_vx * 0.8
+                self._velocity_y = self._velocity_y * 0.2 + instant_vy * 0.8
+
+            self._last_pan_pos = event.position()
+            self._last_pan_time = current_time
+            event.accept()
+            return
+
         scene_pos = self.mapToScene(event.pos())
 
         if self.current_tool == 'segment' and len(self.drawing_points) == 1:
@@ -433,7 +483,34 @@ class GeometryCanvas(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if self._is_panning:
+            import time
+            self._is_panning = False
+            self.setCursor(Qt.ArrowCursor)
+            
+            if time.time() - self._last_pan_time > 0.05:
+                self._velocity_x = 0.0
+                self._velocity_y = 0.0
+            
+            if abs(self._velocity_x) > self._stop_threshold or abs(self._velocity_y) > self._stop_threshold:
+                self._inertia_timer.start()
+                
+            event.accept()
+            return
+
         super().mouseReleaseEvent(event)
+
+    def _apply_inertia(self):
+        self.horizontalScrollBar().setValue(int(self.horizontalScrollBar().value() - self._velocity_x))
+        self.verticalScrollBar().setValue(int(self.verticalScrollBar().value() - self._velocity_y))
+        
+        self._velocity_x *= self._friction
+        self._velocity_y *= self._friction
+        
+        if abs(self._velocity_x) < self._stop_threshold and abs(self._velocity_y) < self._stop_threshold:
+            self._inertia_timer.stop()
+            self._velocity_x = 0.0
+            self._velocity_y = 0.0
 
     # ------------------------------------------------------------------
     # BUG2 修复：add_point 只发射信号，不直接绘制
