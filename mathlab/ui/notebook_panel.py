@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget, QSpacerItem, QSizePolicy, QFileDialog, QMessageBox
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QScrollArea, QFrame, QTextEdit, QTextBrowser, QDockWidget, QSpacerItem, QSizePolicy, QFileDialog, QMessageBox, QComboBox
 )
 from PySide6.QtCore import Signal, Qt
 
@@ -12,8 +12,9 @@ from mathlab.ui.markdown_cell import MarkdownCellWidget
 class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
     cell_ai_explain_requested = Signal(str, str)
+    language_changed = Signal(str)
 
-    def __init__(self, cell_id, cell_type="code", content="", parent=None):
+    def __init__(self, cell_id, cell_type="code", content="", language="mathlab", parent=None):
         super().__init__(parent)
         self.cell_id = cell_id
         self.cell_type = cell_type
@@ -39,9 +40,9 @@ class VSCodeStyleCellWidget(QFrame):
             }
         """)
 
-        self.init_ui(content)
+        self.init_ui(content, language)
 
-    def init_ui(self, initial_content):
+    def init_ui(self, initial_content, initial_language):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -54,6 +55,19 @@ class VSCodeStyleCellWidget(QFrame):
         type_label.setStyleSheet("color: #cccccc;")
         toolbar_layout.addWidget(type_label)
         
+        if self.cell_type == "code":
+            self.lang_selector = QComboBox()
+            self.lang_selector.addItems(["MathLab", "Python", "C# (C Sharp)"])
+            if initial_language == "csharp":
+                self.lang_selector.setCurrentText("C# (C Sharp)")
+            elif initial_language == "python":
+                self.lang_selector.setCurrentText("Python")
+            else:
+                self.lang_selector.setCurrentText("MathLab")
+            self.lang_selector.setStyleSheet("background-color: #3c3c3c; color: white; border: none; padding: 2px;")
+            self.lang_selector.currentTextChanged.connect(self.on_language_changed)
+            toolbar_layout.addWidget(self.lang_selector)
+        
         toolbar_layout.addStretch()
         
         run_btn = QPushButton(t("notebook.run"))
@@ -62,7 +76,7 @@ class VSCodeStyleCellWidget(QFrame):
 
         # Editor
         if self.cell_type == "code":
-            self.input_editor = MonacoCodeEditor(initial_text=initial_content)
+            self.input_editor = MonacoCodeEditor(initial_text=initial_content, initial_language=initial_language)
             self.input_editor.setFixedHeight(150)
             self.input_editor.execute_requested.connect(self.on_monaco_run)
             self.input_editor.ai_explain_requested.connect(self.cell_ai_explain_requested.emit)
@@ -86,6 +100,17 @@ class VSCodeStyleCellWidget(QFrame):
         self.main_layout.addWidget(self.input_editor)
         self.main_layout.addWidget(self.sliders_container)
         self.main_layout.addWidget(self.output_browser)
+
+    def on_language_changed(self, text):
+        if "C#" in text:
+            self.input_editor.set_language("csharp")
+            self.language_changed.emit("csharp")
+        elif "Python" in text:
+            self.input_editor.set_language("python")
+            self.language_changed.emit("python")
+        else:
+            self.input_editor.set_language("mathlab")
+            self.language_changed.emit("mathlab")
 
     def on_monaco_run(self, code: str):
         self.execute_requested.emit(code)
@@ -197,7 +222,7 @@ class NotebookPanel(QWidget):
         """
         # 创建 UI
         if backend_cell.type == CellType.CODE:
-            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", backend_cell.content)
+            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", backend_cell.content, backend_cell.language)
             
             # 监听执行信号
             ui_cell.execute_requested.connect(
@@ -207,6 +232,9 @@ class NotebookPanel(QWidget):
             # 监听心跳同步，时刻更新 backend 的数据防丢失
             ui_cell.input_editor.code_synced.connect(
                 lambda code, cid=backend_cell.id: self._sync_backend_content(cid, code)
+            )
+            ui_cell.language_changed.connect(
+                lambda lang, cid=backend_cell.id: self._sync_backend_language(cid, lang)
             )
             ui_cell.cell_ai_explain_requested.connect(self.ai_explain_requested.emit)
             
@@ -226,6 +254,12 @@ class NotebookPanel(QWidget):
         for cell in self.backend.cells:
             if cell.id == cell_id:
                 cell.content = new_code
+                break
+
+    def _sync_backend_language(self, cell_id: str, new_lang: str):
+        for cell in self.backend.cells:
+            if cell.id == cell_id:
+                cell.language = new_lang
                 break
 
     def delete_cell(self, cell_id: str):

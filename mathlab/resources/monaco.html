@@ -109,7 +109,7 @@
             // 🌟 4. 初始化编辑器并应用新语言与主题 🌟
             window.editor = monaco.editor.create(document.getElementById('container'), {
                 value: '%INITIAL_CODE%',
-                language: 'mathlab',      // 使用刚才注册的专属语言
+                language: '%INITIAL_LANGUAGE%',      // 使用传入的专属语言
                 theme: 'mathlab-dark',    // 使用专属配色
                 automaticLayout: true,
                 minimap: { enabled: false },
@@ -137,6 +137,7 @@
 
         function setEditorValue(text) { if (window.editor) window.editor.setValue(text); }
         function getEditorValue() { return window.editor ? window.editor.getValue() : ""; }
+        function setEditorLanguage(langId) { if (window.editor) monaco.editor.setModelLanguage(window.editor.getModel(), langId); }
     </script>
 </body>
 </html>

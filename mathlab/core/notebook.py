@@ -16,10 +16,11 @@ class NotebookCell:
     笔记本的最小单元
     记录了输入内容、执行状态、输出结果以及独立的 ID
     """
-    def __init__(self, cell_type: CellType, content: str = ""):
+    def __init__(self, cell_type: CellType, content: str = "", language: str = "mathlab"):
         self.id = str(uuid.uuid4())[:8]  # 生成简短的唯一标识符
         self.type = cell_type
         self.content = content
+        self.language = language
         self.outputs: List[Dict[str, Any]] = []  # 存储执行结果
         self.execution_count: Optional[int] = None # 记录执行序号，如 In [1]
 
@@ -68,13 +69,14 @@ class NotebookCell:
         return {
             "id": self.id,
             "type": self.type.value,
-            "content": self.content
+            "content": self.content,
+            "language": getattr(self, "language", "mathlab")
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "NotebookCell":
         """从字典反序列化"""
-        cell = cls(CellType(data["type"]), data["content"])
+        cell = cls(CellType(data["type"]), data["content"], data.get("language", "mathlab"))
         cell.id = data.get("id", cell.id)
         return cell
 
@@ -89,9 +91,9 @@ class MathLabNotebook:
         self.kernel = OctaveBridge()  # 笔记本拥有独立的计算内核
         self._execution_counter = 0
 
-    def add_cell(self, cell_type: CellType, content: str = "", index: int = -1) -> NotebookCell:
+    def add_cell(self, cell_type: CellType, content: str = "", index: int = -1, language: str = "mathlab") -> NotebookCell:
         """在指定位置添加一个新单元格"""
-        cell = NotebookCell(cell_type, content)
+        cell = NotebookCell(cell_type, content, language)
         if index == -1:
             self.cells.append(cell)
         else:

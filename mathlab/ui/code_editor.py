@@ -104,8 +104,9 @@ class MonacoCodeEditor(QWidget):
     execute_requested = Signal(str)
     code_synced = Signal(str) # 转发给上层
 
-    def __init__(self, initial_text="", parent=None):
+    def __init__(self, initial_text="", initial_language="mathlab", parent=None):
         super().__init__(parent)
+        self.current_language = initial_language
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
@@ -134,6 +135,7 @@ class MonacoCodeEditor(QWidget):
         # 替换占位符（注意处理转义字符）
         safe_text = initial_text.replace('\\', '\\\\').replace('`', '\\`')
         html_content = html_content.replace('%INITIAL_CODE%', safe_text)
+        html_content = html_content.replace('%INITIAL_LANGUAGE%', self.current_language)
 
         # 4. 加载页面
         # 注意：必须设置 baseUrl，否则 qrc:///qtwebchannel/qwebchannel.js 可能加载失败
@@ -180,4 +182,15 @@ class MonacoCodeEditor(QWidget):
         """设置编辑器中的代码"""
         safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('\n', '\\n')
         self.browser.page().runJavaScript(f"setEditorValue(`{safe_text}`);")
+
+    def set_language(self, language: str):
+        """
+        动态切换编辑器的语法高亮语言
+        """
+        self.current_language = language
+        js_code = f"setEditorLanguage('{language}');"
+        self.browser.page().runJavaScript(js_code)
+        
+    def get_language(self) -> str:
+        return self.current_language
 
