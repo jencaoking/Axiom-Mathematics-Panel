@@ -1,4 +1,4 @@
-from mathlab.core.ai_tools import GEOMETRY_DRAW_TOOL, VISUAL_HIGHLIGHT_TOOL, QUIZ_GENERATOR_SCHEMA, AGENT_TRANSFER_TOOL
+from mathlab.core.ai_tools import GEOMETRY_DRAW_TOOL, VISUAL_HIGHLIGHT_TOOL, QUIZ_GENERATOR_SCHEMA, AGENT_TRANSFER_TOOL, SUBMIT_TEACHING_PLAN_TOOL
 
 class AgentProfile:
     def __init__(self, id, name, icon, system_prompt, specific_tools):
@@ -31,6 +31,13 @@ AGENTS = {
         icon="📝",
         system_prompt="你是严厉的出题考官。如果你的题目需要配一张几何图，请先构思好题目，然后 transfer_to_agent 把画图需求交给几何专家。",
         specific_tools=[QUIZ_GENERATOR_SCHEMA] 
+    ),
+    "planner": AgentProfile(
+        id="planner",
+        name="教研组长",
+        icon="🧠",
+        system_prompt="你是 MathLab 的教研组长。你的唯一职责是制定教学规划。你必须且只能调用 `submit_teaching_plan` 工具提交大纲。绝对禁止输出任何普通的文本聊天内容！",
+        specific_tools=[SUBMIT_TEACHING_PLAN_TOOL]
     )
 }
 

@@ -134,3 +134,31 @@ AGENT_TRANSFER_TOOL = {
 }
 
 AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA, VISUAL_HIGHLIGHT_TOOL, AGENT_TRANSFER_TOOL]
+
+SUBMIT_TEACHING_PLAN_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "submit_teaching_plan",
+        "description": "【教研组长专用】分析用户的数学问题与画布状态，将其拆解为3-5个由浅入深、循序渐进的教学大纲步骤。禁止直接给出最终答案。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "topic": {"type": "string", "description": "本次课题的总主题，如'探索圆锥曲线的切线性质'"},
+                "steps": {
+                    "type": "array",
+                    "description": "大纲步骤列表",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "num": {"type": "integer", "description": "步骤序号 (1, 2, 3...)"},
+                            "title": {"type": "string", "description": "本步骤的核心探讨点（如：观察直角边、添加直径辅助线、应用相似三角形定理）"},
+                            "hint_for_teacher": {"type": "string", "description": "给授课老师的后台提示，指导该步骤如何教学"}
+                        },
+                        "required": ["num", "title", "hint_for_teacher"]
+                    }
+                }
+            },
+            "required": ["topic", "steps"]
+        }
+    }
+}

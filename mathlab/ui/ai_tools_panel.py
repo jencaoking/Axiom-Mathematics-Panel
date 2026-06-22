@@ -220,6 +220,56 @@ class AIToolsPanel(QDockWidget):
         self.assistant_tab = QWidget()
         self.assistant_layout = QVBoxLayout(self.assistant_tab)
 
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItem('Local Demo', AIProvider.LOCAL.value)
+        self.provider_combo.addItem('OpenAI', AIProvider.OPENAI.value)
+        self.provider_combo.addItem('Claude', AIProvider.CLAUDE.value)
+        self.provider_combo.addItem('Gemini', AIProvider.GEMINI.value)
+        self.provider_combo.addItem('DeepSeek', AIProvider.DEEPSEEK.value)
+        self.provider_combo.addItem('Kimi', AIProvider.KIMI.value)
+        self.provider_combo.addItem('Minimax', AIProvider.MINIMAX.value)
+        self.provider_combo.addItem('Qwen (通义千问)', AIProvider.QWEN.value)
+        self.provider_combo.addItem('Zhipu (智谱清言)', AIProvider.ZHIPU.value)
+        self.provider_combo.addItem('Doubao (豆包)', AIProvider.DOUBAO.value)
+        self.provider_combo.addItem('Ollama', AIProvider.OLLAMA.value)
+
+        provider_layout = QHBoxLayout()
+        provider_layout.addWidget(QLabel(t('ai_tools.provider')))
+        provider_layout.addWidget(self.provider_combo)
+        provider_layout.addStretch()
+        self.assistant_layout.addLayout(provider_layout)
+
+        # ✨ 新增：教学计划状态池
+        self.active_plan_steps = []
+        self.current_step_index = 0
+        
+        # 1. 核心：引入双 Tab 控制台
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("QTabWidget::pane { border: none; }")
+        
+        # --- 标签页一：教学规划 (Plan) ---
+        self.plan_tab = QWidget()
+        plan_layout = QVBoxLayout(self.plan_tab)
+        
+        self.plan_title_label = QLabel("📋 暂无正在进行的教学规划")
+        self.plan_title_label.setStyleSheet("font-weight: bold; color: #333; font-size: 13px; padding: 5px;")
+        
+        self.plan_list_view = QListWidget() # 用于直观展示步骤列表
+        self.plan_list_view.setStyleSheet("QListWidget { border: 1px solid #ddd; border-radius: 4px; background: #FAFafa; }")
+        
+        self.start_teach_btn = QPushButton("🚀 开始分步互动讲解")
+        self.start_teach_btn.setEnabled(False)
+        self.start_teach_btn.setStyleSheet("background-color: #27AE60; color: white; padding: 8px; font-weight: bold; border-radius: 4px;")
+        self.start_teach_btn.clicked.connect(self._start_execution_teaching)
+        
+        plan_layout.addWidget(self.plan_title_label)
+        plan_layout.addWidget(self.plan_list_view)
+        plan_layout.addWidget(self.start_teach_btn)
+        
+        # --- 标签页二：课堂讲解 (Teach/Do) ---
+        self.teach_tab = QWidget()
+        teach_layout = QVBoxLayout(self.teach_tab)
+        
         self.chat_display = QTextBrowser()
         self.chat_display.setReadOnly(True)
         self.chat_display.setOpenExternalLinks(True)
@@ -235,7 +285,19 @@ class AIToolsPanel(QDockWidget):
         """)
 
         self.card_layout = QVBoxLayout()
-        self.assistant_layout.addLayout(self.card_layout)
+        teach_layout.addLayout(self.card_layout)
+
+        # 教学控制条：上一步、下一步
+        self.step_control_bar = QHBoxLayout()
+        self.current_step_banner = QLabel("🚶‍♂️ 准备就绪")
+        self.current_step_banner.setStyleSheet("color: #007ACC; font-weight: bold;")
+        self.next_step_btn = QPushButton("⏭️ 下一步提示")
+        self.next_step_btn.setVisible(False)
+        self.next_step_btn.clicked.connect(self._trigger_next_step_lecture)
+        
+        self.step_control_bar.addWidget(self.current_step_banner)
+        self.step_control_bar.addStretch()
+        self.step_control_bar.addWidget(self.next_step_btn)
 
         self.chat_input = QLineEdit()
         self.chat_input.setPlaceholderText(t('ai_tools.ask_question'))
@@ -243,32 +305,20 @@ class AIToolsPanel(QDockWidget):
 
         self.send_button = QPushButton(t('ai_tools.send'))
         self.send_button.clicked.connect(self.on_send_message)
-
-        self.provider_combo = QComboBox()
-        self.provider_combo.addItem('Local Demo', AIProvider.LOCAL.value)
-        self.provider_combo.addItem('OpenAI', AIProvider.OPENAI.value)
-        self.provider_combo.addItem('Claude', AIProvider.CLAUDE.value)
-        self.provider_combo.addItem('Gemini', AIProvider.GEMINI.value)
-        self.provider_combo.addItem('DeepSeek', AIProvider.DEEPSEEK.value)
-        self.provider_combo.addItem('Kimi', AIProvider.KIMI.value)
-        self.provider_combo.addItem('Minimax', AIProvider.MINIMAX.value)
-        self.provider_combo.addItem('Qwen (通义千问)', AIProvider.QWEN.value)
-        self.provider_combo.addItem('Zhipu (智谱清言)', AIProvider.ZHIPU.value)
-        self.provider_combo.addItem('Doubao (豆包)', AIProvider.DOUBAO.value)
-        self.provider_combo.addItem('Ollama', AIProvider.OLLAMA.value)
-
+        
         input_layout = QHBoxLayout()
         input_layout.addWidget(self.chat_input)
         input_layout.addWidget(self.send_button)
 
-        provider_layout = QHBoxLayout()
-        provider_layout.addWidget(QLabel(t('ai_tools.provider')))
-        provider_layout.addWidget(self.provider_combo)
-        provider_layout.addStretch()
-
-        self.assistant_layout.addLayout(provider_layout)
-        self.assistant_layout.addWidget(self.chat_display)
-        self.assistant_layout.addLayout(input_layout)
+        teach_layout.addWidget(self.chat_display)
+        teach_layout.addLayout(self.step_control_bar)
+        teach_layout.addLayout(input_layout)
+        
+        # 将两个 Tab 塞入主面板
+        self.tabs.addTab(self.plan_tab, "📋 教学规划")
+        self.tabs.addTab(self.teach_tab, "💬 课堂讲解")
+        
+        self.assistant_layout.addWidget(self.tabs)
 
         # --- ✨ 核心新增：全局状态可视化栏 ---
         self.status_bar = QFrame()
@@ -806,7 +856,27 @@ class AIToolsPanel(QDockWidget):
 
     def on_tool_call_received(self, tool_name, args_dict):
         main_window = self.window()
-        if tool_name == "transfer_to_agent":
+        if tool_name == "submit_teaching_plan":
+            try:
+                self.active_plan_steps = args_dict.get("steps", [])
+                topic = args_dict.get("topic", "新课题")
+                
+                # 刷新 UI 大纲列表
+                self.plan_title_label.setText(f"🎯 课题大纲: {topic}")
+                self.plan_list_view.clear()
+                
+                for step in self.active_plan_steps:
+                    item_text = f"第 {step['num']} 步: {step['title']}"
+                    item = QListWidgetItem(item_text)
+                    self.plan_list_view.addItem(item)
+                
+                # 激活解锁按钮，强制弹回 Plan Tab 让用户审查
+                self.start_teach_btn.setEnabled(True)
+                self.tabs.setCurrentWidget(self.plan_tab)
+                
+            except Exception as e:
+                print(f"解析大纲 JSON 失败: {e}")
+        elif tool_name == "transfer_to_agent":
             self._handle_agent_handoff(args_dict)
         elif tool_name == "generate_math_quiz":
             quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
