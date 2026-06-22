@@ -1,3 +1,4 @@
+from mathlab.ui.quiz_panel import QuizCardWidget
 from mathlab.core.memory_manager import ChatMemoryManager
 from mathlab.core.prompt_manager import prompt_manager
 import markdown
@@ -227,6 +228,9 @@ class AIToolsPanel(QDockWidget):
                 border-radius: 4px;
             }
         """)
+
+        self.card_layout = QVBoxLayout()
+        self.assistant_layout.addLayout(self.card_layout)
 
         self.chat_input = QLineEdit()
         self.chat_input.setPlaceholderText(t('ai_tools.ask_question'))
@@ -586,11 +590,15 @@ class AIToolsPanel(QDockWidget):
         scrollbar = self.chat_display.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    def on_tool_call_received(self, args_dict):
+    def on_tool_call_received(self, tool_name, args_dict):
         main_window = self.window()
-        if hasattr(main_window, 'geometry_engine'):
-            self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
-            self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
+        if tool_name == "generate_math_quiz":
+            quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
+            self.card_layout.addWidget(quiz_card)
+        elif tool_name == "execute_geometry_draw":
+            if hasattr(main_window, 'geometry_engine'):
+                self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
+                self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
 
     def _execute_geometry_commands(self, engine, commands: list):
         for cmd in commands:

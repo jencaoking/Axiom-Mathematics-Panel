@@ -33,6 +33,8 @@ except ImportError:
 from mathlab.utils.logger import get_logger
 logger = get_logger(__name__)
 
+QUIZ_GENERATOR_SCHEMA = {'type': 'function', 'function': {'name': 'generate_math_quiz', 'description': '根据当前的知识点或用户的画布状态，生成一道针对性的数学测试题。', 'parameters': {'type': 'object', 'properties': {'knowledge_point': {'type': 'string', 'description': "本题考查的核心知识点，如 '勾股定理' 或 '导数极值'"}, 'question_text': {'type': 'string', 'description': '题目正文，支持 LaTeX 公式（用 $$ 包裹）'}, 'question_type': {'type': 'string', 'enum': ['multiple_choice', 'fill_in_blank'], 'description': '题目类型：选择题 或 填空题'}, 'options': {'type': 'array', 'items': {'type': 'string'}, 'description': '如果是选择题，提供4个选项数组；如果是填空题，此项传空数组'}, 'correct_answer': {'type': 'string', 'description': "标准答案（如 'A' 或具体的计算数值）"}, 'explanation': {'type': 'string', 'description': '详细的解题思路和步骤'}}, 'required': ['knowledge_point', 'question_text', 'question_type', 'correct_answer', 'explanation']}}}
+
 DRAW_TOOL_SCHEMA = {'type': 'function', 'function': {'name': 'execute_geometry_draw', 'description': '当用户要求画图时，调用此函数在画布上绘制几何图形。', 'parameters': {'type': 'object', 'properties': {'commands': {'type': 'array', 'description': '绘图指令数组', 'items': {'type': 'object', 'properties': {'cmd': {'type': 'string', 'enum': ['add_point', 'add_circle', 'add_polygon', 'add_segment']}, 'x': {'type': 'number'}, 'y': {'type': 'number'}, 'name': {'type': 'string'}, 'radius': {'type': 'number'}, 'points': {'type': 'array', 'items': {'type': 'string'}}, 'center': {'type': 'string'}, 'p1': {'type': 'string'}, 'p2': {'type': 'string'}}, 'required': ['cmd']}}}, 'required': ['commands']}}}
 
 class AIStreamWorker(QThread):
@@ -42,13 +44,14 @@ class AIStreamWorker(QThread):
     chunk_received = Signal(str)
     finished_signal = Signal()
     error_occurred = Signal(str)
-    tool_call_received = Signal(dict)
+    tool_call_received = Signal(str, dict)
 
-    def __init__(self, client: OpenAI, model: str, system_prompt: str, user_prompt: str, history: list = None):
+    def __init__(self, client: OpenAI, model: str, system_prompt: str, user_prompt: str, history: list = None, tools: list = None):
         super().__init__()
         self.client = client
         self.model = model
         self.messages = history if history else []
+        self.tools = tools if tools is not None else []
         
         # 兼容旧代码未用 PromptManager 的情况
         if system_prompt and not any(m.get("role") == "system" for m in self.messages):
@@ -67,13 +70,16 @@ class AIStreamWorker(QThread):
 
     def run(self):
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.messages,
-                tools=[DRAW_TOOL_SCHEMA],
-                stream=True,
-                temperature=0.7
-            )
+            kwargs = {
+                "model": self.model,
+                "messages": self.messages,
+                "stream": True,
+                "temperature": 0.7
+            }
+            if self.tools:
+                kwargs["tools"] = self.tools
+                
+            response = self.client.chat.completions.create(**kwargs)
             
             tool_calls_buffer = {}
             for chunk in response:
@@ -95,12 +101,11 @@ class AIStreamWorker(QThread):
                         self.chunk_received.emit(delta.content)
                     
             for idx, tc in tool_calls_buffer.items():
-                if tc["name"] == "execute_geometry_draw":
-                    try:
-                        args = json.loads(tc["arguments"])
-                        self.tool_call_received.emit(args)
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Tool call JSON 解析失败: {e}")
+                try:
+                    args = json.loads(tc["arguments"])
+                    self.tool_call_received.emit(tc["name"], args)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Tool call JSON 解析失败: {e}")
                         
             self.finished_signal.emit()
             
@@ -417,7 +422,8 @@ class AIManager:
             self.current_worker.stop()
             self.current_worker.wait()
 
-        self.current_worker = AIStreamWorker(self.client, self.current_model, system_prompt, user_prompt, history)
+        tools = kwargs.get('tools', [DRAW_TOOL_SCHEMA, QUIZ_GENERATOR_SCHEMA])
+        self.current_worker = AIStreamWorker(self.client, self.current_model, system_prompt, user_prompt, history, tools=tools)
         
         # 绑定回调信号
         if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
