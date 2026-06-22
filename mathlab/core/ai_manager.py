@@ -54,11 +54,12 @@ class AIStreamWorker(QThread):
         self.model = model
         self.messages = messages
         self.tools = tools
-        self._is_cancelled = False
+        import threading
+        self._cancel_event = threading.Event()
 
     def cancel(self):
         """触发优雅中断"""
-        self._is_cancelled = True
+        self._cancel_event.set()
         
     def stop(self):
         self.cancel()
@@ -84,10 +85,12 @@ class AIStreamWorker(QThread):
 
             for chunk in response:
                 # 检查中断标志
-                if self._is_cancelled:
+                if self._cancel_event.is_set():
                     self.cancelled.emit()
                     return
 
+                if not chunk.choices:
+                    continue
                 delta = chunk.choices[0].delta
 
                 # 1. 处理普通文本流
@@ -100,15 +103,20 @@ class AIStreamWorker(QThread):
                     for tc in delta.tool_calls:
                         idx = tc.index
                         if idx not in tool_calls_buffer:
-                            tool_calls_buffer[idx] = {"name": tc.function.name if tc.function.name else "execute_geometry_draw", "arguments": ""}
-                        if tc.function.arguments:
+                            name = (tc.function.name or "") if tc.function else ""
+                            tool_calls_buffer[idx] = {"name": name, "arguments": ""}
+                        elif tc.function and tc.function.name:
+                            tool_calls_buffer[idx]["name"] = tc.function.name
+                            
+                        if tc.function and tc.function.arguments:
                             tool_calls_buffer[idx]["arguments"] += tc.function.arguments
 
             # 请求结束后，如果有工具调用，则抛出给主线程执行
             if tool_calls_buffer:
                 for tc in tool_calls_buffer.values():
                     # 确保 JSON 参数拼接完整后，抛出信号
-                    self.tool_call_received.emit(tc["name"], tc["arguments"])
+                    args = tc["arguments"].strip() or "{}"
+                    self.tool_call_received.emit(tc["name"], args)
             
             # 正常结束抛出完整文本
             self.finished.emit(full_text)
@@ -332,8 +340,7 @@ class AIRequestWorker(QThread):
                             decoded = decoded[6:]
                         if decoded.strip() == '[DONE]':
                             break
-                        # ── 隐患二修复：剥离 LLM 输出中可能包裹的 Markdown 标记 ──
-                        decoded = _strip_markdown_json(decoded)
+                        # ── 隐患二修复：已移除错误的 _strip_markdown_json 调用 ──
                         data = json.loads(decoded)
                         
                         content = ""
@@ -388,6 +395,8 @@ class AIManager:
         self.sandbox = None
         self.client = None
         self.current_worker = None
+        from mathlab.core.memory_manager import ChatMemoryManager
+        self.memory = ChatMemoryManager()
         self.reload_config()
 
     def reload_config(self):
@@ -436,11 +445,18 @@ class AIManager:
             self.current_worker.wait()
 
         tools = kwargs.get('tools', [DRAW_TOOL_SCHEMA, QUIZ_GENERATOR_SCHEMA])
-        self.current_worker = AIStreamWorker(self.client, self.current_model, system_prompt, user_prompt, history, tools=tools)
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user_prompt})
+        
+        self.current_worker = AIStreamWorker(self.client, self.current_model, messages, tools=tools)
         
         # 绑定回调信号
         if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
-        if on_finish: self.current_worker.finished_signal.connect(on_finish)
+        if on_finish: self.current_worker.finished.connect(on_finish)
         if on_error: self.current_worker.error_occurred.connect(on_error)
         if kwargs.get('on_tool_call'): self.current_worker.tool_call_received.connect(kwargs['on_tool_call'])
         
@@ -702,7 +718,7 @@ class AIManager:
         self.current_model = self.settings_manager.get("ai_model", "deepseek-chat") if getattr(self, 'settings_manager', None) else "deepseek-chat"
         
         if not api_key:
-            api_key = "sk-ebf424419cb746bb9071077e682d3345" # DeepSeek test key placeholder
+            api_key = os.environ.get("DEEPSEEK_API_KEY", "")
             
         if api_key:
             self.client = OpenAI(api_key=api_key, base_url=base_url)
@@ -720,10 +736,6 @@ class AIManager:
             return
 
         # 压入用户问题到记忆
-        if not hasattr(self, 'memory'):
-            from mathlab.core.memory_manager import ChatMemoryManager
-            self.memory = ChatMemoryManager()
-            
         self.memory.add_message("user", user_prompt)
         
         # 准备发送给模型的上下文
@@ -757,8 +769,17 @@ class AIManager:
     def abort_current_task(self):
         """优雅中断当前的流式生成"""
         if getattr(self, 'current_worker', None) and self.current_worker.isRunning():
+            try:
+                self.current_worker.chunk_received.disconnect()
+                self.current_worker.finished.disconnect()
+                self.current_worker.error_occurred.disconnect()
+                self.current_worker.tool_call_received.disconnect()
+                self.current_worker.cancelled.disconnect()
+            except TypeError:
+                pass
             self.current_worker.cancel()
-            self.current_worker.wait() # 等待线程安全退出
+            if not self.current_worker.wait(3000): # 等待线程安全退出
+                self.current_worker.terminate()
             self.current_worker = None
 
 
