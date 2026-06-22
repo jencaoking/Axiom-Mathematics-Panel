@@ -55,10 +55,34 @@ QUIZ_GENERATOR_TOOL = {
     }
 }
 
+# 3. 空间发言工具：在画板特定元素旁显示讲解气泡
+SPATIAL_SPEAK_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "speak_at_location",
+        "description": "空间发言：当你讲解某个具体的几何元素时，调用此工具将你的讲解文字以气泡的形式贴在该元素旁边。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target_element": {
+                    "type": "string", 
+                    "description": "画板上的目标元素名称（例如 'A', 'BC', 'Circle_O'）"
+                },
+                "text": {
+                    "type": "string",
+                    "description": "要显示在气泡里的简短讲解文字（建议控制在 50 字以内）"
+                }
+            },
+            "required": ["target_element", "text"]
+        }
+    }
+}
+
 # 导出工具集字典，方便按需加载
 TOOLS_REGISTRY = {
     "draw": GEOMETRY_DRAW_TOOL,
-    "quiz": QUIZ_GENERATOR_TOOL
+    "quiz": QUIZ_GENERATOR_TOOL,
+    "speak": SPATIAL_SPEAK_TOOL
 }
 
 # 获取完整工具列表的快捷方法

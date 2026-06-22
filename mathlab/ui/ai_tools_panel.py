@@ -832,6 +832,24 @@ class AIToolsPanel(QDockWidget):
             self.card_layout.addWidget(quiz_card)
         elif tool_name == "execute_geometry_draw":
             self._execute_with_reflection(tool_name, args_dict, retry_count=0)
+        elif tool_name == "speak_at_location":
+            try:
+                target_name = args_dict.get("target_element")
+                text = args_dict.get("text")
+                if hasattr(main_window, 'geometry_engine') and hasattr(main_window, 'central_widget'):
+                    engine = main_window.geometry_engine
+                    canvas = main_window.central_widget
+                    target_obj = None
+                    for obj in engine.objects.values():
+                        if getattr(obj, 'name', '') == target_name:
+                            target_obj = obj
+                            break
+                    if target_obj and hasattr(canvas, 'spawn_spatial_bubble'):
+                        canvas.spawn_spatial_bubble(target_obj.id, text)
+                        magic_html = f"<div style='color: #8E44AD; margin-left: 10px;'><i>📍 已在 {target_name} 旁生成讲解气泡</i></div><br>"
+                        self.chat_display.append(magic_html)
+            except Exception as e:
+                print(f"生成空间气泡失败: {e}")
         elif tool_name == "highlight_geometry_elements":
             try:
                 element_names = args_dict.get("element_names", [])

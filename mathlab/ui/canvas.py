@@ -288,6 +288,31 @@ class GeometryCanvas(QGraphicsView):
         self.latex_render_timer.timeout.connect(self._flush_latex_rendering)
         self.pending_latex_updates = {}  # {obj_id: latex_str}
         self._is_dragging = False  # 全局拖拽状态标记
+        self.active_bubbles = []   # 活跃的空间气泡
+
+    def spawn_spatial_bubble(self, obj_id: str, text: str):
+        """在目标元素旁生成讲解气泡"""
+        if obj_id not in self.object_map:
+            print(f"找不到目标图形 ID {obj_id}，无法生成气泡")
+            return
+            
+        target_item = self.object_map[obj_id].get('item')
+        if not target_item:
+            return
+            
+        from mathlab.ui.floating_bubble import FloatingBubbleProxy
+        
+        # 生成并挂载气泡
+        bubble = FloatingBubbleProxy(target_item, text, self.scene_obj)
+        self.active_bubbles.append(bubble)
+
+    def clear_active_bubbles(self):
+        """清除所有悬浮气泡"""
+        if hasattr(self, 'active_bubbles'):
+            for bubble in self.active_bubbles:
+                if bubble.scene() == self.scene_obj:
+                    self.scene_obj.removeItem(bubble)
+            self.active_bubbles.clear()
 
     # ------------------------------------------------------------------
     # 网格绘制（重写 drawBackground，只绘制可见区域，无独立 Item 开销）
@@ -405,6 +430,9 @@ class GeometryCanvas(QGraphicsView):
             return
 
         scene_pos = self.mapToScene(event.pos())
+
+        # 清除任何活动的空间气泡
+        self.clear_active_bubbles()
 
         if self.current_tool == 'select':
             super().mousePressEvent(event)
