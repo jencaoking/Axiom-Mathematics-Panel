@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QListWidget, QListWidgetItem
 )
 from mathlab.ui.latex_chat_widget import LatexChatWidget
+from mathlab.ui.animated_widgets import SmoothCollapsibleBox, BreathingLabel
 
 try:
     from .code_editor import AutocompleteTextEdit
@@ -245,37 +246,30 @@ class AIToolsPanel(QDockWidget):
         self.active_plan_steps = []
         self.current_step_index = 0
         
-        # 1. 核心：引入双 Tab 控制台
-        self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("QTabWidget::pane { border: none; }")
-        
-        # --- 标签页一：教学规划 (Plan) ---
-        self.plan_tab = QWidget()
-        plan_layout = QVBoxLayout(self.plan_tab)
-        
-        self.plan_title_label = QLabel("📋 暂无正在进行的教学规划")
-        self.plan_title_label.setStyleSheet("font-weight: bold; color: #333; font-size: 13px; padding: 5px;")
-        
-        self.plan_list_view = QListWidget() # 用于直观展示步骤列表
-        self.plan_list_view.setStyleSheet("QListWidget { border: 1px solid #ddd; border-radius: 4px; background: #FAFafa; }")
+        # 1. 顶部：可平滑折叠的教学规划区
+        self.plan_box = SmoothCollapsibleBox("📋 教学大纲 (点击折叠/展开)")
+        plan_inner_layout = QVBoxLayout()
+        self.plan_list_view = QListWidget()
+        self.plan_list_view.setFixedHeight(120) # 限制最高高度
+        self.plan_list_view.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 4px;")
         
         self.start_teach_btn = QPushButton("🚀 开始分步互动讲解")
         self.start_teach_btn.setEnabled(False)
-        self.start_teach_btn.setStyleSheet("background-color: #27AE60; color: white; padding: 8px; font-weight: bold; border-radius: 4px;")
+        self.start_teach_btn.setStyleSheet("background-color: #27AE60; color: white; padding: 6px; border-radius: 4px;")
         self.start_teach_btn.clicked.connect(self._start_execution_teaching)
         
-        plan_layout.addWidget(self.plan_title_label)
-        plan_layout.addWidget(self.plan_list_view)
-        plan_layout.addWidget(self.start_teach_btn)
+        plan_inner_layout.addWidget(self.plan_list_view)
+        plan_inner_layout.addWidget(self.start_teach_btn)
+        self.plan_box.set_content_layout(plan_inner_layout)
         
-        # --- 标签页二：课堂讲解 (Teach/Do) ---
-        self.teach_tab = QWidget()
-        teach_layout = QVBoxLayout(self.teach_tab)
-        
-        self.chat_display = LatexChatWidget()
+        # 初始状态下静默折叠隐藏
+        self.plan_box.collapse_silently()
+        self.plan_box.setVisible(False) 
 
+        # 2. 中部：富文本渲染的聊天历史 (我们在上一节刚换上的 WebEngine)
+        self.chat_display = LatexChatWidget()
+        
         self.card_layout = QVBoxLayout()
-        teach_layout.addLayout(self.card_layout)
 
         # 教学控制条：上一步、下一步
         self.step_control_bar = QHBoxLayout()
@@ -289,7 +283,10 @@ class AIToolsPanel(QDockWidget):
         self.step_control_bar.addStretch()
         self.step_control_bar.addWidget(self.next_step_btn)
 
+        # 3. 底部：输入区
         self.chat_input = QLineEdit()
+        self.chat_input.setFixedHeight(40)
+        self.chat_input.setStyleSheet("border: 1px solid #CCC; border-radius: 6px; padding: 4px;")
         self.chat_input.setPlaceholderText(t('ai_tools.ask_question'))
         self.chat_input.returnPressed.connect(self.on_send_message)
 
@@ -299,37 +296,19 @@ class AIToolsPanel(QDockWidget):
         input_layout = QHBoxLayout()
         input_layout.addWidget(self.chat_input)
         input_layout.addWidget(self.send_button)
-
-        teach_layout.addWidget(self.chat_display)
-        teach_layout.addLayout(self.step_control_bar)
-        teach_layout.addLayout(input_layout)
         
-        # 将两个 Tab 塞入主面板
-        self.tabs.addTab(self.plan_tab, "📋 教学规划")
-        self.tabs.addTab(self.teach_tab, "💬 课堂讲解")
-        
-        self.assistant_layout.addWidget(self.tabs)
-
-        # --- ✨ 核心新增：全局状态可视化栏 ---
-        self.status_bar = QFrame()
-        self.status_bar.setStyleSheet("""
-            QFrame {
-                background-color: #007ACC;
-                color: white;
-                border-top: 1px solid #005A9E;
-            }
-            QLabel { font-size: 11px; font-family: Consolas, monospace; padding: 2px; }
-        """)
-        self.status_bar.setFixedHeight(24)
-        
+        # 4. 最底部：带呼吸特效的状态栏
+        self.status_bar = QWidget()
         status_layout = QHBoxLayout(self.status_bar)
-        status_layout.setContentsMargins(10, 0, 10, 0)
+        status_layout.setContentsMargins(0, 0, 0, 0)
         
         self.current_agent_id = "general"
         agent = get_agent(self.current_agent_id)
         
         self.agent_label = QLabel(f"{agent.icon} {agent.name} (@{agent.id})")
-        self.action_label = QLabel("💤 就绪")
+        # ✨ 换上我们带有呼吸律动特性的 Label
+        self.action_label = BreathingLabel("💤 就绪")
+        self.action_label.setStyleSheet("font-weight: bold; color: #555;")
         self.token_label = QLabel("⚡ 0 Tokens")
         
         status_layout.addWidget(self.agent_label)
@@ -338,6 +317,12 @@ class AIToolsPanel(QDockWidget):
         status_layout.addStretch()
         status_layout.addWidget(self.token_label)
         
+        # 垂直组装所有部件
+        self.assistant_layout.addWidget(self.plan_box)
+        self.assistant_layout.addWidget(self.chat_display)
+        self.assistant_layout.addLayout(self.card_layout)
+        self.assistant_layout.addLayout(self.step_control_bar)
+        self.assistant_layout.addLayout(input_layout)
         self.assistant_layout.addWidget(self.status_bar)
 
         self.tab_widget.addTab(self.assistant_tab, t('ai_tools.ai_assistant'))
@@ -719,7 +704,6 @@ class AIToolsPanel(QDockWidget):
         if retry_count >= MAX_RETRIES:
             self.chat_display.add_message("ai", "🚨 **AI 尝试了 3 次修正均告失败，已自动中止操作。**")
             self.action_label.setText("❌ 执行中止")
-            self.status_bar.setStyleSheet("background-color: #E74C3C; color: white;")
             return
 
         try:
@@ -742,15 +726,13 @@ class AIToolsPanel(QDockWidget):
                 
                 self._render_draft_review_card() # 弹出采纳/撤销卡片
                 self.action_label.setText("✅ 画图完成")
-                self.status_bar.setStyleSheet("background-color: #27AE60; color: white;")
                 
                 self.chat_display.add_message("ai", "✨ *AI 助教正在您的画板上绘制...*")
 
         except Exception as e:
             error_msg = str(e)
             
-            self.action_label.setText(f"🛠️ 发现逻辑错误，AI 正在进行自我修复 ({retry_count+1}/{MAX_RETRIES})...")
-            self.status_bar.setStyleSheet("background-color: #E67E22; color: white;") 
+            self.action_label.setText(f"🛠️ 正在修复 ({retry_count+1}/{MAX_RETRIES})...")
             
             import json
             reflection_prompt = f"""
@@ -800,8 +782,7 @@ class AIToolsPanel(QDockWidget):
 请立即调动你的专业知识和专属工具执行上述任务。直接给出结果，禁止输出任何如“好的，我收到了交接单”之类的废话。
 """
             # 4. 静默发起内部请求（新专家开始接手跑流水线）
-            self.action_label.setText(f"🏃‍♂️ {new_agent.name} 正在接手处理...")
-            self.status_bar.setStyleSheet("background-color: #8E44AD; color: white;") # 优雅的紫色代表协作流
+            self.action_label.setText(f"🏃‍♂️ {new_agent.name} 接手处理...")
             
             main_window = self.window()
             if hasattr(main_window, 'ai_manager'):
@@ -828,7 +809,7 @@ class AIToolsPanel(QDockWidget):
                 topic = args_dict.get("topic", "新课题")
                 
                 # 刷新 UI 大纲列表
-                self.plan_title_label.setText(f"🎯 课题大纲: {topic}")
+                self.plan_box.toggle_btn.setText(f"📋 教学大纲: {topic} (点击折叠/展开)")
                 self.plan_list_view.clear()
                 
                 for step in self.active_plan_steps:
@@ -838,7 +819,9 @@ class AIToolsPanel(QDockWidget):
                 
                 # 激活解锁按钮，强制弹回 Plan Tab 让用户审查
                 self.start_teach_btn.setEnabled(True)
-                self.tabs.setCurrentWidget(self.plan_tab)
+                self.plan_box.setVisible(True)
+                # 💡 触发平滑展开动画
+                self.plan_box.expand_silently()
                 
             except Exception as e:
                 print(f"解析大纲 JSON 失败: {e}")
@@ -933,30 +916,65 @@ class AIToolsPanel(QDockWidget):
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
 
-    def _on_state_change(self, state):
-        if state == AIState.THINKING:
-            self.send_button.setText("🤔 AI 正在思考...")
+    def _on_state_change(self, state: AIState):
+        """让 UI 随 AI 状态实时呼吸"""
+        if state in (AIState.IDLE, AIState.FINISHED):
+            self.send_button.setText(t('ai_tools.send'))
+            self.send_button.setEnabled(True)
+            self.action_label.stop_breathing()
+            self.action_label.setText("💤 就绪")
+            self.action_label.setStyleSheet("color: #555;")
+            
+        elif state == AIState.THINKING:
+            self.send_button.setText("🤔 思考中...")
             self.send_button.setEnabled(False)
-            self.action_label.setText("🤔 正在思考数学逻辑...")
-            self.status_bar.setStyleSheet("background-color: #D68A00; color: white;")
+            self.action_label.setText("🤔 正在进行数学推理...")
+            self.action_label.setStyleSheet("color: #E67E22;") # 橙色
+            # 💡 触发呼吸灯律动特效！
+            self.action_label.start_breathing()
+            
         elif state == AIState.GENERATING:
-            self.send_button.setText("✍️ 正在打字...")
-            self.action_label.setText("✍️ 正在生成讲解...")
-            self.status_bar.setStyleSheet("background-color: #007ACC; color: white;")
+            self.send_button.setText("✍️ 生成中...")
+            self.send_button.setEnabled(False)
+            # 停止呼吸，保持高亮常亮
+            self.action_label.stop_breathing()
+            self.action_label.setText("✍️ 正在生成排版...")
+            self.action_label.setStyleSheet("color: #007ACC;") # 蓝色
+            
         elif state == AIState.EXECUTING_TOOL:
-            self.send_button.setText("⚙️ 正在呼叫魔法画笔...")
-            self.action_label.setText("⚙️ 正在调用魔法画笔...")
-            self.status_bar.setStyleSheet("background-color: #27AE60; color: white;")
+            self.send_button.setText("⚙️ 执行中...")
+            self.send_button.setEnabled(False)
+            self.action_label.stop_breathing()
+            self.action_label.setText("⚙️ 魔法画笔执行中...")
+            self.action_label.setStyleSheet("color: #27AE60;") # 绿色
+            
         elif state == AIState.ERROR:
             self.send_button.setText(t('ai_tools.send'))
             self.send_button.setEnabled(True)
+            self.action_label.stop_breathing()
             self.action_label.setText("❌ 连接异常")
-            self.status_bar.setStyleSheet("background-color: #E74C3C; color: white;")
-        elif state in (AIState.FINISHED, AIState.IDLE):
-            self.send_button.setText(t('ai_tools.send'))
-            self.send_button.setEnabled(True)
-            self.action_label.setText("💤 就绪")
-            self.status_bar.setStyleSheet("background-color: #007ACC; color: white;")
+            self.action_label.setStyleSheet("color: #E74C3C;")
+
+    def _start_execution_teaching(self):
+        """用户点击开始讲解"""
+        # 💡 触发平滑折叠动画，优雅退场
+        self.plan_box.collapse_silently()
+        
+        self.current_step_index = 0
+        self.next_step_btn.setVisible(True)
+        self._trigger_next_step_lecture()
+
+    def _trigger_next_step_lecture(self):
+        if self.current_step_index < len(self.active_plan_steps):
+            step_info = self.active_plan_steps[self.current_step_index]
+            self.current_step_banner.setText(f"🚶‍♂️ 当前: {step_info['title']} ({self.current_step_index+1}/{len(self.active_plan_steps)})")
+            self.switch_agent("general")
+            self.chat_input.setText(f"现在请执行第 {step_info['num']} 步：{step_info['title']}。{step_info.get('description', '')}")
+            self.on_send_message()
+            self.current_step_index += 1
+        else:
+            self.current_step_banner.setText("🎉 讲解已完成！")
+            self.next_step_btn.setVisible(False)
 
     def _on_usage_reported(self, prompt_tokens, completion_tokens):
         total = prompt_tokens + completion_tokens

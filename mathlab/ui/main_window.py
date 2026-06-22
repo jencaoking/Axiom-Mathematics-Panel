@@ -26,6 +26,7 @@ from .function_explorer_panel import FunctionExplorerPanel
 from .animations import fade_in, fade_out
 from .math_console import MathConsole
 from .notebook_panel import NotebookPanel
+from .omni_bar import OmniBar
 
 # ── JupyterLab 嵌入组件（软依赖：WebEngine 不存在时降级为占位面板） ──────────
 try:
@@ -145,6 +146,25 @@ class MainWindow(QMainWindow):
         # 1. 挂载画板追踪器
         from mathlab.core.canvas_tracker import CanvasShadowTracker
         self.canvas_tracker = CanvasShadowTracker(self.geometry_engine)
+        
+        # 实例化 Omni-Bar，保证生命周期绑定
+        self.omni_bar = OmniBar(self)
+        
+        # 注册全局快捷键 (Ctrl+K 或 Cmd+K)
+        self.shortcut_summon = QShortcut(QKeySequence("Ctrl+K"), self)
+        self.shortcut_summon.activated.connect(self.toggle_omni_bar)
+
+    def toggle_omni_bar(self):
+        if self.omni_bar.isVisible() and self.omni_bar.windowOpacity() > 0:
+            self.omni_bar.dismiss()
+        else:
+            # 传入当前主窗口的几何数据，用于 Omni-Bar 计算居中位置
+            self.omni_bar.summon(self.geometry())
+            
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'omni_bar') and self.omni_bar.isVisible():
+            self.omni_bar.dismiss()
 
     def setup_ui(self):
         self.central_tabs = QTabWidget()
