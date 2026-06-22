@@ -52,9 +52,6 @@ def setup_logger(
     返回:
         已初始化的 MathLab 根 Logger 实例
     """
-    # 确保日志目录存在
-    os.makedirs(LOG_DIR, exist_ok=True)
-
     logger = logging.getLogger(_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)  # 根 logger 捕获所有级别，由 handler 过滤
 
@@ -66,6 +63,8 @@ def setup_logger(
 
     # ── Handler 1: 滚动文件输出（RotatingFileHandler）────────────────────────
     try:
+        # 确保日志目录存在
+        os.makedirs(LOG_DIR, exist_ok=True)
         file_handler = RotatingFileHandler(
             LOG_FILE,
             maxBytes=max_bytes,
@@ -77,7 +76,7 @@ def setup_logger(
         logger.addHandler(file_handler)
     except OSError as e:
         # 日志文件无法创建时，退化为只有控制台输出，程序仍可正常运行
-        print(f"[MathLab Logger] 警告: 无法创建日志文件 ({e})，将仅使用控制台输出。")
+        print(f"[MathLab Logger] 警告: 无法创建日志文件或目录 ({e})，将仅使用控制台输出。")
 
     # ── Handler 2: 控制台输出（StreamHandler）────────────────────────────────
     console_handler = logging.StreamHandler(sys.stdout)
