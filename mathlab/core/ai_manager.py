@@ -33,6 +33,8 @@ except ImportError:
 from mathlab.utils.logger import get_logger
 logger = get_logger(__name__)
 
+DRAW_TOOL_SCHEMA = {'type': 'function', 'function': {'name': 'execute_geometry_draw', 'description': '当用户要求画图时，调用此函数在画布上绘制几何图形。', 'parameters': {'type': 'object', 'properties': {'commands': {'type': 'array', 'description': '绘图指令数组', 'items': {'type': 'object', 'properties': {'cmd': {'type': 'string', 'enum': ['add_point', 'add_circle', 'add_polygon', 'add_segment']}, 'x': {'type': 'number'}, 'y': {'type': 'number'}, 'name': {'type': 'string'}, 'radius': {'type': 'number'}, 'points': {'type': 'array', 'items': {'type': 'string'}}, 'center': {'type': 'string'}, 'p1': {'type': 'string'}, 'p2': {'type': 'string'}}, 'required': ['cmd']}}}, 'required': ['commands']}}}
+
 class AIStreamWorker(QThread):
     """
     后台流式请求线程，确保大模型的网络等待和解析不阻塞 Qt 主界面
@@ -40,6 +42,7 @@ class AIStreamWorker(QThread):
     chunk_received = Signal(str)
     finished_signal = Signal()
     error_occurred = Signal(str)
+    tool_call_received = Signal(dict)
 
     def __init__(self, client: OpenAI, model: str, system_prompt: str, user_prompt: str, history: list = None):
         super().__init__()
@@ -47,33 +50,58 @@ class AIStreamWorker(QThread):
         self.model = model
         self.messages = history if history else []
         
-        if system_prompt and not self.messages:
-            self.messages.append({"role": "system", "content": system_prompt})
+        # 兼容旧代码未用 PromptManager 的情况
+        if system_prompt and not any(m.get("role") == "system" for m in self.messages):
+            self.messages.insert(0, {"role": "system", "content": system_prompt})
             
-        self.messages.append({"role": "user", "content": user_prompt})
-        self._is_running = False
+        if user_prompt:
+            self.messages.append({"role": "user", "content": user_prompt})
+            
+        self._is_cancelled = False
+
+    def cancel(self):
+        self._is_cancelled = True
 
     def stop(self):
-        self._is_running = False
+        self.cancel()
 
     def run(self):
-        self._is_running = True
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=self.messages,
+                tools=[DRAW_TOOL_SCHEMA],
                 stream=True,
                 temperature=0.7
             )
             
+            tool_calls_buffer = {}
             for chunk in response:
-                if not self._is_running:
-                    break
+                if self._is_cancelled:
+                    self.finished_signal.emit()
+                    return
                 if chunk.choices and len(chunk.choices) > 0:
-                    content = chunk.choices[0].delta.content
-                    if content:
-                        self.chunk_received.emit(content)
+                    delta = chunk.choices[0].delta
                     
+                    if getattr(delta, 'tool_calls', None):
+                        for tc in delta.tool_calls:
+                            idx = tc.index
+                            if idx not in tool_calls_buffer:
+                                tool_calls_buffer[idx] = {"name": tc.function.name if tc.function.name else "execute_geometry_draw", "arguments": ""}
+                            if tc.function.arguments:
+                                tool_calls_buffer[idx]["arguments"] += tc.function.arguments
+                                
+                    if getattr(delta, 'content', None):
+                        self.chunk_received.emit(delta.content)
+                    
+            for idx, tc in tool_calls_buffer.items():
+                if tc["name"] == "execute_geometry_draw":
+                    try:
+                        args = json.loads(tc["arguments"])
+                        self.tool_call_received.emit(args)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Tool call JSON 解析失败: {e}")
+                        
             self.finished_signal.emit()
             
         except AuthenticationError:
@@ -377,7 +405,7 @@ class AIManager:
             self.client = None
 
     def ask(self, user_prompt: str, system_prompt: str = "", history: list = None, 
-            on_chunk=None, on_finish=None, on_error=None):
+            on_chunk=None, on_finish=None, on_error=None, **kwargs):
         """发起流式对话"""
         if not self.client:
             if on_error:
@@ -395,6 +423,7 @@ class AIManager:
         if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
         if on_finish: self.current_worker.finished_signal.connect(on_finish)
         if on_error: self.current_worker.error_occurred.connect(on_error)
+        if kwargs.get('on_tool_call'): self.current_worker.tool_call_received.connect(kwargs['on_tool_call'])
         
         self.current_worker.start()
         

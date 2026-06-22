@@ -1,3 +1,4 @@
+from mathlab.core.prompt_manager import prompt_manager
 import os
 import uuid
 import platform
@@ -1784,15 +1785,7 @@ class MainWindow(QMainWindow):
             self.ai_dock.setVisible(True)
             self.ai_dock.raise_()
         
-        user_prompt = f"""请帮我解释下面这段代码。
-这是我的完整代码上下文：
-```python
-{full_code}
-```
-我主要对其中这部分高亮选中的代码感到疑惑，请针对性地逐行解释它在做什么：
-```python
-{selected_code}
-```"""
+        user_prompt = prompt_manager.build("code_explainer", full_code=full_code, selected_code=selected_code)
         
         if hasattr(self, 'ai_panel'):
             self.ai_panel.chat_input.setText(user_prompt)

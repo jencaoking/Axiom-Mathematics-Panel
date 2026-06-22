@@ -1,3 +1,5 @@
+from mathlab.core.memory_manager import ChatMemoryManager
+from mathlab.core.prompt_manager import prompt_manager
 import markdown
 from PySide6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
@@ -38,29 +40,7 @@ except ImportError as e:
     from ui.animations import start_breathing_effect
 
 
-NL2DRAW_SYSTEM_PROMPT = """
-你是一个名为 MathLab 的高级数学计算与几何绘图助理。
-除了回答常规数学问题，你还可以通过输出特定的 JSON 指令，直接在用户的画布上绘图！
 
-如果用户的请求包含明确的【画图、绘制、添加】等意图，你必须在回答的末尾，附带一个纯净的 Markdown JSON 代码块，里面是一个指令数组。
-支持的指令 cmd 包括： 'add_point', 'add_circle', 'add_polygon', 'add_segment'
-
-注意：
-1. 坐标和距离如果没有指定，请运用几何常识合理分配数值，保证图形美观在视野中央。
-2. 务必使用 ```json ... ``` 标签包裹指令数组。
-
-示例场景：用户说"帮我画一个直角三角形"
-你的回答应该是：
-好，我已经为您在画布上绘制了一个直角三角形。
-```json
-[
-  {"cmd": "add_point", "name": "A", "x": 0, "y": 0},
-  {"cmd": "add_point", "name": "B", "x": 4, "y": 0},
-  {"cmd": "add_point", "name": "C", "x": 0, "y": 3},
-  {"cmd": "add_polygon", "points": ["A", "B", "C"]}
-]
-```
-"""
 
 class AIToolsPanel(QDockWidget):
     fit_requested = Signal(list, str, dict)
@@ -485,21 +465,28 @@ class AIToolsPanel(QDockWidget):
     # AI Assistant Chat Methods
     # ------------------------------------------------------------------
     def on_send_message(self):
+        if self.is_generating:
+            main_win = self.window()
+            if hasattr(main_win, 'ai_manager') and main_win.ai_manager.current_worker:
+                main_win.ai_manager.current_worker.cancel()
+            self.on_request_finished(was_cancelled=True)
+            self.chat_display.append("<br><i style='color: #E74C3C;'>[已停止生成]</i><br><hr>")
+            return
+
         user_text = self.chat_input.text().strip()
         if not user_text:
             return
 
-        # 在界面上追加用户消息
         user_html = f"<div style='color: #0078D7; text-align: right;'><b>{t('ai_tools.you')}:</b> {user_text}</div><br>"
         self.chat_display.append(user_html)
         self.chat_display.append(f"<b>🤖 {t('ai_tools.assistant')}:</b> ")
 
         self.chat_input.clear()
         self.chat_input.setEnabled(False)
-        self.send_button.setEnabled(False)
-        self.send_button.setText("思考中...")
+        self.send_button.setText("⏹ 停止生成")
+        self.send_button.setStyleSheet("background-color: #E74C3C; color: white;")
+        self.is_generating = True
 
-        # 🚨 1. 提取当前“具身”上下文：活的几何拓扑树
         system_context = self._get_system_context()
         main_win = self.window()
         engine = main_win.geometry_engine if hasattr(main_win, 'geometry_engine') else None
@@ -522,21 +509,23 @@ class AIToolsPanel(QDockWidget):
 
         enhanced_prompt = user_text + live_context
         
-        sys_prompt = "你是一个名为 MathLab 的高级数学与编程助教。请尽量使用清晰的 Markdown 格式回答。遇到公式请使用 LaTeX。对于代码解释尽量详细且易懂。\n" + NL2DRAW_SYSTEM_PROMPT
+        sys_prompt = prompt_manager.get_system_prompt("math_assistant")
         if system_context:
             import json
             sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
             
         self._current_response = ""
+        self._last_user_text = user_text
         
         if hasattr(main_win, 'ai_manager'):
             main_win.ai_manager.ask(
                 user_prompt=enhanced_prompt,
                 system_prompt=sys_prompt,
-                history=[],
+                history=self.chat_history.get_context(),
                 on_chunk=self.on_chunk_received,
                 on_finish=self.on_request_finished,
-                on_error=self.on_request_error
+                on_error=self.on_request_error,
+                on_tool_call=self.on_tool_call_received
             )
             self.breath_anim = start_breathing_effect(self.send_button)
         else:
@@ -570,11 +559,13 @@ class AIToolsPanel(QDockWidget):
     def on_action_required(self, action_data: dict):
         self.action_requested.emit(action_data)
 
-    def on_request_finished(self):
+    def on_request_finished(self, was_cancelled=False):
         self.chat_input.setEnabled(True)
         self.send_button.setEnabled(True)
         self.send_button.setText(t('ai_tools.send'))
+        self.send_button.setStyleSheet("")
         self.chat_input.setFocus()
+        self.is_generating = False
         
         if hasattr(self, 'breath_anim'):
             self.breath_anim.stop()
@@ -584,32 +575,22 @@ class AIToolsPanel(QDockWidget):
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
             
-        self.parse_and_execute_draw_commands(self._current_response)
-        
-        # 将 JSON 块在渲染前抹掉
-        cleaned_response = re.sub(r'```json\s*\[\s*\{.*?\}\s*\]\s*```', '', self._current_response, flags=re.DOTALL | re.IGNORECASE)
+        if not was_cancelled:
+            # Memory update
+            self.chat_history.add_message("user", self._last_user_text)
+            self.chat_history.add_message("assistant", self._current_response)
             
-        # 重新渲染为 Markdown
-        final_html = markdown.markdown(cleaned_response, extensions=['fenced_code', 'tables'])
-        
-        self.chat_display.append("<br><hr>")
+            final_html = markdown.markdown(self._current_response, extensions=['fenced_code', 'tables'])
+            self.chat_display.append("<br><hr>")
         
         scrollbar = self.chat_display.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    def parse_and_execute_draw_commands(self, text):
-        match = re.search(r'```json\s*(\[\s*\{.*?\}\s*\])\s*```', text, flags=re.DOTALL | re.IGNORECASE)
-        if match:
-            json_str = match.group(1)
-            try:
-                import json
-                commands = json.loads(json_str)
-                main_window = self.window()
-                if hasattr(main_window, 'geometry_engine'):
-                    self._execute_geometry_commands(main_window.geometry_engine, commands)
-                    self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
-            except Exception as e:
-                print(f"NL2Draw JSON 解析或执行失败: {e}")
+    def on_tool_call_received(self, args_dict):
+        main_window = self.window()
+        if hasattr(main_window, 'geometry_engine'):
+            self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
+            self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
 
     def _execute_geometry_commands(self, engine, commands: list):
         for cmd in commands:
@@ -644,4 +625,5 @@ class AIToolsPanel(QDockWidget):
             except ImportError as e:
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
-
+self.is_generating = False
+        

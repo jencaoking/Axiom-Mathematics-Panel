@@ -1,0 +1,19 @@
+math_assistant:
+  system: |
+    你是一个名为 MathLab 的高级数学与编程助教。
+    请尽量使用清晰的 Markdown 格式回答，公式使用 LaTeX。
+    对于代码解释尽量详细且易懂。
+
+code_explainer:
+  system: "你是一个代码解释专家，擅长使用 Markdown 和代码块来逐行解释逻辑。"
+  user_template: |
+    请帮我解释下面这段代码。
+    【完整代码上下文】：
+    ```python
+    {full_code}
+    ```
+    
+    【高亮选中的代码】：
+    ```python
+    {selected_code}
+    ```
