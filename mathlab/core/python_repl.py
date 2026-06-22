@@ -1,6 +1,3 @@
-import sys
-import time
-import threading
 import jedi
 from collections import deque
 from mathlab.utils.logger import get_logger

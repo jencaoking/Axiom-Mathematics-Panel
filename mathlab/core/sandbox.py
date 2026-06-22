@@ -4,7 +4,6 @@ import os
 import json
 import threading
 import time
-import tempfile
 import signal
 from queue import Queue
 from mathlab.utils.logger import get_logger
@@ -37,7 +36,7 @@ class SandboxProcess:
                 if not line:
                     break
                 queue.put(line.decode('utf-8', errors='replace'))
-        except:
+        except Exception:
             pass
 
     def _monitor_watchdog(self, timeout):
@@ -88,7 +87,7 @@ class SandboxProcess:
         if sys.platform == 'win32':
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
-            preexec_fn = os.setsid
+            preexec_fn = getattr(os, 'setsid', None)
             
         self.process = subprocess.Popen(
             [sys.executable, sandbox_script_path],
@@ -121,7 +120,7 @@ class SandboxProcess:
                 line = self.process.stdout.readline()
                 if line:
                     result_queue.put(json.loads(line))
-            except Exception as e:
+            except Exception:
                 pass
                 
         reader_thread = threading.Thread(target=read_response, daemon=True)
@@ -145,7 +144,7 @@ class SandboxProcess:
                         total_memory += child.memory_info().rss
                     if (total_memory / (1024 * 1024)) > self.max_memory_mb:
                         self._watchdog_triggered = True
-                        self._watchdog_error_msg = f"Memory limit exceeded."
+                        self._watchdog_error_msg = "Memory limit exceeded."
                         self.terminate()
                         break
                 except Exception:
@@ -175,7 +174,11 @@ class SandboxProcess:
                 else:
                     # Unix下通过向进程组 ID（负的 PID）发送 SIGKILL，全组连带子进程瞬间清除
                     try:
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                        killpg = getattr(os, 'killpg', None)
+                        getpgid = getattr(os, 'getpgid', None)
+                        sigkill = getattr(signal, 'SIGKILL', 9)
+                        if killpg and getpgid:
+                            killpg(getpgid(self.process.pid), sigkill)
                     except ProcessLookupError:
                         pass  # 进程可能已经退出
             except Exception as e:

@@ -101,7 +101,7 @@ class NumEngine:
         except la.LinAlgError as e:
             raise NumEngineError(
                 f"Cholesky 分解失败: {e}。请确保矩阵是埃尔米特正定的。"
-            )
+            ) from e
 
     def solve_linear_system(
         self,
@@ -123,7 +123,7 @@ class NumEngine:
             residual_norm = float(np.linalg.norm(mat_A @ x - vec_b))
             return {"x": x, "residual_norm": residual_norm}
         except la.LinAlgError as e:
-            raise NumEngineError(f"线性方程组求解失败: {e}。")
+            raise NumEngineError(f"线性方程组求解失败: {e}。") from e
 
     def matrix_rank(self, matrix: Union[list, np.ndarray]) -> int:
         """
@@ -172,7 +172,7 @@ class NumEngine:
             return float(_finite_diff(func, x, dx, order))
 
         except Exception as e:
-            raise NumEngineError(f"数值求导失败: {e}")
+            raise NumEngineError(f"数值求导失败: {e}") from e
 
     def numerical_integral(
         self,
@@ -198,7 +198,7 @@ class NumEngine:
                 "error_estimate": float(error_estimate),
             }
         except Exception as e:
-            raise NumEngineError(f"数值积分计算失败: {e}")
+            raise NumEngineError(f"数值积分计算失败: {e}") from e
 
     def numerical_double_integral(
         self,
@@ -225,7 +225,7 @@ class NumEngine:
                 "error_estimate": float(error_estimate),
             }
         except Exception as e:
-            raise NumEngineError(f"二重数值积分计算失败: {e}")
+            raise NumEngineError(f"二重数值积分计算失败: {e}") from e
 
     # ──────────────────────────────────────────────────────────────────────────
     # 优化模块 (Optimization & Root Finding)
@@ -257,7 +257,7 @@ class NumEngine:
                 "message": res.message,
             }
         except Exception as e:
-            raise NumEngineError(f"优化求解失败: {e}")
+            raise NumEngineError(f"优化求解失败: {e}") from e
 
     def root_finding(
         self,
@@ -282,7 +282,7 @@ class NumEngine:
         except NumEngineError:
             raise
         except Exception as e:
-            raise NumEngineError(f"求根计算失败: {e}")
+            raise NumEngineError(f"求根计算失败: {e}") from e
 
     def minimize_scalar(
         self,
@@ -309,7 +309,7 @@ class NumEngine:
                 "fun": float(res.fun),
             }
         except Exception as e:
-            raise NumEngineError(f"一元极值求解失败: {e}")
+            raise NumEngineError(f"一元极值求解失败: {e}") from e
 
     # ──────────────────────────────────────────────────────────────────────────
     # 信号处理模块 (Signal Processing)
@@ -333,7 +333,7 @@ class NumEngine:
             freqs = fft.fftfreq(len(arr), d=1.0 / sample_rate)
             return {"spectrum": spectrum, "frequencies": freqs}
         except Exception as e:
-            raise NumEngineError(f"FFT 失败: {e}")
+            raise NumEngineError(f"FFT 失败: {e}") from e
 
     def ifft_transform(
         self,
@@ -348,7 +348,7 @@ class NumEngine:
         try:
             return fft.ifft(np.asarray(spectrum, dtype=complex))
         except Exception as e:
-            raise NumEngineError(f"IFFT 失败: {e}")
+            raise NumEngineError(f"IFFT 失败: {e}") from e
 
     def convolve(
         self,
@@ -371,7 +371,7 @@ class NumEngine:
                 mode=mode,
             )
         except Exception as e:
-            raise NumEngineError(f"卷积计算失败: {e}")
+            raise NumEngineError(f"卷积计算失败: {e}") from e
 
     def find_peaks(
         self,
@@ -400,7 +400,7 @@ class NumEngine:
                 "peak_values": arr[indices],
             }
         except Exception as e:
-            raise NumEngineError(f"峰值检测失败: {e}")
+            raise NumEngineError(f"峰值检测失败: {e}") from e
 
     # ──────────────────────────────────────────────────────────────────────────
     # 统计与回归模块 (Statistics & Regression)
@@ -428,7 +428,7 @@ class NumEngine:
                 "std_err": float(res.stderr),
             }
         except Exception as e:
-            raise NumEngineError(f"线性回归失败: {e}")
+            raise NumEngineError(f"线性回归失败: {e}") from e
 
     def polynomial_fit(
         self,
@@ -445,7 +445,7 @@ class NumEngine:
         :returns: 包含 'coefficients'（高次到低次）和 'residuals' 的字典
         """
         try:
-            coeffs, residuals, rank, sv, rcond = np.polyfit(
+            coeffs, residuals, rank, _sv, _rcond = np.polyfit(
                 np.asarray(x, dtype=float),
                 np.asarray(y, dtype=float),
                 deg,
@@ -457,7 +457,7 @@ class NumEngine:
                 "rank": int(rank),
             }
         except Exception as e:
-            raise NumEngineError(f"多项式拟合失败: {e}")
+            raise NumEngineError(f"多项式拟合失败: {e}") from e
 
     def descriptive_stats(
         self,
@@ -483,4 +483,4 @@ class NumEngine:
                 "max": float(np.max(arr)),
             }
         except Exception as e:
-            raise NumEngineError(f"描述性统计计算失败: {e}")
+            raise NumEngineError(f"描述性统计计算失败: {e}") from e

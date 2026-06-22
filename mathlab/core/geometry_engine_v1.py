@@ -1059,26 +1059,6 @@ class Locus(GeometricObject):
     def to_latex(self):
         return rf'Locus of {self.name}'
     
-    def serialize(self):
-        data = super().serialize()
-        data['tracer_point_id'] = self.tracer_point_id
-        data['driver_point_id'] = self.driver_point_id
-        data['max_points'] = self.max_points
-        data['trail_points'] = self.trail_points
-        data['points_data'] = self.points_data
-        return data
-    
-    @classmethod
-    def deserialize(cls, data):
-        obj = cls(data['id'], data['name'], 
-                  data.get('tracer_point_id', ''), data.get('driver_point_id', ''),
-                  data.get('max_points', 1000))
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.trail_points = data.get('trail_points', [])
-        obj.points_data = data.get('points_data', [])
-        return obj
 
 class DAG:
     def __init__(self):

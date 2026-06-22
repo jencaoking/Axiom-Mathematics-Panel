@@ -98,7 +98,7 @@ class JupyterManager:
             print(
                 "⚠️  未找到 jupyter 可执行文件。\n"
                 "   请运行：pip install jupyterlab\n"
-                f"   （当前尝试路径：{jupyter_exe}）"
+                f"   （当前尝试路径：{sys.executable}）"
             )
             return False
 
