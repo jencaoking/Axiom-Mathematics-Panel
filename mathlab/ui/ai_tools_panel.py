@@ -502,7 +502,7 @@ class AIToolsPanel(QDockWidget):
 
         enhanced_prompt = user_text
         
-        sys_prompt = prompt_manager.get_system_prompt("math_assistant")
+        sys_prompt = prompt_manager.get_system("socratic_tutor")
         if system_context:
             import json
             sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
@@ -590,6 +590,17 @@ class AIToolsPanel(QDockWidget):
                 self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
                 magic_html = "<div style='background-color: #E8F8F5; color: #27AE60; padding: 8px; border-radius: 4px; border-left: 4px solid #27AE60;'><i>✨ 魔法触发：已在左侧画板为您生成图形！</i></div><br>"
                 self.chat_display.append(magic_html)
+        elif tool_name == "highlight_geometry_elements":
+            try:
+                element_names = args_dict.get("element_names", [])
+                color = args_dict.get("color", "orange")
+                
+                if hasattr(main_window, 'geometry_engine') and hasattr(main_window, 'central_widget'):
+                    main_window.central_widget.highlight_elements(main_window.geometry_engine, element_names, color)
+                    magic_html = f"<div style='background-color: #FEF9E7; color: #D35400; padding: 8px; border-radius: 4px; border-left: 4px solid #F39C12;'><i>🔦 激光笔已激活：正在引导关注 {', '.join(element_names)} </i></div><br>"
+                    self.chat_display.append(magic_html)
+            except Exception as e:
+                print(f"高亮指令执行失败: {e}")
 
     def _execute_geometry_commands(self, engine, commands: list):
         for cmd in commands:

@@ -42,6 +42,34 @@ GEOMETRY_DRAW_TOOL = {
     }
 }
 
+VISUAL_HIGHLIGHT_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "highlight_geometry_elements",
+        "description": "苏格拉底教学专用工具：当你想引导用户关注画板上的特定图形（点、线、多边形）时，调用此工具让它们在画板上高亮闪烁，充当你的激光笔。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "element_names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "需要高亮的图形名称列表，例如 ['A', 'B', 'AB', 'Triangle_ABC']"
+                },
+                "color": {
+                    "type": "string",
+                    "enum": ["red", "blue", "green", "orange"],
+                    "description": "高亮的颜色。如果是警告/纠错用红色，启发思考用橙色或蓝色"
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "为什么要高亮这些元素（后台记录，不在 UI 显示）"
+                }
+            },
+            "required": ["element_names", "color"]
+        }
+    }
+}
+
 QUIZ_GENERATOR_SCHEMA = {
     "type": "function",
     "function": {
@@ -82,4 +110,4 @@ QUIZ_GENERATOR_SCHEMA = {
     }
 }
 
-AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA]
+AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA, VISUAL_HIGHLIGHT_TOOL]

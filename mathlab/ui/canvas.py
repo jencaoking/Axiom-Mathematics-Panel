@@ -803,6 +803,70 @@ class GeometryCanvas(QGraphicsView):
             if obj_id in self.curve_items:
                 del self.curve_items[obj_id]
 
+    def highlight_elements(self, engine, element_names: list, color_name: str):
+        """
+        触发激光笔特效：让指定的元素呼吸闪烁 3 次
+        """
+        color_map = {
+            "red": QColor(231, 76, 60),
+            "blue": QColor(52, 152, 219),
+            "green": QColor(46, 204, 113),
+            "orange": QColor(230, 126, 34)
+        }
+        target_color = color_map.get(color_name, QColor(241, 196, 15))
+        
+        items_to_highlight = []
+        if hasattr(engine, 'get_all_objects'):
+            objects = engine.get_all_objects()
+        elif hasattr(engine, 'objects'):
+            objects = list(engine.objects.values())
+        else:
+            objects = []
+
+        target_ids = [obj.id for obj in objects if obj.name in element_names]
+        
+        for obj_id in target_ids:
+            if obj_id in self.object_map:
+                obj_info = self.object_map[obj_id]
+                for key, item in obj_info.items():
+                    if key != 'text':
+                        items_to_highlight.append(item)
+                
+        if not items_to_highlight:
+            return
+
+        self._start_blink_animation(items_to_highlight, target_color)
+
+    def _start_blink_animation(self, items, highlight_color):
+        blink_count = 0
+        max_blinks = 6
+        
+        original_pens = {item: item.pen() for item in items if hasattr(item, 'pen')}
+        highlight_pen = QPen(highlight_color, 4.0)
+        
+        timer = QTimer(self) 
+
+        def toggle_color():
+            nonlocal blink_count
+            is_highlight_phase = (blink_count % 2 == 0)
+            
+            for item in items:
+                if hasattr(item, 'setPen'):
+                    if is_highlight_phase:
+                        item.setPen(highlight_pen)
+                    else:
+                        item.setPen(original_pens.get(item, QPen(Qt.black)))
+            
+            blink_count += 1
+            if blink_count >= max_blinks:
+                timer.stop()
+                timer.deleteLater()
+                for item in items:
+                     if hasattr(item, 'setPen'): item.setPen(highlight_pen)
+
+        timer.timeout.connect(toggle_color)
+        timer.start(300)
+
     def select_object(self, obj_id):
         for item in self.scene_obj.selectedItems():
             item.setSelected(False)
