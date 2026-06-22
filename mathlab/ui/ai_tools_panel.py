@@ -1,3 +1,4 @@
+from mathlab.core.ai_tools import AVAILABLE_TOOLS
 from mathlab.ui.quiz_panel import QuizCardWidget
 from mathlab.core.memory_manager import ChatMemoryManager
 from mathlab.core.prompt_manager import prompt_manager
@@ -522,10 +523,15 @@ class AIToolsPanel(QDockWidget):
         self._last_user_text = user_text
         
         if hasattr(main_win, 'ai_manager'):
-            main_win.ai_manager.ask(
+            main_win.ai_manager.ask_stream(
                 user_prompt=enhanced_prompt,
                 system_prompt=sys_prompt,
-                history=self.chat_history.get_context(),
+                tools=AVAILABLE_TOOLS,
+                on_chunk=self.on_chunk_received,
+                on_finish=self.on_request_finished,
+                on_error=self.on_request_error,
+                on_tool=self.on_tool_call_received
+            ),
                 on_chunk=self.on_chunk_received,
                 on_finish=self.on_request_finished,
                 on_error=self.on_request_error,
@@ -598,7 +604,8 @@ class AIToolsPanel(QDockWidget):
         elif tool_name == "execute_geometry_draw":
             if hasattr(main_window, 'geometry_engine'):
                 self._execute_geometry_commands(main_window.geometry_engine, [args_dict])
-                self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
+                magic_html = "<div style='background-color: #E8F8F5; color: #27AE60; padding: 8px; border-radius: 4px; border-left: 4px solid #27AE60;'><i>✨ 魔法触发：已在左侧画板为您生成图形！</i></div><br>"
+                self.chat_display.append(magic_html)
 
     def _execute_geometry_commands(self, engine, commands: list):
         for cmd in commands:
