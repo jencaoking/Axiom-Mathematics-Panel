@@ -9,6 +9,11 @@ from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QTimer, QLineF
 from PySide6.QtSvgWidgets import QGraphicsSvgItem
 from PySide6.QtSvg import QSvgRenderer
 
+from mathlab.core.geometry_helpers import MagnetSnapper
+
+# 实例化吸附引擎 (全局复用)
+snapper = MagnetSnapper(snap_threshold_pixels=10)
+
 # 导入 LaTeX 渲染缓存
 try:
     from mathlab.utils.latex_renderer import (
@@ -110,6 +115,53 @@ class MathGraphicsItem(QGraphicsSvgItem):
         if self._fallback_item and self._fallback_item.isVisible():
             return self._fallback_item.boundingRect()
         return super().boundingRect()
+
+class GeometryPointItem(QGraphicsEllipseItem):
+    """
+    带磁吸特性的控制点
+    """
+    def __init__(self, x, y, w, h, obj_id, canvas, *args, **kwargs):
+        super().__init__(x, y, w, h, *args, **kwargs)
+        self.obj_id = obj_id
+        self.canvas = canvas
+        # 必须开启 ItemSendsGeometryChanges 标志位，否则捕获不到坐标改变
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+
+    def itemChange(self, change, value):
+        # 拦截拖拽时产生的新坐标分配
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+            view = self.canvas
+            if view:
+                scale_factor = view.transform().m11() 
+                
+                # 收集画布上排除自己的其他所有点
+                other_points = [
+                    item.pos() for item in self.scene().items() 
+                    if isinstance(item, GeometryPointItem) and item != self
+                ]
+                
+                # 送入引擎，计算最终修饰过的吸附坐标
+                snapped_pos = snapper.snap(
+                    raw_logical_pos=value,
+                    scale_factor=scale_factor,
+                    existing_points=other_points,
+                    grid_size=1.0
+                )
+                
+                # 同步文本跟随
+                if self.obj_id in self.canvas.object_map:
+                    text_item = self.canvas.object_map[self.obj_id].get('text')
+                    if text_item:
+                        text_item.setPos(snapped_pos.x() + 8, snapped_pos.y() - 12)
+                        
+                # 触发向上传递的坐标更新信号
+                self.canvas.object_moved.emit(self.obj_id, snapped_pos.x(), snapped_pos.y())
+                
+                return snapped_pos
+                
+        return super().itemChange(change, value)
 
 
 class GeometryCanvas(QGraphicsView):
@@ -446,12 +498,10 @@ class GeometryCanvas(QGraphicsView):
             y    = obj_data['coordinates'].get('y', 0)
             name = obj_data.get('name', '')
 
-            point_item = QGraphicsEllipseItem(x - 5, y - 5, 10, 10)
+            point_item = GeometryPointItem(-5, -5, 10, 10, obj_id, self)
+            point_item.setPos(x, y)
             point_item.setBrush(QBrush(QColor('#004ac6')))
             point_item.setPen(QPen(QColor('#004ac6'), 1))
-            point_item.setFlags(
-                QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable
-            )
             point_item.setZValue(10)
 
             # 使用 MathGraphicsItem 替代 QGraphicsTextItem，支持 LaTeX 渲染
@@ -552,7 +602,7 @@ class GeometryCanvas(QGraphicsView):
             x = obj_data['coordinates'].get('x', 0)
             y = obj_data['coordinates'].get('y', 0)
 
-            obj_info['point'].setRect(x - 5, y - 5, 10, 10)
+            obj_info['point'].setPos(x, y)
             
             # [P0修复 Bug3] 同步更新关联的文本图元内容
             text_item = obj_info.get('text')
