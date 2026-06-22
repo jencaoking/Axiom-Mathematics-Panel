@@ -28,11 +28,11 @@ except ImportError as e:
     from utils.i18n_manager import t
 
 try:
-    from ..core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
+    from ..core.ai_manager import AIRequestConfig, AIProvider, AIState
 except ImportError as e:
     if "attempted relative import" not in str(e) and "No module named" not in str(e):
         raise
-    from core.ai_manager import AIRequestWorker, AIRequestConfig, AIProvider
+    from core.ai_manager import AIRequestConfig, AIProvider, AIState
 
 try:
     from ..ui.animations import start_breathing_effect
@@ -511,15 +511,17 @@ class AIToolsPanel(QDockWidget):
         self._last_user_text = user_text
         
         if hasattr(main_win, 'ai_manager'):
-            main_win.ai_manager.ask_stream(
+            main_win.ai_manager.ask(
                 user_prompt=enhanced_prompt,
                 system_prompt=sys_prompt,
                 tools=AVAILABLE_TOOLS,
                 canvas_state=current_canvas_state,
+                on_state_change=self._on_state_change,
                 on_chunk=self.on_chunk_received,
+                on_tool=self.on_tool_call_received,
+                on_usage=self._on_usage_reported,
                 on_finish=self.on_request_finished,
-                on_error=self.on_request_error,
-                on_tool=self.on_tool_call_received
+                on_error=self.on_request_error
             )
             self.breath_anim = start_breathing_effect(self.send_button)
         else:
@@ -640,3 +642,27 @@ class AIToolsPanel(QDockWidget):
             except ImportError as e:
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
+
+    def _on_state_change(self, state):
+        if state == AIState.THINKING:
+            self.send_button.setText("🤔 AI 正在思考...")
+            self.send_button.setEnabled(False)
+        elif state == AIState.GENERATING:
+            self.send_button.setText("✍️ 正在打字...")
+        elif state == AIState.EXECUTING_TOOL:
+            self.send_button.setText("⚙️ 正在呼叫魔法画笔...")
+        elif state in (AIState.FINISHED, AIState.ERROR, AIState.IDLE):
+            self.send_button.setText(t('ai_tools.send'))
+            self.send_button.setEnabled(True)
+
+    def _on_usage_reported(self, prompt_tokens, completion_tokens):
+        total = prompt_tokens + completion_tokens
+        cost_estimate = (total / 10000) * 0.01 
+        
+        usage_html = f"""
+        <div style='text-align: right; color: #aaa; font-size: 10px; margin-top: 5px;'>
+            ⚡ 消耗: {total} Tokens (上下文 {prompt_tokens} + 生成 {completion_tokens}) 
+            | 约 ￥{cost_estimate:.4f}
+        </div>
+        """
+        self.chat_display.append(usage_html)
