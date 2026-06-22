@@ -128,8 +128,17 @@ class GeometricObject:
             obj = Intersection(data['id'], data['name'], 
                               data.get('obj1_id', ''), data.get('obj2_id', ''),
                               data.get('index', 0))
+        elif obj_type == 'Plane3D':
+            coords = data.get('coordinates', {})
+            obj = Plane3D(data['id'], data['name'],
+                          coords.get('A', 0), coords.get('B', 0),
+                          coords.get('C', 1), coords.get('D', 0))
         else:
             obj = cls(data['id'], data['name'], obj_type)
+            # 兼容未显式声明的子类类型（如 Ray, Angle），恢复必须的关键属性
+            for key in ['point1_id', 'point2_id', 'vertex_id', 'center_id']:
+                if key in data:
+                    setattr(obj, key, data[key])
         
         if obj:
             obj.coordinates = data.get('coordinates', {})
@@ -199,6 +208,9 @@ class Sphere(GeometricObject):
         data = super().serialize()
         data['center_id'] = self.center_id
         data['radius'] = self.radius
+        if 'coordinates' not in data:
+            data['coordinates'] = {}
+        data['coordinates']['r'] = self.radius
         return data
 
 class Plane3D(GeometricObject):
@@ -330,7 +342,8 @@ class Intersection(GeometricObject):
                             engine._notify('object_updated', dep_obj.serialize())
 
             # 将昂贵的 SymPy 求交任务抛入后台
-            TaskManager().submit(
+            manager = getattr(TaskManager, '_instance', None) or TaskManager()
+            manager.submit(
                 fn=engine.cas_provider.solve_intersection,
                 on_success=on_success,
                 obj1=obj1, 
@@ -378,8 +391,11 @@ class Intersection(GeometricObject):
         if abs(det) < 1e-10:
             return []
         
-        x = (b1 * c2 - b2 * c1) / det
-        y = (a2 * c1 - a1 * c2) / det
+        # 统一为标准形式: ax + by = -c
+        # 根据 Cramer 法则求解: x = Dx / det, y = Dy / det
+        rhs1, rhs2 = -c1, -c2
+        x = (rhs1 * b2 - rhs2 * b1) / det
+        y = (a1 * rhs2 - a2 * rhs1) / det
         return [(x, y)]
     
     def _line_circle_intersection(self, line, circle):
@@ -450,6 +466,13 @@ class Intersection(GeometricObject):
         if abs(h) < 1e-10:
             return [(x1, y1)]
         return [(x1, y1), (x2, y2)]
+    
+    def serialize(self):
+        data = super().serialize()
+        data['obj1_id'] = self.obj1_id
+        data['obj2_id'] = self.obj2_id
+        data['index'] = self.index
+        return data
     
     def to_latex(self):
         x, y = self.coordinates.get('x', 0), self.coordinates.get('y', 0)
@@ -595,6 +618,8 @@ class Ellipse(GeometricObject):
         data['a'] = self.a
         data['b'] = self.b
         data['rotation'] = self.rotation
+        if 'coordinates' in data and 'points' in data['coordinates']:
+            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
         return data
 
 class Hyperbola(GeometricObject):
@@ -642,6 +667,8 @@ class Hyperbola(GeometricObject):
         data['a'] = self.a
         data['b'] = self.b
         data['rotation'] = self.rotation
+        if 'coordinates' in data and 'points' in data['coordinates']:
+            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
         return data
 
 class Parabola(GeometricObject):
@@ -678,6 +705,8 @@ class Parabola(GeometricObject):
         data['vertex_id'] = self.vertex_id
         data['p'] = self.p
         data['direction'] = self.direction
+        if 'coordinates' in data and 'points' in data['coordinates']:
+            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
         return data
 
 class ConicSection(GeometricObject):
@@ -836,8 +865,11 @@ class FunctionPlot(GeometricObject):
     
     @classmethod
     def deserialize(cls, data):
-        obj = cls(data['id'], data['name'], data.get('expression', 'x'), 
-                  data.get('x_range', (-10, 10)), data.get('num_points', 500))
+        obj = cls.__new__(cls)
+        GeometricObject.__init__(obj, data['id'], data['name'], 'FunctionPlot')
+        obj.expression = data.get('expression', 'x')
+        obj.x_range = data.get('x_range', (-10, 10))
+        obj.num_points = data.get('num_points', 500)
         obj.coordinates = data.get('coordinates', {})
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
@@ -939,9 +971,12 @@ class ImplicitPlot(GeometricObject):
     
     @classmethod
     def deserialize(cls, data):
-        obj = cls(data['id'], data['name'], data.get('expression', 'x**2 + y**2 - 1'),
-                  data.get('x_range', (-10, 10)), data.get('y_range', (-10, 10)),
-                  data.get('resolution', 400))
+        obj = cls.__new__(cls)
+        GeometricObject.__init__(obj, data['id'], data['name'], 'ImplicitPlot')
+        obj.expression = data.get('expression', 'x**2 + y**2 - 1')
+        obj.x_range = data.get('x_range', (-10, 10))
+        obj.y_range = data.get('y_range', (-10, 10))
+        obj.resolution = data.get('resolution', 400)
         obj.coordinates = data.get('coordinates', {})
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
@@ -1005,8 +1040,11 @@ class PolarPlot(GeometricObject):
     @classmethod
     def deserialize(cls, data):
         import math
-        obj = cls(data['id'], data['name'], data.get('expression', 'theta'),
-                  tuple(data.get('theta_range', [0, 2*math.pi])), data.get('num_points', 500))
+        obj = cls.__new__(cls)
+        GeometricObject.__init__(obj, data['id'], data['name'], 'PolarPlot')
+        obj.expression = data.get('expression', 'theta')
+        obj.theta_range = tuple(data.get('theta_range', [0, 2*math.pi]))
+        obj.num_points = data.get('num_points', 500)
         obj.coordinates = data.get('coordinates', {})
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
@@ -1038,30 +1076,6 @@ class Locus(GeometricObject):
         self.points_data.clear()
         self.coordinates = {'points': []}
     
-    def serialize(self):
-        data = super().serialize()
-        data['tracer_point_id'] = self.tracer_point_id
-        data['driver_point_id'] = self.driver_point_id
-        data['max_points'] = self.max_points
-        data['trail_points'] = self.trail_points
-        data['points_data'] = self.points_data
-        return data
-
-    @classmethod
-    def deserialize(cls, data):
-        obj = cls(
-            data['id'], data['name'],
-            data.get('tracer_point_id', ''),
-            data.get('driver_point_id', ''),
-            data.get('max_points', 1000)
-        )
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.trail_points = data.get('trail_points', [])
-        obj.points_data = data.get('points_data', [])
-        return obj
-
     def update_coordinates(self, engine):
         pass
 
@@ -1095,10 +1109,23 @@ class DAG:
         self.reverse_graph = defaultdict(list)
     
     def add_edge(self, from_node, to_node):
+        if self._is_reachable(to_node, from_node):
+            raise ValueError(f'Cycle detected: {from_node} → {to_node}')
         if to_node not in self.graph[from_node]:
             self.graph[from_node].append(to_node)
         if from_node not in self.reverse_graph[to_node]:
             self.reverse_graph[to_node].append(from_node)
+            
+    def _is_reachable(self, src, dst):
+        visited = set()
+        stack = [src]
+        while stack:
+            n = stack.pop()
+            if n == dst: return True
+            if n in visited: continue
+            visited.add(n)
+            stack.extend(self.graph.get(n, []))
+        return False
     
     def remove_node(self, node):
         for child in self.graph.get(node, []):
@@ -1114,14 +1141,19 @@ class DAG:
     
     def get_dependencies(self, node):
         visited = set()
+        visiting = set()
         result = []
         def dfs(n):
             if n in visited:
                 return
-            visited.add(n)
+            if n in visiting:
+                raise ValueError(f'Cycle detected at node {n}')
+            visiting.add(n)
             for dep in self.reverse_graph[n]:
                 dfs(dep)
-                result.append(dep)
+            visiting.remove(n)
+            visited.add(n)
+            result.append(n)
         dfs(node)
         return result
     
@@ -1133,14 +1165,19 @@ class DAG:
         更新依赖图，不会出现读取到脏数据的情况。
         """
         visited = set()
+        visiting = set()
         result = []
 
         def dfs(n):
             if n in visited:
                 return
-            visited.add(n)
+            if n in visiting:
+                raise ValueError(f'Cycle detected at node {n}')
+            visiting.add(n)
             for dep in self.graph.get(n, []):
                 dfs(dep)  # 先深入到底
+            visiting.remove(n)
+            visited.add(n)
             result.append(n)  # 后序收集
 
         dfs(node)
@@ -1459,7 +1496,7 @@ class GeometryEngine:
         var_to_idx = {}
         equations = []
         
-        points = self.get_objects_by_type('Point')
+        points = list(self.get_objects_by_type('Point'))
         
         for point in points:
             safe_id = point.id.replace('-', '_')
@@ -1518,8 +1555,10 @@ class GeometryEngine:
                     eq_expr = eq.lhs - eq.rhs if isinstance(eq, Eq) else eq
                     val = float(eq_expr.subs(var_dict).evalf())
                     result.append(val)
-                except Exception:
+                except Exception as e:
                     # 求值失败时残差记为 0，避免优化器被异常打断
+                    import logging
+                    logging.getLogger(__name__).warning(f"Constraint evaluation failed: {e}")
                     result.append(0.0)
             
             return np.array(result, dtype=float)
@@ -1552,9 +1591,9 @@ class GeometryEngine:
                 if x_idx is not None and y_idx is not None and z_idx is not None:
                     # 5. 更新点坐标
                     try:
-                        x_val = float(getattr(result[x_idx], 'evalf', lambda: result[x_idx])())
-                        y_val = float(getattr(result[y_idx], 'evalf', lambda: result[y_idx])())
-                        z_val = float(getattr(result[z_idx], 'evalf', lambda: result[z_idx])())
+                        x_val = float(result[x_idx])
+                        y_val = float(result[y_idx])
+                        z_val = float(result[z_idx])
                         self.update_point(point.id, x=x_val, y=y_val, z=z_val)
                     except Exception:
                         pass
