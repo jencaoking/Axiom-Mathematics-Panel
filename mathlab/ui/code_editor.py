@@ -1,7 +1,8 @@
+import json
 from PySide6.QtWidgets import QPlainTextEdit, QCompleter
 from PySide6.QtCore import Qt, QStringListModel, Signal
-from PySide6.QtGui import QTextCursor, QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtGui import QTextCursor, QFont, QKeySequence
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QShortcut
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QObject, Slot, QUrl
@@ -99,6 +100,7 @@ class MonacoCodeEditor(QWidget):
     你可以像用普通的 QTextEdit 一样使用它
     """
     # 转发桥接器的信号给外部 UI
+    ai_explain_requested = Signal(str, str)
     execute_requested = Signal(str)
     code_synced = Signal(str) # 转发给上层
 
@@ -137,6 +139,35 @@ class MonacoCodeEditor(QWidget):
         # 注意：必须设置 baseUrl，否则 qrc:///qtwebchannel/qwebchannel.js 可能加载失败
         base_url = QUrl.fromLocalFile(html_path)
         self.browser.setHtml(html_content, baseUrl=base_url)
+
+        # 添加 AI 解释的全局快捷键 Ctrl+I
+        self.ai_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
+        self.ai_shortcut.activated.connect(self.request_ai_explanation)
+
+    def request_ai_explanation(self):
+        js_code = """
+        (function() {
+            var selection = editor.getSelection();
+            var selectedText = editor.getModel().getValueInRange(selection);
+            var fullText = editor.getValue();
+            return JSON.stringify({
+                selected: selectedText, 
+                full: fullText
+            });
+        })();
+        """
+        self.browser.page().runJavaScript(js_code, self._on_code_extracted)
+
+    def _on_code_extracted(self, result_str):
+        if not result_str: return
+        try:
+            data = json.loads(result_str)
+            selected_code = data.get("selected", "").strip()
+            full_code = data.get("full", "").strip()
+            if selected_code:
+                self.ai_explain_requested.emit(full_code, selected_code)
+        except Exception:
+            pass
 
     def get_text(self, callback) -> None:
         """

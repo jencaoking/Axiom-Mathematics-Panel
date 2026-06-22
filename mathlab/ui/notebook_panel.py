@@ -11,6 +11,7 @@ from mathlab.ui.markdown_cell import MarkdownCellWidget
 
 class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
+    cell_ai_explain_requested = Signal(str, str)
 
     def __init__(self, cell_id, cell_type="code", content="", parent=None):
         super().__init__(parent)
@@ -64,6 +65,7 @@ class VSCodeStyleCellWidget(QFrame):
             self.input_editor = MonacoCodeEditor(initial_text=initial_content)
             self.input_editor.setFixedHeight(150)
             self.input_editor.execute_requested.connect(self.on_monaco_run)
+            self.input_editor.ai_explain_requested.connect(self.cell_ai_explain_requested.emit)
         else:
             self.input_editor = QTextEdit(initial_content)
             self.input_editor.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c;")
@@ -205,6 +207,8 @@ class NotebookPanel(QWidget):
             # 监听心跳同步，时刻更新 backend 的数据防丢失
             ui_cell.input_editor.code_synced.connect(
                 lambda code, cid=backend_cell.id: self._sync_backend_content(cid, code)
+            
+            ui_cell.cell_ai_explain_requested.connect(self.ai_explain_requested.emit)
             )
             
         else: # Markdown

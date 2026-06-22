@@ -147,6 +147,7 @@ class MainWindow(QMainWindow):
 
         self.central_widget = GeometryCanvas(self)
         self.notebook = NotebookPanel(self)
+        self.notebook.ai_explain_requested.connect(self.handle_ai_explain)
         
         try:
             from .geometry_panel import GeometryPanel
@@ -1777,7 +1778,27 @@ class MainWindow(QMainWindow):
         dock.show()
         return dock
 
-    def closeEvent(self, event):
+    
+    def handle_ai_explain(self, full_code, selected_code):
+        if hasattr(self, 'ai_dock'):
+            self.ai_dock.setVisible(True)
+            self.ai_dock.raise_()
+        
+        user_prompt = f"""请帮我解释下面这段代码。
+这是我的完整代码上下文：
+```python
+{full_code}
+```
+我主要对其中这部分高亮选中的代码感到疑惑，请针对性地逐行解释它在做什么：
+```python
+{selected_code}
+```"""
+        
+        if hasattr(self, 'ai_panel'):
+            self.ai_panel.chat_input.setText(user_prompt)
+            self.ai_panel.on_send_message()
+            
+def closeEvent(self, event):
         """在窗口关闭时卸载所有插件，释放资源"""
         if hasattr(self, 'autosaver'):
             self.autosaver.clean_up()

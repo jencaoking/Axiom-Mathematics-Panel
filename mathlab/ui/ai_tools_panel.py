@@ -37,6 +37,31 @@ except ImportError as e:
         raise
     from ui.animations import start_breathing_effect
 
+
+NL2DRAW_SYSTEM_PROMPT = """
+你是一个名为 MathLab 的高级数学计算与几何绘图助理。
+除了回答常规数学问题，你还可以通过输出特定的 JSON 指令，直接在用户的画布上绘图！
+
+如果用户的请求包含明确的【画图、绘制、添加】等意图，你必须在回答的末尾，附带一个纯净的 Markdown JSON 代码块，里面是一个指令数组。
+支持的指令 cmd 包括： 'add_point', 'add_circle', 'add_polygon', 'add_segment'
+
+注意：
+1. 坐标和距离如果没有指定，请运用几何常识合理分配数值，保证图形美观在视野中央。
+2. 务必使用 ```json ... ``` 标签包裹指令数组。
+
+示例场景：用户说"帮我画一个直角三角形"
+你的回答应该是：
+好，我已经为您在画布上绘制了一个直角三角形。
+```json
+[
+  {"cmd": "add_point", "name": "A", "x": 0, "y": 0},
+  {"cmd": "add_point", "name": "B", "x": 4, "y": 0},
+  {"cmd": "add_point", "name": "C", "x": 0, "y": 3},
+  {"cmd": "add_polygon", "points": ["A", "B", "C"]}
+]
+```
+"""
+
 class AIToolsPanel(QDockWidget):
     fit_requested = Signal(list, str, dict)
     cluster_requested = Signal(list, str, dict)
@@ -497,7 +522,7 @@ class AIToolsPanel(QDockWidget):
 
         enhanced_prompt = user_text + live_context
         
-        sys_prompt = "你是一个名为 MathLab 的高级数学与编程助教。请尽量使用清晰的 Markdown 格式回答。遇到公式请使用 LaTeX。对于代码解释尽量详细且易懂。"
+        sys_prompt = "你是一个名为 MathLab 的高级数学与编程助教。请尽量使用清晰的 Markdown 格式回答。遇到公式请使用 LaTeX。对于代码解释尽量详细且易懂。\n" + NL2DRAW_SYSTEM_PROMPT
         if system_context:
             import json
             sys_prompt += f"\n系统上下文: {json.dumps(system_context, ensure_ascii=False)}"
@@ -559,15 +584,53 @@ class AIToolsPanel(QDockWidget):
                 from ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
             
+        self.parse_and_execute_draw_commands(self._current_response)
+        
+        # 将 JSON 块在渲染前抹掉
+        cleaned_response = re.sub(r'```json\s*\[\s*\{.*?\}\s*\]\s*```', '', self._current_response, flags=re.DOTALL | re.IGNORECASE)
+            
         # 重新渲染为 Markdown
-        final_html = markdown.markdown(self._current_response, extensions=['fenced_code', 'tables'])
-        # 由于流式传输是插入的纯文本，最完美的做法是：记录用户的完整历史，并在完成时清空 QTextBrowser 然后完整 append HTML
-        # 这里为了稳妥，我们在末尾追加一条分割线
+        final_html = markdown.markdown(cleaned_response, extensions=['fenced_code', 'tables'])
+        
         self.chat_display.append("<br><hr>")
         
-        # 将进度滚动到底部
         scrollbar = self.chat_display.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+    def parse_and_execute_draw_commands(self, text):
+        match = re.search(r'```json\s*(\[\s*\{.*?\}\s*\])\s*```', text, flags=re.DOTALL | re.IGNORECASE)
+        if match:
+            json_str = match.group(1)
+            try:
+                import json
+                commands = json.loads(json_str)
+                main_window = self.window()
+                if hasattr(main_window, 'geometry_engine'):
+                    self._execute_geometry_commands(main_window.geometry_engine, commands)
+                    self.chat_display.append("<i style='color: #27AE60;'>✨ 魔法触发：已自动为您绘制该图形！</i>")
+            except Exception as e:
+                print(f"NL2Draw JSON 解析或执行失败: {e}")
+
+    def _execute_geometry_commands(self, engine, commands: list):
+        for cmd in commands:
+            op = cmd.get("cmd")
+            # 兼容防幻觉重命名
+            if op == "draw_point": op = "add_point"
+            if op == "draw_circle": op = "add_circle"
+            if op == "draw_segment": op = "add_segment"
+            if op == "draw_polygon": op = "add_polygon"
+            
+            try:
+                if op == "add_point":
+                    engine.add_point(cmd.get("x", 0), cmd.get("y", 0), cmd.get("name"))
+                elif op == "add_circle":
+                    engine.add_circle(cmd["center"], cmd.get("radius", 1))
+                elif op == "add_polygon":
+                    engine.add_polygon(cmd["points"])
+                elif op == "add_segment":
+                    engine.add_segment(cmd["p1"], cmd["p2"])
+            except Exception as e:
+                print(f"执行指令 {op} 失败: {e}")
 
     def on_request_error(self, error_msg: str):
         self.chat_display.append(f"<span style='color: #dc2626;'><b>❌ {t('ai_tools.error')}:</b> {error_msg}</span><hr>")
