@@ -62,6 +62,7 @@ class GeometricObject:
         self.symbolic_expr = None
         self.constraints = []
         self.depends_on = []
+        self.is_draft = False
     
     def update_coordinates(self, engine=None):
         pass
@@ -80,7 +81,8 @@ class GeometricObject:
             'coordinates': self.coordinates,
             'symbolic_expr': str(self.symbolic_expr) if self.symbolic_expr else None,
             'constraints': [str(c) for c in self.constraints],
-            'depends_on': self.depends_on
+            'depends_on': self.depends_on,
+            'is_draft': getattr(self, 'is_draft', False)
         }
     
     @classmethod
@@ -1195,6 +1197,29 @@ class GeometryEngine:
         self.listeners = []
         self._signals_blocked = False
         self.cas_provider = None
+        self.is_draft_mode = False
+        self.draft_ids = []
+
+    def begin_draft(self):
+        self.is_draft_mode = True
+        self.draft_ids = []
+
+    def commit_draft(self):
+        self.is_draft_mode = False
+        for obj_id in self.draft_ids:
+            obj = self.objects.get(obj_id)
+            if obj:
+                obj.is_draft = False
+                self._notify('object_updated', obj.serialize())
+        self.draft_ids.clear()
+
+    def discard_draft(self):
+        self.is_draft_mode = False
+        # Remove in reverse dependency order
+        for obj_id in reversed(self.draft_ids):
+            if obj_id in self.objects:
+                self.remove_object(obj_id)
+        self.draft_ids.clear()
     
     def set_cas_provider(self, cas_provider):
         self.cas_provider = cas_provider
@@ -1224,6 +1249,17 @@ class GeometryEngine:
     def _notify(self, event_type, data):
         if self._signals_blocked:
             return
+            
+        if event_type == 'object_added' and getattr(self, 'is_draft_mode', False):
+            obj_id = data.get('id')
+            if obj_id:
+                obj = self.objects.get(obj_id)
+                if obj:
+                    obj.is_draft = True
+                    data['is_draft'] = True
+                    if obj_id not in self.draft_ids:
+                        self.draft_ids.append(obj_id)
+
         for listener in self.listeners:
             listener(event_type, data)
     

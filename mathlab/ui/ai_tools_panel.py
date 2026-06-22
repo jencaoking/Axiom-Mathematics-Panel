@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QTabWidget, QPushButton, QComboBox, QSpinBox,
     QLabel, QGraphicsView, QGraphicsScene,
     QGraphicsEllipseItem, QGraphicsLineItem,
-    QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit
+    QProgressBar, QPlainTextEdit, QTextBrowser, QLineEdit, QFrame
 )
 
 try:
@@ -265,6 +265,33 @@ class AIToolsPanel(QDockWidget):
         self.assistant_layout.addLayout(provider_layout)
         self.assistant_layout.addWidget(self.chat_display)
         self.assistant_layout.addLayout(input_layout)
+
+        # --- ✨ 核心新增：全局状态可视化栏 ---
+        self.status_bar = QFrame()
+        self.status_bar.setStyleSheet("""
+            QFrame {
+                background-color: #007ACC;
+                color: white;
+                border-top: 1px solid #005A9E;
+            }
+            QLabel { font-size: 11px; font-family: Consolas, monospace; padding: 2px; }
+        """)
+        self.status_bar.setFixedHeight(24)
+        
+        status_layout = QHBoxLayout(self.status_bar)
+        status_layout.setContentsMargins(10, 0, 10, 0)
+        
+        self.agent_label = QLabel("🟢 几何专家 (@geometry)")
+        self.action_label = QLabel("💤 就绪")
+        self.token_label = QLabel("⚡ 0 Tokens")
+        
+        status_layout.addWidget(self.agent_label)
+        status_layout.addStretch()
+        status_layout.addWidget(self.action_label)
+        status_layout.addStretch()
+        status_layout.addWidget(self.token_label)
+        
+        self.assistant_layout.addWidget(self.status_bar)
 
         self.tab_widget.addTab(self.assistant_tab, t('ai_tools.ai_assistant'))
 
@@ -592,9 +619,17 @@ class AIToolsPanel(QDockWidget):
                 commands = args_dict.get("commands", [])
                 if not commands and "cmd" in args_dict:
                     commands = [args_dict] # 兼容防幻觉单命令调用
+                
+                # 1. 强制开启草稿模式
+                if hasattr(main_window.geometry_engine, 'begin_draft'):
+                    main_window.geometry_engine.begin_draft()
                     
                 # 💡 切断瞬间传送，激活双光标协作模式！
                 main_window.central_widget.execute_commands_with_animation(main_window.geometry_engine, commands)
+                
+                # 3. 在聊天框渲染【审查卡片】
+                self._render_draft_review_card()
+                
                 magic_html = "<div style='color: #0078D7;'><i>✨ AI 助教正在您的画板上绘制...</i></div><br>"
                 self.chat_display.append(magic_html)
         elif tool_name == "highlight_geometry_elements":
@@ -608,6 +643,44 @@ class AIToolsPanel(QDockWidget):
                     self.chat_display.append(magic_html)
             except Exception as e:
                 print(f"高亮指令执行失败: {e}")
+
+    def _render_draft_review_card(self):
+        card_widget = QWidget()
+        card_layout = QHBoxLayout(card_widget)
+        card_layout.setContentsMargins(10, 5, 10, 5)
+        
+        msg_label = QLabel("✨ AI 画好了一个草稿图，是否采纳？")
+        msg_label.setStyleSheet("color: #0078D7; font-weight: bold;")
+        
+        btn_accept = QPushButton("✅ 采纳")
+        btn_accept.setStyleSheet("background-color: #E8F5E9; border: 1px solid #4CAF50; border-radius: 4px; padding: 4px 8px;")
+        
+        btn_discard = QPushButton("❌ 撤销")
+        btn_discard.setStyleSheet("background-color: #FFEBEE; border: 1px solid #F44336; border-radius: 4px; padding: 4px 8px;")
+        
+        card_layout.addWidget(msg_label)
+        card_layout.addStretch()
+        card_layout.addWidget(btn_accept)
+        card_layout.addWidget(btn_discard)
+        
+        self.card_layout.addWidget(card_widget)
+        
+        def on_accept():
+            main_window = self.window()
+            if hasattr(main_window, 'geometry_engine') and hasattr(main_window.geometry_engine, 'commit_draft'):
+                main_window.geometry_engine.commit_draft()
+            card_widget.deleteLater()
+            self.chat_display.append("<div style='color: #27AE60;'><i>[系统] 您已采纳 AI 的画图方案。</i></div><br>")
+            
+        def on_discard():
+            main_window = self.window()
+            if hasattr(main_window, 'geometry_engine') and hasattr(main_window.geometry_engine, 'discard_draft'):
+                main_window.geometry_engine.discard_draft()
+            card_widget.deleteLater()
+            self.chat_display.append("<div style='color: #E74C3C;'><i>[系统] 草稿已撤销。</i></div><br>")
+            
+        btn_accept.clicked.connect(on_accept)
+        btn_discard.clicked.connect(on_discard)
 
     def _execute_geometry_commands(self, engine, commands: list):
         for cmd in commands:
@@ -647,13 +720,26 @@ class AIToolsPanel(QDockWidget):
         if state == AIState.THINKING:
             self.send_button.setText("🤔 AI 正在思考...")
             self.send_button.setEnabled(False)
+            self.action_label.setText("🤔 正在思考数学逻辑...")
+            self.status_bar.setStyleSheet("background-color: #D68A00; color: white;")
         elif state == AIState.GENERATING:
             self.send_button.setText("✍️ 正在打字...")
+            self.action_label.setText("✍️ 正在生成讲解...")
+            self.status_bar.setStyleSheet("background-color: #007ACC; color: white;")
         elif state == AIState.EXECUTING_TOOL:
             self.send_button.setText("⚙️ 正在呼叫魔法画笔...")
-        elif state in (AIState.FINISHED, AIState.ERROR, AIState.IDLE):
+            self.action_label.setText("⚙️ 正在调用魔法画笔...")
+            self.status_bar.setStyleSheet("background-color: #27AE60; color: white;")
+        elif state == AIState.ERROR:
             self.send_button.setText(t('ai_tools.send'))
             self.send_button.setEnabled(True)
+            self.action_label.setText("❌ 连接异常")
+            self.status_bar.setStyleSheet("background-color: #E74C3C; color: white;")
+        elif state in (AIState.FINISHED, AIState.IDLE):
+            self.send_button.setText(t('ai_tools.send'))
+            self.send_button.setEnabled(True)
+            self.action_label.setText("💤 就绪")
+            self.status_bar.setStyleSheet("background-color: #007ACC; color: white;")
 
     def _on_usage_reported(self, prompt_tokens, completion_tokens):
         total = prompt_tokens + completion_tokens
@@ -666,3 +752,4 @@ class AIToolsPanel(QDockWidget):
         </div>
         """
         self.chat_display.append(usage_html)
+        self.token_label.setText(f"⚡ {total} Tokens")

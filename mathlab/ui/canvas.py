@@ -641,6 +641,7 @@ class GeometryCanvas(QGraphicsView):
     # ------------------------------------------------------------------
     def draw_object(self, obj_id, obj_data):
         obj_type = obj_data.get('type')
+        is_draft = obj_data.get('is_draft', False)
 
         if obj_type == 'Point':
             x    = obj_data['coordinates'].get('x', 0)
@@ -649,8 +650,14 @@ class GeometryCanvas(QGraphicsView):
 
             point_item = GeometryPointItem(-5, -5, 10, 10, obj_id, self)
             point_item.setPos(x, y)
-            point_item.setBrush(QBrush(QColor('#004ac6')))
-            point_item.setPen(QPen(QColor('#004ac6'), 1))
+            
+            if is_draft:
+                point_item.setBrush(QBrush(QColor(0, 120, 215, 100)))
+                point_item.setPen(QPen(QColor(0, 120, 215), 1, Qt.DashLine))
+                point_item.setOpacity(0.6)
+            else:
+                point_item.setBrush(QBrush(QColor('#004ac6')))
+                point_item.setPen(QPen(QColor('#004ac6'), 1))
             point_item.setZValue(10)
 
             # 使用 MathGraphicsItem 替代 QGraphicsTextItem，支持 LaTeX 渲染
@@ -670,7 +677,12 @@ class GeometryCanvas(QGraphicsView):
             y2 = obj_data['coordinates'].get('y2', 0)
 
             segment_item = QGraphicsLineItem(x1, y1, x2, y2)
-            segment_item.setPen(QPen(QColor('#4b41e1'), 2))
+            
+            if is_draft:
+                segment_item.setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                segment_item.setOpacity(0.6)
+            else:
+                segment_item.setPen(QPen(QColor('#4b41e1'), 2))
             segment_item.setFlags(QGraphicsItem.ItemIsSelectable)
 
             self.scene_obj.addItem(segment_item)
@@ -682,7 +694,12 @@ class GeometryCanvas(QGraphicsView):
             r  = obj_data['coordinates'].get('r', 1)
 
             circle_item = QGraphicsEllipseItem(cx - r, cy - r, r * 2, r * 2)
-            circle_item.setPen(QPen(QColor('#006058'), 2))
+            
+            if is_draft:
+                circle_item.setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                circle_item.setOpacity(0.6)
+            else:
+                circle_item.setPen(QPen(QColor('#006058'), 2))
             circle_item.setBrush(QBrush(Qt.NoBrush))
             circle_item.setFlags(QGraphicsItem.ItemIsSelectable)
 
@@ -698,8 +715,14 @@ class GeometryCanvas(QGraphicsView):
             for point in points:
                 polygon.append(QPointF(point[0], point[1]))
             polygon_item.setPolygon(polygon)
-            polygon_item.setPen(QPen(QColor('#9333ea'), 2))
-            polygon_item.setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
+            
+            if is_draft:
+                polygon_item.setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                polygon_item.setBrush(QBrush(QColor(0, 120, 215, 50)))
+                polygon_item.setOpacity(0.6)
+            else:
+                polygon_item.setPen(QPen(QColor('#9333ea'), 2))
+                polygon_item.setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
             polygon_item.setFlags(QGraphicsItem.ItemIsSelectable)
 
             self.scene_obj.addItem(polygon_item)
@@ -733,7 +756,11 @@ class GeometryCanvas(QGraphicsView):
             }
             color = color_map.get(obj_type, QColor('#004ac6'))
             
-            curve_item = self.scene_obj.addPath(path, QPen(color, 2), QBrush(Qt.NoBrush))
+            if is_draft:
+                curve_item = self.scene_obj.addPath(path, QPen(QColor(0, 120, 215), 2.0, Qt.DashLine), QBrush(Qt.NoBrush))
+                curve_item.setOpacity(0.6)
+            else:
+                curve_item = self.scene_obj.addPath(path, QPen(color, 2), QBrush(Qt.NoBrush))
             curve_item.setFlags(QGraphicsItem.ItemIsSelectable)
             
             self.object_map[obj_id] = {'curve': curve_item}
@@ -745,6 +772,7 @@ class GeometryCanvas(QGraphicsView):
             return
 
         obj_type = obj_data.get('type')
+        is_draft = obj_data.get('is_draft', False)
         obj_info = self.object_map[obj_id]
 
         if obj_type == 'Point':
@@ -752,6 +780,14 @@ class GeometryCanvas(QGraphicsView):
             y = obj_data['coordinates'].get('y', 0)
 
             obj_info['point'].setPos(x, y)
+            if is_draft:
+                obj_info['point'].setBrush(QBrush(QColor(0, 120, 215, 100)))
+                obj_info['point'].setPen(QPen(QColor(0, 120, 215), 1, Qt.DashLine))
+                obj_info['point'].setOpacity(0.6)
+            else:
+                obj_info['point'].setBrush(QBrush(QColor('#004ac6')))
+                obj_info['point'].setPen(QPen(QColor('#004ac6'), 1))
+                obj_info['point'].setOpacity(1.0)
             
             # [P0修复 Bug3] 同步更新关联的文本图元内容
             text_item = obj_info.get('text')
@@ -771,6 +807,12 @@ class GeometryCanvas(QGraphicsView):
             y2 = obj_data['coordinates'].get('y2', 0)
 
             obj_info['segment'].setLine(x1, y1, x2, y2)
+            if is_draft:
+                obj_info['segment'].setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                obj_info['segment'].setOpacity(0.6)
+            else:
+                obj_info['segment'].setPen(QPen(QColor('#4b41e1'), 2))
+                obj_info['segment'].setOpacity(1.0)
 
         elif obj_type == 'Circle':
             cx = obj_data['coordinates'].get('cx', 0)
@@ -778,6 +820,12 @@ class GeometryCanvas(QGraphicsView):
             r  = obj_data['coordinates'].get('r', 1)
 
             obj_info['circle'].setRect(cx - r, cy - r, r * 2, r * 2)
+            if is_draft:
+                obj_info['circle'].setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                obj_info['circle'].setOpacity(0.6)
+            else:
+                obj_info['circle'].setPen(QPen(QColor('#006058'), 2))
+                obj_info['circle'].setOpacity(1.0)
 
         elif obj_type == 'Polygon':
             points = obj_data.get('points', [])
@@ -785,6 +833,14 @@ class GeometryCanvas(QGraphicsView):
             for point in points:
                 polygon.append(QPointF(point[0], point[1]))
             obj_info['polygon'].setPolygon(polygon)
+            if is_draft:
+                obj_info['polygon'].setPen(QPen(QColor(0, 120, 215), 2.0, Qt.DashLine))
+                obj_info['polygon'].setBrush(QBrush(QColor(0, 120, 215, 50)))
+                obj_info['polygon'].setOpacity(0.6)
+            else:
+                obj_info['polygon'].setPen(QPen(QColor('#9333ea'), 2))
+                obj_info['polygon'].setBrush(QBrush(QColor('#9333ea'), Qt.Dense4Pattern))
+                obj_info['polygon'].setOpacity(1.0)
 
         # 新增：更新曲线对象
         elif obj_type in ['Ellipse', 'Hyperbola', 'Parabola', 'ConicSection', 
