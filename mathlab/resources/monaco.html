@@ -76,6 +76,27 @@
                 console.error("解析错误诊断信息失败:", e);
             }
         }
+
+        // 清空当前代码并准备接收 AI 流
+        function clearForAIFix() {
+            window.mathEditor.editor.setValue("");
+        }
+
+        // 流式追加代码 (打字机效果)
+        function appendEditorContent(chunk) {
+            const model = window.mathEditor.editor.getModel();
+            const lineCount = model.getLineCount();
+            const lastLineLength = model.getLineMaxColumn(lineCount);
+            
+            // 在文档末尾插入文本
+            model.applyEdits([{
+                range: new monaco.Range(lineCount, lastLineLength, lineCount, lastLineLength),
+                text: chunk
+            }]);
+            
+            // 滚动到最底部，保持视觉跟随
+            window.mathEditor.editor.revealLine(model.getLineCount());
+        }
     </script>
 </body>
 </html>
