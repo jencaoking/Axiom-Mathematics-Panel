@@ -8,6 +8,8 @@ dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
+import os
+os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
 import clr
 try:
     clr.AddReference("MathLab.CSharpEngine")
