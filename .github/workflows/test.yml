@@ -27,6 +27,17 @@ jobs:
       - name: Build MathLab C# Engine
         run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Webpack Frontend
+        run: |
+          cd mathlab/resources/web_src
+          npm install
+          npm run build
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -47,8 +58,8 @@ jobs:
 
       - name: Run tests (Windows / macOS)
         if: runner.os != 'Linux'
-        run: pytest test_geometry.py test_ai_core.py -v
+        run: pytest -v
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pytest test_geometry.py test_ai_core.py -v
+        run: xvfb-run --auto-servernum pytest -v

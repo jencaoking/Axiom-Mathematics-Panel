@@ -6,6 +6,9 @@ block_cipher = None
 added_files = [
     ('mathlab/resources/chat_renderer.html', 'mathlab/resources'),
     ('mathlab/config/prompts.yaml', 'mathlab/config'),
+    ('mathlab/resources/monaco.html', 'mathlab/resources'),
+    ('mathlab/resources/dist/*', 'mathlab/resources/dist'),
+    ('MathLab.CSharpEngine/bin/Release/netstandard2.0/*.dll', 'MathLab.CSharpEngine/bin/Release/netstandard2.0'),
     # 若有本地图标，请取消下方注释
     # ('mathlab/resources/icon.ico', 'mathlab/resources')
 ]
