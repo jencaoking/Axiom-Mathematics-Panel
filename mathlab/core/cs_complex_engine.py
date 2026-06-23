@@ -87,5 +87,49 @@ class CsComplexEngine:
         
         return image_rgb
 
+    def generate_smooth_mandelbrot(self, x_min, x_max, y_min, y_max, width, height, max_iter=256):
+        """
+        接收 C# 的平滑浮点数据，并渲染出无断层的极致分形图象
+        """
+        import System
+        
+        # 1. 呼叫 C# 引擎 (新增的 Smooth 方法)
+        # 返回的是 System.Single[] (float[])
+        res_flat = self._engine.GenerateMandelbrotSmooth(
+            float(x_min), float(x_max), float(y_min), float(y_max), 
+            int(width), int(height), int(max_iter)
+        )
+        
+        # 2. 转换为 Numpy float32 矩阵
+        iter_array = np.array(list(res_flat), dtype=np.float32)
+        iter_matrix = iter_array.reshape((height, width))
+        
+        # 3. 极致调色盘 (Smooth Color Palette)
+        image_rgb = np.zeros((height, width, 3), dtype=np.uint8)
+        mask = iter_matrix < max_iter
+        
+        # 提取浮点数值
+        smooth_iter = iter_matrix[mask]
+        
+        # 使用基于余弦映射的调色盘 (Cosine Palette)
+        # 色彩公式: Color = a + b * cos(2pi * (c * t + d))
+        # 这是一种可以在数学上保证颜色平滑过渡的专业分形着色技术
+        
+        # 调整这些频率和相位因子可以改变分形的整体色调
+        freq = 0.05
+        
+        # 霓虹电音风格 (Cyberpunk / Neon)
+        r = np.cos(freq * smooth_iter + 0.0) * 127 + 128
+        g = np.cos(freq * smooth_iter + 0.3) * 127 + 128
+        b = np.cos(freq * smooth_iter + 0.6) * 127 + 128
+        
+        image_rgb[mask, 0] = r.astype(np.uint8)
+        image_rgb[mask, 1] = g.astype(np.uint8)
+        image_rgb[mask, 2] = b.astype(np.uint8)
+        
+        # 内部(逃逸失败的点)保持纯黑
+        
+        return image_rgb
+
 # 全局单例
 cs_complex = CsComplexEngine()

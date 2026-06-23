@@ -44,7 +44,7 @@ class FractalExplorer(QWidget):
 
     def _render_mandelbrot(self):
         # 静态 Mandelbrot，直接同步渲染即可，只执行一次
-        rgb_matrix = cs_complex.generate_mandelbrot_image(
+        rgb_matrix = cs_complex.generate_smooth_mandelbrot(
             self.m_xmin, self.m_xmax, self.m_ymin, self.m_ymax, 
             self.img_w, self.img_h
         )

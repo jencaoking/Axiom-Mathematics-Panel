@@ -59,7 +59,7 @@ class ComplexPanel(QWidget):
         
     def _render_task(self, x_min, x_max, y_min, y_max, width, height, max_iter):
         """此方法在子线程 (QThreadPool) 中执行，吃满 CPU 进行高强度复数计算"""
-        rgb_matrix = cs_complex.generate_mandelbrot_image(
+        rgb_matrix = cs_complex.generate_smooth_mandelbrot(
             x_min, x_max, y_min, y_max, width, height, max_iter=max_iter
         )
         return rgb_matrix, width, height

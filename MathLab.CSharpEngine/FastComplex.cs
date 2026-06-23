@@ -98,5 +98,60 @@ namespace MathLab.CSharpEngine
 
             return result;
         }
+
+        public float[] GenerateMandelbrotSmooth(double xMin, double xMax, double yMin, double yMax, int width, int height, int maxIterations)
+        {
+            float[] result = new float[width * height];
+            double dx = (xMax - xMin) / (width - 1);
+            double dy = (yMax - yMin) / (height - 1);
+
+            // 逃逸半径的平方加大，半径越大，平滑对数计算越精准。这里设 R=100，R^2=10000
+            const double EscapeRadiusSq = 10000.0;
+            const double Log2 = 0.6931471805599453; // 预计算 ln(2) 极速常量
+
+            Parallel.For(0, height, y =>
+            {
+                double cImag = yMax - y * dy;
+                int rowOffset = y * width;
+
+                for (int x = 0; x < width; x++)
+                {
+                    double cReal = xMin + x * dx;
+                    double zReal = cReal;
+                    double zImag = cImag;
+                    int iter = 0;
+
+                    double zReal2 = zReal * zReal;
+                    double zImag2 = zImag * zImag;
+
+                    while (zReal2 + zImag2 <= EscapeRadiusSq && iter < maxIterations)
+                    {
+                        zImag = 2 * zReal * zImag + cImag;
+                        zReal = zReal2 - zImag2 + cReal;
+                        zReal2 = zReal * zReal;
+                        zImag2 = zImag * zImag;
+                        iter++;
+                    }
+
+                    if (iter < maxIterations)
+                    {
+                        // 【魔法时刻】连续逃逸时间微积分平滑公式
+                        // modulus = sqrt(zReal2 + zImag2) -> ln(modulus) = 0.5 * ln(zReal2 + zImag2)
+                        double log_zn = Math.Log(zReal2 + zImag2) / 2.0;
+                        double nu = Math.Log(log_zn / Log2) / Log2;
+                        
+                        // 保存为浮点数：使得颜色从离散的阶梯变成了平滑的斜坡
+                        result[rowOffset + x] = (float)(iter + 1 - nu);
+                    }
+                    else
+                    {
+                        // 集合内部（未逃逸）
+                        result[rowOffset + x] = (float)maxIterations;
+                    }
+                }
+            });
+
+            return result;
+        }
     }
 }
