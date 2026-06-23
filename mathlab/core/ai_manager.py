@@ -529,55 +529,124 @@ class AIManager(QObject):
 
 
 from mathlab.core.ai_tools import execute_math_task
+from mathlab.core.skill_manager import SkillLibrary
+import threading
 
 class MathAgent:
-    def __init__(self, model="gpt-4o"):
+    def __init__(self, ai_manager, model="deepseek-chat"):
+        self.ai_manager = ai_manager
         self.model = model
-        self.max_retries = 3
+        self.max_steps = 5
+        self.skill_lib = SkillLibrary() # 实例化本地技能库
 
-    def _llm_generate_code(self, prompt):
-        # 这是一个供参考的占位符，实际可以调用全局的 AIManager.ask 进行同步等待
-        # 此处使用简单的桩代码演示
-        # 真正使用时可以通过 self.client 调用 openai 接口
-        return """
-import numpy as np
-import matplotlib.pyplot as plt
+    def _llm_generate_code(self, messages):
+        # 真正使用时通过 ai_manager.client 调用大模型接口
+        try:
+            response = self.ai_manager.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.1
+            )
+            suggestion = response.choices[0].message.content if response.choices else ""
+            suggestion = suggestion.replace("```python\n", "").replace("\n```", "").replace("```", "")
+            return suggestion
+        except Exception as e:
+            print(f"LLM Generate Code Error: {e}")
+            return "print('Error generating code')"
 
-x = np.linspace(0, 2, 100)
-y = np.sin(x**2)
-plt.plot(x, y)
-plt.show()
-
-# 计算面积
-from scipy.integrate import quad
-area, _ = quad(lambda x: np.sin(x**2), 0, 2)
-print(f"面积为: {area}")
-"""
-
-    def solve_problem(self, user_prompt: str):
-        print(f"Agent 思考中: {user_prompt}")
-        
-        # 初始 Prompt：设定 Agent 的角色为数学专家
-        prompt = f"""你是一个高级数学科研助手。请编写 Python 代码解决以下问题: {user_prompt}
-        规则: 
-        1. 使用 sympy 和 matplotlib 库。
-        2. 只返回可执行的代码块，不要包含 Markdown 解释。
-        """
-        
-        for attempt in range(self.max_retries):
-            # 1. 向 LLM 请求代码
-            code = self._llm_generate_code(prompt)
+    def solve_problem(self, user_prompt: str, on_thought_cb=None, on_code_cb=None, on_finish_cb=None):
+        # ============== 1. RAG 检索阶段 ==============
+        if on_thought_cb:
+            on_thought_cb("🔍 正在检索本地技能库记忆...")
             
-            # 2. 执行代码
-            execution_result = json.loads(execute_math_task(code))
+        relevant_skills = self.skill_lib.retrieve_relevant_skills(user_prompt)
+        skill_context = ""
+        if relevant_skills:
+            skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"
+            for s in relevant_skills:
+                skill_context += f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
+            if on_thought_cb:
+                on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
+
+        # 将 RAG 内容动态注入到 System Prompt
+        system_prompt = f"""你是一个资深的数学科研助手与高级 Python 程序员。
+请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。
+{skill_context}
+不要输出多余的 Markdown，必须且只能将代码写在 ```python 块中。"""
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"任务：{user_prompt}"}
+        ]
+
+        for step in range(self.max_steps):
+            if on_thought_cb:
+                on_thought_cb(f"⚙️ 正在生成代码 (第 {step+1} 次尝试)...")
             
-            if execution_result["status"] == "ok":
-                print("任务执行成功！")
-                return {"status": "ok", "code": code, "result": execution_result["output"]}
+            code_content = self._llm_generate_code(messages)
+            
+            if on_code_cb:
+                on_code_cb(code_content)
+            
+            # 执行代码
+            try:
+                execution_result_str = execute_math_task(code_content)
+                if isinstance(execution_result_str, dict):
+                    execution_result = execution_result_str
+                else:
+                    execution_result = json.loads(execution_result_str)
+            except Exception as e:
+                execution_result = {"status": "error", "error": str(e)}
+                
+            if execution_result.get("status") == "ok":
+                if on_thought_cb:
+                    on_thought_cb(f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}")
+                
+                # ============== 2. 触发后台“自我提炼”机制 ==============
+                threading.Thread(
+                    target=self._reflect_and_save_skill, 
+                    args=(user_prompt, code_content), 
+                    daemon=True
+                ).start()
+                
+                if on_finish_cb:
+                    on_finish_cb(True, code_content)
+                return {"status": "ok", "code": code_content, "result": execution_result.get("output", "")}
             else:
-                # 3. 自我修正循环：将错误反馈给 AI，要求修正
-                print(f"代码报错 (第 {attempt+1} 次尝试), 正在修正...")
-                prompt = f"之前的代码报错了: {execution_result['error']}。请修正它并重新提供代码。"
+                error_msg = execution_result.get("error", "未知错误")
+                if on_thought_cb:
+                    on_thought_cb(f"❌ 代码报错 (第 {step+1} 次尝试), 正在修正...\n报错内容: {error_msg}")
+                
+                # 将报错信息加入对话历史，让 AI 修正
+                messages.append({"role": "assistant", "content": f"```python\n{code_content}\n```"})
+                messages.append({"role": "user", "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。"})
         
+        if on_finish_cb:
+            on_finish_cb(False, "超出最大重试次数")
         return {"status": "failed", "error": "超出最大重试次数"}
+
+    def _reflect_and_save_skill(self, original_prompt, raw_code):
+        """后台静默运行：让大模型把刚刚跑通的特定业务代码，抽象为通用函数库"""
+        reflection_prompt = f"""
+以下代码成功解决了任务：“{original_prompt}”。
+请你将这段代码进行“抽象和提炼”，将其封装成一个或多个通用的 Python 函数，剥离掉与特定题目相关的硬编码数字，并加上中文注释。
+
+你必须严格按照以下 JSON 格式返回，不要包含其他任何文本：
+{{
+    "intent": "一句话描述这个通用函数解决什么问题（例如：求两条曲线的交点并绘制）",
+    "abstract_code": "def your_function():\\n    ..."
+}}
+"""
+        try:
+            response = self.ai_manager.client.chat.completions.create(
+                model=self.ai_manager.current_model,
+                messages=[{"role": "user", "content": reflection_prompt}],
+                response_format={"type": "json_object"} # 强制要求返回 JSON
+            )
+            result_json = json.loads(response.choices[0].message.content)
+            
+            # 存入本地知识库
+            self.skill_lib.save_skill(result_json["intent"], result_json["abstract_code"])
+        except Exception as e:
+            print(f"技能提炼失败 (后台线程): {e}")
 
