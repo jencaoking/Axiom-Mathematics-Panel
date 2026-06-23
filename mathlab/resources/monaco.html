@@ -1,143 +1,81 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>MathLab Monaco Editor</title>
+    <meta charset="utf-8">
+    <title>MathLab Advanced Editor</title>
     <style>
-        html, body, #container { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #1e1e1e; }
+        /* 消除浏览器默认边距，让编辑器完美贴合 PySide6 窗口 */
+        html, body, #editor-container { 
+            width: 100%; 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background-color: #0f172a; /* 赛博朋克深沉底色 */
+        }
     </style>
+    
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    
+    <script src="./dist/mathlab_editor.bundle.js"></script>
 </head>
 <body>
-    <div id="container"></div>
-
-    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-    <script src="../monaco-editor/vs/loader.js"></script>
+    <div id="editor-container"></div>
     
     <script>
-        require.config({ paths: { 'vs': '../monaco-editor/vs' } });
+        // 当页面和打包文件都加载完毕后执行
+        window.onload = function() {
+            // 1. 初始化我们用 TypeScript 写的 MathLab 编辑器
+            if (window.initMathLabEditor) {
+                window.initMathLabEditor('editor-container');
+            } else {
+                console.error("编辑器引擎加载失败，请检查 mathlab_editor.bundle.js 是否正确打包。");
+            }
 
-        require(['vs/editor/editor.main'], function() {
-            
-            // 🌟 1. 注册专属的新语言 🌟
-            monaco.languages.register({ id: 'mathlab' });
-
-            // 🌟 2. 编写 Monarch 词法解析规则 🌟
-            monaco.languages.setMonarchTokensProvider('mathlab', {
-                // 基础流程控制关键字
-                keywords: [
-                    'function', 'end', 'if', 'else', 'elseif', 'while', 'for', 'return', 'break', 'continue'
-                ],
-                // 你的 NumEngine 和核心 API (专属高亮)
-                builtins: [
-                    'eig', 'svd', 'lu', 'chol', 'fft', 'ifft', 'plot',
-                    'zeros', 'ones', 'eye', 'linspace', 'find', 'size', 'length',
-                    'sin', 'cos', 'exp', 'pi', 'e'
-                ],
-                // 操作符 (包含 MATLAB 特色的逐元素运算和转置)
-                operators: [
-                    '=', '>', '<', '==', '<=', '>=', '~=', 
-                    '+', '-', '*', '/', '^', '.*', './', '.^', "'"
-                ],
-                
-                // 符号扫描定义
-                symbols:  /[=><!~?:&|+\-*\/\^%]+/,
-
-                // 扫描与分词逻辑
-                tokenizer: {
-                    root: [
-                        // 匹配标识符并分类
-                        [/[a-zA-Z_]\w*/, {
-                            cases: {
-                                '@keywords': 'keyword',           // 匹配到关键字
-                                '@builtins': 'type.identifier',   // 匹配到内置函数
-                                '@default': 'identifier'          // 普通变量名
-                            }
-                        }],
-                        
-                        // 空白与注释
-                        { include: '@whitespace' },
-                        
-                        // 数字 (支持浮点和科学计数)
-                        [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
-                        [/\d+/, 'number'],
-                        
-                        // 操作符分隔
-                        [/[{}()\[\]]/, '@brackets'],
-                        [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
-                        
-                        // 字符串 (使用双引号避免和转置操作符 ' 冲突)
-                        [/"([^"\\]|\\.)*$/, 'string.invalid'], 
-                        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' } ]
-                    ],
+            // 2. 建立与 Python (PySide6) 后端的双向通信
+            if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                    // 获取 Python 暴露过来的 backend 对象
+                    window.backend = channel.objects.backend;
                     
-                    whitespace: [
-                        [/[ \t\r\n]+/, 'white'],
-                        [/(^% .*$)/, 'comment'], // 支持 MATLAB 风格的 % 注释
-                        [/(^# .*$)/, 'comment'], // 支持 Python 风格的 # 注释
-                        [/% .*$/, 'comment'], // 补充：支持行内 MATLAB 风格的 % 注释
-                        [/# .*$/, 'comment'], // 补充：支持行内 Python 风格的 # 注释
-                    ],
-                    
-                    string: [
-                        [/[^\\"]+/, 'string'],
-                        [/\\./, 'string.escape.invalid'],
-                        [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' } ]
-                    ],
-                }
-            });
-
-            // 🌟 3. 定义 MathLab 专属深色主题 🌟
-            monaco.editor.defineTheme('mathlab-dark', {
-                base: 'vs-dark', // 继承基础暗色
-                inherit: true,
-                rules: [
-                    { token: 'keyword', foreground: 'C586C0', fontStyle: 'bold' },    // 关键字：紫色加粗
-                    { token: 'type.identifier', foreground: '4EC9B0', fontStyle: 'bold' }, // API/内置函数：青色亮眼
-                    { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },  // 注释：柔和绿色斜体
-                    { token: 'string', foreground: 'CE9178' },                        // 字符串：橘黄色
-                    { token: 'number', foreground: 'B5CEA8' },                        // 数字：浅绿色
-                    { token: 'operator', foreground: 'D4D4D4' }                       // 符号：亮灰色
-                ],
-                colors: {
-                    'editor.background': '#1e1e1e',             // 纯正极客背景
-                    'editorLineNumber.foreground': '#5A5A5A',   // 弱化行号颜色
-                    'editor.selectionBackground': '#264F78',    // 选中高亮颜色
-                    'editorCursor.foreground': '#007acc'        // 蓝色光标
-                }
-            });
-
-            // 🌟 4. 初始化编辑器并应用新语言与主题 🌟
-            window.editor = monaco.editor.create(document.getElementById('container'), {
-                value: '%INITIAL_CODE%',
-                language: '%INITIAL_LANGUAGE%',      // 使用传入的专属语言
-                theme: 'mathlab-dark',    // 使用专属配色
-                automaticLayout: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 15, // 字号稍微调大一点，适合看数学公式
-                fontFamily: "Consolas, 'Courier New', monospace",
-                lineHeight: 24, // 增加行高，提升代码呼吸感
-                renderLineHighlight: "all" // 高亮当前行
-            });
-
-            new QWebChannel(qt.webChannelTransport, function(channel) {
-                window.pyBridge = channel.objects.pyBridge;
-                
-                // 1. 监听 Shift+Enter (用于执行)
-                window.editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, function() {
-                    window.pyBridge.receiveCodeExecution(window.editor.getValue());
+                    // 3. 注册快捷键：拦截用户的 Ctrl+Enter 或 Cmd+Enter
+                    window.mathEditor.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                        let currentCode = window.mathEditor.getCode();
+                        
+                        // 呼叫 Python 后端去执行 Jupyter 沙盒代码！
+                        if (window.backend && window.backend.execute_code) {
+                            window.backend.execute_code(currentCode);
+                        }
+                    });
                 });
-                
-                // 2. 监听内容实时变化 (心跳同步，用于无损保存)
-                window.editor.onDidChangeModelContent(function() {
-                    window.pyBridge.receiveCodeSync(window.editor.getValue());
-                });
-            });
-        });
-
-        function setEditorValue(text) { if (window.editor) window.editor.setValue(text); }
-        function getEditorValue() { return window.editor ? window.editor.getValue() : ""; }
-        function setEditorLanguage(langId) { if (window.editor) monaco.editor.setModelLanguage(window.editor.getModel(), langId); }
+            } else {
+                console.warn("未检测到 Qt WebChannel 环境，当前处于纯前端预览模式。");
+            }
+        };
+        
+        // ==========================================
+        // 暴露给 Python 调用的全局 API (供 PySide6 调用)
+        // ==========================================
+        
+        // 读取代码
+        function getEditorContent() { 
+            return window.mathEditor.getCode(); 
+        }
+        
+        // 写入代码
+        function setEditorContent(text) { 
+            window.mathEditor.setCode(text); 
+        }
+        
+        // 设置错误红波浪线 (接收 JSON 字符串)
+        function setEditorErrors(errorsJson) { 
+            try {
+                let errors = JSON.parse(errorsJson);
+                window.mathEditor.setDiagnostics(errors);
+            } catch (e) {
+                console.error("解析错误诊断信息失败:", e);
+            }
+        }
     </script>
 </body>
 </html>
