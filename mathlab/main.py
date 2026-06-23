@@ -1,24 +1,49 @@
 import sys
 import os
 import platform
+import traceback
 
 # PyInstaller打包后路径处理
 if getattr(sys, 'frozen', False):
     # exe运行模式
     application_path = sys._MEIPASS
+    _CRASH_LOG_DIR = os.path.dirname(sys.executable)
 else:
     # 开发模式
     application_path = os.path.dirname(os.path.abspath(__file__))
+    _CRASH_LOG_DIR = application_path
 
 mathlab_dir = application_path
 sys.path.insert(0, os.path.dirname(mathlab_dir))
 
+
+def _write_crash_log(exc_type, exc_value, exc_tb):
+    """将启动阶段的致命错误写入崩溃日志（exe 同级目录），确保 console=False 时也能看到错误"""
+    crash_file = os.path.join(_CRASH_LOG_DIR, "crash.log")
+    tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    with open(crash_file, "w", encoding="utf-8") as f:
+        f.write("=" * 60 + "\n")
+        f.write(f"MathLab 启动崩溃报告\n")
+        f.write(f"Python: {sys.version}\n")
+        f.write(f"Platform: {sys.platform}\n")
+        f.write(f"Executable: {sys.executable}\n")
+        f.write("=" * 60 + "\n\n")
+        f.write(tb_str)
+    # 同时打印到 stderr（开发模式可见）
+    print(tb_str, file=sys.stderr)
+
+
 # ── 第一步：最早期初始化全局日志系统 ──────────────────────────────────────────
 # 必须在任何其他 mathlab 模块导入之前完成，确保所有初始化过程都被记录
-from mathlab.utils.logger import setup_logger, get_logger
-setup_logger()
-logger = get_logger(__name__)
-logger.info("日志系统初始化完毕，开始加载 MathLab 模块...")
+try:
+    from mathlab.utils.logger import setup_logger, get_logger
+    setup_logger()
+    logger = get_logger(__name__)
+    logger.info("日志系统初始化完毕，开始加载 MathLab 模块...")
+except Exception:
+    # 日志系统本身崩溃时，写崩溃日志并退出
+    _write_crash_log(*sys.exc_info())
+    sys.exit(1)
 
 from mathlab.core.error_manager import install_error_handler
 install_error_handler()
@@ -169,13 +194,14 @@ def main():
 
     except Exception as e:
         logger.critical("系统启动失败: %s", e, exc_info=True)
+        _write_crash_log(*sys.exc_info())
         sys.exit(1)
 
 
 if __name__ == '__main__':
     import multiprocessing
     multiprocessing.freeze_support()
-    
+
     # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
     if len(sys.argv) >= 2:
         # 拦截 Jupyter kernel 的启动 (-m ipykernel_launcher)
@@ -189,4 +215,9 @@ if __name__ == '__main__':
             runpy.run_path(sys.argv[1], run_name='__main__')
             sys.exit(0)
 
-    main()
+    # ── 最外层崩溃捕获：确保导入阶段或 main() 之前的错误也能被记录 ──
+    try:
+        main()
+    except Exception:
+        _write_crash_log(*sys.exc_info())
+        sys.exit(1)

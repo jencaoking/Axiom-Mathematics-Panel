@@ -1,6 +1,11 @@
-import jedi
 from collections import deque
 from mathlab.utils.logger import get_logger
+
+# jedi 用于代码补全，缺失时降级为无补全（不阻塞启动）
+try:
+    import jedi
+except ImportError:
+    jedi = None
 
 logger = get_logger(__name__)
 
@@ -85,6 +90,8 @@ class PythonREPL:
         :param line: 光标所在行号 (从 1 开始)
         :param column: 光标所在列号 (从 0 开始)
         """
+        if jedi is None:
+            return []
         try:
             # 沙箱模式下传入空命名空间，仅提供基础补全
             interpreter = jedi.Interpreter(code_str, namespaces=[{'__builtins__': __builtins__}])

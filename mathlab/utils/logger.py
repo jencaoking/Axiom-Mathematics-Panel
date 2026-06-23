@@ -17,11 +17,17 @@ import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
-# ── 日志目录：mathlab/logs/ ──────────────────────────────────────────────────
-LOG_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "logs"
-)
+# ── 日志目录：打包模式写到 exe 同级目录，开发模式写到 mathlab/logs/ ──────
+if getattr(sys, 'frozen', False):
+    # PyInstaller 打包模式：写到 exe 所在目录下的 logs/ 文件夹
+    _APP_DIR = os.path.dirname(sys.executable)
+    LOG_DIR = os.path.join(_APP_DIR, "logs")
+else:
+    # 开发模式：写到 mathlab/logs/
+    LOG_DIR = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "logs"
+    )
 
 # 主日志文件路径（供外部模块读取，如"打开日志目录"命令）
 LOG_FILE = os.path.join(LOG_DIR, "mathlab.log")

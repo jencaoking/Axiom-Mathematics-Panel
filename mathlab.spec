@@ -24,7 +24,9 @@ hidden_imports = [
     'jupyter_client.provisioning.local_provisioner',
     'markdown',
     'ipykernel',
-    'runpy'
+    'runpy',
+    'jedi',
+    'mathlab.ui.code_editor',
 ]
 
 a = Analysis(
