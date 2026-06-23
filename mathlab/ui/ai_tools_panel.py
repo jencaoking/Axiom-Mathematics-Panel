@@ -48,7 +48,7 @@ except ImportError as e:
     from ui.animations import start_breathing_effect
 
 from PySide6.QtCore import QThreadPool
-from mathlab.core.jupyter_manager import jupyter_sandbox
+from mathlab.core.jupyter_manager import get_jupyter_sandbox
 from mathlab.core.async_workers import TaskWorker
 
 
@@ -437,7 +437,7 @@ class AIToolsPanel(QDockWidget):
         self.set_loading_state(True)
         
         # 将任务推入线程池
-        worker = TaskWorker(jupyter_sandbox.execute_code, code, timeout=10)
+        worker = TaskWorker(get_jupyter_sandbox().execute_code, code, timeout=10)
         worker.signals.result.connect(self.on_execution_finished)
         QThreadPool.globalInstance().start(worker)
 
@@ -461,7 +461,7 @@ class AIToolsPanel(QDockWidget):
 
     def on_stop_training(self):
         self.output_area.append("Training stopped / Kernel Restarting...")
-        jupyter_sandbox.restart_kernel()
+        get_jupyter_sandbox().restart_kernel()
         self.set_loading_state(False)
 
     def on_drawing_press(self, event):

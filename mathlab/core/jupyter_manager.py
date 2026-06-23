@@ -93,4 +93,10 @@ class JupyterSandbox:
         self.km.shutdown_kernel(now=True)
 
 # 全局单例沙盒引擎
-jupyter_sandbox = JupyterSandbox()
+_jupyter_sandbox_instance = None
+
+def get_jupyter_sandbox():
+    global _jupyter_sandbox_instance
+    if _jupyter_sandbox_instance is None:
+        _jupyter_sandbox_instance = JupyterSandbox()
+    return _jupyter_sandbox_instance

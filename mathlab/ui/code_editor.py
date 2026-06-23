@@ -8,9 +8,9 @@ from PySide6.QtCore import QUrl, QObject, Slot, Signal, Qt
 from PySide6.QtWebChannel import QWebChannel
 
 try:
-    from mathlab.core.jupyter_manager import jupyter_sandbox
+    from mathlab.core.jupyter_manager import get_jupyter_sandbox
 except ImportError:
-    jupyter_sandbox = None
+    get_jupyter_sandbox = None
 
 class EditorBackend(QObject):
     execution_finished = Signal(dict)
@@ -25,11 +25,11 @@ class EditorBackend(QObject):
 
     @Slot(str)
     def execute_code(self, code):
-        if not jupyter_sandbox:
+        if not get_jupyter_sandbox:
             self.execution_finished.emit({"status": "error", "traceback": ["Jupyter 沙盒未就绪"]})
             return
 
-        result = jupyter_sandbox.execute_code(code, timeout=10)
+        result = get_jupyter_sandbox().execute_code(code, timeout=10)
         
         if 'text' in result:
             result['text'] = self._parse_sandbox_output(result['text'])

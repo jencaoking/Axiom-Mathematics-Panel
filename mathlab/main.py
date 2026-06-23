@@ -175,5 +175,18 @@ def main():
 if __name__ == '__main__':
     import multiprocessing
     multiprocessing.freeze_support()
-    main()
+    
+    # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
+    if len(sys.argv) >= 2:
+        # 拦截 Jupyter kernel 的启动 (-m ipykernel_launcher)
+        if sys.argv[1] == '-m' and len(sys.argv) >= 3 and sys.argv[2] == 'ipykernel_launcher':
+            from ipykernel import kernelapp
+            kernelapp.launch_new_instance()
+            sys.exit(0)
+        # 拦截我们自己沙盒进程的启动 (sandbox_script.py)
+        elif sys.argv[1].endswith('sandbox_script.py'):
+            import runpy
+            runpy.run_path(sys.argv[1], run_name='__main__')
+            sys.exit(0)
 
+    main()

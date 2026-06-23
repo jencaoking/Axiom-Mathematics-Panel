@@ -22,7 +22,9 @@ hidden_imports = [
     'mathlab.core.agent_registry',
     'mathlab.core.context_assembler',
     'jupyter_client.provisioning.local_provisioner',
-    'markdown'
+    'markdown',
+    'ipykernel',
+    'runpy'
 ]
 
 a = Analysis(
