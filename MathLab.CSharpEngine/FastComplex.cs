@@ -56,5 +56,47 @@ namespace MathLab.CSharpEngine
 
             return result;
         }
+        public int[] GenerateJulia(double xMin, double xMax, double yMin, double yMax, int width, int height, int maxIterations, double cReal, double cImag)
+        {
+            int[] result = new int[width * height];
+            
+            double dx = (xMax - xMin) / (width - 1);
+            double dy = (yMax - yMin) / (height - 1);
+
+            // 同样开启多核并行
+            Parallel.For(0, height, y =>
+            {
+                double pixelImag = yMax - y * dy; // 屏幕坐标转复平面虚轴
+                int rowOffset = y * width;
+
+                for (int x = 0; x < width; x++)
+                {
+                    double pixelReal = xMin + x * dx; // 屏幕坐标转复平面实轴
+                    
+                    // Julia 集的关键区别：Z 的初始值是当前像素坐标，C 是全图固定的常数
+                    double zReal = pixelReal;
+                    double zImag = pixelImag;
+                    int iter = 0;
+                    
+                    double zReal2 = zReal * zReal;
+                    double zImag2 = zImag * zImag;
+
+                    while (zReal2 + zImag2 <= 4.0 && iter < maxIterations)
+                    {
+                        // 展开复数乘法
+                        zImag = 2 * zReal * zImag + cImag;
+                        zReal = zReal2 - zImag2 + cReal;
+                        
+                        zReal2 = zReal * zReal;
+                        zImag2 = zImag * zImag;
+                        iter++;
+                    }
+                    
+                    result[rowOffset + x] = iter;
+                }
+            });
+
+            return result;
+        }
     }
 }

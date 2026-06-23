@@ -58,5 +58,32 @@ class CsComplexEngine:
         
         return image_rgb
 
+    def generate_julia_image(self, x_min, x_max, y_min, y_max, width, height, c_real, c_imag, max_iter=256):
+        """
+        生成 Julia 集合的 RGB 图像矩阵。
+        新增参数 c_real, c_imag 代表当前的复数常数 C。
+        """
+        # 1. 呼叫 C# 极速计算
+        res_flat = self._engine.GenerateJulia(
+            float(x_min), float(x_max), float(y_min), float(y_max), 
+            int(width), int(height), int(max_iter),
+            float(c_real), float(c_imag)
+        )
+        
+        # 2. Numpy 零成本内存转换与重塑
+        iter_array = np.array(list(res_flat), dtype=np.int32)
+        iter_matrix = iter_array.reshape((height, width))
+        
+        # 3. 调色盘映射
+        image_rgb = np.zeros((height, width, 3), dtype=np.uint8)
+        mask = iter_matrix < max_iter
+        
+        # 换一种色彩风格 (更冷峻的赛博朋克蓝紫配色) 以区分 Mandelbrot
+        image_rgb[mask, 0] = (np.sin(0.05 * iter_matrix[mask] + 3.0) * 127 + 128).astype(np.uint8) # R
+        image_rgb[mask, 1] = (np.sin(0.05 * iter_matrix[mask] + 3.5) * 127 + 128).astype(np.uint8) # G
+        image_rgb[mask, 2] = (np.sin(0.05 * iter_matrix[mask] + 4.0) * 127 + 128).astype(np.uint8) # B
+        
+        return image_rgb
+
 # 全局单例
 cs_complex = CsComplexEngine()
