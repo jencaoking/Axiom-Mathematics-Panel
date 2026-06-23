@@ -159,6 +159,9 @@ class MainWindow(QMainWindow):
         # 注册全局快捷键 (Ctrl+K 或 Cmd+K)
         self.shortcut_summon = QShortcut(QKeySequence("Ctrl+K"), self)
         self.shortcut_summon.activated.connect(self.toggle_omni_bar)
+        
+        # 启动 AI 全局交互集成
+        self._setup_ai_integration()
 
     def toggle_omni_bar(self):
         if self.omni_bar.isVisible() and self.omni_bar.windowOpacity() > 0:
@@ -797,6 +800,73 @@ class MainWindow(QMainWindow):
     def on_render_tangent_line(self, expr: str, x0: float, k: float):
         if hasattr(self, 'central_widget') and hasattr(self.central_widget, 'render_tangent_line'):
             self.central_widget.render_tangent_line(expr, x0, k)
+
+    # ── AI 全局交互集成 ──────────────────────────────────────────────
+    def _setup_ai_integration(self):
+        from PySide6.QtCore import QPointF
+        from mathlab.core.ai_manager import MathAgent
+        from mathlab.core.agent_bridge import AgentUIBridge
+        import json
+        
+        # 1. 实例化 Agent 和 UI 桥梁
+        self.agent = MathAgent(self.ai_manager)
+        self.agent_bridge = AgentUIBridge(self.agent, self)
+        
+        # 2. 信号与槽的严密绑定 (跨线程安全)
+        # 思考 -> 打印到终端
+        self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
+        
+        # 代码 -> 注入 Monaco 编辑器
+        self.agent_bridge.code_generated.connect(self._stream_code_to_editor)
+        
+        # 结束 -> 善后处理
+        self.agent_bridge.task_finished.connect(self._on_agent_task_finished)
+        
+        # 3. 绑定全局输入框 (OmniBar) 的回车事件
+        self.omni_bar.search_submitted.connect(self._trigger_global_ai_task)
+
+    def _trigger_global_ai_task(self, user_prompt):
+        """当用户在顶部搜索框按下回车时触发"""
+        if hasattr(self.omni_bar, 'input_field'):
+            self.omni_bar.input_field.clear()
+        
+        if hasattr(self.console, 'output_area'):
+            self.console.output_area.append(f"<hr><b style='color:#64B5F6'>👤 用户:</b> {user_prompt}<br>")
+        
+        # 唤醒 AI 专属光标，飞入视野
+        from PySide6.QtCore import QPointF
+        if hasattr(self, 'ai_cursor'):
+            self.ai_cursor.move_to(QPointF(self.width() / 2, self.height() / 2), 600)
+            
+        # 启动后台推演
+        self.agent_bridge.run_task_in_background(user_prompt)
+
+    def _stream_code_to_editor(self, code):
+        """接收到 AI 代码，安全写入前端 Monaco"""
+        import json
+        escaped_code = json.dumps(code)
+        self.code_editor.web_view.page().runJavaScript(f"window.editor.setValue({escaped_code});")
+        
+        # 光标小幅抖动，模拟正在打字
+        if hasattr(self, 'ai_cursor'):
+            import random
+            from PySide6.QtCore import QPointF
+            curr_pos = self.ai_cursor.cursorPos
+            shake_pos = QPointF(curr_pos.x() + random.randint(-5, 5), curr_pos.y() + random.randint(-5, 5))
+            self.ai_cursor.move_to(shake_pos, 100)
+
+    def _on_agent_task_finished(self, success, final_content):
+        """Agent 彻底跑完任务 (包含自愈和 RAG 沉淀) 后的 UI 善后"""
+        if success:
+            self.console.append_agent_observation("🎉 任务完美执行并渲染！", is_error=False)
+            # 触发底层执行，刷新所有的画布和 C# 引擎联动
+            self.code_editor.backend.execute_code(final_content)
+        else:
+            self.console.append_agent_observation("⚠️ 尝试多次失败，请手动干预。", is_error=True)
+            
+        # AI 光标隐退
+        if hasattr(self, 'ai_cursor'):
+            self.ai_cursor.setVisible(False)
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:

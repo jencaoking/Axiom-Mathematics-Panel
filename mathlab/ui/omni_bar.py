@@ -1,9 +1,10 @@
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QPoint
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QPoint, Signal
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                                QLabel, QGraphicsDropShadowEffect, QFrame, QApplication)
 from PySide6.QtGui import QColor, QFont, QKeyEvent
 
 class OmniBar(QWidget):
+    search_submitted = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         # ✨ 魔法标志：脱离主窗体、无边框、永远置顶、背景透明
@@ -133,6 +134,8 @@ class OmniBar(QWidget):
         if not text:
             return
             
+        self.search_submitted.emit(text)
+        
         # 这里您可以将 text 抛出一个自定义 Signal，交给 AIManager 处理
         # 我们这里直接获取 main_window 中的 ai_tools_panel 来调用其 on_send_message_from_omni 
         parent_win = self.parent()
