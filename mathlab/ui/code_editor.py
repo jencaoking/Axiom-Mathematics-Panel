@@ -134,7 +134,7 @@ class EditorBackend(QObject):
             self.parent_widget.web_view.page().runJavaScript(f"receiveGhostText({req_id}, '');")
 
 
-class MathLabCodeEditor(QWidget):
+class AutocompleteTextEdit(QWidget):
     def __init__(self, ai_manager=None, parent=None):
         super().__init__(parent)
         self.ai_manager = ai_manager # 引入全局 AI 调度中心
