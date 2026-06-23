@@ -21,7 +21,8 @@ hidden_imports = [
     'PySide6.QtWebEngineWidgets',
     'mathlab.core.agent_registry',
     'mathlab.core.context_assembler',
-    'jupyter_client.provisioning.local_provisioner'
+    'jupyter_client.provisioning.local_provisioner',
+    'markdown'
 ]
 
 a = Analysis(
