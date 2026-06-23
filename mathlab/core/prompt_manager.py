@@ -51,8 +51,10 @@ class PromptManager:
             return ""
         
         try:
-            # 自动将 kwargs 填入 template 的花括号中
             return template.format(**kwargs)
         except KeyError as e:
             logger.error(f"构建 Prompt 缺失必要参数 {e} (场景: {scenario})")
             return template
+
+# 全局单例实例，供其他模块直接导入使用
+prompt_manager = PromptManager()
