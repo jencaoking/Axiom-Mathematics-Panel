@@ -5,6 +5,11 @@ from collections import defaultdict
 from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve, lambdify
 from sympy.parsing.sympy_parser import standard_transformations
 
+try:
+    from .cs_geometry_engine import cs_geometry
+except ImportError:
+    cs_geometry = None
+
 
 def _build_general_quadratic_latex(A, B, C, D, E, F, threshold=1e-10):
     """将一般二次方程系数 Ax²+Bxy+Cy²+Dx+Ey+F=0 渲染为 LaTeX 字符串。
@@ -392,6 +397,11 @@ class Intersection(GeometricObject):
         det = a1 * b2 - a2 * b1
         if abs(det) < 1e-10:
             return []
+            
+        if cs_geometry and cs_geometry.is_available:
+            pts = cs_geometry.solve_line_line(a1, b1, c1, a2, b2, c2)
+            if pts is not None:
+                return pts
         
         # 统一为标准形式: ax + by = -c
         # 根据 Cramer 法则求解: x = Dx / det, y = Dy / det
@@ -414,6 +424,11 @@ class Intersection(GeometricObject):
         n2 = a**2 + b**2
         if n2 < 1e-10:
             return []
+
+        if cs_geometry and cs_geometry.is_available:
+            pts = cs_geometry.solve_line_circle(a, b, c, cx, cy, r)
+            if pts is not None:
+                return pts
 
         # 圆心到直线的有符号距离分子 k = a*cx + b*cy + c
         k = a * cx + b * cy + c
@@ -453,6 +468,11 @@ class Intersection(GeometricObject):
         
         if abs(d) < 1e-10 and abs(r1 - r2) < 1e-10:
             return []
+            
+        if cs_geometry and cs_geometry.is_available:
+            pts = cs_geometry.solve_circle_circle(cx1, cy1, r1, cx2, cy2, r2)
+            if pts is not None:
+                return pts
         
         a = (r1**2 - r2**2 + d**2) / (2 * d)
         h = np.sqrt(r1**2 - a**2)
@@ -727,8 +747,18 @@ class ConicSection(GeometricObject):
         self.points_data = []  # 存储离散点用于绘制
     
     def generate_points(self, num_points=500):
-        """通过矢量化隐函数求解生成离散点"""
+        """通过 C# 极速生成离散点，回退到矢量化隐函数求解"""
         try:
+            if cs_geometry and cs_geometry.is_available:
+                pts = cs_geometry.generate_conic_points(
+                    self.A, self.B, self.C, self.D, self.E, self.F, 
+                    self.x_range, self.y_range, num_points
+                )
+                if pts is not None:
+                    self.points_data = pts
+                    self.coordinates = {'points': pts}
+                    return pts
+
             x_vals = np.linspace(self.x_range[0], self.x_range[1], num_points)
             a_coeff = float(self.C)
             b_coeff = float(self.B) * x_vals + float(self.E)
