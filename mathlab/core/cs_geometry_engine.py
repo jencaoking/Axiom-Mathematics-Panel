@@ -40,38 +40,38 @@ class CsGeometryEngine:
     def solve_line_line(self, a1, b1, c1, a2, b2, c2):
         if not self.is_available:
             return None
-        success, res, err = self._engine.SolveLineLine(float(a1), float(b1), float(c1), float(a2), float(b2), float(c2))
-        if not success or res is None:
+        ret = self._engine.SolveLineLine(float(a1), float(b1), float(c1), float(a2), float(b2), float(c2))
+        if not ret.Item1 or ret.Item2 is None:
             return None
-        return self._flat_array_to_points(res)
+        return self._flat_array_to_points(ret.Item2)
 
     def solve_line_circle(self, a, b, c, cx, cy, r):
         if not self.is_available:
             return None
-        success, res, err = self._engine.SolveLineCircle(float(a), float(b), float(c), float(cx), float(cy), float(r))
-        if not success or res is None:
+        ret = self._engine.SolveLineCircle(float(a), float(b), float(c), float(cx), float(cy), float(r))
+        if not ret.Item1 or ret.Item2 is None:
             return None
-        return self._flat_array_to_points(res)
+        return self._flat_array_to_points(ret.Item2)
 
     def solve_circle_circle(self, cx1, cy1, r1, cx2, cy2, r2):
         if not self.is_available:
             return None
-        success, res, err = self._engine.SolveCircleCircle(float(cx1), float(cy1), float(r1), float(cx2), float(cy2), float(r2))
-        if not success or res is None:
+        ret = self._engine.SolveCircleCircle(float(cx1), float(cy1), float(r1), float(cx2), float(cy2), float(r2))
+        if not ret.Item1 or ret.Item2 is None:
             return None
-        return self._flat_array_to_points(res)
+        return self._flat_array_to_points(ret.Item2)
 
     def generate_conic_points(self, A, B, C, D, E, F, x_range, y_range, num_points):
         if not self.is_available:
             return None
-        success, res, err = self._engine.GenerateConicPoints(
+        ret = self._engine.GenerateConicPoints(
             float(A), float(B), float(C), float(D), float(E), float(F),
             float(x_range[0]), float(x_range[1]), float(y_range[0]), float(y_range[1]),
             int(num_points)
         )
-        if not success or res is None:
+        if not ret.Item1 or ret.Item2 is None:
             return None
-        return self._flat_array_to_points(res)
+        return self._flat_array_to_points(ret.Item2)
 
 # 全局单例
 cs_geometry = CsGeometryEngine()

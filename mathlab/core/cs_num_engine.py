@@ -12,37 +12,32 @@ import clr
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastMath
-    from System import Array, Double
 except Exception as e:
     print(f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}")
     FastMath = None
 
-
 class CsNumEngineError(Exception):
     pass
-
 
 class CsNumEngine:
     """
     底层数值引擎 (C# Python.NET 版本)
-    完全兼容 NumEngine 的接口，但核心使用 C# MathNet.Numerics 驱动。
-    已重构为 FFI 扁平化数据封送，大幅提升性能。
+    全面启用一维平铺 (Flat Array) 进行极速跨语言内存封送。
     """
     def __init__(self):
         if FastMath is None:
             raise CsNumEngineError("C# Engine DLL is not loaded.")
         self._engine = FastMath()
         self.default_tolerance = 1e-8
-        
-        # 缓存 .NET 类型引用以加速封送
-        from System import Array, Double
-        self.DotNetArray = Array
-        self.DotNetDouble = Double
 
-    def _to_double_array_flat(self, mat: np.ndarray):
-        """将 numpy 数组展平为一维，并极速转换为 .NET Array"""
-        flat_list = mat.ravel().tolist()
-        return self.DotNetArray[self.DotNetDouble](flat_list)
+    def _to_double_array_flat(self, arr: np.ndarray):
+        """
+        核心优化：将 numpy 数组直接打平并转换为 C# 一维 System.Double 数组。
+        避开 pythonnet 处理二维数组高昂的反射开销。
+        """
+        import System
+        # .ravel() 返回连续视图，.tolist() 生成原生列表，pythonnet 转换极快
+        return System.Array[System.Double](arr.ravel().tolist())
 
     def eigenvalues(self, matrix):
         mat = np.asarray(matrix, dtype=float)
@@ -50,17 +45,28 @@ class CsNumEngine:
             raise CsNumEngineError("特征值计算需要输入方阵 (Square Matrix)。")
             
         rows, cols = mat.shape
-        c_arr = self._to_double_array_flat(mat)
+        c_arr_flat = self._to_double_array_flat(mat)
         
-        success, er, ei, evec_flat, err = self._engine.Eigenvalues(c_arr, rows, cols)
-        if not success:
-            raise CsNumEngineError(f"特征值计算失败: {err}")
+        # 调用 C# 新增的 Flat 接口
+        res_dict = self._engine.EigenvaluesFlat(c_arr_flat, rows, cols)
         
-        # 极速将 C# 返回的一维数组重建为 NumPy 数组并组合复数
-        values_np = np.array(list(er)) + 1j * np.array(list(ei))
+        values_csharp = res_dict["eigenvalues"]
+        vectors_csharp = res_dict["eigenvectors"] 
         
-        # MathNet's Evd<double>.EigenVectors is a real matrix (packed)
-        vectors_np = np.array(list(evec_flat)).reshape(rows, cols)
+        # 处理复数数组
+        val_len = values_csharp.Length
+        values_np = np.zeros(val_len, dtype=complex)
+        for i in range(val_len):
+            values_np[i] = complex(values_csharp[i].Real, values_csharp[i].Imaginary)
+            
+        # 提取一维打平的特征向量并还原为二维
+        vectors_np = np.zeros((rows, cols), dtype=complex)
+        idx = 0
+        for i in range(rows):
+            for j in range(cols):
+                c_val = vectors_csharp[idx]
+                vectors_np[i, j] = complex(c_val.Real, c_val.Imaginary)
+                idx += 1
         
         return {
             "eigenvalues": values_np,
@@ -70,30 +76,36 @@ class CsNumEngine:
     def cholesky(self, matrix):
         mat = np.asarray(matrix, dtype=float)
         rows, cols = mat.shape
-        c_arr = self._to_double_array_flat(mat)
+        c_arr_flat = self._to_double_array_flat(mat)
         
-        success, L_flat, err = self._engine.Cholesky(c_arr, rows, cols)
-        if not success:
-            raise CsNumEngineError(f"Cholesky 分解失败: {err}")
+        try:
+            res_dict = self._engine.CholeskyFlat(c_arr_flat, rows, cols)
             
-        L_np = np.array(list(L_flat)).reshape(rows, cols)
-        return {"L": L_np}
+            # 极速提取：将 C# 返回的一维数组转为 list，交由 numpy 瞬间重塑二维
+            L_flat = list(res_dict["L"])
+            L_np = np.array(L_flat, dtype=float).reshape(rows, cols)
+                    
+            return {"L": L_np}
+        except Exception as e:
+            raise CsNumEngineError(f"Cholesky 分解失败: {e}")
 
     def solve_linear_system(self, A, b):
         mat_A = np.asarray(A, dtype=float)
         vec_b = np.asarray(b, dtype=float)
         
         rows, cols = mat_A.shape
-        c_A = self._to_double_array_flat(mat_A)
-        c_b = self._to_double_array_flat(vec_b)
+        c_A_flat = self._to_double_array_flat(mat_A)
+        c_b_flat = self._to_double_array_flat(vec_b)
         
-        success, x_flat, residual_norm, err = self._engine.SolveLinearSystem(c_A, rows, cols, c_b)
-        if not success:
-            raise CsNumEngineError(f"求解失败: {err}")
+        try:
+            res_dict = self._engine.SolveLinearSystemFlat(c_A_flat, rows, cols, c_b_flat)
             
-        x_np = np.array(list(x_flat))
-        return {
-            "x": x_np,
-            "residual_norm": float(residual_norm)
-        }
-
+            # 极速提取：利用 list() 一次性取出一维结果
+            x_np = np.array(list(res_dict["x"]), dtype=float)
+                
+            return {
+                "x": x_np,
+                "residual_norm": float(res_dict["residual_norm"])
+            }
+        except Exception as e:
+            raise CsNumEngineError(f"求解失败: {e}")
