@@ -3,7 +3,13 @@ name: Auto Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'  # 仅匹配语义化版本标签，更严格
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # 仅匹配语义化版本标签
+  workflow_dispatch:
+    inputs:
+      skip-cache:
+        description: '跳过缓存，强制完整打包'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,14 +46,28 @@ jobs:
         with:
           fetch-depth: 0  # 完整历史，用于生成 changelog
 
+      # ── 缓存 PyInstaller 中间文件（关键优化）──────────────────────────
+      # 缓存 build/ 目录，命中时跳过耗时的 Analysis 阶段
+      - name: Cache PyInstaller Build
+        id: cache-pyinstaller
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          path: build/
+          key: pyinstaller-${{ matrix.os }}-${{ hashFiles('requirements.txt', 'mathlab.spec', 'mathlab/main.py') }}
+          restore-keys: |
+            pyinstaller-${{ matrix.os }}-
+
+      # ── Setup .NET ─────────────────────────────────────────────────────
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
 
       - name: Build MathLab C# Engine
         run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
 
+      # ── Setup Python（pip 缓存由 setup-python 内置）────────────────────
       - name: Configure Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
@@ -74,10 +94,22 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      # ── 智能打包：有缓存时增量，无缓存或手动触发时完整 ──────────────────
       - name: Build with PyInstaller
-        run: pyinstaller mathlab.spec --clean
+        env:
+          CACHE_HIT: ${{ steps.cache-pyinstaller.outputs.cache-hit }}
+          SKIP_CACHE: ${{ github.event.inputs.skip-cache || 'false' }}
+        shell: bash
+        run: |
+          if [ "$CACHE_HIT" == "true" ] && [ "$SKIP_CACHE" != "true" ]; then
+            echo "🚀 缓存命中，使用增量打包（跳过 --clean）"
+            pyinstaller mathlab.spec
+          else
+            echo "📦 无缓存或强制完整打包，使用 --clean"
+            pyinstaller mathlab.spec --clean
+          fi
 
-      # ── 修复脚本注入：通过 env 传递 ref_name，而非直接内联 ──────────────
+      # ── 修复脚本注入：通过 env 传递 ref_name ──────────────────────────
       - name: Archive Windows build
         if: runner.os == 'Windows'
         env:
@@ -110,6 +142,7 @@ jobs:
             MathLab-*-Linux.tar.gz
           retention-days: 30
 
+  # ── 发布任务：依赖所有平台构建完成 ─────────────────────────────────────
   publish-release:
     name: Publish GitHub Release
     needs: build-and-release
@@ -134,7 +167,7 @@ jobs:
       - name: List downloaded artifacts
         run: |
           echo "📦 已下载的构建产物："
-          find artifacts -type f -name "*.zip" -o -name "*.tar.gz" | sort
+          find artifacts -type f \( -name "*.zip" -o -name "*.tar.gz" \) | sort
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
@@ -148,3 +181,24 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+  # ── 失败通知任务 ───────────────────────────────────────────────────────
+  notify-failure:
+    name: Notify Build Failure
+    needs: [build-and-release, publish-release]
+    if: failure()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Output failure info
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          echo "❌ MathLab 发布失败！"
+          echo "版本标签: ${REF_NAME}"
+          echo "触发者: ${ACTOR}"
+          echo "仓库: ${REPO}"
+          echo "运行链接: https://github.com/${REPO}/actions/runs/${RUN_ID}"
