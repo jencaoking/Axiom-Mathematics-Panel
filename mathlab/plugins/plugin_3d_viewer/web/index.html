@@ -209,6 +209,16 @@
 
         const axesHelper = new THREE.AxesHelper(6);
         scene.add(axesHelper);
+
+        // ── 动态 3D 波纹曲面网格 ──────────────────────────────────────────
+        window.surfaceGeometry = new THREE.BufferGeometry();
+        var material = new THREE.MeshStandardMaterial({ 
+            color: 0x00ffcc, 
+            wireframe: true,       // 使用网格线模式，看起来极具科技感
+            side: THREE.DoubleSide 
+        });
+        var surfaceMesh = new THREE.Mesh(window.surfaceGeometry, material);
+        scene.add(surfaceMesh);
     }
 
     init();
@@ -266,6 +276,18 @@
     window.resetCamera = function() {
         camera.position.set(18, 16, 18);
         orbitControls.reset();
+    };
+
+    // 提供给 Python Bridge (QWebChannel) 高频调用的核心更新函数
+    window.updateSurfaceGeometry = function(flatVertexArray) {
+        // 1. 将 Python 传过来的普通 Array 直接包装为 WebGL 专属的 Float32Array
+        var vertices = new Float32Array(flatVertexArray);
+        
+        // 2. 核心性能关键：直接用 BufferAttribute 覆写显卡顶点缓冲区，实现零拷贝渲染
+        window.surfaceGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        
+        // 3. 重新让 WebGL 计算光照法线 (制造逼真的光影反光波动)
+        window.surfaceGeometry.computeVertexNormals();
     };
 
     if (typeof QWebChannel !== 'undefined') {

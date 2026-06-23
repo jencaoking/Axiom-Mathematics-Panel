@@ -3,9 +3,11 @@ import os
 import json
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, QTimer
 from mathlab.core.plugin_base import MathLabPlugin
 from .bridge import ThreeJSBridge
+from mathlab.utils.i18n_manager import t
+from mathlab.core.cs_mesh_engine import cs_mesh_3d
 from mathlab.utils.i18n_manager import t
 
 class ThreeJSViewerPlugin(MathLabPlugin):
@@ -32,6 +34,35 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         # 核心：监听底层几何引擎的拓扑变化！
         if hasattr(self.api, 'geometry_engine'):
             self.api.geometry_engine.add_listener(self.on_geometry_event)
+
+        # =================================================================
+        # 高性能 3D 动态波纹驱动 (C# + WebGL)
+        # =================================================================
+        self.time_elapsed = 0.0
+        
+        # 每秒刷新 60 次的超高清定时器
+        self.render_timer = QTimer()
+        self.render_timer.timeout.connect(self._render_frame)
+        self.render_timer.start(16) # ~60 FPS
+
+    def _render_frame(self):
+        self.time_elapsed += 0.05
+        
+        if not hasattr(cs_mesh_3d, '_engine') or cs_mesh_3d._engine is None:
+            return
+            
+        # 1. 呼叫 C# 暴力计算 150x150 密度的波纹曲面网格点 (共产生 405,000 个浮点数)
+        # 这在纯 Python 下要跑死，但 C# 只需要 1ms！
+        flat_vertices = cs_mesh_3d.get_ripple_mesh_data(
+            x_range=(-10, 10), y_range=(-10, 10),
+            x_seg=150, y_seg=150,
+            time_val=self.time_elapsed, freq=1.5
+        )
+        
+        # 2. 将数据作为参数直接打入 WebGL 页面中执行
+        # 利用 QWebEngineView 的 runJavaScript 瞬间传过跨界通道
+        js_cmd = f"updateSurfaceGeometry({flat_vertices});"
+        self.web_view.page().runJavaScript(js_cmd)
 
     def on_geometry_event(self, event_type, data):
         """当引擎中添加、移动或删除物体时，立即同步给 Three.js"""
