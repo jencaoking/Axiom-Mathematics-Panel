@@ -1,0 +1,85 @@
+# 可复用工作流：MathLab 构建环境准备
+# 提取 test.yml 和 release.yml 中重复的 C#/前端/Python 构建步骤
+# 命名约定：内部可复用工作流以 _ 为前缀
+
+name: Build Setup
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python 版本'
+        type: string
+        required: false
+        default: '3.11'
+      node-version:
+        description: 'Node.js 版本'
+        type: string
+        required: false
+        default: '20'
+      dotnet-version:
+        description: '.NET SDK 版本'
+        type: string
+        required: false
+        default: '8.0.x'
+      install-python-deps:
+        description: '是否安装 Python 依赖'
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Setup Build Environment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      status: ${{ steps.setup-complete.outputs.status }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@6bd8b4f4d4ec0797b7c6f8503ce4f6db1d30a8d3 # v4.1.0
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Build MathLab C# Engine
+        run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: mathlab/resources/web_src/package-lock.json
+
+      - name: Build Webpack Frontend
+        run: |
+          cd mathlab/resources/web_src
+          npm ci
+          npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        if: ${{ inputs.install-python-deps }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - id: setup-complete
+        name: Setup complete
+        run: echo "status=success" >> "$GITHUB_OUTPUT"
