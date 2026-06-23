@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import threading
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl, QObject, Slot, Signal, Qt
@@ -54,6 +55,59 @@ class EditorBackend(QObject):
         else:
             errors.append({"line": 1, "message": "执行发生错误或超时"})
         return errors
+
+    @Slot(int, str, str)
+    def request_ghost_text(self, req_id, prefix, suffix):
+        """
+        接收来自 Monaco 的补全请求。
+        开启一个无头线程进行快速推理，确保 GUI 绝对不卡顿。
+        """
+        if not hasattr(self.parent_widget, 'ai_manager') or not self.parent_widget.ai_manager:
+            return
+
+        # 使用后台线程避免阻塞 PyQt 事件循环
+        threading.Thread(
+            target=self._fetch_ghost_text_worker, 
+            args=(req_id, prefix, suffix),
+            daemon=True
+        ).start()
+
+    def _fetch_ghost_text_worker(self, req_id, prefix, suffix):
+        """在后台线程中调用大模型获取补全片段"""
+        ai_mgr = self.parent_widget.ai_manager
+        if not hasattr(ai_mgr, 'client') or not ai_mgr.client:
+            return
+
+        # FIM (Fill-In-the-Middle) 行业标准 Prompt 结构
+        # 针对 DeepSeek 模型的特殊控制符。如果你用的是其他模型，可能需要调整。
+        prompt = f"<｜fim begin｜>{prefix}<｜fim hole｜>{suffix}<｜fim end｜>"
+
+        try:
+            # 这里直接使用同步请求，配置高 Temperature 获取多样性，限制输出长度追求极速
+            response = ai_mgr.client.chat.completions.create(
+                model=ai_mgr.current_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,  # 代码补全需要极低的幻觉率
+                max_tokens=64,    # 幽灵文本通常只需要补全 1-3 行，限制长度极大提升 TTFB (首字响应时间)
+                stream=False      # 一次性返回结果
+            )
+            
+            suggestion = response.choices[0].message.content if response.choices else ""
+            
+            # 清理可能残留的 markdown 标记
+            suggestion = suggestion.replace("```python\n", "").replace("\n```", "").replace("```", "")
+
+            # 构造 JS 回调，将数据灌回 Monaco 渲染成灰色幽灵文本
+            escaped_suggestion = json.dumps(suggestion)
+            js_cmd = f"receiveGhostText({req_id}, {escaped_suggestion});"
+            
+            # 必须使用 QMetaObject.invokeMethod 或直接抛给主线程运行 JS
+            self.parent_widget.web_view.page().runJavaScript(js_cmd)
+            
+        except Exception as e:
+            print(f"Ghost Text Fetch Error: {e}")
+            # 如果出错，发送空补全，防止 Monaco 的 Promise 永远挂起
+            self.parent_widget.web_view.page().runJavaScript(f"receiveGhostText({req_id}, '');")
 
 
 class MathLabCodeEditor(QWidget):

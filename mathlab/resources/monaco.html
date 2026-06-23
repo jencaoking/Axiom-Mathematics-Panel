@@ -23,6 +23,13 @@
     <div id="editor-container"></div>
     
     <script>
+        // ==========================================
+        // AI 幽灵文本补全引擎 (Ghost Text Copilot)
+        // ==========================================
+
+        let currentCompletionResolve = null;
+        let currentCompletionReqId = 0;
+
         // 当页面和打包文件都加载完毕后执行
         window.onload = function() {
             // 1. 初始化我们用 TypeScript 写的 MathLab 编辑器
@@ -51,7 +58,69 @@
             } else {
                 console.warn("未检测到 Qt WebChannel 环境，当前处于纯前端预览模式。");
             }
+
+            // 注册 Python 语言的内联补全提供者
+            if (typeof monaco !== 'undefined') {
+                monaco.languages.registerInlineCompletionsProvider('python', {
+                    provideInlineCompletions: async function (model, position, context, token) {
+                        // 如果当前是主动触发（比如用户刚刚按了退格），尽量减少无意义请求
+                        if (context.triggerKind === monaco.languages.InlineCompletionTriggerKind.Explicit) {
+                            return { items: [] };
+                        }
+
+                        // 1. 获取光标前后的上下文 (Context)
+                        const prefix = model.getValueInRange({
+                            startLineNumber: 1,
+                            startColumn: 1,
+                            endLineNumber: position.lineNumber,
+                            endColumn: position.column
+                        });
+                        
+                        // 为了节省 Token 和加快响应，后缀最多只取光标后 500 个字符
+                        const fullSuffix = model.getValueInRange({
+                            startLineNumber: position.lineNumber,
+                            startColumn: position.column,
+                            endLineNumber: model.getLineCount(),
+                            endColumn: model.getLineMaxColumn(model.getLineCount())
+                        });
+                        const suffix = fullSuffix.substring(0, 500);
+
+                        // 2. 生成唯一的请求 ID，避免网络延迟导致旧补全覆盖新补全
+                        currentCompletionReqId++;
+                        const reqId = currentCompletionReqId;
+
+                        // 3. 将补全请求发送给 Python 后端，并挂起当前 Promise
+                        return new Promise((resolve) => {
+                            currentCompletionResolve = resolve;
+                            if (window.backend) {
+                                window.backend.request_ghost_text(reqId, prefix, suffix);
+                            } else {
+                                resolve({ items: [] });
+                            }
+                        });
+                    },
+                    freeInlineCompletions: function(completions) {
+                        // 释放内存时的回调
+                    }
+                });
+            }
         };
+        
+        // 供 Python 异步回调的全局函数
+        function receiveGhostText(reqId, text) {
+            // 只有当回调的 reqId 是最新请求时，才将灰显文本展示出来
+            if (reqId === currentCompletionReqId && currentCompletionResolve) {
+                if (text && text.trim() !== "") {
+                    currentCompletionResolve({
+                        items: [{
+                            insertText: text // Monaco 会自动处理光标位置和渲染为幽灵文本
+                        }]
+                    });
+                } else {
+                    currentCompletionResolve({ items: [] });
+                }
+            }
+        }
         
         // ==========================================
         // 暴露给 Python 调用的全局 API (供 PySide6 调用)
