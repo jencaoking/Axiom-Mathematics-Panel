@@ -1,53 +1,68 @@
-name: MathLab v3.5 Auto Release
+name: Auto Release
 
 on:
   push:
     tags:
-      - 'v*' # 仅在推送以 v 开头的 tag 时触发（例如 v3.5.0）
+      - 'v*' # Trigger on version tags
 
 jobs:
   build-and-release:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
-      - name: 拉取项目源码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 配置 Python 3.11 环境
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build MathLab C# Engine
+        run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
+
+      - name: Configure Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: 安装项目依赖与打包工具
+      - name: Install dependencies & PyInstaller
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: 执行 PyInstaller 编译构建
+      - name: Build with PyInstaller
         run: pyinstaller mathlab.spec --clean
 
-      - name: 压缩构建产物 (Windows 环境)
-        if: matrix.os == 'windows-latest'
+      - name: Archive Windows build
+        if: runner.os == 'Windows'
         run: Compress-Archive -Path dist/MathLab/* -DestinationPath MathLab-${{ github.ref_name }}-Windows.zip
 
-      - name: 压缩构建产物 (macOS 环境)
-        if: matrix.os == 'macos-latest'
+      - name: Archive macOS build
+        if: runner.os == 'macOS'
         run: |
           cd dist
           zip -r ../MathLab-${{ github.ref_name }}-macOS.zip MathLab.app
 
-      - name: 自动发布至 GitHub Releases
+      - name: Archive Linux build
+        if: runner.os == 'Linux'
+        run: |
+          cd dist
+          tar -czvf ../MathLab-${{ github.ref_name }}-Linux.tar.gz MathLab
+
+      - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           files: |
             MathLab-*-Windows.zip
             MathLab-*-macOS.zip
+            MathLab-*-Linux.tar.gz
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
