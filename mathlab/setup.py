@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mathlab',
-    version='3.7.1',
+    version='3.7.2',
     description='Interactive Mathematics and AI Teaching Software',
     author='MathLab Team',
     packages=find_packages(),
