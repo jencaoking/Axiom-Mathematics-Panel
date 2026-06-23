@@ -162,6 +162,9 @@ class MainWindow(QMainWindow):
         
         # 启动 AI 全局交互集成
         self._setup_ai_integration()
+        
+        # 启动 ECharts 集成
+        self._setup_echarts_integration()
 
     def toggle_omni_bar(self):
         if self.omni_bar.isVisible() and self.omni_bar.windowOpacity() > 0:
@@ -840,6 +843,29 @@ class MainWindow(QMainWindow):
         
         # 5. 绑定全局输入框 (OmniBar) 的回车事件
         self.omni_bar.search_submitted.connect(self._trigger_global_ai_task)
+
+    def _setup_echarts_integration(self):
+        # 绑定刚刚解析出的信号
+        self.code_editor.backend.echarts_data_ready.connect(self._show_echarts_panel)
+
+    def _show_echarts_panel(self, chart_options_dict):
+        """唤醒 ECharts 插件面板并渲染"""
+        import json
+        
+        echarts_plugin = self.plugin_manager.active_plugins.get("ECharts Data Viewer")
+        if not echarts_plugin:
+            self.console.append_agent_observation("⚠️ 未找到 ECharts 插件实例！", is_error=True)
+            return
+            
+        web_view = getattr(echarts_plugin, 'web_view', None)
+        if not web_view:
+            return
+            
+        json_payload = json.dumps(chart_options_dict, ensure_ascii=False)
+        js_command = f"if(window.updateChartOptions) {{ window.updateChartOptions({json_payload}); }} else if(window.renderChart) {{ window.renderChart('{json_payload}'); }}"
+        web_view.page().runJavaScript(js_command)
+        
+        self.console.append_agent_observation("✨ 3D/2D 交互图表已在 ECharts 面板渲染就绪！", is_error=False)
 
     def _trigger_global_ai_task(self, user_prompt):
         """当用户在顶部搜索框按下回车时触发"""

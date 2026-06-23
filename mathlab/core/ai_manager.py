@@ -551,18 +551,36 @@ class DataVizAgent(BaseMathAgent):
     def __init__(self, ai_manager):
         super().__init__(ai_manager)
         # 强制将大模型的注意力集中在生成 ECharts 字典上
-        self.system_prompt = """你是一个【高级数据可视化专家】。
-用户希望生成统计图表、3D曲面图或复杂的数据仪表盘。
+        self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
+你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。
 
-系统环境中已内置了 ECharts 插件引擎，你可以直接通过以下 Python 代码渲染极具科技感的交互式图表：
+【系统环境与限制】
+1. 宿主环境已经集成了 Apache ECharts 5.5（支持 gl/3D）。
+2. 你绝对不能使用 matplotlib, seaborn 或 plotly！
+3. 你必须且只能使用环境内置的渲染桥接器：`mathlab.plugins.echarts_viewer.bridge`。
+
+【代码模板标准】
+你的 Action 代码必须严格遵循以下结构：
 ```python
+import numpy as np
 from mathlab.plugins.echarts_viewer.bridge import render_chart
+
+# 1. 在这里进行数据计算（如生成随机数、计算3D曲面矩阵等）
+# ... 
+
+# 2. 严格按照 ECharts Option 标准构建字典
 options = {
-    # 在这里编写纯正的 ECharts 配置字典 (如 xAxis, yAxis, series)
+    "backgroundColor": "transparent", # 保持背景透明以适配主线深色主题
+    "tooltip": {"trigger": "item"},
+    "series": [
+        # 你的数据系列
+    ]
 }
+
+# 3. 发送给前端渲染
 render_chart(options)
 ```
-请通过 Thought, Action, Observation 闭环进行。生成的 Action 代码中必须包含上述导入和调用。"""
+请通过 Thought 和 Action 闭环来完成任务。要求图表配色具有 Cyberpunk 或暗黑科技感（如深紫、荧光蓝）。"""
 
     def _llm_generate_code(self, messages):
         # 真正使用时通过 ai_manager.client 调用大模型接口

@@ -1,28 +1,21 @@
-# mathlab/plugins/echarts_viewer/bridge.py
-from PySide6.QtCore import QObject, Slot, Signal
 import json
+import sys
 
-class EChartsBridge(QObject):
+def render_chart(options: dict):
     """
-    负责 Python 与 JavaScript 之间的双向通信
-    注意：暴露给 JS 的方法必须使用 @Slot 装饰器
+    沙箱内调用的桥接函数。
+    它将 Python 字典转为 JSON，并包装在特殊的边界符中打印到 stdout。
+    主进程的沙箱看门狗会拦截这段字符串，而不会把它当作普通的 log 显示。
     """
-    # 定义一个 Qt 信号，当 JS 捕获到图表点击事件时触发
-    on_data_clicked = Signal(str, float, float) 
-
-    def __init__(self, api):
-        super().__init__()
-        self.api = api
-
-    @Slot(str)
-    def js_log(self, message):
-        """允许 JS 调用 Python 的控制台打印日志"""
-        self.api.print_to_console(f"[WebEngine] {message}", color="#aaaaaa")
-
-    @Slot(str, float, float)
-    def handle_chart_click(self, series_name, x, y):
-        """当用户在网页中点击数据点时，JS 会调用此方法"""
-        msg = f"图表交互: 选中了 '{series_name}' 的数据点 P({x:.2f}, {y:.2f})"
-        self.api.print_to_console(msg, color="#00ffcc")
-        # 这里你可以将获取到的 x, y 注入到沙盒变量中，供用户后续计算使用
-        self.on_data_clicked.emit(series_name, x, y)
+    try:
+        # 确保 numpy array 等特殊类型能被序列化（如果需要，可添加自定义编码器）
+        payload = json.dumps(options, ensure_ascii=False)
+        
+        # 打印魔术边界符
+        print(f"\n__ECHARTS_IPC_START__\n{payload}\n__ECHARTS_IPC_END__\n")
+        
+        # 强制刷新缓冲区，确保主进程立刻收到
+        sys.stdout.flush()
+        
+    except Exception as e:
+        print(f"ECharts 序列化失败: {e}", file=sys.stderr)

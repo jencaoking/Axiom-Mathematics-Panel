@@ -126,6 +126,15 @@
     myChart.dispatchAction({ type: dataZoomEnabled ? 'dataZoomReset' : 'restore' });
   }
 
+  // ── 新增：直接接收原生的 ECharts options（DataVizAgent 使用） ────────
+  window.updateChartOptions = function(options) {
+      myChart.setOption(options, {
+          notMerge: true,
+          lazyUpdate: false
+      });
+      setStatus('✓ 复杂图表渲染完毕', '#00A67E');
+  };
+
   // ── 核心渲染函数（支持旧协议 renderChart 向后兼容）───────────────────────
   window.renderChart = function(jsonData) {
     var payload = (typeof jsonData === 'string') ? JSON.parse(jsonData) : jsonData;

@@ -17,6 +17,7 @@ class EditorBackend(QObject):
     # 增加两个信号：告知主面板错误状态，以便外部处理
     error_occurred = Signal(str, str) 
     success_occurred = Signal()
+    echarts_data_ready = Signal(dict)
 
     def __init__(self, parent_widget):
         super().__init__()
@@ -29,6 +30,9 @@ class EditorBackend(QObject):
             return
 
         result = jupyter_sandbox.execute_code(code, timeout=10)
+        
+        if 'text' in result:
+            result['text'] = self._parse_sandbox_output(result['text'])
         
         if result['status'] == 'error' or result['status'] == 'timeout':
             error_list = self._parse_traceback(result['traceback'])
@@ -55,6 +59,26 @@ class EditorBackend(QObject):
         else:
             errors.append({"line": 1, "message": "执行发生错误或超时"})
         return errors
+
+    def _parse_sandbox_output(self, raw_output):
+        """解析沙箱的标准输出"""
+        # 查找 IPC 魔法包裹的数据
+        echarts_match = re.search(r'__ECHARTS_IPC_START__(.*?)__ECHARTS_IPC_END__', raw_output, re.DOTALL)
+        
+        if echarts_match:
+            json_str = echarts_match.group(1).strip()
+            try:
+                chart_options = json.loads(json_str)
+                # 通过信号发送给主窗口：有新的图表需要渲染！
+                self.echarts_data_ready.emit(chart_options)
+                
+                # 在控制台输出中抹去这段丑陋的 JSON
+                clean_output = raw_output.replace(echarts_match.group(0), "\n[📈 图表数据已成功发送至 ECharts 渲染引擎]\n")
+                return clean_output
+            except:
+                pass
+                
+        return raw_output
 
     @Slot(int, str, str)
     def request_ghost_text(self, req_id, prefix, suffix):
