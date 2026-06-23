@@ -23,6 +23,7 @@ from .command_bar import CommandBar, CommandPalette
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
+from .signal_lab_panel import SignalLabPanel
 from .animations import fade_in, fade_out
 from .math_console import MathConsole
 from .notebook_panel import NotebookPanel
@@ -342,10 +343,12 @@ class MainWindow(QMainWindow):
         self.geometry_tool_action = QAction(t('main_window.geometry_tools'), self)
         self.algebra_tool_action  = QAction(t('main_window.algebra_tools'), self)
         self.ai_tool_action       = QAction(t('main_window.ai_tools'), self)
+        self.signal_lab_action    = QAction("⚡ 信号处理实验室 (FFT)", self)
 
         self.tools_menu.addAction(self.geometry_tool_action)
         self.tools_menu.addAction(self.algebra_tool_action)
         self.tools_menu.addAction(self.ai_tool_action)
+        self.tools_menu.addAction(self.signal_lab_action)
 
         self.help_menu = QMenu(t('menu.help'), self)
 
@@ -385,6 +388,7 @@ class MainWindow(QMainWindow):
         self.geometry_tool_action.triggered.connect(self._show_command_palette)
         self.algebra_tool_action.triggered.connect(lambda: self.toggle_algebra_panel(True))
         self.ai_tool_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
+        self.signal_lab_action.triggered.connect(self.open_signal_lab)
 
         self.theme_action.triggered.connect(self.show_theme_dialog)
         self.language_action.triggered.connect(self.show_language_dialog)
@@ -396,6 +400,10 @@ class MainWindow(QMainWindow):
         self.ai_train_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
 
         self.about_action.triggered.connect(self.show_about)
+
+    def open_signal_lab(self):
+        self.signal_lab = SignalLabPanel()
+        self.signal_lab.show()
 
     def setup_toolbar(self):
         self.toolbar = QToolBar('Main Toolbar')
