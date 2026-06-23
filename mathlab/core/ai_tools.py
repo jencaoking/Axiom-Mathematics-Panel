@@ -162,3 +162,23 @@ SUBMIT_TEACHING_PLAN_TOOL = {
         }
     }
 }
+
+
+import json
+from mathlab.core.jupyter_manager import jupyter_sandbox
+
+def execute_math_task(code_snippet: str):
+    """
+    这是一个供 AI Agent 调用的函数工具。
+    Agent 会自动调用此函数来执行 Python 代码，并获取结果。
+    """
+    # 将代码块交给 Jupyter 沙盒执行
+    result = jupyter_sandbox.execute_code(code_snippet)
+    
+    # 将执行结果打包返回给 AI
+    return json.dumps({
+        "status": result["status"],
+        "output": result["text"],
+        "error": "\n".join(result["traceback"]) if result["status"] == "error" else None
+    })
+

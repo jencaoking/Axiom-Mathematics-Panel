@@ -1022,3 +1022,26 @@ class AIToolsPanel(QDockWidget):
         """
         self.chat_display.append(usage_html)
         self.token_label.setText(f"⚡ {total} Tokens")
+
+    def on_ai_generate_request(self, user_prompt):
+        from mathlab.core.ai_manager import MathAgent
+        from mathlab.core.async_workers import TaskWorker
+        from PySide6.QtCore import QThreadPool
+        if not hasattr(self, "ai_agent"):
+            self.ai_agent = MathAgent()
+        
+        # 1. 开启子线程调用 Agent，防止 UI 卡顿
+        worker = TaskWorker(self.ai_agent.solve_problem, user_prompt)
+        
+        def on_complete(result):
+            if result["status"] != "failed":
+                # 自动将代码填入 Monaco 编辑器
+                self.code_editor.set_code(result["code"])
+                # 在控制台显示结果
+                if hasattr(self, "output_area"):
+                    self.output_area.append(str(result["result"]))
+                elif hasattr(self, "console"):
+                    self.console.append(str(result["result"]))
+        
+        worker.signals.result.connect(on_complete)
+        QThreadPool.globalInstance().start(worker)
