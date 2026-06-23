@@ -14,18 +14,21 @@ on:
       - 'mathlab/**.py'
       - 'requirements.txt'
       - '.github/workflows/code-quality.yml'
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
 
-# ── 权限配置 ──────────────────────────────────────────────────────────────
+# ── 权限配置（最小权限原则）──────────────────────────────────────────────
 permissions:
   contents: read
-  checks: write       # 用于发布检查结果
-  pull-requests: write # 用于在 PR 上发表评论
+  checks: write
+  pull-requests: write
 
-# ── 并发控制：同一分支的新提交会取消旧的运行 ──────────────────────────────
+# ── 并发控制 ──────────────────────────────────────────────────────────────
 concurrency:
   group: code-quality-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.11'
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────
@@ -33,15 +36,21 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   flake8:
     name: Flake8 Style Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install Flake8
         run: pip install flake8 flake8-pyproject
@@ -62,15 +71,22 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   pylint:
     name: Pylint Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Pylint and dependencies
         run: |
@@ -88,7 +104,7 @@ jobs:
 
       - name: Upload Pylint report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: pylint-report
           path: pylint-report.txt
@@ -99,15 +115,22 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   mypy:
     name: MyPy Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install MyPy and dependencies
         run: |
@@ -131,19 +154,25 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   import-check:
     name: Import Integrity Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Verify all internal imports
         run: |
@@ -157,7 +186,6 @@ jobs:
           errors = []
           mathlab_dir = Path('mathlab')
 
-          # 收集所有 Python 文件中的导入语句
           for py_file in mathlab_dir.rglob('*.py'):
               if 'resources' in py_file.parts:
                   continue
@@ -168,17 +196,13 @@ jobs:
                   for node in ast.walk(tree):
                       if isinstance(node, ast.ImportFrom):
                           module = node.module or ''
-                          # 只检查 mathlab 内部导入
                           if module.startswith('mathlab'):
                               for alias in node.names:
                                   name = alias.name
-                                  # 跳过动态导入和软导入
                                   if name.startswith('_') or name in ('*',):
                                       continue
-                                  # 检查目标模块是否存在
                                   module_path = module.replace('.', '/') + '.py'
                                   if not os.path.exists(module_path):
-                                      # 可能是包，检查 __init__.py
                                       pkg_path = module.replace('.', '/') + '/__init__.py'
                                       if not os.path.exists(pkg_path):
                                           errors.append(f'{py_file}:{node.lineno}: 模块 {module} 不存在')
@@ -199,15 +223,21 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   bandit:
     name: Bandit Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install Bandit
         run: pip install bandit
@@ -224,7 +254,7 @@ jobs:
 
       - name: Upload Bandit report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: bandit-report
           path: bandit-report.json
@@ -235,15 +265,21 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   safety:
     name: Safety Dependency Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install Safety
         run: pip install safety
@@ -259,7 +295,7 @@ jobs:
 
       - name: Upload Safety report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: safety-report
           path: safety-report.json
@@ -270,15 +306,21 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   format-check:
     name: Black & Isort Format Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Install Black and Isort
         run: pip install black isort
@@ -307,22 +349,33 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────
   summary:
     name: Quality Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     needs: [flake8, pylint, mypy, import-check, bandit, safety, format-check]
     if: always()
     steps:
       - name: Generate summary
+        env:
+          FLAKE8_RESULT: ${{ needs.flake8.result }}
+          PYLINT_RESULT: ${{ needs.pylint.result }}
+          MYPY_RESULT: ${{ needs.mypy.result }}
+          IMPORT_CHECK_RESULT: ${{ needs.import-check.result }}
+          BANDIT_RESULT: ${{ needs.bandit.result }}
+          SAFETY_RESULT: ${{ needs.safety.result }}
+          FORMAT_CHECK_RESULT: ${{ needs.format-check.result }}
         run: |
-          echo "## 📊 代码质量检查报告" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| 检查项 | 状态 |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Flake8 风格检查 | ${{ needs.flake8.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Pylint 代码分析 | ${{ needs.pylint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| MyPy 类型检查 | ${{ needs.mypy.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 导入完整性 | ${{ needs.import-check.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bandit 安全扫描 | ${{ needs.bandit.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Safety 依赖检查 | ${{ needs.safety.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Black/Isort 格式 | ${{ needs.format-check.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "状态说明: ✅ success = 通过, ❌ failure = 失败, ⏭️ skipped = 跳过" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 📊 代码质量检查报告"
+            echo ""
+            echo "| 检查项 | 状态 |"
+            echo "|--------|------|"
+            echo "| Flake8 风格检查 | ${FLAKE8_RESULT} |"
+            echo "| Pylint 代码分析 | ${PYLINT_RESULT} |"
+            echo "| MyPy 类型检查 | ${MYPY_RESULT} |"
+            echo "| 导入完整性 | ${IMPORT_CHECK_RESULT} |"
+            echo "| Bandit 安全扫描 | ${BANDIT_RESULT} |"
+            echo "| Safety 依赖检查 | ${SAFETY_RESULT} |"
+            echo "| Black/Isort 格式 | ${FORMAT_CHECK_RESULT} |"
+            echo ""
+            echo "状态说明: ✅ success = 通过, ❌ failure = 失败, ⏭️ skipped = 跳过"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,47 +2,86 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
+    paths:
+      - 'mathlab/**.py'
+      - 'mathlab/**.spec'
+      - 'requirements.txt'
+      - 'MathLab.CSharpEngine/**'
+      - 'mathlab/resources/web_src/**'
+      - '.github/workflows/test.yml'
+      - '.github/workflows/_build-setup.yml'
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+    paths:
+      - 'mathlab/**.py'
+      - 'mathlab/**.spec'
+      - 'requirements.txt'
+      - 'MathLab.CSharpEngine/**'
+      - 'mathlab/resources/web_src/**'
+      - '.github/workflows/test.yml'
+      - '.github/workflows/_build-setup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  NODE_VERSION: '20'
 
 jobs:
   test:
     name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-24.04, windows-2022, macos-14]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c # v2.11.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@6bd8b4f4d4ec0797b7c6f8503ce4f6db1d30a8d3 # v4.1.0
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Build MathLab C# Engine
         run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mathlab/resources/web_src/package-lock.json
 
       - name: Build Webpack Frontend
         run: |
           cd mathlab/resources/web_src
-          npm install
+          npm ci
           npm run build
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
 
       - name: Install Linux GUI dependencies (xvfb)
         if: runner.os == 'Linux'
@@ -54,12 +93,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
+          pip install pytest pytest-qt
 
       - name: Run tests (Windows / macOS)
         if: runner.os != 'Linux'
-        run: pytest -v
+        run: pytest -v --tb=long
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pytest -v
+        run: xvfb-run --auto-servernum pytest -v --tb=long
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+            test-results/
+          retention-days: 7
