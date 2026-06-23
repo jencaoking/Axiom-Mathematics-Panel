@@ -75,3 +75,9 @@ db.sqlite3-journal
 
 # skills
 .agent
+
+# Node & Webpack
+node_modules/
+mathlab/resources/web_src/node_modules/
+mathlab/resources/dist/
+*.bundle.js
