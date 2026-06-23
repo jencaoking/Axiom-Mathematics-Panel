@@ -1,10 +1,11 @@
 """
-Dynamic Function Explorer Panel - 动态函数探索器
+Dynamic Function Explorer Panel - 动态函数探索器 (微积分强力驱动版)
 
 功能:
 1. 函数绘图: 支持输入函数解析式并绘制
 2. 参数滑块: 对含参数的函数生成滑块,实时更新图象
 3. 图象变换: 展示基础函数的平移、伸缩等变换
+4. 高阶分析: 结合 C# 底层引擎实现秒级自适应积分(求面积)与求导(切线)
 """
 
 from PySide6.QtWidgets import (
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QFormLayout, QCheckBox
 )
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QDoubleValidator
 
 try:
     from ..utils.i18n_manager import t
@@ -24,35 +25,35 @@ except ImportError:
 import re
 import numpy as np
 
+# 尝试引入我们的智能微积分求解器 (如果是通过依赖注入或外层调用，也可仅发射信号)
+try:
+    from mathlab.core.cs_calculus_engine import cs_calculus
+    import sympy as sp
+    HAS_CALCULUS_ENGINE = True
+except ImportError:
+    HAS_CALCULUS_ENGINE = False
+
 
 class ParameterSlider(QWidget):
     """单个参数滑块控件"""
-    
     value_changed = Signal(str, float)  # param_name, value
-    
     def __init__(self, param_name: str, min_val: float = -10.0, 
                  max_val: float = 10.0, default_val: float = 1.0, parent=None):
         super().__init__(parent)
         self.param_name = param_name
-        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 4, 0, 4)
         layout.setSpacing(4)
-        
-        # 参数名和当前值显示
         header_layout = QHBoxLayout()
         self.name_label = QLabel(f"{param_name} =")
         self.name_label.setFont(QFont("Consolas", 10))
         self.value_label = QLabel(f"{default_val:.2f}")
         self.value_label.setFont(QFont("Consolas", 10, QFont.Bold))
         self.value_label.setStyleSheet("color: #004ac6;")
-        
         header_layout.addWidget(self.name_label)
         header_layout.addStretch()
         header_layout.addWidget(self.value_label)
         layout.addLayout(header_layout)
-        
-        # 滑块
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(int(min_val * 100), int(max_val * 100))
         self.slider.setValue(int(default_val * 100))
@@ -65,10 +66,8 @@ class ParameterSlider(QWidget):
         float_value = value / 100.0
         self.value_label.setText(f"{float_value:.2f}")
         self.value_changed.emit(self.param_name, float_value)
-    
     def get_value(self) -> float:
         return self.slider.value() / 100.0
-    
     def set_value(self, value: float):
         self.slider.setValue(int(value * 100))
 
@@ -76,18 +75,23 @@ class ParameterSlider(QWidget):
 class FunctionExplorerPanel(QDockWidget):
     """动态函数探索器面板"""
     
-    function_added = Signal(dict)  # 发射函数数据
-    # [P0修复 Bug4] 信号定义修改为携带 obj_id (str)
-    function_updated = Signal(str, dict)  # 更新函数参数
+    function_added = Signal(dict)
+    function_updated = Signal(str, dict)
     
+    # === 新增：微积分交互信号 ===
+    # 请求绘制阴影面积: 参数为 (表达式, 下限 a, 上限 b, 面积结果)
+    render_integral_area = Signal(str, float, float, float)
+    # 请求绘制切线: 参数为 (表达式, 切点 x, 切线斜率 k)
+    render_tangent_line = Signal(str, float, float)
+
     def __init__(self, parent=None):
         super().__init__(t('function_explorer.title'), parent)
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.setMinimumWidth(280)
+        self.setMinimumWidth(320)  # 稍微加宽以容纳新的微积分面板
         
         self.current_function_id = None
-        self.parameter_sliders = {}  # param_name -> ParameterSlider
-        self.function_type = 'explicit'  # explicit, implicit, polar
+        self.parameter_sliders = {}
+        self.function_type = 'explicit'
         
         self._build_ui()
     
@@ -102,72 +106,46 @@ class FunctionExplorerPanel(QDockWidget):
         # === 1. 函数类型选择 ===
         type_group = QGroupBox(t('function_explorer.function_type'))
         type_layout = QVBoxLayout(type_group)
-        
         self.type_combo = QComboBox()
-        self.type_combo.addItem(t('function_explorer.explicit'), 'explicit')
-        self.type_combo.addItem(t('function_explorer.implicit'), 'implicit')
-        self.type_combo.addItem(t('function_explorer.polar'), 'polar')
+        self.type_combo.addItems([t('function_explorer.explicit'), t('function_explorer.implicit'), t('function_explorer.polar')])
+        self.type_combo.setItemData(0, 'explicit')
+        self.type_combo.setItemData(1, 'implicit')
+        self.type_combo.setItemData(2, 'polar')
         self.type_combo.currentIndexChanged.connect(self._on_type_changed)
         type_layout.addWidget(self.type_combo)
-        
         main_layout.addWidget(type_group)
         
         # === 2. 函数表达式输入 ===
         expr_group = QGroupBox(t('function_explorer.expression'))
         expr_layout = QVBoxLayout(expr_group)
-        
-        # 示例提示
         self.example_label = QLabel(t('function_explorer.example_explicit'))
         self.example_label.setStyleSheet("color: #737686; font-size: 11px;")
         expr_layout.addWidget(self.example_label)
-        
-        # 表达式输入框
         self.expr_input = QLineEdit()
         self.expr_input.setPlaceholderText(t('function_explorer.enter_expression'))
         self.expr_input.setFont(QFont("Consolas", 11))
         self.expr_input.returnPressed.connect(self.on_plot_function)
         expr_layout.addWidget(self.expr_input)
-        
-        # 绘图按钮
         self.plot_btn = QPushButton(t('function_explorer.plot'))
-        self.plot_btn.setStyleSheet("""
-            QPushButton {
-                background: #004ac6;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 4px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background: #2563eb;
-            }
-        """)
+        self.plot_btn.setStyleSheet("QPushButton { background: #004ac6; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: 600; } QPushButton:hover { background: #2563eb; }")
         self.plot_btn.clicked.connect(self.on_plot_function)
         expr_layout.addWidget(self.plot_btn)
-        
         main_layout.addWidget(expr_group)
-        
+
         # === 3. 参数滑块区域 ===
         self.params_group = QGroupBox(t('function_explorer.parameters'))
         params_layout = QVBoxLayout(self.params_group)
         self.params_scroll = QScrollArea()
         self.params_scroll.setWidgetResizable(True)
         self.params_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.params_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        
         self.params_container = QWidget()
         self.params_container_layout = QVBoxLayout(self.params_container)
-        self.params_container_layout.setContentsMargins(0, 0, 0, 0)
-        self.params_container_layout.setSpacing(8)
-        self.params_container_layout.addStretch()
-        
         self.params_scroll.setWidget(self.params_container)
         params_layout.addWidget(self.params_scroll)
-        
         main_layout.addWidget(self.params_group)
+        self.params_group.setVisible(False)
         
-        # === 4. 图象变换工具 ===
+        # === 4. 图象变换 ===
         transform_group = QGroupBox(t('function_explorer.transformations'))
         transform_layout = QVBoxLayout(transform_group)
         
@@ -180,17 +158,7 @@ class FunctionExplorerPanel(QDockWidget):
         
         for btn in [self.shift_left_btn, self.shift_right_btn, self.shift_up_btn, self.shift_down_btn]:
             btn.setFixedSize(80, 32)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background: #eff4ff;
-                    border: 1px solid #d3e4fe;
-                    border-radius: 4px;
-                    font-size: 11px;
-                }
-                QPushButton:hover {
-                    background: #d3e4fe;
-                }
-            """)
+            btn.setStyleSheet("QPushButton { background: #eff4ff; border: 1px solid #d3e4fe; border-radius: 4px; font-size: 11px; } QPushButton:hover { background: #d3e4fe; }")
         
         trans_row1.addWidget(self.shift_left_btn)
         trans_row1.addWidget(self.shift_right_btn)
@@ -207,17 +175,7 @@ class FunctionExplorerPanel(QDockWidget):
         
         for btn in [self.scale_x_btn, self.scale_y_btn, self.reflect_x_btn, self.reflect_y_btn]:
             btn.setFixedSize(80, 32)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background: #eff4ff;
-                    border: 1px solid #d3e4fe;
-                    border-radius: 4px;
-                    font-size: 11px;
-                }
-                QPushButton:hover {
-                    background: #d3e4fe;
-                }
-            """)
+            btn.setStyleSheet("QPushButton { background: #eff4ff; border: 1px solid #d3e4fe; border-radius: 4px; font-size: 11px; } QPushButton:hover { background: #d3e4fe; }")
         
         trans_row2.addWidget(self.scale_x_btn)
         trans_row2.addWidget(self.scale_y_btn)
@@ -236,25 +194,161 @@ class FunctionExplorerPanel(QDockWidget):
         self.reflect_y_btn.clicked.connect(lambda: self._apply_transform('reflect', 1, -1))
         
         main_layout.addWidget(transform_group)
+
+        # === 5. 全新：微积分与高阶分析引擎 (Calculus & Analysis) ===
+        calc_group = QGroupBox("⚡ 微积分与高阶分析 (C# 驱动)")
+        calc_layout = QVBoxLayout(calc_group)
         
-        # === 5. 预设函数模板 ===
-        template_group = QGroupBox(t('function_explorer.templates'))
-        template_layout = QVBoxLayout(template_group)
+        # 5.1 定积分计算 (面积填充)
+        int_row1 = QHBoxLayout()
+        int_row1.addWidget(QLabel("∫ 面积自适应积分：从"))
         
-        self.template_combo = QComboBox()
-        self.template_combo.addItem(t('function_explorer.template_sine'), 'A*sin(omega*x + phi)')
-        self.template_combo.addItem(t('function_explorer.template_quadratic'), 'a*x^2 + b*x + c')
-        self.template_combo.addItem(t('function_explorer.template_exponential'), 'a*exp(b*x)')
-        self.template_combo.addItem(t('function_explorer.template_gaussian'), 'a*exp(-(x-b)^2/(2*c^2))')
-        self.template_combo.addItem(t('function_explorer.template_hyperbola'), 'a/x')
-        self.template_combo.currentIndexChanged.connect(self._on_template_selected)
-        template_layout.addWidget(self.template_combo)
+        self.int_a_input = QLineEdit()
+        self.int_a_input.setPlaceholderText("a")
+        self.int_a_input.setFixedWidth(50)
+        self.int_a_input.setValidator(QDoubleValidator())
         
-        main_layout.addWidget(template_group)
+        int_row1.addWidget(self.int_a_input)
+        int_row1.addWidget(QLabel("到"))
         
+        self.int_b_input = QLineEdit()
+        self.int_b_input.setPlaceholderText("b")
+        self.int_b_input.setFixedWidth(50)
+        self.int_b_input.setValidator(QDoubleValidator())
+        
+        int_row1.addWidget(self.int_b_input)
+        calc_layout.addLayout(int_row1)
+        
+        int_row2 = QHBoxLayout()
+        self.calc_int_btn = QPushButton("计算面积并填充阴影")
+        self.calc_int_btn.setStyleSheet("background-color: #e0f2fe; color: #0284c7; border-radius: 4px; padding: 4px;")
+        self.calc_int_btn.clicked.connect(self._on_calculate_integral)
+        int_row2.addWidget(self.calc_int_btn)
+        
+        self.int_result_label = QLabel("面积 = -")
+        self.int_result_label.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.int_result_label.setStyleSheet("color: #d97706;")
+        int_row2.addWidget(self.int_result_label)
+        calc_layout.addLayout(int_row2)
+        
+        # 分隔线
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        calc_layout.addWidget(line)
+        
+        # 5.2 微分计算 (动态切线)
+        deriv_row1 = QHBoxLayout()
+        deriv_row1.addWidget(QLabel("∂ 动态切线：在 x ="))
+        
+        self.deriv_x_input = QLineEdit()
+        self.deriv_x_input.setPlaceholderText("x0")
+        self.deriv_x_input.setFixedWidth(60)
+        self.deriv_x_input.setValidator(QDoubleValidator())
+        deriv_row1.addWidget(self.deriv_x_input)
+        deriv_row1.addStretch()
+        calc_layout.addLayout(deriv_row1)
+        
+        deriv_row2 = QHBoxLayout()
+        self.calc_deriv_btn = QPushButton("计算切线并绘制")
+        self.calc_deriv_btn.setStyleSheet("background-color: #fce7f3; color: #be185d; border-radius: 4px; padding: 4px;")
+        self.calc_deriv_btn.clicked.connect(self._on_calculate_tangent)
+        deriv_row2.addWidget(self.calc_deriv_btn)
+        
+        self.deriv_result_label = QLabel("斜率 k = -")
+        self.deriv_result_label.setFont(QFont("Consolas", 10, QFont.Bold))
+        self.deriv_result_label.setStyleSheet("color: #be185d;")
+        deriv_row2.addWidget(self.deriv_result_label)
+        calc_layout.addLayout(deriv_row2)
+
+        main_layout.addWidget(calc_group)
         main_layout.addStretch()
         self.setWidget(container)
-    
+        
+    # === 微积分事件响应槽函数 ===
+
+    def _get_evaluated_expression(self):
+        """将当前面板上的参数 (如 a, b) 替换为具体数值，供引擎计算"""
+        expr = self.expr_input.text().strip()
+        if not expr:
+            return None
+        # 简单替换
+        for pname, pslider in self.parameter_sliders.items():
+            val = pslider.get_value()
+            expr = re.sub(r'\b' + re.escape(pname) + r'\b', f'({val})', expr)
+        return expr
+
+    def _on_calculate_integral(self):
+        """触发计算定积分并绘图"""
+        if not HAS_CALCULUS_ENGINE:
+            QMessageBox.information(self, "提示", "请先在核心引擎中启用 C# 微积分模块。")
+            return
+            
+        expr = self._get_evaluated_expression()
+        a_str, b_str = self.int_a_input.text(), self.int_b_input.text()
+        
+        if not expr or not a_str or not b_str:
+            QMessageBox.warning(self, "参数不全", "请确保已输入函数表达式，以及积分上下限 a 和 b。")
+            return
+            
+        try:
+            a, b = float(a_str), float(b_str)
+            # 1. 编译为极速 Python 字节码函数
+            x = sp.Symbol('x')
+            sp_expr = sp.sympify(expr)
+            fast_func = sp.lambdify(x, sp_expr, modules=['math'])
+            
+            # 2. 呼叫 C# 引擎秒算高斯-克朗罗德积分
+            self.int_result_label.setText("计算中...")
+            area_val = cs_calculus.integrate_adaptive(fast_func, a, b, tol=1e-8)
+            
+            # 3. 更新 UI
+            self.int_result_label.setText(f"面积 ≈ {area_val:.5f}")
+            
+            # 4. 发射信号让 Canvas 画布去填充阴影！
+            self.render_integral_area.emit(expr, a, b, area_val)
+            
+        except Exception as e:
+            self.int_result_label.setText("计算错误")
+            QMessageBox.critical(self, "计算失败", f"积分计算失败: {str(e)}")
+
+    def _on_calculate_tangent(self):
+        """触发计算切线并绘图"""
+        if not HAS_CALCULUS_ENGINE:
+            QMessageBox.information(self, "提示", "请先在核心引擎中启用 C# 微积分模块。")
+            return
+            
+        expr = self._get_evaluated_expression()
+        x0_str = self.deriv_x_input.text()
+        
+        if not expr or not x0_str:
+            QMessageBox.warning(self, "参数不全", "请确保已输入函数表达式及切点坐标 x0。")
+            return
+            
+        try:
+            x0 = float(x0_str)
+            x = sp.Symbol('x')
+            sp_expr = sp.sympify(expr)
+            fast_func = sp.lambdify(x, sp_expr, modules=['math'])
+            
+            # 1. 调用 C# 引擎计算在 x0 处的导数 (斜率)
+            self.deriv_result_label.setText("计算中...")
+            slope_k = cs_calculus.differentiate(fast_func, x0)
+            
+            # 2. 计算出具体函数值 y0
+            y0 = fast_func(x0)
+            
+            # 3. 更新 UI
+            self.deriv_result_label.setText(f"k ≈ {slope_k:.3f}")
+            
+            # 4. 发射信号，通知 Canvas 画出这根神奇的切线！
+            # 切线方程 y - y0 = k(x - x0)
+            self.render_tangent_line.emit(expr, x0, slope_k)
+            
+        except Exception as e:
+            self.deriv_result_label.setText("计算错误")
+            QMessageBox.critical(self, "计算失败", f"求导失败: {str(e)}")
+
     def _on_type_changed(self, index: int):
         """函数类型改变时更新示例提示"""
         type_data = self.type_combo.itemData(index)
@@ -271,6 +365,7 @@ class FunctionExplorerPanel(QDockWidget):
         if expression:
             self.expr_input.setText(expression)
             self.on_plot_function()
+
     
     def _extract_parameters(self, expression: str) -> list:
         """从表达式中提取参数(非常数变量)"""

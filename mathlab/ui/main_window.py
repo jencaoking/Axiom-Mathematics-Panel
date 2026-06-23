@@ -635,6 +635,8 @@ class MainWindow(QMainWindow):
         # 连接函数探索器信号
         self.function_explorer.function_added.connect(self.on_function_added)
         self.function_explorer.function_updated.connect(self.on_function_updated)
+        self.function_explorer.render_integral_area.connect(self.on_render_integral_area)
+        self.function_explorer.render_tangent_line.connect(self.on_render_tangent_line)
 
     def on_code_completion_requested(self, code_text: str, line: int, column: int):
         if hasattr(self, 'python_repl'):
@@ -767,6 +769,14 @@ class MainWindow(QMainWindow):
                 self.on_geometry_event('object_updated', last_func.serialize())
         except Exception as e:
             logger.warning("更新函数时出错: %s", e)
+
+    def on_render_integral_area(self, expr: str, a: float, b: float, result: float):
+        if hasattr(self, 'central_widget') and hasattr(self.central_widget, 'render_integral_area'):
+            self.central_widget.render_integral_area(expr, a, b, result)
+
+    def on_render_tangent_line(self, expr: str, x0: float, k: float):
+        if hasattr(self, 'central_widget') and hasattr(self.central_widget, 'render_tangent_line'):
+            self.central_widget.render_tangent_line(expr, x0, k)
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:

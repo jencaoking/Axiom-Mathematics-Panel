@@ -289,6 +289,7 @@ class GeometryCanvas(QGraphicsView):
         self.pending_latex_updates = {}  # {obj_id: latex_str}
         self._is_dragging = False  # 全局拖拽状态标记
         self.active_bubbles = []   # 活跃的空间气泡
+        self.analysis_items = []   # 临时微积分分析图形（阴影、切线等）
 
     def spawn_spatial_bubble(self, obj_id: str, text: str):
         """在目标元素旁生成讲解气泡"""
@@ -1185,3 +1186,118 @@ class GeometryCanvas(QGraphicsView):
                 text_item = obj_info.get('text')
                 if isinstance(text_item, MathGraphicsItem):
                     text_item.set_dragging(False)
+
+    # ==================================================================
+    # 微积分与高阶分析：动态图象渲染
+    # ==================================================================
+    
+    def _clear_analysis_items(self):
+        """清除上一轮计算残留的阴影和切线"""
+        for item in getattr(self, 'analysis_items', []):
+            if item.scene() == self.scene_obj:
+                self.scene_obj.removeItem(item)
+        self.analysis_items.clear()
+
+    def render_integral_area(self, expr: str, a: float, b: float, result: float):
+        """渲染定积分阴影面积"""
+        import numpy as np
+        import sympy as sp
+        
+        self._clear_analysis_items()
+
+        try:
+            x_sym = sp.Symbol('x')
+            sp_expr = sp.sympify(expr)
+            fast_func = sp.lambdify(x_sym, sp_expr, modules=['math', 'numpy'])
+            
+            # 由于可能包含数学无定义点，使用安全求值
+            x_vals = np.linspace(a, b, 200)
+            
+            path = QPainterPath()
+            path.moveTo(a, 0)
+            
+            first_valid = True
+            for x in x_vals:
+                try:
+                    y = float(fast_func(x))
+                    if not np.isfinite(y):
+                        y = 0
+                except:
+                    y = 0
+                    
+                if first_valid:
+                    path.lineTo(x, y)
+                    first_valid = False
+                else:
+                    path.lineTo(x, y)
+                    
+            path.lineTo(b, 0)
+            path.closeSubpath()
+            
+            # 使用透明蓝色表示积分阴影
+            brush = QBrush(QColor(2, 132, 199, 80)) # Tailwind sky-600 with 30% alpha
+            pen = QPen(Qt.NoPen)
+            area_item = self.scene_obj.addPath(path, pen, brush)
+            area_item.setZValue(5) # 放在网格之上，函数线之下
+            self.analysis_items.append(area_item)
+            
+            # 在中心添加面积文本
+            text_item = MathGraphicsItem(f"Area ≈ {result:.4f}", use_latex=True)
+            mid_x = (a + b) / 2
+            try:
+                mid_y = float(fast_func(mid_x)) / 2
+            except:
+                mid_y = 0
+            text_item.setPos(mid_x, mid_y)
+            text_item.setZValue(15)
+            self.scene_obj.addItem(text_item)
+            self.analysis_items.append(text_item)
+            
+        except Exception as e:
+            print(f"渲染积分阴影失败: {e}")
+
+    def render_tangent_line(self, expr: str, x0: float, k: float):
+        """渲染指定点的切线"""
+        import sympy as sp
+        
+        self._clear_analysis_items()
+
+        try:
+            x_sym = sp.Symbol('x')
+            sp_expr = sp.sympify(expr)
+            fast_func = sp.lambdify(x_sym, sp_expr, modules=['math', 'numpy'])
+            
+            try:
+                y0 = float(fast_func(x0))
+            except:
+                print("切点无定义")
+                return
+                
+            # 画一个突出的切点
+            radius = 0.15
+            point_item = self.scene_obj.addEllipse(
+                x0 - radius, y0 - radius, radius * 2, radius * 2, 
+                QPen(Qt.NoPen), QBrush(QColor(190, 24, 93)) # Tailwind pink-700
+            )
+            point_item.setZValue(12)
+            self.analysis_items.append(point_item)
+            
+            # 画一条横跨视图的切线
+            dx = 50.0  # 足够长以超出视口
+            x1, y1 = x0 - dx, y0 - k * dx
+            x2, y2 = x0 + dx, y0 + k * dx
+            
+            pen = QPen(QColor(190, 24, 93), 2, Qt.DashLine)
+            line_item = self.scene_obj.addLine(x1, y1, x2, y2, pen)
+            line_item.setZValue(11)
+            self.analysis_items.append(line_item)
+            
+            # 在切点附近添加斜率文本
+            text_item = MathGraphicsItem(f"k ≈ {k:.3f}", use_latex=True)
+            text_item.setPos(x0 + 0.5, y0 + 0.5)
+            text_item.setZValue(15)
+            self.scene_obj.addItem(text_item)
+            self.analysis_items.append(text_item)
+            
+        except Exception as e:
+            print(f"渲染切线失败: {e}")
