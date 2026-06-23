@@ -11,9 +11,9 @@ class AgentUIBridge(QObject):
     code_generated = Signal(str)            # 触发 Monaco 编辑器打字
     task_finished = Signal(bool, str)       # 触发结束动画
 
-    def __init__(self, agent_instance, parent=None):
+    def __init__(self, agent_registry, parent=None):
         super().__init__(parent)
-        self.agent = agent_instance
+        self.agent_registry = agent_registry
 
     def run_task_in_background(self, user_prompt):
         """将任务抛入后台线程执行，并通过回调发射信号"""
@@ -33,7 +33,7 @@ class AgentUIBridge(QObject):
         # 启动守护线程运行大模型闭环
         import threading
         threading.Thread(
-            target=self.agent.solve_problem,
+            target=self.agent_registry.route_and_execute,
             args=(user_prompt, _thought_cb, _code_cb, _finish_cb),
             daemon=True
         ).start()

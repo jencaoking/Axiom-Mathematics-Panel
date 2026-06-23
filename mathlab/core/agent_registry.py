@@ -1,45 +1,72 @@
-from mathlab.core.ai_tools import GEOMETRY_DRAW_TOOL, VISUAL_HIGHLIGHT_TOOL, QUIZ_GENERATOR_SCHEMA, AGENT_TRANSFER_TOOL, SUBMIT_TEACHING_PLAN_TOOL
+import re
+import json
 
-class AgentProfile:
-    def __init__(self, id, name, icon, system_prompt, specific_tools):
-        self.id = id                      
-        self.name = name                  
-        self.icon = icon                  
-        self.system_prompt = system_prompt
-        # ✨ 魔法注入：每个专家不仅有自己的专属工具，还标配了移交对讲机
-        self.tools = specific_tools + [AGENT_TRANSFER_TOOL]
+class AgentRegistry:
+    def __init__(self, ai_manager):
+        self.ai_manager = ai_manager
+        self.agents = {}  # 存放所有已注册的专家 Agent
 
-# --- 预设的专家天团 ---
-AGENTS = {
-    "general": AgentProfile(
-        id="general",
-        name="全科助教",
-        icon="🟢",
-        system_prompt="你是首席前台。如果用户要画图或做几何证明，立即 transfer_to_agent 给 geometry；如果要考试测验，立即 transfer_to_agent 给 quiz。",
-        specific_tools=[] 
-    ),
-    "geometry": AgentProfile(
-        id="geometry",
-        name="几何专家",
-        icon="📐",
-        system_prompt="你是顶尖的几何学专家。只要用户涉及作图、证明、求面积/角度，你必须优先使用 execute_geometry_draw 或 highlight_geometry_elements 进行视觉化演示。如果用户突然让你出题，请 transfer_to_agent 交给出题考官。",
-        specific_tools=[GEOMETRY_DRAW_TOOL, VISUAL_HIGHLIGHT_TOOL] 
-    ),
-    "quiz": AgentProfile(
-        id="quiz",
-        name="出题考官",
-        icon="📝",
-        system_prompt="你是严厉的出题考官。如果你的题目需要配一张几何图，请先构思好题目，然后 transfer_to_agent 把画图需求交给几何专家。",
-        specific_tools=[QUIZ_GENERATOR_SCHEMA] 
-    ),
-    "planner": AgentProfile(
-        id="planner",
-        name="教研组长",
-        icon="🧠",
-        system_prompt="你是 MathLab 的教研组长。你的唯一职责是制定教学规划。你必须且只能调用 `submit_teaching_plan` 工具提交大纲。绝对禁止输出任何普通的文本聊天内容！",
-        specific_tools=[SUBMIT_TEACHING_PLAN_TOOL]
-    )
-}
+    def register_agent(self, name, description, agent_instance):
+        """注册一个专家 Agent 及其能力描述"""
+        self.agents[name] = {
+            "description": description,
+            "instance": agent_instance
+        }
+        print(f"🔌 [Agent Registry] 已挂载领域专家: {name}")
 
-def get_agent(agent_id: str) -> AgentProfile:
-    return AGENTS.get(agent_id, AGENTS["general"])
+    def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb):
+        """
+        核心路由逻辑：分类 -> 派发 -> 执行
+        """
+        if not self.agents:
+            if on_thought_cb:
+                on_thought_cb("❌ 系统中没有可用的专家 Agent。")
+            if on_finish_cb:
+                on_finish_cb(False, "")
+            return
+
+        # 1. 构建动态的路由 Prompt，列出所有可用专家
+        agent_descriptions = "\n".join([f"- {name}: {info['description']}" for name, info in self.agents.items()])
+        
+        router_prompt = f"""你是一个高级任务调度路由大脑。
+请分析用户的需求：“{user_prompt}”。
+根据以下可用的专家 Agent，决定将任务派发给谁最合适：
+{agent_descriptions}
+
+规则：你必须且只能返回专家的名字，不要输出任何多余的字符或标点。"""
+
+        if on_thought_cb:
+            on_thought_cb("🧠 路由大脑正在分析意图，寻找最合适的专家...")
+
+        try:
+            # 2. 使用极低的 Temperature 获取稳定的分类结果
+            response = self.ai_manager.client.chat.completions.create(
+                model=self.ai_manager.current_model,
+                messages=[{"role": "user", "content": router_prompt}],
+                temperature=0.0,
+                max_tokens=20
+            )
+            
+            selected_agent_name = response.choices[0].message.content.strip()
+            
+            # 清理可能携带的标点符号
+            selected_agent_name = re.sub(r'[^a-zA-Z0-9_]', '', selected_agent_name)
+
+            # 3. 容错回退机制
+            if selected_agent_name not in self.agents:
+                if on_thought_cb:
+                    on_thought_cb(f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 GeometryAgent。")
+                selected_agent_name = "GeometryAgent" # 默认兜底专家
+            else:
+                if on_thought_cb:
+                    on_thought_cb(f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】")
+
+            # 4. 真正移交控制权，启动该专家的 ReAct 推理闭环
+            expert_agent = self.agents[selected_agent_name]["instance"]
+            expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb, on_finish_cb)
+
+        except Exception as e:
+            if on_thought_cb:
+                on_thought_cb(f"❌ 路由中枢发生故障: {e}")
+            if on_finish_cb:
+                on_finish_cb(False, "")

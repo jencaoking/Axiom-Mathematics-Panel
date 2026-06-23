@@ -804,15 +804,31 @@ class MainWindow(QMainWindow):
     # ── AI 全局交互集成 ──────────────────────────────────────────────
     def _setup_ai_integration(self):
         from PySide6.QtCore import QPointF
-        from mathlab.core.ai_manager import MathAgent
+        from mathlab.core.agent_registry import AgentRegistry
+        from mathlab.core.ai_manager import GeometryAgent, DataVizAgent
         from mathlab.core.agent_bridge import AgentUIBridge
         import json
         
-        # 1. 实例化 Agent 和 UI 桥梁
-        self.agent = MathAgent(self.ai_manager)
-        self.agent_bridge = AgentUIBridge(self.agent, self)
+        # 1. 初始化联邦路由大脑
+        self.agent_registry = AgentRegistry(self.ai_manager)
         
-        # 2. 信号与槽的严密绑定 (跨线程安全)
+        # 2. 注册所有领域专家
+        self.agent_registry.register_agent(
+            name="GeometryAgent",
+            description="擅长解决平面几何、微积分、代数方程求解，以及二维坐标系中的点线圆绘制任务。",
+            agent_instance=GeometryAgent(self.ai_manager)
+        )
+        
+        self.agent_registry.register_agent(
+            name="DataVizAgent",
+            description="擅长处理统计数据可视化、柱状图、折线图、南丁格尔玫瑰图、3D曲面图等 ECharts 图表渲染任务。",
+            agent_instance=DataVizAgent(self.ai_manager)
+        )
+        
+        # 3. UI 桥梁现在不再绑定单一 Agent，而是绑定整个 Registry 路由器
+        self.agent_bridge = AgentUIBridge(self.agent_registry, self)
+        
+        # 4. 信号与槽的严密绑定 (跨线程安全)
         # 思考 -> 打印到终端
         self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
         
@@ -822,7 +838,7 @@ class MainWindow(QMainWindow):
         # 结束 -> 善后处理
         self.agent_bridge.task_finished.connect(self._on_agent_task_finished)
         
-        # 3. 绑定全局输入框 (OmniBar) 的回车事件
+        # 5. 绑定全局输入框 (OmniBar) 的回车事件
         self.omni_bar.search_submitted.connect(self._trigger_global_ai_task)
 
     def _trigger_global_ai_task(self, user_prompt):
