@@ -1,206 +1,95 @@
-"""
-jupyter_manager.py
-──────────────────
-后台 JupyterLab 服务管理器
-
-负责：
-  1. 动态占用一个空闲端口（防止与系统 8888 冲突）
-  2. 用 subprocess 静默启动 JupyterLab
-  3. 等待服务真正就绪（HTTP 200 探测）
-  4. 在 Qt closeEvent 中被调用时优雅销毁后台进程
-"""
-
-from __future__ import annotations
-
-import os
-import socket
-import subprocess
-import sys
-import time
+import queue
 import threading
-from typing import Optional
+from jupyter_client import KernelManager
+from mathlab.core.sandbox_security import is_code_safe
 
-# ── 软依赖：requests（如不存在则退化为 TCP 探活） ──────────────────────────
-try:
-    import requests as _requests
-    _HAS_REQUESTS = True
-except ImportError:
-    _HAS_REQUESTS = False
+class JupyterSandbox:
+    """
+    进程级隔离的 Jupyter 执行沙盒
+    支持状态保持、超时中断、以及富文本/图像输出捕获
+    """
+    def __init__(self):
+        self.km = KernelManager(kernel_name='python3')
+        self.km.start_kernel()
+        self.kc = self.km.client()
+        self.kc.start_channels()
+        
+        # 等待内核启动
+        try:
+            self.kc.wait_for_ready(timeout=10)
+            print("Jupyter 内核已成功启动并在后台待命。")
+        except RuntimeError:
+            print("警告: Jupyter 内核启动超时。")
 
-
-class JupyterManager:
-    """后台 JupyterLab 服务管理器（线程安全）"""
-
-    def __init__(self) -> None:
-        self.port: int = self._get_free_port()
-        self.process: Optional[subprocess.Popen] = None
-        # 禁用 Token/密码（纯本地沙盒），允许跨域嵌入
-        # 🌟 魔法参数：强制暗色主题 + 简单模式
-        self.url: str = f"http://localhost:{self.port}/lab?theme=JupyterLab%20Dark&simple=1"
-        self._is_ready: bool = False
-        self._lock = threading.Lock()
-
-    # ── 端口工具 ────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _get_free_port() -> int:
-        """动态获取一个空闲的系统端口，防止 8888 冲突"""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            return s.getsockname()[1]
-
-    # ── 启动 ────────────────────────────────────────────────────────────────
-
-    def start(self, timeout: int = 30) -> bool:
+    def execute_code(self, code: str, timeout: int = 5) -> dict:
         """
-        静默启动 JupyterLab 并阻塞等待就绪。
-
-        Parameters
-        ----------
-        timeout : int
-            最长等待秒数（JupyterLab 首次启动可能需要 15-20 s）
-
-        Returns
-        -------
-        bool
-            True = 服务已就绪；False = 超时或启动失败
+        同步执行代码并收集所有输出
         """
-        with self._lock:
-            if self.process is not None:
-                return self._is_ready  # 防重入
+        # 1. 静态安全检查
+        safe, msg = is_code_safe(code)
+        if not safe:
+            return {"status": "error", "traceback": [msg], "text": "", "images": []}
 
-        # 🌟 适配 PyInstaller 环境的启动方式 🌟
-        # sys.executable 在打包后指向 MathLab.exe，在开发时指向 python.exe
-        # 我们使用 -m jupyterlab 来确保它从当前解释器环境中寻找模块
-        cmd = [
-            sys.executable, "-m", "jupyterlab", 
-            "--no-browser", 
-            f"--port={self.port}", 
-            "--ServerApp.token=''", 
-            "--ServerApp.password=''",
-            "--ServerApp.allow_origin='*'",
-            "--ServerApp.disable_check_xsrf=True"
-        ]
+        # 2. 发送给后台 Jupyter 内核执行
+        msg_id = self.kc.execute(code)
+        
+        output_text = []
+        output_images = []
+        error_traceback = []
+        status = "ok"
 
-        kwargs: dict = {
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE,
+        # 3. 阻塞等待并捕获输出 (具备超时熔断机制)
+        try:
+            while True:
+                # 从 iopub 频道获取执行结果
+                msg = self.kc.get_iopub_msg(timeout=timeout)
+                msg_type = msg['header']['msg_type']
+                content = msg['content']
+
+                if msg_type == 'stream':
+                    # 捕获 print() 输出
+                    output_text.append(content['text'])
+                
+                elif msg_type == 'execute_result' or msg_type == 'display_data':
+                    # 捕获表达式结果或图片 (例如 matplotlib 输出)
+                    if 'text/plain' in content['data']:
+                        output_text.append(content['data']['text/plain'])
+                    if 'image/png' in content['data']:
+                        output_images.append(content['data']['image/png']) # 这是一个 Base64 字符串
+                
+                elif msg_type == 'error':
+                    # 捕获代码报错信息
+                    status = "error"
+                    error_traceback.extend(content['traceback'])
+                
+                elif msg_type == 'status' and content['execution_state'] == 'idle':
+                    # 内核执行完毕并回到空闲状态
+                    break
+                    
+        except queue.Empty:
+            status = "timeout"
+            error_traceback.append(f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。")
+            # 发生严重超时（死循环）时，直接强杀并重启内核
+            self.restart_kernel()
+
+        return {
+            "status": status,
+            "text": "".join(output_text),
+            "images": output_images, # 可以直接传给 QPixmap 加载
+            "traceback": error_traceback
         }
 
-        # Windows：防止出现黑色 cmd 窗口
-        if os.name == "nt":
-            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    def restart_kernel(self):
+        """强杀并重启内核（用于清理内存或打破死循环）"""
+        print("正在重启 Jupyter 内核...")
+        self.km.restart_kernel(now=True)
+        self.kc = self.km.client()
+        self.kc.start_channels()
+        self.kc.wait_for_ready(timeout=10)
 
-        try:
-            proc = subprocess.Popen(cmd, **kwargs)
-        except FileNotFoundError:
-            print(
-                "⚠️  未找到 jupyter 可执行文件。\n"
-                "   请运行：pip install jupyterlab\n"
-                f"   （当前尝试路径：{sys.executable}）"
-            )
-            return False
+    def shutdown(self):
+        self.kc.stop_channels()
+        self.km.shutdown_kernel(now=True)
 
-        with self._lock:
-            self.process = proc
-
-        print(f"🚀 JupyterLab 正在后台启动（端口 {self.port}）…")
-        self._wait_until_ready(timeout)
-        return self._is_ready
-
-    @staticmethod
-    def _resolve_jupyter() -> str:
-        """
-        尝试解析当前 Python 环境对应的 jupyter 可执行文件路径。
-        这样即便不在激活的 venv 里，也能找到正确的 jupyter。
-        """
-        # sys.executable → .../venv/Scripts/python.exe （Windows）
-        scripts_dir = os.path.join(os.path.dirname(sys.executable), "Scripts")
-        candidate_win = os.path.join(scripts_dir, "jupyter.exe")
-        if os.path.isfile(candidate_win):
-            return candidate_win
-
-        # Unix-like：bin 目录
-        bin_dir = os.path.join(os.path.dirname(sys.executable))
-        candidate_unix = os.path.join(bin_dir, "jupyter")
-        if os.path.isfile(candidate_unix):
-            return candidate_unix
-
-        # 兜底：让 PATH 去找
-        return "jupyter"
-
-    # ── 就绪探测 ────────────────────────────────────────────────────────────
-
-    def _wait_until_ready(self, timeout: int) -> None:
-        """轮询探测 JupyterLab HTTP 端口，直到就绪或超时"""
-        deadline = time.monotonic() + timeout
-        url = self.url
-
-        while time.monotonic() < deadline:
-            if self.process and self.process.poll() is not None:
-                print("❌ JupyterLab 进程意外退出，请检查 stderr。")
-                return
-
-            if _HAS_REQUESTS:
-                try:
-                    resp = _requests.get(url, timeout=2)
-                    if resp.status_code < 400:
-                        self._is_ready = True
-                        print(f"✅ JupyterLab 已在 {url} 后台就绪！")
-                        return
-                except _requests.ConnectionError:
-                    pass
-                except Exception:
-                    pass
-            else:
-                # 降级：仅做 TCP 连通测试
-                try:
-                    with socket.create_connection(("localhost", self.port), timeout=1):
-                        self._is_ready = True
-                        print(f"✅ JupyterLab 端口 {self.port} 已开放（TCP 探测）。")
-                        return
-                except OSError:
-                    pass
-
-            time.sleep(0.8)
-
-        print(
-            f"⚠️  JupyterLab 启动超时（>{timeout}s），界面可能仍在加载。\n"
-            "   QWebEngineView 会持续重试，请稍候。"
-        )
-
-    # ── 停止 ────────────────────────────────────────────────────────────────
-
-    def stop(self) -> None:
-        """
-        优雅销毁后台 JupyterLab 进程。
-        先发 SIGTERM，等待 3 秒，若仍存活则强制 SIGKILL。
-        """
-        with self._lock:
-            proc = self.process
-            self.process = None
-            self._is_ready = False
-
-        if proc is None:
-            return
-
-        if proc.poll() is None:
-            proc.terminate()
-            try:
-                proc.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
-
-        print("🛑 JupyterLab 后台服务已优雅关闭。")
-
-    # ── 状态查询 ────────────────────────────────────────────────────────────
-
-    @property
-    def is_ready(self) -> bool:
-        return self._is_ready
-
-    def is_running(self) -> bool:
-        with self._lock:
-            return self.process is not None and self.process.poll() is None
+# 全局单例沙盒引擎
+jupyter_sandbox = JupyterSandbox()

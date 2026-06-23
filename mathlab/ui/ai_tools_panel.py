@@ -47,6 +47,10 @@ except ImportError as e:
         raise
     from ui.animations import start_breathing_effect
 
+from PySide6.QtCore import QThreadPool
+from mathlab.core.jupyter_manager import jupyter_sandbox
+from mathlab.core.async_workers import TaskWorker
+
 
 
 
@@ -198,10 +202,10 @@ class AIToolsPanel(QDockWidget):
 
         self.progress_bar = QProgressBar()
 
-        self.output_area = QPlainTextEdit()
-        self.output_area.setReadOnly(True)
+        self.output_area = QTextBrowser()
+        self.output_area.setOpenExternalLinks(True)
         self.output_area.setStyleSheet("""
-            QPlainTextEdit {
+            QTextBrowser {
                 background-color: #1e1e1e;
                 color: #d4d4d4;
                 font-family: Consolas, monospace;
@@ -429,24 +433,36 @@ class AIToolsPanel(QDockWidget):
             return
             
         self.output_area.clear()
-        self.output_area.appendPlainText(t('ai_tools.running_training'))
+        self.output_area.append(t('ai_tools.running_training'))
         self.set_loading_state(True)
         
-        from PySide6.QtCore import QTimer
-        self._training_timer = QTimer(self)
-        self._training_timer.setSingleShot(True)
-        self._training_timer.timeout.connect(self._finish_training)
-        self._training_timer.start(2000)
+        # 将任务推入线程池
+        worker = TaskWorker(jupyter_sandbox.execute_code, code, timeout=10)
+        worker.signals.result.connect(self.on_execution_finished)
+        QThreadPool.globalInstance().start(worker)
 
-    def _finish_training(self):
-        self.output_area.appendPlainText("Training completed successfully. (Simulated)")
+    def on_execution_finished(self, result_dict):
+        # 恢复按钮
         self.set_loading_state(False)
+        
+        if result_dict['status'] == 'error' or result_dict['status'] == 'timeout':
+            # 渲染红色报错信息
+            error_text = "<br>".join(result_dict['traceback']).replace('\n', '<br>')
+            self.output_area.append(f"<span style='color:red;'>{error_text}</span>")
+        else:
+            # 渲染正常的 print 输出
+            if result_dict['text']:
+                self.output_area.append(result_dict['text'].replace('\n', '<br>'))
+            
+            # 渲染 Base64 图像 (如果使用了 matplotlib)
+            for base64_img in result_dict['images']:
+                html_img = f"<img src='data:image/png;base64,{base64_img}' width='400'>"
+                self.output_area.append(html_img)
 
     def on_stop_training(self):
-        if hasattr(self, '_training_timer') and self._training_timer.isActive():
-            self._training_timer.stop()
-            self.output_area.appendPlainText("Training stopped by user.")
-            self.set_loading_state(False)
+        self.output_area.append("Training stopped / Kernel Restarting...")
+        jupyter_sandbox.restart_kernel()
+        self.set_loading_state(False)
 
     def on_drawing_press(self, event):
         scene_pos = self.drawing_view.mapToScene(event.pos())
@@ -515,7 +531,7 @@ class AIToolsPanel(QDockWidget):
             )
 
     def append_training_output(self, text):
-        self.output_area.appendPlainText(text)
+        self.output_area.append(text)
 
     def set_loading_state(self, is_loading: bool):
         self.fit_button.setEnabled(not is_loading)

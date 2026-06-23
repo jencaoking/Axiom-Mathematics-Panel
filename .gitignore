@@ -72,3 +72,6 @@ db.sqlite3-journal
 
 # Misc
 .directory
+
+# skills
+.agent
