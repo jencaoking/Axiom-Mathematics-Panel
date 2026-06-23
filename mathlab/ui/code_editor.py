@@ -1,196 +1,126 @@
+"""
+MathLab Advanced Code Editor
+结合 Monaco Editor (前端) 与 Jupyter Sandbox (后端) 的智能编辑器组件
+"""
+
+import os
 import json
-from PySide6.QtWidgets import QPlainTextEdit, QCompleter
-from PySide6.QtCore import Qt, QStringListModel, Signal
-from PySide6.QtGui import QTextCursor, QFont, QKeySequence, QShortcut
+import re
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import QUrl, QObject, Slot, Signal
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QObject, Slot, QUrl
-import os
 
-class AutocompleteTextEdit(QPlainTextEdit):
-    request_completions = Signal(str, int, int)
+# 导入我们在之前建立的 Jupyter 安全沙盒
+try:
+    from mathlab.core.jupyter_manager import jupyter_sandbox
+except ImportError:
+    jupyter_sandbox = None
+    print("警告: 未检测到 Jupyter 沙盒，代码将无法执行。")
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class EditorBackend(QObject):
+    """
+    供 JavaScript (Monaco) 调用的 Python 后端对象
+    负责接收前端指令、执行沙盒代码，并将结果或报错信息传回前端。
+    """
+    
+    # 定义一个信号，用于将执行结果发送给外部（比如 Console 面板去渲染图片和文本）
+    execution_finished = Signal(dict)
+
+    def __init__(self, parent_widget):
+        super().__init__()
+        self.parent_widget = parent_widget
+
+    @Slot(str)
+    def execute_code(self, code):
+        """当在 Monaco 中按下 Ctrl+Enter 时，前端会调用此方法"""
+        print("🚀 收到 Monaco 的执行请求，正在送入 Jupyter 沙盒...")
         
-        self.completer = QCompleter(self)
-        self.completer.setWidget(self)
-        self.completer.setCompletionMode(QCompleter.PopupCompletion)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        
-        self.completer.activated.connect(self.insert_completion)
-
-    def set_completions(self, completions: list):
-        if not completions:
-            self.completer.popup().hide()
+        if not jupyter_sandbox:
+            self.execution_finished.emit({"status": "error", "traceback": ["Jupyter 沙盒未就绪"], "text": "", "images": []})
             return
 
-        words = [c['name'] for c in completions]
-        model = QStringListModel(words, self.completer)
-        self.completer.setModel(model)
-
-        cursor_rect = self.cursorRect()
-        cursor_rect.setWidth(self.completer.popup().sizeHintForColumn(0) + 20)
+        # 1. 扔进独立的 Jupyter 内核执行 (防卡死、防恶意代码)
+        result = jupyter_sandbox.execute_code(code, timeout=10)
         
-        self.completer.complete(cursor_rect)
-
-    def insert_completion(self, completion: str):
-        tc = self.textCursor()
-        prefix = self.completer.completionPrefix()
-        
-        if len(prefix) > 0:
-            tc.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, len(prefix))
-        tc.insertText(completion)
-        self.setTextCursor(tc)
-        self.completer.popup().hide()
-
-    def text_under_cursor(self):
-        tc = self.textCursor()
-        tc.select(QTextCursor.WordUnderCursor)
-        return tc.selectedText()
-
-    def keyPressEvent(self, event):
-        if self.completer.popup().isVisible():
-            if event.key() in (Qt.Key_Enter, Qt.Key_Return):
-                self.completer.activated.emit(self.completer.currentCompletion())
-                event.accept()
-                return
-            if event.key() in (Qt.Key_Escape, Qt.Key_Tab, Qt.Key_Backtab):
-                event.ignore()
-                return
-
-        is_shortcut = (event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Space)
-        is_trigger_char = (event.key() == Qt.Key_Period)
-
-        super().keyPressEvent(event)
-
-        if is_shortcut or is_trigger_char or event.text().isalnum():
-            prefix = self.text_under_cursor()
-            if is_trigger_char:
-                prefix = ""
+        # 2. 如果发生错误，解析错误行号并反馈给 Monaco 画红波浪线
+        if result['status'] == 'error' or result['status'] == 'timeout':
+            error_list = self._parse_traceback(result['traceback'])
+            # 将错误信息转为 JSON 字符串发给前端 JS
+            js_cmd = f"setEditorErrors('{json.dumps(error_list)}');"
+            self.parent_widget.web_view.page().runJavaScript(js_cmd)
+        else:
+            # 执行成功，清除前端所有的红波浪线
+            self.parent_widget.web_view.page().runJavaScript("setEditorErrors('[]');")
             
-            self.completer.setCompletionPrefix(prefix)
+        # 3. 发射信号，让 UI 的其他模块（如终端控制台）去渲染文字和图片输出
+        self.execution_finished.emit(result)
 
-            cursor = self.textCursor()
-            line = cursor.blockNumber() + 1
-            column = cursor.columnNumber()
-            code_text = self.toPlainText()
+    def _parse_traceback(self, traceback_list):
+        """从 IPython 的报错信息中提取错误行号和具体原因"""
+        errors = []
+        full_trace = "\n".join(traceback_list)
+        
+        # 简单的正则匹配：寻找类似 "line 5" 的报错信息
+        match = re.search(r'line (\d+)', full_trace, re.IGNORECASE)
+        if match:
+            line_num = int(match.group(1))
+            # 提取最后一行作为具体的错误原因，并过滤掉 ANSI 转义字符 (终端颜色代码)
+            clean_error = re.sub(r'\x1b\[[0-9;]*m', '', traceback_list[-1])
+            errors.append({
+                "line": line_num, 
+                "message": clean_error
+            })
+        else:
+            # 找不到具体行号时，默认标红第一行
+            errors.append({"line": 1, "message": "执行发生错误或超时"})
+            
+        return errors
 
-            self.request_completions.emit(code_text, line, column)
 
-class Bridge(QObject):
-    """通信桥梁：负责接收来自 JS 的信号"""
-    execute_requested = Signal(str)
-    code_synced = Signal(str)  # 新增：内容同步信号
-
-    @Slot(str)
-    def receiveCodeExecution(self, code: str):
-        """JS 按下 Shift+Enter 时会调用这个函数"""
-        self.execute_requested.emit(code)
-
-    @Slot(str)
-    def receiveCodeSync(self, code: str):
-        """接收前端每次敲击键盘传来的最新代码"""
-        self.code_synced.emit(code)
-
-class MonacoCodeEditor(QWidget):
-    """
-    基于 VS Code 内核 (Monaco Editor) 的原生封装组件
-    你可以像用普通的 QTextEdit 一样使用它
-    """
-    # 转发桥接器的信号给外部 UI
-    ai_explain_requested = Signal(str, str)
-    execute_requested = Signal(str)
-    code_synced = Signal(str) # 转发给上层
-
-    def __init__(self, initial_text="", initial_language="mathlab", parent=None):
+class MathLabCodeEditor(QWidget):
+    """供外部窗口调用的主编辑器控件"""
+    
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_language = initial_language
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 1. 初始化 Web 引擎
-        self.browser = QWebEngineView()
-        self.layout.addWidget(self.browser)
-        
-        # 为了美观，给 WebEngine 设置一个背景色，防止加载时闪白光
-        self.browser.page().setBackgroundColor(self.palette().color(self.backgroundRole()))
+        self._build_ui()
 
-        # 2. 注册通信信道
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # 1. 初始化 Chromium 内核视图
+        self.web_view = QWebEngineView()
+        # 开启调试模式（可选，方便在开发时按 F12 调试 Monaco）
+        self.web_view.settings().setAttribute(self.web_view.settings().WebAttribute.DeveloperExtrasEnabled, True)
+        layout.addWidget(self.web_view)
+
+        # 2. 设置 QWebChannel 双向通信通道
         self.channel = QWebChannel()
-        self.bridge = Bridge()
-        self.channel.registerObject("pyBridge", self.bridge)
-        self.browser.page().setWebChannel(self.channel)
+        self.backend = EditorBackend(self)
+        self.channel.registerObject("backend", self.backend)
+        self.web_view.page().setWebChannel(self.channel)
 
-        # 连接桥接器信号到外部
-        self.bridge.execute_requested.connect(self.execute_requested.emit)
-        self.bridge.code_synced.connect(self.code_synced.emit) # 接通线路
+        # 3. 加载本地的 monaco.html
+        html_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '..', 'resources', 'monaco.html'
+        ))
+        # 必须使用 QUrl.fromLocalFile 以赋予正确的本地文件读取权限
+        self.web_view.setUrl(QUrl.fromLocalFile(html_path))
 
-        # 加载本地 Monaco HTML
-        html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resources', 'monaco.html')
-        with open(html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        # 替换占位符（注意处理转义字符）
-        safe_text = initial_text.replace('\\', '\\\\').replace('`', '\\`')
-        html_content = html_content.replace('%INITIAL_CODE%', safe_text)
-        html_content = html_content.replace('%INITIAL_LANGUAGE%', self.current_language)
+    # ==========================================
+    # 暴露给外部 Python 面板的主动控制接口
+    # ==========================================
 
-        # 4. 加载页面
-        # 注意：必须设置 baseUrl，否则 qrc:///qtwebchannel/qwebchannel.js 可能加载失败
-        base_url = QUrl.fromLocalFile(html_path)
-        self.browser.setHtml(html_content, baseUrl=base_url)
-
-        # 添加 AI 解释的全局快捷键 Ctrl+I
-        self.ai_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
-        self.ai_shortcut.activated.connect(self.request_ai_explanation)
-
-    def request_ai_explanation(self):
-        js_code = """
-        (function() {
-            var selection = editor.getSelection();
-            var selectedText = editor.getModel().getValueInRange(selection);
-            var fullText = editor.getValue();
-            return JSON.stringify({
-                selected: selectedText, 
-                full: fullText
-            });
-        })();
+    def get_code(self, callback):
         """
-        self.browser.page().runJavaScript(js_code, self._on_code_extracted)
-
-    def _on_code_extracted(self, result_str):
-        if not result_str: return
-        try:
-            data = json.loads(result_str)
-            selected_code = data.get("selected", "").strip()
-            full_code = data.get("full", "").strip()
-            if selected_code:
-                self.ai_explain_requested.emit(full_code, selected_code)
-        except Exception:
-            pass
-
-    def get_text(self, callback) -> None:
+        供 Python 主动获取编辑器内容的接口。
+        注意：由于浏览器 JS 是异步的，这里必须传入一个 callback 回调函数来接收字符串。
         """
-        异步获取编辑器中的代码
-        注意：因为跨进程，返回值需要通过 callback(result) 接收
-        """
-        self.browser.page().runJavaScript("getEditorValue();", callback)
+        self.web_view.page().runJavaScript("getEditorContent();", callback)
 
-    def set_text(self, text: str) -> None:
-        """设置编辑器中的代码"""
-        safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('\n', '\\n')
-        self.browser.page().runJavaScript(f"setEditorValue(`{safe_text}`);")
-
-    def set_language(self, language: str):
-        """
-        动态切换编辑器的语法高亮语言
-        """
-        self.current_language = language
-        js_code = f"setEditorLanguage('{language}');"
-        self.browser.page().runJavaScript(js_code)
-        
-    def get_language(self) -> str:
-        return self.current_language
-
+    def set_code(self, code_text):
+        """供 Python 主动向编辑器写入代码的接口"""
+        # 使用 json.dumps 将 Python 字符串安全转义，防止破坏 JS 语法
+        escaped_code = json.dumps(code_text)
+        self.web_view.page().runJavaScript(f"setEditorContent({escaped_code});")
