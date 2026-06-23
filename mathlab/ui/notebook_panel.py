@@ -135,6 +135,9 @@ class NotebookPanel(QWidget):
     交互式笔记本的宏观容器
     负责管理多个 Cell 的 UI 排列，并与底层的 MathLabNotebook 保持数据同步
     """
+    # 笔记本级别的 AI 解释请求信号 (cell_id, code)
+    ai_explain_requested = Signal(str, str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.backend = MathLabNotebook()
