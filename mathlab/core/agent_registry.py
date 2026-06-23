@@ -1,6 +1,82 @@
 import re
 import json
 
+from mathlab.core.ai_tools import AVAILABLE_TOOLS
+
+
+class AgentInfo:
+    """轻量级专家描述对象，供 UI 层查询专家身份与能力。"""
+
+    def __init__(self, agent_id, name, icon, system_prompt, tools=None):
+        self.id = agent_id
+        self.name = name
+        self.icon = icon
+        self.system_prompt = system_prompt
+        self.tools = tools if tools is not None else []
+
+
+# 全局专家名片表：id -> AgentInfo
+_AGENT_PROFILES = {
+    "general": AgentInfo(
+        agent_id="general",
+        name="通用数学助手",
+        icon="🧠",
+        system_prompt=(
+            "你是一个资深的数学科研助手与高级 Python 程序员。\n"
+            "请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"
+        ),
+        tools=AVAILABLE_TOOLS,
+    ),
+    "geometry": AgentInfo(
+        agent_id="geometry",
+        name="解析几何专家",
+        icon="📐",
+        system_prompt=(
+            "你是一个【2D 解析几何与代数专家】。\n"
+            "你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，"
+            "并利用现有的全局几何画板环境绘图。\n"
+            "请通过 Thought, Action, Observation 闭环进行。"
+        ),
+        tools=AVAILABLE_TOOLS,
+    ),
+    "quiz": AgentInfo(
+        agent_id="quiz",
+        name="出题考官",
+        icon="📝",
+        system_prompt=(
+            "你是一个严谨的数学出题专家。\n"
+            "根据用户提供的知识点或画板状态，设计难度适中、考查点明确的试题，"
+            "并给出标准答案与详细解析。"
+        ),
+        tools=AVAILABLE_TOOLS,
+    ),
+    "dataviz": AgentInfo(
+        agent_id="dataviz",
+        name="数据可视化专家",
+        icon="📊",
+        system_prompt=(
+            "你是一个【高级数据可视化专家 (DataVizAgent)】。\n"
+            "你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表，"
+            "且必须使用环境内置的渲染桥接器渲染。"
+        ),
+        tools=AVAILABLE_TOOLS,
+    ),
+}
+
+
+def get_agent(agent_id: str) -> AgentInfo:
+    """根据专家 ID 返回其描述对象，未知 ID 回退到 general。"""
+    if not agent_id:
+        return _AGENT_PROFILES["general"]
+    key = agent_id.lower()
+    return _AGENT_PROFILES.get(key, _AGENT_PROFILES["general"])
+
+
+def list_agents():
+    """返回所有已注册的专家名片。"""
+    return list(_AGENT_PROFILES.values())
+
+
 class AgentRegistry:
     def __init__(self, ai_manager):
         self.ai_manager = ai_manager
