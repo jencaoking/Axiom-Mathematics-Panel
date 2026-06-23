@@ -1,5 +1,6 @@
 import queue
 import threading
+from typing import Dict, Any, List
 from jupyter_client import KernelManager
 from mathlab.core.sandbox_security import is_code_safe
 
@@ -8,7 +9,7 @@ class JupyterSandbox:
     进程级隔离的 Jupyter 执行沙盒
     支持状态保持、超时中断、以及富文本/图像输出捕获
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.km = KernelManager(kernel_name='python3')
         self.km.start_kernel()
         self.kc = self.km.client()
@@ -21,7 +22,7 @@ class JupyterSandbox:
         except RuntimeError:
             print("警告: Jupyter 内核启动超时。")
 
-    def execute_code(self, code: str, timeout: int = 5) -> dict:
+    def execute_code(self, code: str, timeout: int = 5) -> Dict[str, Any]:
         """
         同步执行代码并收集所有输出
         """
@@ -79,7 +80,7 @@ class JupyterSandbox:
             "traceback": error_traceback
         }
 
-    def restart_kernel(self):
+    def restart_kernel(self) -> None:
         """强杀并重启内核（用于清理内存或打破死循环）"""
         print("正在重启 Jupyter 内核...")
         self.km.restart_kernel(now=True)
@@ -87,7 +88,7 @@ class JupyterSandbox:
         self.kc.start_channels()
         self.kc.wait_for_ready(timeout=10)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.kc.stop_channels()
         self.km.shutdown_kernel(now=True)
 

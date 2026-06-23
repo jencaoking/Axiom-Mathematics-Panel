@@ -4,86 +4,88 @@
 
 /* 1. 全局背景与字体基调 */
 QMainWindow, QDialog, QWidget {
-    background-color: #13131A; /* 极深渊背景色 */
-    color: #E0E0E6;
+    background-color: #0F172A; /* 深沉次级黑 */
+    color: #F8FAFC;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 13px;
 }
 
 /* 2. 侧边栏与停靠面板 (大圆角卡片化设计) */
 QDockWidget {
     background-color: transparent;
-    color: #E0E0E6;
+    color: #F8FAFC;
     font-weight: 600;
 }
 QDockWidget::title {
-    background-color: #1E1E28;
+    background-color: #1E293B; /* 卡片顶栏 */
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
     padding: 10px 14px;
-    font-size: 13px;
-    border-bottom: 1px solid #2A2A35;
+    font-size: 14px;
+    border-bottom: 1px solid #334155;
 }
 QDockWidget > QWidget {
-    background-color: #1E1E28; /* 卡片底色 */
+    background-color: #1E293B; /* 卡片底色 */
     border-bottom-left-radius: 12px;
     border-bottom-right-radius: 12px;
-    border: 1px solid #2A2A35;
+    border: 1px solid #334155;
     border-top: none;
 }
 
 /* 3. 现代化输入框与控制台 */
 QLineEdit, QPlainTextEdit, QTextBrowser, QSpinBox, QComboBox {
-    background-color: #181822;
-    border: 1px solid #323242;
+    background-color: #0F172A;
+    border: 1px solid #475569;
     border-radius: 6px;
-    padding: 6px 10px;
-    color: #FFFFFF;
-    selection-background-color: #0078D4;
+    padding: 6px 12px;
+    color: #F8FAFC;
+    selection-background-color: #22C55E;
 }
-QLineEdit:focus, QPlainTextEdit:focus {
-    border: 1px solid #00A67E; /* AI 品牌强调色 */
-    background-color: #1B1B26;
+QLineEdit:focus, QPlainTextEdit:focus, QComboBox:focus, QSpinBox:focus {
+    border: 1px solid #22C55E; /* Accent Color */
+    background-color: #1E293B;
 }
 
 /* 4. 按钮微交互 (悬浮变亮，点击下沉) */
 QPushButton {
-    background-color: #2A2A38;
-    border: 1px solid #3A3A4A;
+    background-color: #334155;
+    border: 1px solid #475569;
     border-radius: 6px;
     padding: 8px 16px;
-    color: #E0E0E6;
+    color: #F8FAFC;
     font-weight: 500;
 }
 QPushButton:hover {
-    background-color: #353545;
-    border: 1px solid #4A4A5A;
+    background-color: #475569;
+    border: 1px solid #64748B;
 }
 QPushButton:pressed {
-    background-color: #00A67E;
+    background-color: #22C55E;
     color: #FFFFFF;
-    border: 1px solid #008F6B;
+    border: 1px solid #16A34A;
 }
 
 /* 5. 选项卡 (TabWidget) 极简风格 */
 QTabWidget::pane {
-    border: 1px solid #2A2A35;
+    border: 1px solid #334155;
     border-radius: 8px;
-    background-color: #1E1E28;
+    background-color: #1E293B;
     top: -1px; 
 }
 QTabBar::tab {
     background: transparent;
-    color: #888899;
+    color: #94A3B8;
     padding: 8px 16px;
     border-bottom: 2px solid transparent;
 }
 QTabBar::tab:selected {
-    color: #FFFFFF;
-    border-bottom: 2px solid #00A67E; /* 底部活动指示条 */
-    font-weight: bold;
+    color: #F8FAFC;
+    border-bottom: 2px solid #22C55E; /* Accent Color */
+    font-weight: 600;
 }
 QTabBar::tab:hover:!selected {
-    color: #C0C0D0;
-    background-color: rgba(255, 255, 255, 0.05);
+    color: #E2E8F0;
+    background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
 }
 
@@ -91,16 +93,16 @@ QTabBar::tab:hover:!selected {
 QScrollBar:vertical {
     border: none;
     background: transparent;
-    width: 6px;
-    margin: 0px 0 0px 0;
+    width: 8px;
+    margin: 0px;
 }
 QScrollBar::handle:vertical {
-    background: #3A3A4A;
-    min-height: 20px;
-    border-radius: 3px;
+    background: #475569;
+    min-height: 24px;
+    border-radius: 4px;
 }
 QScrollBar::handle:vertical:hover {
-    background: #555566;
+    background: #64748B;
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
     border: none;
