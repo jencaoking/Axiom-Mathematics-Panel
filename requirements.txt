@@ -12,6 +12,7 @@ jupyter_client
 ipykernel
 jupyter_server
 requests
+pythonnet
 
 # ── Testing ──
 pytest>=7.4
