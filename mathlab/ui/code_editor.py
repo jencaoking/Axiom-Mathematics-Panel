@@ -267,6 +267,7 @@ class MonacoCodeEditor(QWidget):
     """
     execute_requested = Signal(str)
     ai_explain_requested = Signal(str, str)
+    code_synced = Signal(str)
 
     def __init__(self, initial_text="", initial_language="mathlab", parent=None):
         super().__init__(parent)
@@ -290,7 +291,11 @@ class MonacoCodeEditor(QWidget):
                 font-size: 13px;
             }
         """)
+        self._editor.textChanged.connect(self._on_text_changed)
         layout.addWidget(self._editor)
+
+    def _on_text_changed(self):
+        self.code_synced.emit(self._editor.toPlainText())
 
     def set_language(self, language: str):
         """切换语法高亮语言（mathlab / python / csharp）"""
