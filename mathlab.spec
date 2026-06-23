@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import copy_metadata
 
 block_cipher = None
 
@@ -12,13 +13,15 @@ added_files = [
     # 若有本地图标，请取消下方注释
     # ('mathlab/resources/icon.ico', 'mathlab/resources')
 ]
+added_files += copy_metadata('jupyter_client')
 
 # 2. 隐式依赖声明：强制打包动态加载的引擎和代理
 hidden_imports = [
     'PySide6.QtWebEngineCore',
     'PySide6.QtWebEngineWidgets',
     'mathlab.core.agent_registry',
-    'mathlab.core.context_assembler'
+    'mathlab.core.context_assembler',
+    'jupyter_client.provisioning.local_provisioner'
 ]
 
 a = Analysis(
