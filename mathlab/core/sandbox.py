@@ -181,10 +181,16 @@ class SandboxProcess:
                             killpg(getpgid(self.process.pid), sigkill)
                     except ProcessLookupError:
                         pass  # 进程可能已经退出
+                # 等待进程退出以避免僵尸进程和竞态条件
+                try:
+                    self.process.wait(timeout=1.0)
+                except subprocess.TimeoutExpired:
+                    pass
             except Exception as e:
                 logger.warning("终止沙箱子进程时出错: %s", e)
             finally:
                 self.running = False
+                self.process = None
     
     def is_running(self):
         return self.running
