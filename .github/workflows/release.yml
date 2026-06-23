@@ -9,6 +9,8 @@ jobs:
   build-and-release:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -75,5 +77,6 @@ jobs:
             MathLab-*-macOS.zip
             MathLab-*-Linux.tar.gz
           generate_release_notes: true
+          fail_on_unmatched_files: false
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}

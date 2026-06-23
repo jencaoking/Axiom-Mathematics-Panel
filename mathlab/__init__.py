@@ -1,4 +1,4 @@
-__version__ = '3.6.3'
+__version__ = '3.6.4'
 __author__ = 'MathLab Team'
 
 # Lazy imports: avoid triggering the full Qt import chain at package load time.
