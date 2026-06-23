@@ -1,0 +1,328 @@
+name: Code Quality
+
+# ── 触发条件 ──────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'mathlab/**.py'
+      - 'requirements.txt'
+      - '.github/workflows/code-quality.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'mathlab/**.py'
+      - 'requirements.txt'
+      - '.github/workflows/code-quality.yml'
+  workflow_dispatch: # 允许手动触发
+
+# ── 权限配置 ──────────────────────────────────────────────────────────────
+permissions:
+  contents: read
+  checks: write       # 用于发布检查结果
+  pull-requests: write # 用于在 PR 上发表评论
+
+# ── 并发控制：同一分支的新提交会取消旧的运行 ──────────────────────────────
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 1: 代码风格检查 (Flake8)
+  # ────────────────────────────────────────────────────────────────────────
+  flake8:
+    name: Flake8 Style Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Flake8
+        run: pip install flake8 flake8-pyproject
+
+      - name: Run Flake8
+        run: |
+          echo "🔍 正在检查代码风格 (Flake8)..."
+          flake8 mathlab/ \
+            --max-line-length=120 \
+            --extend-ignore=E203,W503,E501 \
+            --exclude=mathlab/resources/,mathlab/logs/ \
+            --count \
+            --statistics \
+            --show-source
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 2: 代码分析 (Pylint)
+  # ────────────────────────────────────────────────────────────────────────
+  pylint:
+    name: Pylint Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Pylint and dependencies
+        run: |
+          pip install pylint
+          pip install -r requirements.txt
+
+      - name: Run Pylint
+        run: |
+          echo "🔍 正在进行深度代码分析 (Pylint)..."
+          pylint mathlab/ \
+            --rcfile=.pylintrc \
+            --disable=R,C \
+            --exit-zero \
+            --output-format=parseable > pylint-report.txt || true
+
+      - name: Upload Pylint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylint-report
+          path: pylint-report.txt
+          retention-days: 14
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 3: 类型检查 (MyPy)
+  # ────────────────────────────────────────────────────────────────────────
+  mypy:
+    name: MyPy Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install MyPy and dependencies
+        run: |
+          pip install mypy types-PyYAML
+          pip install -r requirements.txt
+
+      - name: Run MyPy
+        run: |
+          echo "🔍 正在进行类型检查 (MyPy)..."
+          mypy mathlab/ \
+            --ignore-missing-imports \
+            --no-strict-optional \
+            --warn-unused-ignores \
+            --warn-redundant-casts \
+            --disallow-untyped-defs=False \
+            --exclude 'mathlab/resources/' \
+            || true
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 4: 导入完整性检查 (项目特有)
+  # ────────────────────────────────────────────────────────────────────────
+  import-check:
+    name: Import Integrity Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Verify all internal imports
+        run: |
+          echo "🔍 正在验证所有内部导入的完整性..."
+          python -c "
+          import ast
+          import os
+          import sys
+          from pathlib import Path
+
+          errors = []
+          mathlab_dir = Path('mathlab')
+
+          # 收集所有 Python 文件中的导入语句
+          for py_file in mathlab_dir.rglob('*.py'):
+              if 'resources' in py_file.parts:
+                  continue
+              try:
+                  with open(py_file, 'r', encoding='utf-8') as f:
+                      tree = ast.parse(f.read(), filename=str(py_file))
+
+                  for node in ast.walk(tree):
+                      if isinstance(node, ast.ImportFrom):
+                          module = node.module or ''
+                          # 只检查 mathlab 内部导入
+                          if module.startswith('mathlab'):
+                              for alias in node.names:
+                                  name = alias.name
+                                  # 跳过动态导入和软导入
+                                  if name.startswith('_') or name in ('*',):
+                                      continue
+                                  # 检查目标模块是否存在
+                                  module_path = module.replace('.', '/') + '.py'
+                                  if not os.path.exists(module_path):
+                                      # 可能是包，检查 __init__.py
+                                      pkg_path = module.replace('.', '/') + '/__init__.py'
+                                      if not os.path.exists(pkg_path):
+                                          errors.append(f'{py_file}:{node.lineno}: 模块 {module} 不存在')
+              except SyntaxError as e:
+                  errors.append(f'{py_file}: 语法错误 - {e}')
+
+          if errors:
+              print('❌ 发现导入问题:')
+              for err in errors:
+                  print(f'  - {err}')
+              sys.exit(1)
+          else:
+              print('✅ 所有内部导入检查通过')
+          "
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 5: 安全扫描 (Bandit)
+  # ────────────────────────────────────────────────────────────────────────
+  bandit:
+    name: Bandit Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit security scan
+        run: |
+          echo "🔍 正在进行安全扫描 (Bandit)..."
+          bandit -r mathlab/ \
+            -x mathlab/resources,mathlab/logs \
+            -f json \
+            -o bandit-report.json \
+            -ll \
+            || true
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+          retention-days: 14
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 6: 依赖安全检查 (Safety)
+  # ────────────────────────────────────────────────────────────────────────
+  safety:
+    name: Safety Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Run Safety check
+        run: |
+          echo "🔍 正在检查依赖安全漏洞 (Safety)..."
+          safety check \
+            --file=requirements.txt \
+            --output=json \
+            --save-json=safety-report.json \
+            || true
+
+      - name: Upload Safety report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safety-report
+          path: safety-report.json
+          retention-days: 14
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 7: 代码格式检查 (Black + Isort)
+  # ────────────────────────────────────────────────────────────────────────
+  format-check:
+    name: Black & Isort Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Black and Isort
+        run: pip install black isort
+
+      - name: Check Black formatting
+        run: |
+          echo "🔍 检查 Black 代码格式..."
+          black mathlab/ \
+            --check \
+            --line-length=120 \
+            --extend-exclude='mathlab/resources|mathlab/logs' \
+            --diff
+
+      - name: Check Isort import order
+        run: |
+          echo "🔍 检查 Isort 导入顺序..."
+          isort mathlab/ \
+            --check-only \
+            --profile black \
+            --skip-glob='mathlab/resources/*' \
+            --skip-glob='mathlab/logs/*' \
+            --diff
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Job 8: 汇总报告
+  # ────────────────────────────────────────────────────────────────────────
+  summary:
+    name: Quality Summary
+    runs-on: ubuntu-latest
+    needs: [flake8, pylint, mypy, import-check, bandit, safety, format-check]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 📊 代码质量检查报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 检查项 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Flake8 风格检查 | ${{ needs.flake8.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pylint 代码分析 | ${{ needs.pylint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MyPy 类型检查 | ${{ needs.mypy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 导入完整性 | ${{ needs.import-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bandit 安全扫描 | ${{ needs.bandit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Safety 依赖检查 | ${{ needs.safety.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Black/Isort 格式 | ${{ needs.format-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "状态说明: ✅ success = 通过, ❌ failure = 失败, ⏭️ skipped = 跳过" >> $GITHUB_STEP_SUMMARY
