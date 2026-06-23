@@ -1024,12 +1024,18 @@ class AIToolsPanel(QDockWidget):
         self.token_label.setText(f"⚡ {total} Tokens")
 
     def on_ai_generate_request(self, user_prompt):
-        from mathlab.core.ai_manager import MathAgent
+        from mathlab.core.ai_manager import GeometryAgent
         from mathlab.core.async_workers import TaskWorker
         from PySide6.QtCore import QThreadPool
         if not hasattr(self, "ai_agent"):
-            self.ai_agent = MathAgent()
-        
+            main_win = self.window()
+            ai_mgr = getattr(main_win, 'ai_manager', None)
+            self.ai_agent = GeometryAgent(ai_mgr) if ai_mgr else None
+
+        if not self.ai_agent:
+            self.chat_display.add_message("ai", "**[错误]** AI Manager 未初始化，无法生成代码。")
+            return
+
         # 1. 开启子线程调用 Agent，防止 UI 卡顿
         worker = TaskWorker(self.ai_agent.solve_problem, user_prompt)
         

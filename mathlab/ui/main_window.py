@@ -107,8 +107,8 @@ class MainWindow(QMainWindow):
         self.ai_manager = AIManager()
 
         # 将 ai_manager 注入给代码编辑器
-        from mathlab.ui.code_editor import MathLabCodeEditor
-        self.code_editor = MathLabCodeEditor(ai_manager=self.ai_manager)
+        from mathlab.ui.code_editor import AutocompleteTextEdit
+        self.code_editor = AutocompleteTextEdit(ai_manager=self.ai_manager)
 
         # 命令管理器（必须在 setup_ui 前创建，供各面板注册命令）
         self.cmd_manager = CommandManager()

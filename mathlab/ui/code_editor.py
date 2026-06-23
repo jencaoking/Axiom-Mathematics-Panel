@@ -257,3 +257,54 @@ class AutocompleteTextEdit(QWidget):
         self.fix_btn.setText("✨ AI 自动修复")
         self.fix_btn.setEnabled(True)
         print(f"AI 修复失败: {err_msg}")
+
+
+class MonacoCodeEditor(QWidget):
+    """
+    Notebook 单元格使用的轻量级 Monaco 风格代码编辑器。
+    基于 QPlainTextEdit 实现，提供多语言切换与执行信号。
+    接口与 notebook_panel.py 中 VSCodeStyleCellWidget 的调用约定对齐。
+    """
+    execute_requested = Signal(str)
+    ai_explain_requested = Signal(str, str)
+
+    def __init__(self, initial_text="", initial_language="mathlab", parent=None):
+        super().__init__(parent)
+        self._language = initial_language
+        self._build_ui()
+        if initial_text:
+            self._editor.setPlainText(initial_text)
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        from PySide6.QtWidgets import QPlainTextEdit
+        self._editor = QPlainTextEdit()
+        self._editor.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #1e1e1e;
+                color: #d4d4d4;
+                border: 1px solid #3c3c3c;
+                font-family: Consolas, 'Courier New', monospace;
+                font-size: 13px;
+            }
+        """)
+        layout.addWidget(self._editor)
+
+    def set_language(self, language: str):
+        """切换语法高亮语言（mathlab / python / csharp）"""
+        self._language = language
+
+    def get_text(self, callback=None):
+        """获取编辑器内容，可通过 callback 回传给调用方"""
+        text = self._editor.toPlainText()
+        if callback:
+            callback(text)
+        return text
+
+    def set_text(self, text: str):
+        self._editor.setPlainText(text)
+
+    def clear(self):
+        self._editor.clear()
