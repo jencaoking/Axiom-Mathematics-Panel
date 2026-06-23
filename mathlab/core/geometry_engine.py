@@ -5,9 +5,11 @@ from collections import defaultdict
 from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve, lambdify
 from sympy.parsing.sympy_parser import standard_transformations
 
+# 扩大异常捕获范围，防止 RuntimeError 等非 ImportError 导致整个模块崩溃
 try:
     from .cs_geometry_engine import cs_geometry
-except ImportError:
+except Exception as e:
+    print(f"Warning: C# geometry engine fallback triggered in geometry_engine.py. Error: {e}")
     cs_geometry = None
 
 

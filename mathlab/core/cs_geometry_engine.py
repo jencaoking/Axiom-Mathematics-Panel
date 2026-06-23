@@ -6,14 +6,15 @@ dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-import os
 os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
-import clr
+
+# 将 import clr 移入 try 块中，防止底层运行时缺失引发 RuntimeError 击穿
 try:
+    import clr
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastGeometry
 except Exception as e:
-    print(f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}")
+    print(f"Warning: Failed to load MathLab.CSharpEngine DLL or .NET runtime. Error: {e}")
     FastGeometry = None
 
 
