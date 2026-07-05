@@ -18,6 +18,11 @@ class EditorBackend(QObject):
     error_occurred = Signal(str, str) 
     success_occurred = Signal()
     echarts_data_ready = Signal(dict)
+    
+    @Slot(str)
+    def sync_code(self, code):
+        if hasattr(self.parent_widget, '_cached_code'):
+            self.parent_widget._cached_code = code
 
     def __init__(self, parent_widget):
         super().__init__()
@@ -141,7 +146,25 @@ class AutocompleteTextEdit(QWidget):
         self._last_failed_code = ""
         self._last_error_msg = ""
         self._ai_buffer = "" # 暂存 AI 流式输出的 buffer
+        self._cached_code = "" # 缓存编辑器内容，以便同步获取
         self._build_ui()
+
+    def toPlainText(self):
+        return self._cached_code
+        
+    def setPlainText(self, text):
+        self._cached_code = text
+        escaped_text = json.dumps(text)
+        self.web_view.page().runJavaScript(f"if (window.mathEditor) {{ window.mathEditor.setCode({escaped_text}); }}")
+
+    def set_code(self, text):
+        self.setPlainText(text)
+        
+    def setPlaceholderText(self, text):
+        pass
+        
+    def setStyleSheet(self, style):
+        super().setStyleSheet(style)
 
     def _build_ui(self):
         # 使用绝对定位来放置悬浮按钮，因此主 Layout 不再管理它

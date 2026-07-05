@@ -35,6 +35,13 @@
             // 1. 初始化我们用 TypeScript 写的 MathLab 编辑器
             if (window.initMathLabEditor) {
                 window.initMathLabEditor('editor-container');
+                if (window.mathEditor && window.mathEditor.editor) {
+                    window.mathEditor.editor.onDidChangeModelContent(function() {
+                        if (window.backend && window.backend.sync_code) {
+                            window.backend.sync_code(window.mathEditor.getCode());
+                        }
+                    });
+                }
             } else {
                 console.error("编辑器引擎加载失败，请检查 mathlab_editor.bundle.js 是否正确打包。");
             }
