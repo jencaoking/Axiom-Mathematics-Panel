@@ -1,11 +1,13 @@
 # filepath: mathlab/core/ai_tools.py
+import json
+from mathlab.core.jupyter_manager import get_jupyter_sandbox
 
 # 几何画板操控工具的说明书
 GEOMETRY_DRAW_TOOL = {
     "type": "function",
     "function": {
         "name": "execute_geometry_draw",
-        "description": "当用户在聊天中明确要求【画图、绘制、添加】某种几何图形时，调用此函数在用户的画板上执行绘制操作。注意：如果没有给定坐标，请利用几何常识合理分配数值，使其居中且美观。",
+        "description": "当用户在聊天中明确要求【画图、绘制、添加】某种几何图形时，调用此函数在用户的画板上执行绘制操作。注意：如果没有给定坐标，请利用几何常识合理分配数值，使其居中且美观。add_point 必须带 x,y；add_circle 必须带 center 和 radius；add_segment 必须带 p1,p2",
         "parameters": {
             "type": "object",
             "properties": {
@@ -120,7 +122,7 @@ AGENT_TRANSFER_TOOL = {
             "properties": {
                 "target_agent": {
                     "type": "string", 
-                    "enum": ["geometry", "quiz", "general"],
+                    "enum": ["general", "geometry", "quiz", "dataviz"],
                     "description": "接手任务的目标专家 ID"
                 },
                 "handover_notes": {
@@ -133,7 +135,6 @@ AGENT_TRANSFER_TOOL = {
     }
 }
 
-AVAILABLE_TOOLS = [GEOMETRY_DRAW_TOOL, QUIZ_GENERATOR_SCHEMA, VISUAL_HIGHLIGHT_TOOL, AGENT_TRANSFER_TOOL]
 
 SUBMIT_TEACHING_PLAN_TOOL = {
     "type": "function",
@@ -163,9 +164,13 @@ SUBMIT_TEACHING_PLAN_TOOL = {
     }
 }
 
-
-import json
-from mathlab.core.jupyter_manager import get_jupyter_sandbox
+AVAILABLE_TOOLS = [
+    GEOMETRY_DRAW_TOOL,
+    VISUAL_HIGHLIGHT_TOOL,
+    QUIZ_GENERATOR_SCHEMA,
+    AGENT_TRANSFER_TOOL,
+    SUBMIT_TEACHING_PLAN_TOOL,
+]
 
 def execute_math_task(code_snippet: str):
     """
@@ -176,9 +181,10 @@ def execute_math_task(code_snippet: str):
     result = get_jupyter_sandbox().execute_code(code_snippet)
     
     # 将执行结果打包返回给 AI
+    tb = result.get("traceback") or []
+    error_text = "\n".join(tb) if isinstance(tb, list) else str(tb)
     return json.dumps({
-        "status": result["status"],
-        "output": result["text"],
-        "error": "\n".join(result["traceback"]) if result["status"] == "error" else None
+        "status": result.get("status"),
+        "output": result.get("text", ""),
+        "error": error_text if result.get("status") == "error" else None
     })
-

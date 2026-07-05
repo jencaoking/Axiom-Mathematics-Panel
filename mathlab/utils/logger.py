@@ -85,7 +85,12 @@ def setup_logger(
         print(f"[MathLab Logger] 警告: 无法创建日志文件或目录 ({e})，将仅使用控制台输出。")
 
     # ── Handler 2: 控制台输出（StreamHandler）────────────────────────────────
-    console_handler = logging.StreamHandler(sys.stdout)
+    import codecs
+    if sys.stdout:
+        safe_stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'replace') if hasattr(sys.stdout, 'buffer') else sys.stdout
+    else:
+        safe_stdout = sys.stdout
+    console_handler = logging.StreamHandler(safe_stdout)
     console_handler.setLevel(console_level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)

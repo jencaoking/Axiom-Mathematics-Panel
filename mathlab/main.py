@@ -19,14 +19,16 @@ else:
     _CRASH_LOG_DIR = application_path
 
 mathlab_dir = application_path
-sys.path.insert(0, os.path.dirname(mathlab_dir))
+sys.path.insert(0, application_path)
 
 
 def _write_crash_log(exc_type, exc_value, exc_tb):
     """将启动阶段的致命错误写入崩溃日志（exe 同级目录），确保 console=False 时也能看到错误"""
     crash_file = os.path.join(_CRASH_LOG_DIR, "crash.log")
     tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    with open(crash_file, "w", encoding="utf-8") as f:
+    from datetime import datetime
+    with open(crash_file, "a", encoding="utf-8") as f:
+        f.write(f"\n[{datetime.now()}]\n")
         f.write("=" * 60 + "\n")
         f.write(f"MathLab 启动崩溃报告\n")
         f.write(f"Python: {sys.version}\n")
@@ -71,6 +73,12 @@ from mathlab.data.project import ProjectManager
 def main():
     logger.info("正在初始化 QApplication...")
     try:
+        # 🚨 2. 开启高 DPI 缩放支持
+        if hasattr(Qt, 'AA_EnableHighDpiScaling'):
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
         app = QApplication(sys.argv)
         
         # 🚨 修复字体环境：根据不同操作系统注入最完美的无衬线黑体
@@ -83,17 +91,11 @@ def main():
             font_family = ".AppleSystemUIFont" 
         else:
             # Linux 备选
-            font_family = "Ubuntu" 
+            font_family = "Microsoft YaHei, Noto Sans CJK SC, Ubuntu" 
             
         font = QFont(font_family, 10)
         font.setStyleStrategy(QFont.PreferAntialias) # 开启抗锯齿
         app.setFont(font)
-        
-        # 🚨 2. 开启高 DPI 缩放支持
-        if hasattr(Qt, 'AA_EnableHighDpiScaling'):
-            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-        if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
         app.setApplicationName('MathLab')
         app.setApplicationVersion('1.0')
@@ -175,9 +177,9 @@ def main():
         from mathlab.core.plugin_manager import PluginManager
 
         window.mathlab_api = MathLabAPI(
-            main_window=window,
-            cmd_manager=window.cmd_manager,
-            console=window.console
+            window,
+            window.cmd_manager,
+            window.console
         )
         window.plugin_manager = PluginManager(window.mathlab_api)
         window.plugin_manager.load_all_plugins()
@@ -206,6 +208,10 @@ def main():
 if __name__ == '__main__':
     import multiprocessing
     multiprocessing.freeze_support()
+
+    if multiprocessing.current_process().name != 'MainProcess':
+        sys.exit(0)  # 避免子进程进 GUI
+
 
     # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
     if len(sys.argv) >= 2:

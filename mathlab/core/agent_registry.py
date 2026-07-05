@@ -88,7 +88,9 @@ class AgentRegistry:
             "description": description,
             "instance": agent_instance
         }
-        print(f"🔌 [Agent Registry] 已挂载领域专家: {name}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
 
     def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb):
         """
