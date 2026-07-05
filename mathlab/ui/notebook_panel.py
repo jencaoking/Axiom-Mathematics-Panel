@@ -13,6 +13,7 @@ class VSCodeStyleCellWidget(QFrame):
     execute_requested = Signal(str)
     cell_ai_explain_requested = Signal(str, str)
     language_changed = Signal(str)
+    code_synced = Signal(str)
 
     def __init__(self, cell_id, cell_type="code", content="", language="mathlab", parent=None):
         super().__init__(parent)
@@ -80,10 +81,12 @@ class VSCodeStyleCellWidget(QFrame):
             self.input_editor.setFixedHeight(150)
             self.input_editor.execute_requested.connect(self.on_monaco_run)
             self.input_editor.ai_explain_requested.connect(self.cell_ai_explain_requested.emit)
+            self.input_editor.code_synced.connect(self.code_synced.emit)
         else:
             self.input_editor = QTextEdit(initial_content)
             self.input_editor.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c;")
             self.input_editor.setFixedHeight(100)
+            self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
 
         # Sliders container
         self.sliders_container = QFrame()
@@ -232,9 +235,10 @@ class NotebookPanel(QWidget):
                 lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code)
             )
             
-            # [BUG修复] 移除对不存在的 code_synced 信号的连接
-            # MonacoCodeEditor 是基于 QWebEngineView 的封装，没有 code_synced 信号
-            # 内容同步在执行时通过 get_text() 完成
+            # [BUG修复] 恢复对 code_synced 的连接，修复直接保存导致代码丢失的问题
+            ui_cell.code_synced.connect(
+                lambda new_code, cid=backend_cell.id: self._sync_backend_content(cid, new_code)
+            )
             ui_cell.language_changed.connect(
                 lambda lang, cid=backend_cell.id: self._sync_backend_language(cid, lang)
             )
@@ -243,6 +247,9 @@ class NotebookPanel(QWidget):
         else: # Markdown
             ui_cell = MarkdownCellWidget(backend_cell.id, backend_cell.content)
             ui_cell.btn_delete.clicked.connect(lambda _, cid=backend_cell.id: self.delete_cell(cid))
+            ui_cell.code_synced.connect(
+                lambda new_code, cid=backend_cell.id: self._sync_backend_content(cid, new_code)
+            )
             
             # 为了能在 load 的时候自动显示公式而不是显示源码，你可以直接调用渲染
             if backend_cell.content:

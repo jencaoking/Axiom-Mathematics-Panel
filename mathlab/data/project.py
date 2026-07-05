@@ -191,7 +191,7 @@ class ProjectManager:
 
             elif obj_type == 'Polygon':
                 pts = coords.get('points', [])
-                pts_str = ',\ '.join(f'({p[0]},\ {p[1]})' for p in pts)
+                pts_str = r',\ '.join(rf'({p[0]},\ {p[1]})' for p in pts)
                 line = rf'\(\text{{Polygon}}({name}): {pts_str}\)'
 
             elif obj_type == 'Ellipse':

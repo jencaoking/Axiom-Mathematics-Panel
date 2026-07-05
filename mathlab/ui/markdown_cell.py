@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QTextEdit,
                              QPushButton, QFrame, QLabel, QSpacerItem, QSizePolicy)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QFont, QKeySequence
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, Signal
 
 class MarkdownTextEdit(QTextEdit):
     def __init__(self, parent_widget, *args, **kwargs):
@@ -21,6 +21,8 @@ class MarkdownCellWidget(QFrame):
     交互式 Markdown/LaTeX 单元格
     支持双击/点击工具栏切换编辑，Shift+Enter 渲染。
     """
+    code_synced = Signal(str)
+
     def __init__(self, cell_id, initial_content="", parent=None):
         super().__init__(parent)
         self.cell_id = cell_id
@@ -69,6 +71,7 @@ class MarkdownCellWidget(QFrame):
             QTextEdit { background-color: #1e1e1e; color: #d4d4d4; border: 1px dashed #3c3c3c; border-radius: 4px; padding: 8px; }
             QTextEdit:focus { border: 1px solid #007acc; }
         """)
+        self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
         
         # ── 3. 预览模式: WebEngine 渲染器 ──
         self.viewer = QWebEngineView()
