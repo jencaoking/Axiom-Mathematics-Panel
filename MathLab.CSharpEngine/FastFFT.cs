@@ -15,6 +15,9 @@ public class FastFFT
     /// <returns>平铺的频率与幅值数组</returns>
     public double[] ComputeFFT(double[] signal, double sampleRate)
     {
+        if (signal == null || signal.Length == 0)
+            throw new ArgumentException("Signal array must not be null or empty.");
+
         int n = signal.Length;
         
         // FFT 需要复数数组。实数信号的虚部初始化为 0
@@ -28,7 +31,7 @@ public class FastFFT
         Fourier.Forward(complexSignal, FourierOptions.Default);
 
         // 对于实数信号，FFT 结果是对称的，我们只需要前半部分 (0 到 奈奎斯特频率)
-        int halfN = n / 2;
+        int halfN = n / 2 + 1; // [BUG修复] 包含奈奎斯特频率分量
         
         // 预分配缓冲区: 长度为 halfN * 2 (每个频点包含一个频率值和一个幅值)
         double[] result = new double[halfN * 2];

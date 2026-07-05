@@ -416,11 +416,11 @@ class MainWindow(QMainWindow):
         self.about_action.triggered.connect(self.show_about)
 
     def open_signal_lab(self):
-        self.signal_lab = SignalLabPanel()
+        self.signal_lab = SignalLabPanel(self)
         self.signal_lab.show()
 
     def open_gpu_fractal_explorer(self):
-        self.gpu_fractal_explorer = FractalGPUExplorer()
+        self.gpu_fractal_explorer = FractalGPUExplorer(self)
         self.gpu_fractal_explorer.show()
 
     def setup_toolbar(self):
@@ -852,6 +852,9 @@ class MainWindow(QMainWindow):
         """唤醒 ECharts 插件面板并渲染"""
         import json
         
+        if not hasattr(self, 'plugin_manager'):
+            self.console.append_agent_observation("⚠️ 未找到插件管理器！", is_error=True)
+            return
         echarts_plugin = self.plugin_manager.active_plugins.get("ECharts Data Viewer")
         if not echarts_plugin:
             self.console.append_agent_observation("⚠️ 未找到 ECharts 插件实例！", is_error=True)
@@ -1713,11 +1716,11 @@ class MainWindow(QMainWindow):
 
     def toggle_notebook_panel(self, visible: bool) -> None:
         if visible:
-            self.notebook_panel.show()
-            self.notebook_panel.raise_()
-            fade_in(self.notebook_panel)
+            self.notebook.show()
+            self.notebook.raise_()
+            fade_in(self.notebook)
         else:
-            fade_out(self.notebook_panel, callback=self.notebook_panel.hide)
+            fade_out(self.notebook, callback=self.notebook.hide)
 
     # ─────────────────────────────────────────────────────────────────────
     # ECharts 图表串联棕函数
@@ -1957,7 +1960,7 @@ class MainWindow(QMainWindow):
             self.ai_panel.chat_input.setText(user_prompt)
             self.ai_panel.on_send_message()
             
-def closeEvent(self, event):
+    def closeEvent(self, event):
         """在窗口关闭时卸载所有插件，释放资源"""
         if hasattr(self, 'autosaver'):
             self.autosaver.clean_up()

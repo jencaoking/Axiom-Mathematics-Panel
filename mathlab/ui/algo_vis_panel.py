@@ -95,7 +95,8 @@ class AlgoVisPanel(QDockWidget):
         self.setWidget(self.widget)
 
         # Timer
-        self.timer = QTimer()
+        # [BUG修复] 传入 self 作为 parent，绑定生命周期防止内存泄漏
+        self.timer = QTimer(self)
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.on_timer)
 

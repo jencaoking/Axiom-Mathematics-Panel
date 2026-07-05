@@ -258,7 +258,8 @@ class AIManager(QObject):
             self.current_worker.cancel()
             if not self.current_worker.wait(5000):
                 self.current_worker.disconnect()
-                self.current_worker.terminate()
+                # [BUG修复] 移除危险的 terminate()，改为警告并断开连接
+                logger.warning("AI Worker 未在 5 秒内停止，已断开信号连接")
 
         self.current_worker = AIEngineWorker(self.client, self.current_model, messages, tools)
         

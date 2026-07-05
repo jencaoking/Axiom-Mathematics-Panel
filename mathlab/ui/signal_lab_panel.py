@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from mathlab.core.async_workers import TaskManager
 
 # 尝试导入我们的底层引擎
 try:
@@ -177,6 +178,12 @@ class SignalLabPanel(QWidget):
         """
         self.web_view.setHtml(html_content)
 
+    def closeEvent(self, event):
+        """[BUG修复] 面板关闭时，停止定时器以释放资源"""
+        if hasattr(self, 'timer'):
+            self.timer.stop()
+        super().closeEvent(event)
+
     def _on_frame_update(self):
         """每帧触发：收集 UI 参数 -> 极速合成信号 -> C# 极速 FFT -> 发送 JS"""
         if not HAS_FFT_ENGINE:
@@ -191,27 +198,34 @@ class SignalLabPanel(QWidget):
         if self.is_playing:
             self.phase_shift += 0.05
             
-        # 3. 在 Python 中极速合成包含噪声的脏信号 (Numpy 向量化计算，极快)
-        # 信号 = A1*sin(2π*f1*t + φ) + A2*sin(2π*f2*t + φ) + Noise
-        signal = (a1 * np.sin(2 * np.pi * f1 * self.t + self.phase_shift) + 
-                  a2 * np.sin(2 * np.pi * f2 * self.t + self.phase_shift))
-        
-        if noise_level > 0:
-            signal += (noise_level / 5.0) * np.random.randn(len(self.t))
+        # [BUG修复] 将耗时的信号合成和 FFT 计算放到子线程中执行，避免阻塞主线程
+        def compute_fft(current_phase):
+            # 3. 在 Python 中合成包含噪声的信号
+            signal = (a1 * np.sin(2 * np.pi * f1 * self.t + current_phase) + 
+                      a2 * np.sin(2 * np.pi * f2 * self.t + current_phase))
+            
+            if noise_level > 0:
+                signal += (noise_level / 5.0) * np.random.randn(len(self.t))
 
-        # 4. 【魔法时刻】：呼叫 C# 引擎进行原地极速 FFT 分析！
-        # 这里耗时通常不到 1 毫秒
-        freqs, magnitudes = cs_fft.analyze_spectrum(signal, self.sample_rate)
+            # 4. 呼叫 C# 引擎进行原地极速 FFT 分析
+            freqs, magnitudes = cs_fft.analyze_spectrum(signal, self.sample_rate)
 
-        # 5. 组装给 Echarts 的数据包
-        # 为了渲染流畅，时域波形我们下采样 (抽点) 显示 300 个点即可
-        display_signal = signal[::3].tolist() 
-        
-        # 频域我们只截取前 250Hz 以内的有效能量 (奈奎斯特频率是 500Hz)
-        valid_idx = freqs <= 250
-        freq_display = magnitudes[valid_idx].tolist()
+            # 5. 组装给 Echarts 的数据包
+            display_signal = signal[::3].tolist() 
+            
+            valid_idx = freqs <= 250
+            freq_display = magnitudes[valid_idx].tolist()
+            return display_signal, freq_display
 
-        # 6. 将数据推送到 Chromium 内核
-        # 使用 JSON 序列化保证安全跨语言传输
-        js_code = f"updateChart({json.dumps(display_signal)}, {json.dumps(freq_display)});"
-        self.web_view.page().runJavaScript(js_code)
+        def update_ui(result):
+            display_signal, freq_display = result
+            # 6. 将数据推送到 Chromium 内核
+            js_code = f"updateChart({json.dumps(display_signal)}, {json.dumps(freq_display)});"
+            self.web_view.page().runJavaScript(js_code)
+
+        TaskManager().submit(
+            fn=compute_fft,
+            on_success=update_ui,
+            group_id='signal_lab_fft',  # 利用组 ID 防止堆积处理
+            current_phase=self.phase_shift
+        )

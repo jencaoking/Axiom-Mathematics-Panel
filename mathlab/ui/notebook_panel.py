@@ -232,10 +232,9 @@ class NotebookPanel(QWidget):
                 lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code)
             )
             
-            # 监听心跳同步，时刻更新 backend 的数据防丢失
-            ui_cell.input_editor.code_synced.connect(
-                lambda code, cid=backend_cell.id: self._sync_backend_content(cid, code)
-            )
+            # [BUG修复] 移除对不存在的 code_synced 信号的连接
+            # MonacoCodeEditor 是基于 QWebEngineView 的封装，没有 code_synced 信号
+            # 内容同步在执行时通过 get_text() 完成
             ui_cell.language_changed.connect(
                 lambda lang, cid=backend_cell.id: self._sync_backend_language(cid, lang)
             )
@@ -280,7 +279,9 @@ class NotebookPanel(QWidget):
         self.current_executing_cell_id = cell_id
         
         # 同步前台代码到后台
-        cell = next(c for c in self.backend.cells if c.id == cell_id)
+        cell = next((c for c in self.backend.cells if c.id == cell_id), None)
+        if cell is None:
+            return
         if not is_silent:
             cell.content = current_code
         
@@ -315,7 +316,9 @@ class NotebookPanel(QWidget):
         self.backend.kernel.env[var_name] = new_val
         
         # 2. 从后端拿到当前单元格的最新代码
-        cell = next(c for c in self.backend.cells if c.id == cell_id)
+        cell = next((c for c in self.backend.cells if c.id == cell_id), None)
+        if cell is None:
+            return
         
         # 3. 触发静默执行！
         self.execute_single_cell(cell_id, cell.content, is_silent=True)

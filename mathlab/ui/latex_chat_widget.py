@@ -67,9 +67,11 @@ class LatexChatWidget(QWebEngineView):
         full_html = "".join(html_parts)
         
         # 组装注入脚本，让前端解析刚才塞入的 data-raw 属性
+        # [BUG修复] 转义反引号和 ${} 防止 JS 注入
+        safe_html = full_html.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${')
         js_code = f"""
         (function() {{
-            let rawHtml = `{full_html}`;
+            let rawHtml = `{safe_html}`;
             // 创建临时容器
             let tempDiv = document.createElement('div');
             tempDiv.innerHTML = rawHtml;

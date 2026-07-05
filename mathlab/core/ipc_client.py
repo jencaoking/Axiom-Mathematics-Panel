@@ -1,6 +1,7 @@
 import json
 import socket
 import time
+import threading
 from mathlab.utils.logger import get_logger
 
 # 引入项目中已有的 logger
@@ -16,16 +17,21 @@ class JupyterIPCClient:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # 为高频高并发场景增加序列号生成器
         self._seq_counter = 0
+        # [BUG修复] 保护序列号的线程锁
+        self._seq_lock = threading.Lock()
 
     def sync_variable(self, name: str, value: float):
         """向 Jupyter 发送变量同步指令"""
-        self._seq_counter += 1
+        # [BUG修复] 使用线程锁保护序列号自增
+        with self._seq_lock:
+            self._seq_counter += 1
+            seq = self._seq_counter
         
         payload = {
             "cmd": "sync_var", 
             "name": name, 
             "val": value,
-            "seq": self._seq_counter,  # 注入序列号
+            "seq": seq,  # 注入序列号
             "timestamp": time.time()   # 可选：注入时间戳供服务器做延迟分析
         }
         
@@ -37,3 +43,10 @@ class JupyterIPCClient:
             logger.warning(f"UDP 缓冲区已满，变量 {name} 同步指令被丢弃")
         except Exception as e:
             logger.error(f"Jupyter IPC 同步变量失败: {e}")
+
+    def close(self):
+        """[BUG修复] 释放 UDP socket 资源"""
+        try:
+            self.sock.close()
+        except Exception:
+            pass

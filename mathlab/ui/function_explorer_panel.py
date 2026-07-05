@@ -361,6 +361,8 @@ class FunctionExplorerPanel(QDockWidget):
     
     def _on_template_selected(self, index: int):
         """选择预设模板"""
+        if not hasattr(self, 'template_combo'):
+            return
         expression = self.template_combo.itemData(index)
         if expression:
             self.expr_input.setText(expression)

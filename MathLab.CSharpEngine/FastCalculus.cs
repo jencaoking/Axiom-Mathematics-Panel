@@ -45,14 +45,26 @@ public class FastCalculus
         if (yArray == null || yArray.Length < 3) return 0;
 
         int n = yArray.Length - 1;
-        double sum = yArray[0] + yArray[n];
+        
+        // [BUG修复] Simpson 1/3 法则要求偶数个区间（奇数个点）
+        // 如果 n 为奇数，最后一个区间用梯形法则单独处理
+        int simpsonN = (n % 2 == 0) ? n : n - 1;
+        double sum = yArray[0] + yArray[simpsonN];
 
-        for (int i = 1; i < n; i++)
+        for (int i = 1; i < simpsonN; i++)
         {
             sum += (i % 2 == 0) ? 2 * yArray[i] : 4 * yArray[i];
         }
 
-        return sum * dx / 3.0;
+        double result = sum * dx / 3.0;
+        
+        // 如果 n 为奇数，最后一个区间使用梯形法则补偿
+        if (simpsonN < n)
+        {
+            result += (yArray[n - 1] + yArray[n]) * dx / 2.0;
+        }
+
+        return result;
     }
 }
 

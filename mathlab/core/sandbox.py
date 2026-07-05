@@ -79,8 +79,11 @@ class SandboxProcess:
     def _start_process(self):
         sandbox_script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
         env = os.environ.copy()
-        extra_paths = ';'.join(sys.path) if sys.platform == 'win32' else ':'.join(sys.path)
-        env['PYTHONPATH'] = f"{env.get('PYTHONPATH', '')}{';' if sys.platform == 'win32' else ':'}{extra_paths}".strip(';:')
+        # [安全修复] 仅保留非空的绝对路径，排除当前目录 '' 和相对路径
+        sep = ';' if sys.platform == 'win32' else ':'
+        safe_paths = [p for p in sys.path if p and os.path.isabs(p)]
+        extra_paths = sep.join(safe_paths)
+        env['PYTHONPATH'] = f"{env.get('PYTHONPATH', '')}{sep}{extra_paths}".strip(sep)
         
         creation_flags = 0
         preexec_fn = None

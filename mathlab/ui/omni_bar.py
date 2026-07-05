@@ -113,7 +113,11 @@ class OmniBar(QWidget):
         self.fade_anim.start()
 
     def _on_fade_out_finished(self):
-        self.fade_anim.finished.disconnect(self._on_fade_out_finished)
+        try:
+            # [BUG修复] 增加 try-except 保护，防止重复 disconnect 导致 RuntimeError
+            self.fade_anim.finished.disconnect(self._on_fade_out_finished)
+        except RuntimeError:
+            pass
         self.hide()
         self.input_field.clear()
 
@@ -130,19 +134,25 @@ class OmniBar(QWidget):
         super().keyPressEvent(event)
 
     def on_submit(self):
-        text = self.input_field.text().strip()
-        if not text:
+        # [BUG修复] 去抖动：防止快速连按回车导致重复发送
+        if getattr(self, '_is_submitting', False):
             return
+        self._is_submitting = True
+
+        try:
+            text = self.input_field.text().strip()
+            if not text:
+                return
+                
+            self.search_submitted.emit(text)
             
-        self.search_submitted.emit(text)
-        
-        # 这里您可以将 text 抛出一个自定义 Signal，交给 AIManager 处理
-        # 我们这里直接获取 main_window 中的 ai_tools_panel 来调用其 on_send_message_from_omni 
-        parent_win = self.parent()
-        if hasattr(parent_win, 'ai_tools_panel'):
-            # 将命令填入 panel 然后触发，或者直接定义一个新方法
-            parent_win.ai_tools_panel.chat_input.setText(text)
-            parent_win.ai_tools_panel.on_send_message()
-        
-        # 发送完后自动功成身退
-        self.dismiss()
+            # [BUG修复] 安全的属性访问，防御父窗体已被销毁或属性不存在的情况
+            parent_win = self.parent()
+            if parent_win and hasattr(parent_win, 'ai_tools_panel') and parent_win.ai_tools_panel:
+                parent_win.ai_tools_panel.chat_input.setText(text)
+                parent_win.ai_tools_panel.on_send_message()
+            
+            # 发送完后自动功成身退
+            self.dismiss()
+        finally:
+            self._is_submitting = False

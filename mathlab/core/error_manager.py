@@ -129,14 +129,15 @@ def global_exception_handler(exc_type, exc_value, exc_tb):
     # 1. 永远先写入磁盘日志
     logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
     
-    # 2. 判断是否存在 Qt 实例
+    # 2. 判断是否存在 Qt 实例且在主线程
+    import threading
     app = QApplication.instance()
-    if app:
+    if app and threading.current_thread() is threading.main_thread():
         # 显示友好的崩溃弹窗
         dialog = CrashReportDialog(exc_type, exc_value, exc_tb)
         dialog.exec()
     else:
-        # 命令行后备输出
+        # 命令行后备输出（非主线程不能创建 QWidget）
         sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 def install_error_handler():
@@ -178,9 +179,9 @@ class AutoSaver(QObject):
                     with open(self.autosave_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     
-                    self.main_window.project_manager.objects = data.get('objects', {})
-                    self.main_window.project_manager.console_history = data.get('console_history', [])
-                    self.main_window.project_manager.settings = data.get('settings', {})
+                    self.main_window.project_manager.objects = data.get('objects', {}).copy()
+                    self.main_window.project_manager.console_history = data.get('console_history', []).copy()
+                    self.main_window.project_manager.settings = data.get('settings', {}).copy()
                     
                     # 在画布上重构所有的对象
                     for obj_id, obj_data in self.main_window.project_manager.objects.items():

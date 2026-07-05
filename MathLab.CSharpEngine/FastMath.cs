@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
@@ -11,6 +10,7 @@ public class FastMath
 {
     public Dictionary<string, object> Eigenvalues(double[,] matrix)
     {
+        if (matrix == null) throw new ArgumentNullException(nameof(matrix));
         var M = DenseMatrix.OfArray(matrix);
         var evd = M.Evd();
         
@@ -22,6 +22,7 @@ public class FastMath
 
     public Dictionary<string, object> Cholesky(double[,] matrix)
     {
+        if (matrix == null) throw new ArgumentNullException(nameof(matrix));
         var M = DenseMatrix.OfArray(matrix);
         var cholesky = M.Cholesky();
         
@@ -32,6 +33,8 @@ public class FastMath
 
     public Dictionary<string, object> SolveLinearSystem(double[,] A, double[] b)
     {
+        if (A == null) throw new ArgumentNullException(nameof(A));
+        if (b == null) throw new ArgumentNullException(nameof(b));
         var matA = DenseMatrix.OfArray(A);
         var vecB = new DenseVector(b);
         var x = matA.Solve(vecB);
@@ -49,6 +52,8 @@ public class FastMath
 
     public Dictionary<string, object> EigenvaluesFlat(double[] flatMatrix, int rows, int cols)
     {
+        if (flatMatrix == null) throw new ArgumentNullException(nameof(flatMatrix));
+        if (flatMatrix.Length < rows * cols) throw new ArgumentException("Array size does not match rows * cols");
         var matrix = new double[rows, cols];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < cols; j++)
@@ -73,6 +78,8 @@ public class FastMath
 
     public Dictionary<string, object> CholeskyFlat(double[] flatMatrix, int rows, int cols)
     {
+        if (flatMatrix == null) throw new ArgumentNullException(nameof(flatMatrix));
+        if (flatMatrix.Length < rows * cols) throw new ArgumentException("Array size does not match rows * cols");
         var matrix = new double[rows, cols];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < cols; j++)
@@ -94,6 +101,9 @@ public class FastMath
 
     public Dictionary<string, object> SolveLinearSystemFlat(double[] flatA, int rows, int cols, double[] b)
     {
+        if (flatA == null) throw new ArgumentNullException(nameof(flatA));
+        if (b == null) throw new ArgumentNullException(nameof(b));
+        if (flatA.Length < rows * cols) throw new ArgumentException("Array size does not match rows * cols");
         var matrixA = new double[rows, cols];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < cols; j++)

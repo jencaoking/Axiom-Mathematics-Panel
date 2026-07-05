@@ -83,6 +83,12 @@ class JupyterSandbox:
     def restart_kernel(self) -> None:
         """强杀并重启内核（用于清理内存或打破死循环）"""
         print("正在重启 Jupyter 内核...")
+        # [BUG修复] 关闭旧客户端通道，防止 ZeroMQ socket 泄漏
+        if hasattr(self, 'kc') and self.kc:
+            try:
+                self.kc.stop_channels()
+            except:
+                pass
         self.km.restart_kernel(now=True)
         self.kc = self.km.client()
         self.kc.start_channels()

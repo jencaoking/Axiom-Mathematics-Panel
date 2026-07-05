@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget, QFormLayout, QComboBox, QPushButton, QFontComboBox,
     QSpinBox, QDoubleSpinBox, QCheckBox, QSlider, QTableWidget,
     QTableWidgetItem, QHeaderView, QLabel, QMessageBox, QScrollArea,
-    QFrame,
+    QFrame, QLineEdit,
 )
 
 try:
@@ -227,23 +227,6 @@ class PreferencesDialog(QDialog):
         )
 
         self.btn_apply  = QPushButton(t("preferences.apply"))
-        
-        self.settings["ai_base_url"] = self.ai_base_url_input.text()
-        self.settings["ai_api_key"] = self.ai_api_key_input.text()
-        self.settings["ai_model"] = self.ai_model_input.text()
-
-        import json
-        import os
-        settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
-        try:
-            with open(settings_path, 'w', encoding='utf-8') as f:
-                json.dump(self.settings, f, ensure_ascii=False, indent=4)
-        except Exception:
-            pass
-
-        if hasattr(self.parent(), 'ai_manager'):
-            self.parent().ai_manager.reload_config()
-
         self.btn_apply.setEnabled(False)
         self.btn_apply.setStyleSheet(
             "QPushButton {"
@@ -918,6 +901,24 @@ class PreferencesDialog(QDialog):
                 shortcuts[action_item.text()] = key_item.text()
         self.settings["shortcuts"] = shortcuts
         self.shortcuts_changed.emit(shortcuts)
+
+        # [BUG修复] AI 实验室设置保存（从 _build_ui 中移出到这里）
+        if hasattr(self, 'ai_base_url_input'):
+            self.settings["ai_base_url"] = self.ai_base_url_input.text()
+            self.settings["ai_api_key"] = self.ai_api_key_input.text()
+            self.settings["ai_model"] = self.ai_model_input.text()
+
+            import json
+            import os
+            settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+            try:
+                with open(settings_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.settings, f, ensure_ascii=False, indent=4)
+            except Exception:
+                pass
+
+            if hasattr(self.parent(), 'ai_manager'):
+                self.parent().ai_manager.reload_config()
         
         self.btn_apply.setEnabled(False)
 

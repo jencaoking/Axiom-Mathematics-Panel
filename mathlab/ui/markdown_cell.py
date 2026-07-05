@@ -94,7 +94,8 @@ class MarkdownCellWidget(QFrame):
         """切换到绝美排版渲染模式"""
         text = self.input_editor.toPlainText()
         # 处理转义符，防止 JS 报错
-        safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('\n', '\\n')
+        # [BUG修复] 补充 ${} 转义，防止模板字符串注入
+        safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${').replace('\n', '\\n')
         js_code = f"renderMarkdown(`{safe_text}`);"
         
         self.viewer.page().runJavaScript(js_code)

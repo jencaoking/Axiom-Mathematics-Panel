@@ -11,6 +11,10 @@ public class FastMesh3D
     /// </summary>
     public float[] GenerateRippleMesh(double xMin, double xMax, double yMin, double yMax, int xSegments, int ySegments, double timeParam, double frequency)
     {
+        // [BUG修复] 参数校验：防止零或负数导致崩溃
+        if (xSegments <= 0 || ySegments <= 0)
+            throw new ArgumentException("xSegments and ySegments must be positive.");
+
         // 计算顶点总数与面片所需的浮点数大小
         // 为了让 WebGL 渲染最快，我们直接生成未索引的三角形顶点流 (Triangles List)
         // 每个矩形网格由 2 个三角形组成 = 6个顶点 = 18个 float 元素
@@ -58,7 +62,7 @@ public class FastMesh3D
     private float CalculateRipple(double x, double y, double t, double freq)
     {
         double r = Math.Sqrt(x * x + y * y);
-        if (r < 1e-6) return (float)Math.Cos(t); // 避开中心奇点
+        if (r < 1e-6) return (float)(freq * Math.Cos(t)); // [BUG修复] 中心奇点值与 sin(freq*r-t)/r 的极限一致
         return (float)(Math.Sin(freq * r - t) / r);
     }
 }

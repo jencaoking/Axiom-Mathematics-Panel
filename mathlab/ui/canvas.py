@@ -929,7 +929,8 @@ class GeometryCanvas(QGraphicsView):
         original_pens = {item: item.pen() for item in items if hasattr(item, 'pen')}
         highlight_pen = QPen(highlight_color, 4.0)
         
-        timer = QTimer(self) 
+        # [BUG修复] 移除 QTimer(self) 避免循环引用，它在结束时会 deleteLater
+        timer = QTimer() 
 
         def toggle_color():
             nonlocal blink_count
@@ -947,7 +948,9 @@ class GeometryCanvas(QGraphicsView):
                 timer.stop()
                 timer.deleteLater()
                 for item in items:
-                     if hasattr(item, 'setPen'): item.setPen(highlight_pen)
+                     # [BUG修复] 动画结束后恢复原始 pen，而不是永久变成高亮颜色
+                     if hasattr(item, 'setPen'): 
+                         item.setPen(original_pens.get(item, QPen(Qt.black)))
 
         timer.timeout.connect(toggle_color)
         timer.start(300)

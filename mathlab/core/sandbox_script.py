@@ -14,7 +14,7 @@ ALLOWED_BUILTINS = {
     'isinstance', 'issubclass', 'iter', 'len', 'list', 'map', 'max',
     'min', 'next', 'oct', 'ord', 'pow', 'range', 'repr', 'reversed',
     'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type',
-    'zip', 'print', '__import__'
+    'zip', 'print'
 }
 DANGEROUS_BUILTINS = {'open', 'eval', 'exec', 'compile'}
 

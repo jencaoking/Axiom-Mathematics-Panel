@@ -11,6 +11,9 @@ public class FastComplex
     /// </summary>
     public int[] GenerateMandelbrot(double xMin, double xMax, double yMin, double yMax, int width, int height, int maxIterations)
     {
+        if (width <= 1 || height <= 1)
+            throw new ArgumentException("Width and height must be greater than 1.");
+
         int[] result = new int[width * height];
         
         // 计算每个像素在复平面上对应的步长
@@ -58,8 +61,10 @@ public class FastComplex
     }
     public int[] GenerateJulia(double xMin, double xMax, double yMin, double yMax, int width, int height, int maxIterations, double cReal, double cImag)
     {
+        if (width <= 1 || height <= 1)
+            throw new ArgumentException("Width and height must be greater than 1.");
+
         int[] result = new int[width * height];
-        
         double dx = (xMax - xMin) / (width - 1);
         double dy = (yMax - yMin) / (height - 1);
 
@@ -101,6 +106,9 @@ public class FastComplex
 
     public float[] GenerateMandelbrotSmooth(double xMin, double xMax, double yMin, double yMax, int width, int height, int maxIterations)
     {
+        if (width <= 1 || height <= 1)
+            throw new ArgumentException("Width and height must be greater than 1.");
+
         float[] result = new float[width * height];
         double dx = (xMax - xMin) / (width - 1);
         double dy = (yMax - yMin) / (height - 1);

@@ -20,13 +20,13 @@ def _load_sympy():
     with _sympy_lock:
         if _sympy_loaded: return
         import sympy
-    from sympy import (
-        symbols, Symbol, Eq, solve, simplify, expand, factor,
-        diff, integrate, limit, latex, sin, cos, tan, log, exp,
-        sqrt, pi, Rational, Function, Derivative, Integral, sympify
-    )
-    globals().update(locals())
-    _sympy_loaded = True
+        from sympy import (
+            symbols, Symbol, Eq, solve, simplify, expand, factor,
+            diff, integrate, limit, latex, sin, cos, tan, log, exp,
+            sqrt, pi, Rational, Function, Derivative, Integral, sympify
+        )
+        globals().update(locals())
+        _sympy_loaded = True
 
 @functools.lru_cache(maxsize=1024)
 def _cached_sympify(expr_str):
@@ -317,10 +317,13 @@ class SmartCalculusSolver:
         智能积分求解器：先解析 (Python)，后数值 (C#)
         """
         _load_sympy()
-        from sympy import Symbol, sympify, integrate, Integral, lambdify
+        from sympy import Symbol, integrate, Integral, lambdify
+        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
         x = Symbol(var_name)
         try:
-            expr = sympify(expression_str)
+            # [安全修复] 使用 parse_expr 替代 sympify，避免代码注入
+            transformations = standard_transformations + (implicit_multiplication,)
+            expr = parse_expr(expression_str, transformations=transformations, local_dict={var_name: x})
         except Exception:
             raise ValueError(f"无法解析数学表达式: {expression_str}")
 

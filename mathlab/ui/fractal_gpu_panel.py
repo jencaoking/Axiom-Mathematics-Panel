@@ -75,20 +75,21 @@ class FractalGPUExplorer(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.last_mouse_pos = event.pos()
+            self.last_mouse_pos = event.position().toPoint()
 
     def mouseMoveEvent(self, event):
         """鼠标拖拽：平移视口"""
         if self.last_mouse_pos is not None:
-            dx = event.pos().x() - self.last_mouse_pos.x()
-            dy = event.pos().y() - self.last_mouse_pos.y()
+            current_pos = event.position().toPoint()
+            dx = current_pos.x() - self.last_mouse_pos.x()
+            dy = current_pos.y() - self.last_mouse_pos.y()
             
             # 将屏幕像素位移换算为复平面位移
             # (注意 Y 轴的翻转)
             self.offset_x -= (dx / self.width()) * self.zoom
             self.offset_y += (dy / self.height()) * self.zoom * (self.height()/self.width())
             
-            self.last_mouse_pos = event.pos()
+            self.last_mouse_pos = current_pos
             self._send_state_to_gpu()
 
     def mouseReleaseEvent(self, event):

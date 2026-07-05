@@ -349,6 +349,7 @@ class AIToolsPanel(QDockWidget):
         self.drawing_view.mouseMoveEvent = self.on_drawing_move
 
         self.scatter_points = []
+        self.is_generating = False
 
     # ------------------------------------------------------------------
     # i18n
@@ -455,7 +456,7 @@ class AIToolsPanel(QDockWidget):
                 self.output_area.append(result_dict['text'].replace('\n', '<br>'))
             
             # 渲染 Base64 图像 (如果使用了 matplotlib)
-            for base64_img in result_dict['images']:
+            for base64_img in result_dict.get('images', []):
                 html_img = f"<img src='data:image/png;base64,{base64_img}' width='400'>"
                 self.output_area.append(html_img)
 

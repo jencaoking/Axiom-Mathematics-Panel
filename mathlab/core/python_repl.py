@@ -42,24 +42,25 @@ class PythonREPL:
         """
         self.running = True
         
-        if code_str.strip():
-            self.history.append(code_str)
+        try:
+            if code_str.strip():
+                self.history.append(code_str)
+                
+            # 如果禁用了会话模式，强制重启沙箱进程
+            if not self._session_mode:
+                self._sandbox.terminate()
             
-        # 如果禁用了会话模式，强制重启沙箱进程
-        if not self._session_mode:
-            self._sandbox.terminate()
-        
-        # 委托给沙箱进程执行
-        sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
-        
-        self.running = False
-        
-        return {
-            'success': sandbox_result['success'],
-            'output': sandbox_result['output'],
-            'error': sandbox_result['error'],
-            'more': False  # 沙箱模式下不支持多行交互
-        }
+            # 委托给沙箱进程执行
+            sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
+            
+            return {
+                'success': sandbox_result['success'],
+                'output': sandbox_result['output'],
+                'error': sandbox_result['error'],
+                'more': False  # 沙箱模式下不支持多行交互
+            }
+        finally:
+            self.running = False
     
     def complete(self, text):
         """

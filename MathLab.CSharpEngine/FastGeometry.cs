@@ -115,7 +115,7 @@ public class FastGeometry
 
     public double[] GenerateConicPoints(double A, double B, double C, double D, double E, double F, double xMin, double xMax, double yMin, double yMax, int numPoints)
     {
-        if (numPoints <= 1) return new double[0];
+        if (numPoints <= 1) return Array.Empty<double>();
         
         List<double> points = new List<double>(numPoints * 4);
         double step = (xMax - xMin) / (numPoints - 1);
@@ -157,7 +157,7 @@ public class FastGeometry
                         points.Add(x);
                         points.Add(y1);
                     }
-                    if (y2_valid && Math.Abs(y1 - y2) > 1e-6)
+                    if (y2_valid && (!y1_valid || Math.Abs(y1 - y2) > 1e-6))
                     {
                         points.Add(x);
                         points.Add(y2);

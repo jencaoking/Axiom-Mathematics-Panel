@@ -61,4 +61,5 @@ class JupyterIPCServer(QThread):
 
     def stop(self):
         self.is_running = False
-        self.wait()
+        if self.isRunning():
+            self.wait()

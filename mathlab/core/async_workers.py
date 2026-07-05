@@ -59,6 +59,8 @@ class TaskManager(QObject):
         # 用于防抖与任务覆盖：跟踪各组是否有任务运行及挂起的最新请求
         self._running_groups = set()
         self._pending_requests = {}
+        # [BUG修复] 保护共享状态的线程锁
+        self._state_lock = threading.Lock()
         
         logger.info(f"TaskManager 启动，最大并发线程数: {max_threads}")
 
@@ -74,19 +76,20 @@ class TaskManager(QObject):
         :param args/kwargs: 传递给 fn 的参数
         """
         if group_id is not None:
-            if group_id in self._running_groups:
-                # 已有同组任务正在执行，覆盖挂起队列中的请求
-                self._pending_requests[group_id] = {
-                    'fn': fn,
-                    'on_success': on_success,
-                    'on_error': on_error,
-                    'args': args,
-                    'kwargs': kwargs
-                }
-                return
-            else:
-                self._running_groups.add(group_id)
-                self._submit_internal(group_id, fn, on_success, on_error, *args, **kwargs)
+            with self._state_lock:
+                if group_id in self._running_groups:
+                    # 已有同组任务正在执行，覆盖挂起队列中的请求
+                    self._pending_requests[group_id] = {
+                        'fn': fn,
+                        'on_success': on_success,
+                        'on_error': on_error,
+                        'args': args,
+                        'kwargs': kwargs
+                    }
+                    return
+                else:
+                    self._running_groups.add(group_id)
+            self._submit_internal(group_id, fn, on_success, on_error, *args, **kwargs)
         else:
             self._submit_internal(None, fn, on_success, on_error, *args, **kwargs)
 
@@ -116,20 +119,23 @@ class TaskManager(QObject):
     def _check_pending(self, group_id):
         if group_id is None:
             return
-            
-        if group_id in self._pending_requests:
-            req = self._pending_requests.pop(group_id)
-            self._submit_internal(
-                group_id,
-                req['fn'],
-                req['on_success'],
-                req['on_error'],
-                *req['args'],
-                **req['kwargs']
-            )
-        else:
-            if group_id in self._running_groups:
-                self._running_groups.remove(group_id)
+        
+        with self._state_lock:
+            if group_id in self._pending_requests:
+                req = self._pending_requests.pop(group_id)
+            else:
+                self._running_groups.discard(group_id)
+                return
+        
+        # 在锁外提交新任务
+        self._submit_internal(
+            group_id,
+            req['fn'],
+            req['on_success'],
+            req['on_error'],
+            *req['args'],
+            **req['kwargs']
+        )
 
 
 # ──────────────────────────────────────────────────────────────────────────────

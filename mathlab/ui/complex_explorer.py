@@ -39,6 +39,9 @@ class FractalExplorer(QWidget):
         # 初始化渲染左侧的 Mandelbrot
         self._render_mandelbrot()
         
+        # 节流控制
+        self._last_mouse_time = 0
+        
         # 绑定鼠标移动事件
         self.label_mandel.mouseMoveEvent = self.on_mandel_mouse_move
 
@@ -52,6 +55,13 @@ class FractalExplorer(QWidget):
 
     def on_mandel_mouse_move(self, event):
         """捕获鼠标，实时计算 Julia"""
+        import time
+        current_time = time.time()
+        # [BUG修复] 增加 16ms 节流(约 60FPS)，防止事件洪水导致主线程卡顿
+        if current_time - self._last_mouse_time < 0.016:
+            return
+        self._last_mouse_time = current_time
+
         # 1. 获取鼠标在像素控件上的位置
         px = event.position().x()
         py = event.position().y()
