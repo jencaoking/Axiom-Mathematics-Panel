@@ -37,6 +37,7 @@ hidden_imports = [
     'markdown.extensions.fenced_code',
     'markdown.extensions.tables',
     'markdown.extensions.toc',
+    'mathlab.core.sandbox_script',
 ]
 
 a = Analysis(

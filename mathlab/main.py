@@ -217,7 +217,10 @@ if __name__ == '__main__':
         # 拦截我们自己沙盒进程的启动 (sandbox_script.py)
         elif sys.argv[1].endswith('sandbox_script.py'):
             import runpy
-            runpy.run_path(sys.argv[1], run_name='__main__')
+            if getattr(sys, 'frozen', False):
+                runpy.run_module('mathlab.core.sandbox_script', run_name='__main__')
+            else:
+                runpy.run_path(sys.argv[1], run_name='__main__')
             sys.exit(0)
 
     # ── 最外层崩溃捕获：确保导入阶段或 main() 之前的错误也能被记录 ──

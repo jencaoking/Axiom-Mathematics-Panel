@@ -6,8 +6,6 @@
 QMainWindow, QDialog, QWidget {
     background-color: #0F172A; /* 深沉次级黑 */
     color: #F8FAFC;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    font-size: 13px;
 }
 
 /* 2. 侧边栏与停靠面板 (大圆角卡片化设计) */

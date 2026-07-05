@@ -222,6 +222,15 @@ class PropertiesPanel(QDockWidget):
         # start with no object loaded
         self.clear()
 
+    def retranslate_ui(self):
+        self._app_header.setText(t('properties_panel.appearance').upper())
+        self._lbl_header.setText(t('properties_panel.label_section').upper())
+        self._def_header.setText(t('properties_panel.definition').upper())
+        self._color_label.setText(t('properties_panel.color'))
+        self._opacity_label.setText(t('properties_panel.opacity'))
+        self._thickness_label.setText(t('properties_panel.thickness'))
+        self._show_lbl_cb.setText(t('properties_panel.show_label'))
+
     # ──────────────────────────────────────────────────────────────────
     # Section builders
     # ──────────────────────────────────────────────────────────────────

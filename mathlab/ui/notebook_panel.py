@@ -71,9 +71,9 @@ class VSCodeStyleCellWidget(QFrame):
         
         toolbar_layout.addStretch()
         
-        run_btn = QPushButton(t("notebook.run"))
-        run_btn.clicked.connect(self.on_run_clicked)
-        toolbar_layout.addWidget(run_btn)
+        self.run_btn = QPushButton(t("notebook.run"))
+        self.run_btn.clicked.connect(self.on_run_clicked)
+        toolbar_layout.addWidget(self.run_btn)
 
         # Editor
         if self.cell_type == "code":
@@ -131,6 +131,10 @@ class VSCodeStyleCellWidget(QFrame):
             self.output_browser.setHtml(text)
             self.output_browser.show()
 
+    def retranslate_ui(self):
+        if hasattr(self, 'run_btn'):
+            self.run_btn.setText(t("notebook.run"))
+
 from mathlab.ui.interactive_widgets import MathSlider
 
 class NotebookPanel(QWidget):
@@ -146,6 +150,17 @@ class NotebookPanel(QWidget):
         self.backend = MathLabNotebook()
         self.ui_cells = {}
         self.current_executing_cell_id = None
+        
+    def retranslate_ui(self):
+        self.btn_save.setText(f"💾 {t('notebook.save') or 'Save'}")
+        self.btn_load.setText(f"📂 {t('notebook.open') or 'Open'}")
+        self.btn_add_code.setText(t("notebook.add_code"))
+        self.btn_add_markdown.setText(t("notebook.add_markdown"))
+        self.btn_run_all.setText(t("notebook.run_all"))
+        self.btn_clear_all.setText(t("notebook.clear_all"))
+        for ui_cell in self.ui_cells.values():
+            if hasattr(ui_cell, 'retranslate_ui'):
+                ui_cell.retranslate_ui()
         
         # 监听内核发出的滑块请求
         self.backend.kernel.signals.slider_requested.connect(self.handle_slider_requested)

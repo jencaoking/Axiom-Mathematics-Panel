@@ -1869,6 +1869,16 @@ class MainWindow(QMainWindow):
     def retranslate_ui(self) -> None:
         self.setWindowTitle(t('main_window.title'))
 
+        if hasattr(self, 'central_tabs'):
+            self.central_tabs.setTabText(0, t('notebook.title') or "Interactive Notebook")
+            self.central_tabs.setTabText(1, t('main_window.geometry_tools') or "Geometry Canvas")
+
+        if hasattr(self, 'notebook') and hasattr(self.notebook, 'retranslate_ui'):
+            self.notebook.retranslate_ui()
+
+        if hasattr(self, 'properties_panel') and hasattr(self.properties_panel, 'retranslate_ui'):
+            self.properties_panel.retranslate_ui()
+
         self.file_menu.setTitle(t('menu.file'))
         self.edit_menu.setTitle(t('menu.edit'))
         self.view_menu.setTitle(t('menu.view'))

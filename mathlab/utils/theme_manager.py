@@ -83,13 +83,8 @@ THEMES = {
 }
 
 def get_current_theme():
-    settings = load_settings()
-    if 'theme' in settings and settings['theme'] in THEMES:
-        return settings['theme']
-    app = QApplication.instance()
-    if app is None:
-        return 'light'
-    return app.property('current_theme') or 'light'
+    # Force dark theme to match our modern fluent dark styles.qss
+    return 'dark'
 
 def set_theme(theme_name):
     if theme_name not in THEMES:
