@@ -27,6 +27,15 @@ hidden_imports = [
     'runpy',
     'jedi',
     'mathlab.ui.code_editor',
+    'unicodedata',
+    'sympy.parsing.latex',
+    'mpmath',
+    'scipy.special',
+    'PySide6.QtNetwork',
+    'PySide6.QtPrintSupport',
+    'markdown.extensions.fenced_code',
+    'markdown.extensions.tables',
+    'markdown.extensions.toc',
 ]
 
 a = Analysis(
