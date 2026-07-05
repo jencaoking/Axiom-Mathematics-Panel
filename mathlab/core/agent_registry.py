@@ -1,5 +1,8 @@
 import re
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
@@ -84,12 +87,23 @@ class AgentRegistry:
 
     def register_agent(self, name, description, agent_instance):
         """注册一个专家 Agent 及其能力描述"""
+        if name in self.agents:
+            logger.warning(f"⚠️ 专家 {name} 已存在，正在被覆盖注册！")
+            
         self.agents[name] = {
             "description": description,
             "instance": agent_instance
         }
-        import logging
-        logger = logging.getLogger(__name__)
+        
+        # 修复 Bug 2: 尝试打通动态注册系统与静态名片表 (_AGENT_PROFILES)
+        matched_key = None
+        for k in _AGENT_PROFILES.keys():
+            if k in name.lower():
+                matched_key = k
+                break
+        if matched_key:
+            _AGENT_PROFILES[matched_key].system_prompt = getattr(agent_instance, "system_prompt", _AGENT_PROFILES[matched_key].system_prompt)
+            
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
 
     def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb):
@@ -122,19 +136,24 @@ class AgentRegistry:
                 model=self.ai_manager.current_model,
                 messages=[{"role": "user", "content": router_prompt}],
                 temperature=0.0,
-                max_tokens=20
+                max_tokens=50,
+                timeout=30
             )
             
-            selected_agent_name = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            selected_agent_name = content.strip() if content else ""
             
-            # 清理可能携带的标点符号
-            selected_agent_name = re.sub(r'[^a-zA-Z0-9_]', '', selected_agent_name)
+            # 清理可能携带的标点符号和空格
+            selected_agent_name = selected_agent_name.strip(" '\"\n\t*.,")
 
             # 3. 容错回退机制
             if selected_agent_name not in self.agents:
+                fallback = "GeometryAgent" if "GeometryAgent" in self.agents else (list(self.agents.keys())[0] if self.agents else None)
+                if not fallback:
+                    raise RuntimeError("系统中没有任何已注册的专家。")
                 if on_thought_cb:
-                    on_thought_cb(f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 GeometryAgent。")
-                selected_agent_name = "GeometryAgent" # 默认兜底专家
+                    on_thought_cb(f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 {fallback}。")
+                selected_agent_name = fallback
             else:
                 if on_thought_cb:
                     on_thought_cb(f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】")

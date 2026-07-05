@@ -8,6 +8,7 @@ from .signals import GeometrySignals, ConsoleSignals, AlgorithmSignals, AISignal
 from .extension_api import MathLabAPI
 from .plugin_base import MathLabPlugin
 from .plugin_manager import PluginManager
+from .agent_bridge import AgentUIBridge
 
 __all__ = [
     'GeometryEngine',
@@ -28,5 +29,6 @@ __all__ = [
     'MathLabAPI',
     'MathLabPlugin',
     'PluginManager',
+    'AgentUIBridge',
 ]
 
