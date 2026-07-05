@@ -834,6 +834,9 @@ class MainWindow(QMainWindow):
         # 思考 -> 打印到终端
         self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
         
+        # 观察 -> 打印到终端
+        self.agent_bridge.observation_emitted.connect(self.console.append_agent_observation)
+        
         # 代码 -> 注入 Monaco 编辑器
         self.agent_bridge.code_generated.connect(self._stream_code_to_editor)
         

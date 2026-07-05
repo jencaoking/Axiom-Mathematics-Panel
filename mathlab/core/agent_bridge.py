@@ -68,4 +68,5 @@ class AgentUIBridge(QObject):
             _observation_cb,
             self
         )
+        self._current_worker.finished.connect(self._current_worker.deleteLater)
         self._current_worker.start()
