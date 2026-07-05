@@ -656,7 +656,6 @@ class MainWindow(QMainWindow):
         self.ai_tools_panel.recognize_requested.connect(self.on_ai_recognize_requested)
         self.ai_tools_panel.generate_points.connect(self.on_ai_generate_points)
 
-        self.ai_tools_panel.code_editor.request_completions.connect(self.on_code_completion_requested)
 
         # 连接函数探索器信号
         self.function_explorer.function_added.connect(self.on_function_added)
