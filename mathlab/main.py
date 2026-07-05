@@ -8,6 +8,11 @@ if getattr(sys, 'frozen', False):
     # exe运行模式
     application_path = sys._MEIPASS
     _CRASH_LOG_DIR = os.path.dirname(sys.executable)
+    
+    # 修复 QtWebEngineProcess 找不到 PySide6 内部 DLL 的系统错误弹窗
+    pyside_dir = os.path.join(sys._MEIPASS, 'PySide6')
+    os.environ['PATH'] = pyside_dir + os.pathsep + os.environ.get('PATH', '')
+    os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.join(pyside_dir, 'QtWebEngineProcess.exe')
 else:
     # 开发模式
     application_path = os.path.dirname(os.path.abspath(__file__))
