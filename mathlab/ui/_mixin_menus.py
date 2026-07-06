@@ -3,11 +3,12 @@
 将 MainWindow 中与菜单栏、工具栏、工具按钮和图标主题
 相关的方法提取到此模块。
 """
-
 import os
 
-from PySide6.QtWidgets import QMenuBar, QMenu, QToolBar, QPushButton
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtWidgets import (
+    QMenuBar, QMenu, QToolBar, QPushButton,
+)
+from PySide6.QtGui import QAction, QIcon, QShortcut, QKeySequence, QPixmap
 from PySide6.QtCore import Qt, QSize
 
 from .signal_lab_panel import SignalLabPanel
@@ -15,18 +16,18 @@ from .fractal_gpu_panel import FractalGPUExplorer
 from .command_bar import CommandBar
 
 try:
-    from ..theme_manager import THEMES, get_current_theme
-except Exception:
-    from theme_manager import THEMES, get_current_theme
+    from ..utils.theme_manager import THEMES, get_current_theme
+except ImportError:
+    from utils.theme_manager import THEMES, get_current_theme
 
 try:
-    from ..i18n_manager import t
-except Exception:
-    from i18n_manager import t
+    from ..utils.i18n_manager import t
+except ImportError:
+    from utils.i18n_manager import t
 
 
 class MenusMixin:
-
+    """MainWindow Mixin：菜单栏、工具栏与图标管理。"""
     def setup_menus(self):
         menu_bar = QMenuBar(self)
 
@@ -382,3 +383,4 @@ class MenusMixin:
         self._zoom_out_action.setIcon(self.get_themed_icon('zoom-out', theme_name))
         
         self.settings_btn.setIcon(self.get_themed_icon('settings', theme_name))
+
