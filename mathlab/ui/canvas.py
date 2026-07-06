@@ -183,7 +183,7 @@ class GeometryPointItem(QGraphicsEllipseItem):
                 
                 # 收集画布上排除自己的其他所有点
                 other_points = [
-                    item.pos() for item in self.scene().items() 
+                    item.scenePos() for item in self.scene().items() 
                     if isinstance(item, GeometryPointItem) and item != self
                 ]
                 
@@ -415,7 +415,6 @@ class GeometryCanvas(QGraphicsView):
     def mousePressEvent(self, event):
         is_pan_trigger = (
             event.button() == Qt.MiddleButton
-            or (event.button() == Qt.RightButton and self.current_tool != 'polygon')
             or (event.button() == Qt.LeftButton and self.current_tool == 'pan')
         )
         if is_pan_trigger:
@@ -490,10 +489,16 @@ class GeometryCanvas(QGraphicsView):
             self.verticalScrollBar().setValue(int(self.verticalScrollBar().value() - delta_pos.y()))
             
             if delta_time > 0:
-                instant_vx = delta_pos.x() 
-                instant_vy = delta_pos.y() 
-                self._velocity_x = self._velocity_x * 0.2 + instant_vx * 0.8
-                self._velocity_y = self._velocity_y * 0.2 + instant_vy * 0.8
+                # 计算真实的物理速度 (像素/秒)
+                instant_vx = delta_pos.x() / delta_time
+                instant_vy = delta_pos.y() / delta_time
+                
+                # 转换为每帧 (16ms) 的标度速度，供 _apply_inertia 使用
+                frame_vx = instant_vx * 0.016
+                frame_vy = instant_vy * 0.016
+                
+                self._velocity_x = self._velocity_x * 0.2 + frame_vx * 0.8
+                self._velocity_y = self._velocity_y * 0.2 + frame_vy * 0.8
 
             self._last_pan_pos = event.position()
             self._last_pan_time = current_time

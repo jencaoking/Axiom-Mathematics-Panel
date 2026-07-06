@@ -4,8 +4,6 @@
 对象增删改查、控制台命令处理等相关的方法提取到此模块。
 """
 import uuid
-import math
-import logging
 
 from PySide6.QtWidgets import QMessageBox
 

@@ -2,7 +2,6 @@
 
 将 MainWindow 中与项目文件 I/O 和导出相关的方法提取到此模块。
 """
-import json
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QPainter as QtPainter

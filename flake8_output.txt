@@ -1,0 +1,417 @@
+mathlab/ui/_mixin_ai.py:6:1: F401 'json' imported but unused
+mathlab/ui/_mixin_ai.py:7:1: F401 'random' imported but unused
+mathlab/ui/_mixin_ai.py:9:1: F401 'PySide6.QtCore.QPointF' imported but unused
+mathlab/ui/_mixin_ai.py:14:80: E501 line too long (119 > 79 characters)
+mathlab/ui/_mixin_ai.py:16:80: E501 line too long (121 > 79 characters)
+mathlab/ui/_mixin_ai.py:28:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_ai.py:30:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_ai.py:35:9: F401 'PySide6.QtCore.QPointF' imported but unused
+mathlab/ui/_mixin_ai.py:35:9: F811 redefinition of unused 'QPointF' from line 9
+mathlab/ui/_mixin_ai.py:39:9: F401 'json' imported but unused
+mathlab/ui/_mixin_ai.py:39:9: F811 redefinition of unused 'json' from line 6
+mathlab/ui/_mixin_ai.py:40:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:43:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:50:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:56:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:59:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:62:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_ai.py:63:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:65:80: E501 line too long (92 > 79 characters)
+mathlab/ui/_mixin_ai.py:66:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:69:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:72:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:78:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_ai.py:82:9: F811 redefinition of unused 'json' from line 6
+mathlab/ui/_mixin_ai.py:83:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:85:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_ai.py:87:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_ai.py:89:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_ai.py:91:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:95:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:97:80: E501 line too long (174 > 79 characters)
+mathlab/ui/_mixin_ai.py:99:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:100:80: E501 line too long (95 > 79 characters)
+mathlab/ui/_mixin_ai.py:106:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:108:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_ai.py:109:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:111:9: F811 redefinition of unused 'QPointF' from line 9
+mathlab/ui/_mixin_ai.py:113:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_ai.py:114:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:120:9: F811 redefinition of unused 'json' from line 6
+mathlab/ui/_mixin_ai.py:122:80: E501 line too long (98 > 79 characters)
+mathlab/ui/_mixin_ai.py:123:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:126:13: F811 redefinition of unused 'random' from line 7
+mathlab/ui/_mixin_ai.py:127:13: F811 redefinition of unused 'QPointF' from line 9
+mathlab/ui/_mixin_ai.py:129:80: E501 line too long (107 > 79 characters)
+mathlab/ui/_mixin_ai.py:135:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_ai.py:139:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_ai.py:140:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:147:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_ai.py:148:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:158:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:164:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:170:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:176:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:181:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:187:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_ai.py:196:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:201:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:204:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:216:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:218:80: E501 line too long (90 > 79 characters)
+mathlab/ui/_mixin_ai.py:228:80: E501 line too long (94 > 79 characters)
+mathlab/ui/_mixin_ai.py:241:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_ai.py:243:80: E501 line too long (107 > 79 characters)
+mathlab/ui/_mixin_ai.py:244:80: E501 line too long (101 > 79 characters)
+mathlab/ui/_mixin_ai.py:258:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:264:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_ai.py:274:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_ai.py:276:80: E501 line too long (115 > 79 characters)
+mathlab/ui/_mixin_ai.py:277:80: E501 line too long (109 > 79 characters)
+mathlab/ui/_mixin_ai.py:281:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_ai.py:283:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:289:80: E501 line too long (119 > 79 characters)
+mathlab/ui/_mixin_ai.py:290:80: E501 line too long (113 > 79 characters)
+mathlab/ui/_mixin_ai.py:297:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:302:80: E501 line too long (95 > 79 characters)
+mathlab/ui/_mixin_ai.py:304:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:308:80: E501 line too long (122 > 79 characters)
+mathlab/ui/_mixin_ai.py:310:80: E501 line too long (144 > 79 characters)
+mathlab/ui/_mixin_ai.py:311:80: E501 line too long (125 > 79 characters)
+mathlab/ui/_mixin_ai.py:318:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:321:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:331:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:332:80: E501 line too long (110 > 79 characters)
+mathlab/ui/_mixin_ai.py:333:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ai.py:337:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_commands.py:40:10: E221 multiple spaces before operator
+mathlab/ui/_mixin_commands.py:43:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:43:80: E501 line too long (114 > 79 characters)
+mathlab/ui/_mixin_commands.py:44:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:44:80: E501 line too long (113 > 79 characters)
+mathlab/ui/_mixin_commands.py:45:50: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:45:80: E501 line too long (116 > 79 characters)
+mathlab/ui/_mixin_commands.py:46:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:46:80: E501 line too long (124 > 79 characters)
+mathlab/ui/_mixin_commands.py:47:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:47:80: E501 line too long (128 > 79 characters)
+mathlab/ui/_mixin_commands.py:48:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:48:80: E501 line too long (131 > 79 characters)
+mathlab/ui/_mixin_commands.py:50:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:50:80: E501 line too long (101 > 79 characters)
+mathlab/ui/_mixin_commands.py:51:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:51:80: E501 line too long (101 > 79 characters)
+mathlab/ui/_mixin_commands.py:52:55: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:52:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:53:52: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:53:80: E501 line too long (98 > 79 characters)
+mathlab/ui/_mixin_commands.py:54:52: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:54:80: E501 line too long (101 > 79 characters)
+mathlab/ui/_mixin_commands.py:57:80: E501 line too long (94 > 79 characters)
+mathlab/ui/_mixin_commands.py:58:80: E501 line too long (92 > 79 characters)
+mathlab/ui/_mixin_commands.py:59:80: E501 line too long (94 > 79 characters)
+mathlab/ui/_mixin_commands.py:60:80: E501 line too long (98 > 79 characters)
+mathlab/ui/_mixin_commands.py:61:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_commands.py:62:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_commands.py:63:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_commands.py:66:80: E501 line too long (102 > 79 characters)
+mathlab/ui/_mixin_commands.py:67:41: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:67:80: E501 line too long (115 > 79 characters)
+mathlab/ui/_mixin_commands.py:68:41: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:68:80: E501 line too long (115 > 79 characters)
+mathlab/ui/_mixin_commands.py:69:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:69:80: E501 line too long (109 > 79 characters)
+mathlab/ui/_mixin_commands.py:70:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:70:80: E501 line too long (110 > 79 characters)
+mathlab/ui/_mixin_commands.py:71:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:71:80: E501 line too long (109 > 79 characters)
+mathlab/ui/_mixin_commands.py:72:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:72:80: E501 line too long (110 > 79 characters)
+mathlab/ui/_mixin_commands.py:73:46: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:73:80: E501 line too long (110 > 79 characters)
+mathlab/ui/_mixin_commands.py:74:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:74:80: E501 line too long (109 > 79 characters)
+mathlab/ui/_mixin_commands.py:77:80: E501 line too long (193 > 79 characters)
+mathlab/ui/_mixin_commands.py:78:33: E231 missing whitespace after ','
+mathlab/ui/_mixin_commands.py:78:56: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:78:80: E501 line too long (157 > 79 characters)
+mathlab/ui/_mixin_commands.py:79:80: E501 line too long (163 > 79 characters)
+mathlab/ui/_mixin_commands.py:80:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_commands.py:82:80: E501 line too long (135 > 79 characters)
+mathlab/ui/_mixin_commands.py:88:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:88:80: E501 line too long (122 > 79 characters)
+mathlab/ui/_mixin_commands.py:89:44: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:89:80: E501 line too long (121 > 79 characters)
+mathlab/ui/_mixin_commands.py:90:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:90:80: E501 line too long (122 > 79 characters)
+mathlab/ui/_mixin_commands.py:91:48: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:91:80: E501 line too long (127 > 79 characters)
+mathlab/ui/_mixin_commands.py:92:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:92:80: E501 line too long (106 > 79 characters)
+mathlab/ui/_mixin_commands.py:93:51: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:93:80: E501 line too long (127 > 79 characters)
+mathlab/ui/_mixin_commands.py:99:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:99:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:100:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:100:80: E501 line too long (106 > 79 characters)
+mathlab/ui/_mixin_commands.py:101:45: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:101:80: E501 line too long (106 > 79 characters)
+mathlab/ui/_mixin_commands.py:102:47: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:102:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:103:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:103:80: E501 line too long (107 > 79 characters)
+mathlab/ui/_mixin_commands.py:104:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:104:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:105:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:105:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:106:49: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:106:80: E501 line too long (104 > 79 characters)
+mathlab/ui/_mixin_commands.py:107:52: E272 multiple spaces before keyword
+mathlab/ui/_mixin_commands.py:107:80: E501 line too long (106 > 79 characters)
+mathlab/ui/_mixin_commands.py:110:80: E501 line too long (97 > 79 characters)
+mathlab/ui/_mixin_commands.py:111:80: E501 line too long (95 > 79 characters)
+mathlab/ui/_mixin_commands.py:112:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_commands.py:113:80: E501 line too long (93 > 79 characters)
+mathlab/ui/_mixin_commands.py:114:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_commands.py:115:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_commands.py:140:1: W391 blank line at end of file
+mathlab/ui/_mixin_dialogs.py:42:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:49:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_dialogs.py:54:80: E501 line too long (101 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:59:57: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_dialogs.py:59:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:60:52: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_dialogs.py:61:64: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_dialogs.py:61:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:62:63: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_dialogs.py:62:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:63:64: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_dialogs.py:63:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:84:15: E221 multiple spaces before operator
+mathlab/ui/_mixin_dialogs.py:116:15: E221 multiple spaces before operator
+mathlab/ui/_mixin_dialogs.py:142:80: E501 line too long (90 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:143:80: E501 line too long (97 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:145:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:148:80: E501 line too long (98 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:203:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:208:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_dialogs.py:217:1: W391 blank line at end of file
+mathlab/ui/_mixin_file_io.py:5:1: F401 'json' imported but unused
+mathlab/ui/_mixin_file_io.py:51:13: F811 redefinition of unused 'json' from line 5
+mathlab/ui/_mixin_file_io.py:61:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_file_io.py:63:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_file_io.py:64:80: E501 line too long (112 > 79 characters)
+mathlab/ui/_mixin_file_io.py:101:13: F811 redefinition of unused 'json' from line 5
+mathlab/ui/_mixin_file_io.py:130:80: E501 line too long (96 > 79 characters)
+mathlab/ui/_mixin_file_io.py:152:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_file_io.py:154:80: E501 line too long (96 > 79 characters)
+mathlab/ui/_mixin_file_io.py:165:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_file_io.py:168:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_file_io.py:170:80: E501 line too long (96 > 79 characters)
+mathlab/ui/_mixin_file_io.py:171:1: W391 blank line at end of file
+mathlab/ui/_mixin_menus.py:11:1: F401 'PySide6.QtGui.QShortcut' imported but unused
+mathlab/ui/_mixin_menus.py:11:1: F401 'PySide6.QtGui.QKeySequence' imported but unused
+mathlab/ui/_mixin_menus.py:11:1: F401 'PySide6.QtGui.QPixmap' imported but unused
+mathlab/ui/_mixin_menus.py:36:24: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:37:25: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:38:25: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:39:28: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:40:31: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:41:31: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:43:25: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:63:25: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:64:25: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:78:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_menus.py:82:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_menus.py:90:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_menus.py:99:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_menus.py:107:26: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:126:31: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:127:31: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:128:29: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:128:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_menus.py:129:29: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:129:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_menus.py:138:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_menus.py:139:33: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:139:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_menus.py:140:28: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:141:31: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:142:32: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:152:26: E221 multiple spaces before operator
+mathlab/ui/_mixin_menus.py:177:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_menus.py:182:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_menus.py:186:80: E501 line too long (91 > 79 characters)
+mathlab/ui/_mixin_menus.py:187:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_menus.py:189:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_menus.py:195:80: E501 line too long (90 > 79 characters)
+mathlab/ui/_mixin_menus.py:196:80: E501 line too long (90 > 79 characters)
+mathlab/ui/_mixin_menus.py:197:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_menus.py:198:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_menus.py:348:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:354:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:358:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:359:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_menus.py:361:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:362:13: F811 redefinition of unused 'QPixmap' from line 11
+mathlab/ui/_mixin_menus.py:374:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:375:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_menus.py:377:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_menus.py:379:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_menus.py:381:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:382:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_menus.py:383:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_menus.py:384:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_menus.py:386:1: W391 blank line at end of file
+mathlab/ui/_mixin_signals.py:7:1: F401 'math' imported but unused
+mathlab/ui/_mixin_signals.py:8:1: F401 'logging' imported but unused
+mathlab/ui/_mixin_signals.py:42:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_signals.py:46:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:49:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_signals.py:50:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_signals.py:51:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_signals.py:52:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_signals.py:53:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_signals.py:55:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_signals.py:61:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_signals.py:62:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_signals.py:66:9: E303 too many blank lines (2)
+mathlab/ui/_mixin_signals.py:68:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_signals.py:69:80: E501 line too long (89 > 79 characters)
+mathlab/ui/_mixin_signals.py:70:80: E501 line too long (87 > 79 characters)
+mathlab/ui/_mixin_signals.py:72:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_signals.py:74:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_signals.py:80:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:83:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:88:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:93:52: E701 multiple statements on one line (colon)
+mathlab/ui/_mixin_signals.py:94:52: E701 multiple statements on one line (colon)
+mathlab/ui/_mixin_signals.py:95:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:98:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:101:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:137:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:140:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:155:17: F811 redefinition of unused 'math' from line 7
+mathlab/ui/_mixin_signals.py:163:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:168:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:175:58: W291 trailing whitespace
+mathlab/ui/_mixin_signals.py:176:31: E128 continuation line under-indented for visual indent
+mathlab/ui/_mixin_signals.py:177:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:182:13: F841 local variable 'plot_type' is assigned to but never used
+mathlab/ui/_mixin_signals.py:184:13: F841 local variable 'original_expr' is assigned to but never used
+mathlab/ui/_mixin_signals.py:185:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:188:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:194:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:198:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:204:80: E501 line too long (84 > 79 characters)
+mathlab/ui/_mixin_signals.py:205:80: E501 line too long (100 > 79 characters)
+mathlab/ui/_mixin_signals.py:209:80: E501 line too long (99 > 79 characters)
+mathlab/ui/_mixin_signals.py:226:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_signals.py:257:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_signals.py:334:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_signals.py:337:80: E501 line too long (85 > 79 characters)
+mathlab/ui/_mixin_signals.py:339:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:343:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:349:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:352:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:354:80: E501 line too long (100 > 79 characters)
+mathlab/ui/_mixin_signals.py:355:80: E501 line too long (100 > 79 characters)
+mathlab/ui/_mixin_signals.py:356:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_signals.py:364:80: E501 line too long (88 > 79 characters)
+mathlab/ui/_mixin_signals.py:403:21: E221 multiple spaces before operator
+mathlab/ui/_mixin_signals.py:470:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_signals.py:471:80: E501 line too long (86 > 79 characters)
+mathlab/ui/_mixin_signals.py:477:1: W391 blank line at end of file
+mathlab/ui/_mixin_ui_setup.py:7:1: F401 'logging' imported but unused
+mathlab/ui/_mixin_ui_setup.py:17:1: F401 '.command_bar.CommandBar' imported but unused
+mathlab/ui/_mixin_ui_setup.py:40:5: F401 'utils.theme_manager.get_theme_colors' imported but unused
+mathlab/ui/_mixin_ui_setup.py:64:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ui_setup.py:73:80: E501 line too long (94 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:74:80: E501 line too long (107 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:89:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:104:13: E306 expected 1 blank line before a nested definition, found 0
+mathlab/ui/_mixin_ui_setup.py:130:80: E501 line too long (81 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:148:80: E501 line too long (83 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:184:17: F811 redefinition of unused 'get_theme_colors' from line 40
+mathlab/ui/_mixin_ui_setup.py:188:1: W293 blank line contains whitespace
+mathlab/ui/_mixin_ui_setup.py:214:55: E261 at least two spaces before inline comment
+mathlab/ui/_mixin_ui_setup.py:233:80: E501 line too long (80 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:264:80: E501 line too long (82 > 79 characters)
+mathlab/ui/_mixin_ui_setup.py:295:1: W391 blank line at end of file
+mathlab/ui/main_window.py:1:1: F401 'mathlab.core.prompt_manager.prompt_manager' imported but unused
+mathlab/ui/main_window.py:2:1: F401 'os' imported but unused
+mathlab/ui/main_window.py:3:1: F401 'uuid' imported but unused
+mathlab/ui/main_window.py:4:1: F401 'platform' imported but unused
+mathlab/ui/main_window.py:5:1: F401 'subprocess' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QToolBar' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QToolButton' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QMenuBar' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QMenu' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QDockWidget' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QStatusBar' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QFileDialog' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QMessageBox' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QDialog' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QVBoxLayout' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QLabel' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QComboBox' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QPushButton' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QHBoxLayout' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QSpacerItem' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QSizePolicy' imported but unused
+mathlab/ui/main_window.py:7:1: F401 'PySide6.QtWidgets.QTabWidget' imported but unused
+mathlab/ui/main_window.py:14:1: F401 'PySide6.QtGui.QAction' imported but unused
+mathlab/ui/main_window.py:14:1: F401 'PySide6.QtGui.QPainter as QtPainter' imported but unused
+mathlab/ui/main_window.py:14:1: F401 'PySide6.QtGui.QIcon' imported but unused
+mathlab/ui/main_window.py:14:80: E501 line too long (88 > 79 characters)
+mathlab/ui/main_window.py:15:1: F401 'PySide6.QtCore.Qt' imported but unused
+mathlab/ui/main_window.py:15:1: F401 'PySide6.QtCore.QSize' imported but unused
+mathlab/ui/main_window.py:16:1: F401 'PySide6.QtSvg.QSvgGenerator' imported but unused
+mathlab/ui/main_window.py:18:1: F401 '.canvas.GeometryCanvas' imported but unused
+mathlab/ui/main_window.py:19:1: F401 '.algebra_panel.AlgebraPanel' imported but unused
+mathlab/ui/main_window.py:20:1: F401 '.console.PythonConsole' imported but unused
+mathlab/ui/main_window.py:21:1: F401 '.properties_panel.PropertiesPanel' imported but unused
+mathlab/ui/main_window.py:22:1: F401 '.command_bar.CommandBar' imported but unused
+mathlab/ui/main_window.py:22:1: F401 '.command_bar.CommandPalette' imported but unused
+mathlab/ui/main_window.py:23:1: F401 '.algo_vis_panel.AlgoVisPanel' imported but unused
+mathlab/ui/main_window.py:24:1: F401 '.ai_tools_panel.AIToolsPanel' imported but unused
+mathlab/ui/main_window.py:25:1: F401 '.function_explorer_panel.FunctionExplorerPanel' imported but unused
+mathlab/ui/main_window.py:26:1: F401 '.signal_lab_panel.SignalLabPanel' imported but unused
+mathlab/ui/main_window.py:27:1: F401 '.fractal_gpu_panel.FractalGPUExplorer' imported but unused
+mathlab/ui/main_window.py:28:1: F401 '.animations.fade_in' imported but unused
+mathlab/ui/main_window.py:28:1: F401 '.animations.fade_out' imported but unused
+mathlab/ui/main_window.py:29:1: F401 '.math_console.MathConsole' imported but unused
+mathlab/ui/main_window.py:30:1: F401 '.notebook_panel.NotebookPanel' imported but unused
+mathlab/ui/main_window.py:50:80: E501 line too long (119 > 79 characters)
+mathlab/ui/main_window.py:60:5: F401 '..core.async_workers.TaskManager' imported but unused
+mathlab/ui/main_window.py:60:5: F401 '..core.async_workers.AIFitWorker' imported but unused
+mathlab/ui/main_window.py:60:5: F401 '..core.async_workers.AIClusterWorker' imported but unused
+mathlab/ui/main_window.py:60:5: F401 '..core.async_workers.AIRecognizeWorker' imported but unused
+mathlab/ui/main_window.py:60:5: F401 '..core.async_workers.AIGeneratePointsWorker' imported but unused
+mathlab/ui/main_window.py:60:80: E501 line too long (121 > 79 characters)
+mathlab/ui/main_window.py:61:5: F401 '..core.command_manager.Command' imported but unused
+mathlab/ui/main_window.py:74:5: F401 'utils.latex_renderer.export_canvas_to_latex' imported but unused
+mathlab/ui/main_window.py:79:5: F401 'utils.theme_manager.THEMES' imported but unused
+mathlab/ui/main_window.py:79:5: F401 'utils.theme_manager.set_theme' imported but unused
+mathlab/ui/main_window.py:84:5: F401 'utils.i18n_manager.SUPPORTED_LANGUAGES' imported but unused
+mathlab/ui/main_window.py:89:5: F401 'utils.logger.LOG_DIR' imported but unused
+mathlab/ui/main_window.py:94:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:95:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:96:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:97:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:98:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:99:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:100:1: E402 module level import not at top of file
+mathlab/ui/main_window.py:102:1: E302 expected 2 blank lines, found 1
+mathlab/ui/main_window.py:142:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:164:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:168:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:172:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:175:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:179:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:182:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:192:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:202:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:215:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:218:1: W293 blank line contains whitespace
+mathlab/ui/main_window.py:226:1: W391 blank line at end of file

@@ -3,10 +3,7 @@
 将 MainWindow 中与 AI Agent 系统、ECharts 集成、
 以及后台 AI Worker (拟合/聚类/识别/生成) 相关的方法提取到此模块。
 """
-import json
-import random
 
-from PySide6.QtCore import QPointF
 
 from mathlab.core.prompt_manager import prompt_manager
 
@@ -32,11 +29,9 @@ class AIMixin:
 
     # 🌟 2. 处理来自 Jupyter 的指令 🌟
     def _setup_ai_integration(self):
-        from PySide6.QtCore import QPointF
         from mathlab.core.agent_registry import AgentRegistry
         from mathlab.core.ai_manager import GeometryAgent, DataVizAgent
         from mathlab.core.agent_bridge import AgentUIBridge
-        import json
         
         # 1. 初始化联邦路由大脑
         self.agent_registry = AgentRegistry(self.ai_manager)

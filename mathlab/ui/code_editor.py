@@ -34,24 +34,36 @@ class EditorBackend(QObject):
             self.execution_finished.emit({"status": "error", "traceback": ["Jupyter 沙盒未就绪"]})
             return
 
-        result = get_jupyter_sandbox().execute_code(code, timeout=10)
-        
-        if 'text' in result:
-            result['text'] = self._parse_sandbox_output(result['text'])
-        
-        if result['status'] == 'error' or result['status'] == 'timeout':
-            error_list = self._parse_traceback(result['traceback'])
-            js_cmd = f"setEditorErrors('{json.dumps(error_list)}');"
-            self.parent_widget.web_view.page().runJavaScript(js_cmd)
+        from mathlab.core.async_workers import TaskManager
+
+        def process_result(result):
+            if 'text' in result:
+                result['text'] = self._parse_sandbox_output(result['text'])
             
-            # 记录崩溃时的代码和错误，并触发悬浮按钮
-            error_msg = "\n".join(result['traceback'])
-            self.error_occurred.emit(code, error_msg)
-        else:
-            self.parent_widget.web_view.page().runJavaScript("setEditorErrors('[]');")
-            self.success_occurred.emit()
-            
-        self.execution_finished.emit(result)
+            if result.get('status') == 'error' or result.get('status') == 'timeout':
+                error_list = self._parse_traceback(result.get('traceback', []))
+                js_cmd = f"setEditorErrors('{json.dumps(error_list)}');"
+                self.parent_widget.web_view.page().runJavaScript(js_cmd)
+                
+                # 记录崩溃时的代码和错误，并触发悬浮按钮
+                error_msg = "\n".join(result.get('traceback', []))
+                self.error_occurred.emit(code, error_msg)
+            else:
+                self.parent_widget.web_view.page().runJavaScript("setEditorErrors('[]');")
+                self.success_occurred.emit()
+                
+            self.execution_finished.emit(result)
+
+        def process_error(err_msg):
+            self.execution_finished.emit({"status": "error", "traceback": [err_msg]})
+
+        TaskManager().submit(
+            fn=get_jupyter_sandbox().execute_code,
+            on_success=process_result,
+            on_error=process_error,
+            code=code,
+            timeout=10
+        )
 
     def _parse_traceback(self, traceback_list):
         errors = []
@@ -109,7 +121,7 @@ class EditorBackend(QObject):
 
         # FIM (Fill-In-the-Middle) 行业标准 Prompt 结构
         # 针对 DeepSeek 模型的特殊控制符。如果你用的是其他模型，可能需要调整。
-        prompt = f"<｜fim begin｜>{prefix}<｜fim hole｜>{suffix}<｜fim end｜>"
+        prompt = f"<｜fim\u2581begin｜>{prefix}<｜fim\u2581hole｜>{suffix}<｜fim\u2581end｜>"
 
         try:
             # 这里直接使用同步请求，配置高 Temperature 获取多样性，限制输出长度追求极速
@@ -131,12 +143,15 @@ class EditorBackend(QObject):
             js_cmd = f"receiveGhostText({req_id}, {escaped_suggestion});"
             
             # 必须使用 QMetaObject.invokeMethod 或直接抛给主线程运行 JS
-            self.parent_widget.web_view.page().runJavaScript(js_cmd)
+            from PySide6.QtCore import QMetaObject, Qt, Q_ARG
+            QMetaObject.invokeMethod(self.parent_widget.web_view.page(), "runJavaScript", Qt.QueuedConnection, Q_ARG(str, js_cmd))
             
         except Exception as e:
             print(f"Ghost Text Fetch Error: {e}")
             # 如果出错，发送空补全，防止 Monaco 的 Promise 永远挂起
-            self.parent_widget.web_view.page().runJavaScript(f"receiveGhostText({req_id}, '');")
+            from PySide6.QtCore import QMetaObject, Qt, Q_ARG
+            js_cmd = f"receiveGhostText({req_id}, '');"
+            QMetaObject.invokeMethod(self.parent_widget.web_view.page(), "runJavaScript", Qt.QueuedConnection, Q_ARG(str, js_cmd))
 
 
 class AutocompleteTextEdit(QWidget):

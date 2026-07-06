@@ -21,6 +21,7 @@ class PythonConsole(QDockWidget):
         self.setAllowedAreas(Qt.BottomDockWidgetArea)
 
         self.python_repl = None
+        self.task_manager = TaskManager()
 
         self.widget = QWidget()
         self.layout = QVBoxLayout(self.widget)
@@ -231,7 +232,7 @@ class PythonConsole(QDockWidget):
             self.display_system_message(f"[补全异常] {err_msg}", level='error')
 
         if self.python_repl:
-            TaskManager().submit(
+            self.task_manager.submit(
                 fn=self.python_repl.get_completions,
                 on_success=process_completions,
                 on_error=on_error,
@@ -294,7 +295,7 @@ class PythonConsole(QDockWidget):
                 self.display_system_message(f"[注入异常] {err_msg}", level='error')
 
             # 3. 将阻塞的 execute 踢给后台线程池！主界面瞬间解放。
-            TaskManager().submit(
+            self.task_manager.submit(
                 fn=self.python_repl.execute,
                 on_success=on_success,
                 on_error=on_error,

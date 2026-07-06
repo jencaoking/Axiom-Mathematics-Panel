@@ -8,7 +8,6 @@ import os
 from PySide6.QtWidgets import (
     QMenuBar, QMenu, QToolBar, QPushButton,
 )
-from PySide6.QtGui import QAction, QIcon, QShortcut, QKeySequence, QPixmap
 from PySide6.QtCore import Qt, QSize
 
 from .signal_lab_panel import SignalLabPanel

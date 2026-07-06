@@ -1,33 +1,7 @@
-from mathlab.core.prompt_manager import prompt_manager
-import os
-import uuid
-import platform
-import subprocess
 
-from PySide6.QtWidgets import (
-    QMainWindow, QToolBar, QToolButton,
-    QMenuBar, QMenu, QDockWidget, QStatusBar,
-    QFileDialog, QMessageBox, QDialog, QVBoxLayout,
-    QLabel, QComboBox, QPushButton, QHBoxLayout,
-    QSpacerItem, QSizePolicy, QTabWidget
-)
-from PySide6.QtGui import QAction, QPainter as QtPainter, QShortcut, QKeySequence, QIcon
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtSvg import QSvgGenerator
+from PySide6.QtWidgets import QMainWindow
+from PySide6.QtGui import QShortcut, QKeySequence
 
-from .canvas import GeometryCanvas
-from .algebra_panel import AlgebraPanel
-from .console import PythonConsole
-from .properties_panel import PropertiesPanel
-from .command_bar import CommandBar, CommandPalette
-from .algo_vis_panel import AlgoVisPanel
-from .ai_tools_panel import AIToolsPanel
-from .function_explorer_panel import FunctionExplorerPanel
-from .signal_lab_panel import SignalLabPanel
-from .fractal_gpu_panel import FractalGPUExplorer
-from .animations import fade_in, fade_out
-from .math_console import MathConsole
-from .notebook_panel import NotebookPanel
 from .omni_bar import OmniBar
 
 # ── JupyterLab 嵌入组件（软依赖：WebEngine 不存在时降级为占位面板） ──────────
@@ -57,8 +31,6 @@ except ImportError:
     from ..core.python_repl import PythonREPL
     from ..core.ai_manager import AIManager
     from ..core.cas_provider import CASProvider
-    from ..core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
-    from ..core.command_manager import CommandManager, Command
     from ..core.ipc_server import JupyterIPCServer
     from ..core.ipc_client import JupyterIPCClient
     from ..core.error_manager import AutoSaver
@@ -68,25 +40,22 @@ try:
 except ImportError:
     PreferencesDialog = None
 
-try:
-    from ..utils.latex_renderer import export_canvas_to_latex
-except ImportError:
-    from utils.latex_renderer import export_canvas_to_latex
+
 
 try:
-    from ..utils.theme_manager import THEMES, set_theme, get_current_theme
+    from ..utils.theme_manager import get_current_theme
 except ImportError:
-    from utils.theme_manager import THEMES, set_theme, get_current_theme
+    from utils.theme_manager import get_current_theme
 
 try:
-    from ..utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+    from ..utils.i18n_manager import t, get_i18n
 except ImportError:
-    from utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+    from utils.i18n_manager import t, get_i18n
 
 try:
-    from ..utils.logger import get_logger, LOG_DIR
+    from ..utils.logger import get_logger
 except ImportError:
-    from utils.logger import get_logger, LOG_DIR
+    from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

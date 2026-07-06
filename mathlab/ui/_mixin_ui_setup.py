@@ -4,7 +4,6 @@
 相关的方法提取到此模块，降低主窗口文件的体积与复杂度。
 """
 import os
-import logging
 
 from PySide6.QtWidgets import QDockWidget, QTabWidget
 from PySide6.QtCore import Qt
@@ -14,7 +13,6 @@ from .canvas import GeometryCanvas
 from .algebra_panel import AlgebraPanel
 from .console import PythonConsole
 from .properties_panel import PropertiesPanel
-from .command_bar import CommandBar, CommandPalette
 from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
 from .function_explorer_panel import FunctionExplorerPanel
@@ -33,11 +31,6 @@ except ImportError:
     except ImportError:
         JupyterPanel = None
         JupyterManager = None
-
-try:
-    from ..utils.theme_manager import get_theme_colors
-except ImportError:
-    from utils.theme_manager import get_theme_colors
 
 try:
     from ..utils.i18n_manager import t
