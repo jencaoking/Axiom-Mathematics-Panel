@@ -1,10 +1,7 @@
-import re
-import json
 import logging
+from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
 logger = logging.getLogger(__name__)
-
-from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
 
 class AgentInfo:
@@ -89,12 +86,12 @@ class AgentRegistry:
         """注册一个专家 Agent 及其能力描述"""
         if name in self.agents:
             logger.warning(f"⚠️ 专家 {name} 已存在，正在被覆盖注册！")
-            
+
         self.agents[name] = {
             "description": description,
             "instance": agent_instance
         }
-        
+
         # 修复 Bug 2: 尝试打通动态注册系统与静态名片表 (_AGENT_PROFILES)
         matched_key = None
         for k in _AGENT_PROFILES.keys():
@@ -103,7 +100,7 @@ class AgentRegistry:
                 break
         if matched_key:
             _AGENT_PROFILES[matched_key].system_prompt = getattr(agent_instance, "system_prompt", _AGENT_PROFILES[matched_key].system_prompt)
-            
+
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
 
     def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb):
@@ -119,7 +116,7 @@ class AgentRegistry:
 
         # 1. 构建动态的路由 Prompt，列出所有可用专家
         agent_descriptions = "\n".join([f"- {name}: {info['description']}" for name, info in self.agents.items()])
-        
+
         router_prompt = f"""你是一个高级任务调度路由大脑。
 请分析用户的需求：“{user_prompt}”。
 根据以下可用的专家 Agent，决定将任务派发给谁最合适：
@@ -139,10 +136,10 @@ class AgentRegistry:
                 max_tokens=50,
                 timeout=30
             )
-            
+
             content = response.choices[0].message.content
             selected_agent_name = content.strip() if content else ""
-            
+
             # 清理可能携带的标点符号和空格
             selected_agent_name = selected_agent_name.strip(" '\"\n\t*.,")
 

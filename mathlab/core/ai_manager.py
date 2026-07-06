@@ -1,5 +1,7 @@
+import threading
+from mathlab.core.skill_manager import SkillLibrary
+from mathlab.core.ai_tools import execute_math_task
 import numpy as np
-import re
 import importlib.util
 
 if importlib.util.find_spec('sklearn') is not None:
@@ -8,7 +10,6 @@ else:
     SKLEARN_AVAILABLE = False
 import os
 import json
-import time
 from enum import Enum
 
 try:
@@ -27,37 +28,71 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-    OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception
+    OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception  # noqa: E501
 
 from mathlab.utils.logger import get_logger
 from mathlab.core.memory_manager import ChatMemoryManager
 
 logger = get_logger(__name__)
 
-QUIZ_GENERATOR_SCHEMA = {'type': 'function', 'function': {'name': 'generate_math_quiz', 'description': '根据当前的知识点或用户的画布状态，生成一道针对性的数学测试题。', 'parameters': {'type': 'object', 'properties': {'knowledge_point': {'type': 'string', 'description': "本题考查的核心知识点，如 '勾股定理' 或 '导数极值'"}, 'question_text': {'type': 'string', 'description': '题目正文，支持 LaTeX 公式（用 $$ 包裹）'}, 'question_type': {'type': 'string', 'enum': ['multiple_choice', 'fill_in_blank'], 'description': '题目类型：选择题 或 填空题'}, 'options': {'type': 'array', 'items': {'type': 'string'}, 'description': '如果是选择题，提供4个选项数组；如果是填空题，此项传空数组'}, 'correct_answer': {'type': 'string', 'description': "标准答案（如 'A' 或具体的计算数值）"}, 'explanation': {'type': 'string', 'description': '详细的解题思路和步骤'}}, 'required': ['knowledge_point', 'question_text', 'question_type', 'correct_answer', 'explanation']}}}
+QUIZ_GENERATOR_SCHEMA = {
+    'type': 'function', 'function': {
+        'name': 'generate_math_quiz', 'description': '根据当前的知识点或用户的画布状态，生成一道针对性的数学测试题。', 'parameters': {  # noqa: E501
+            'type': 'object', 'properties': {
+                'knowledge_point': {
+                    'type': 'string', 'description': "本题考查的核心知识点，如 '勾股定理' 或 '导数极值'"}, 'question_text': {  # noqa: E501
+                        'type': 'string', 'description': '题目正文，支持 LaTeX 公式（用 $$ 包裹）'}, 'question_type': {  # noqa: E501
+                            'type': 'string', 'enum': [
+                                'multiple_choice', 'fill_in_blank'], 'description': '题目类型：选择题 或 填空题'}, 'options': {  # noqa: E501
+                                    'type': 'array', 'items': {
+                                        'type': 'string'}, 'description': '如果是选择题，提供4个选项数组；如果是填空题，此项传空数组'}, 'correct_answer': {  # noqa: E501
+                                            'type': 'string', 'description': "标准答案（如 'A' 或具体的计算数值）"}, 'explanation': {  # noqa: E501
+                                                'type': 'string', 'description': '详细的解题思路和步骤'}}, 'required': [  # noqa: E501
+                                                    'knowledge_point', 'question_text', 'question_type', 'correct_answer', 'explanation']}}}  # noqa: E501
 
-DRAW_TOOL_SCHEMA = {'type': 'function', 'function': {'name': 'execute_geometry_draw', 'description': '当用户要求画图时，调用此函数在画布上绘制几何图形。', 'parameters': {'type': 'object', 'properties': {'commands': {'type': 'array', 'description': '绘图指令数组', 'items': {'type': 'object', 'properties': {'cmd': {'type': 'string', 'enum': ['add_point', 'add_circle', 'add_polygon', 'add_segment']}, 'x': {'type': 'number'}, 'y': {'type': 'number'}, 'name': {'type': 'string'}, 'radius': {'type': 'number'}, 'points': {'type': 'array', 'items': {'type': 'string'}}, 'center': {'type': 'string'}, 'p1': {'type': 'string'}, 'p2': {'type': 'string'}}, 'required': ['cmd']}}}, 'required': ['commands']}}}
+DRAW_TOOL_SCHEMA = {
+    'type': 'function', 'function': {
+        'name': 'execute_geometry_draw', 'description': '当用户要求画图时，调用此函数在画布上绘制几何图形。', 'parameters': {  # noqa: E501
+            'type': 'object', 'properties': {
+                'commands': {
+                    'type': 'array', 'description': '绘图指令数组', 'items': {
+                        'type': 'object', 'properties': {
+                            'cmd': {
+                                'type': 'string', 'enum': [
+                                    'add_point', 'add_circle', 'add_polygon', 'add_segment']}, 'x': {  # noqa: E501
+                                        'type': 'number'}, 'y': {
+                                            'type': 'number'}, 'name': {
+                                                'type': 'string'}, 'radius': {
+                                                    'type': 'number'}, 'points': {  # noqa: E501
+                                                        'type': 'array', 'items': {  # noqa: E501
+                                                            'type': 'string'}}, 'center': {  # noqa: E501
+                                                                'type': 'string'}, 'p1': {  # noqa: E501
+                                                                    'type': 'string'}, 'p2': {  # noqa: E501
+                                                                        'type': 'string'}}, 'required': ['cmd']}}}, 'required': ['commands']}}}  # noqa: E501
 
+# Torch availability check
 try:
-    import torch
-    import torch.nn as nn
+    import torch  # noqa: F401
+    import torch.nn as nn  # noqa: F401
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
 
 try:
-    import onnxruntime as ort
+    import onnxruntime as ort  # noqa: F401
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
 
 try:
-    import requests
+    import requests  # noqa: F401
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
 
 # --- 1. 引入严格的生成状态机 ---
+
+
 class AIProvider(Enum):
     OPENAI = "openai"
     CLAUDE = "claude"
@@ -71,17 +106,20 @@ class AIProvider(Enum):
     OLLAMA = "ollama"
     LOCAL = "local"
 
+
 class AIRequestConfig:
-    def __init__(self, provider: AIProvider = AIProvider.LOCAL, api_key: str = "", base_url: str = ""):
+    def __init__(self, provider: AIProvider = AIProvider.LOCAL,
+                 api_key: str = "", base_url: str = ""):
         self.provider = provider
         self.api_key = api_key
         self.base_url = base_url
+
 
 class AIState(Enum):
     IDLE = "空闲"
     THINKING = "思考中..."           # 已发请求，等待首字节 (TTFB)
     GENERATING = "生成中..."         # 正在打字输出
-    EXECUTING_TOOL = "执行工具中..." # 正在调用画笔等本地函数
+    EXECUTING_TOOL = "执行工具中..."  # 正在调用画笔等本地函数
     FINISHED = "完成"
     ERROR = "出错了"
 
@@ -98,7 +136,8 @@ class AIEngineWorker(QThread):
     finished_text = Signal(str)
     error_occurred = Signal(str)
 
-    def __init__(self, client: OpenAI, model: str, messages: list, tools: list = None):
+    def __init__(self, client: OpenAI, model: str,
+                 messages: list, tools: list = None):
         super().__init__()
         self.client = client
         self.model = model
@@ -120,16 +159,16 @@ class AIEngineWorker(QThread):
                 "messages": self.messages,
                 "stream": True,
                 "temperature": 0.3,
-                "stream_options": {"include_usage": True} 
+                "stream_options": {"include_usage": True}
             }
             if self.tools:
                 kwargs["tools"] = self.tools
                 kwargs["tool_choice"] = "auto"
 
             response = self.client.chat.completions.create(**kwargs)
-            
+
             full_text = ""
-            tool_calls_buffer = {} 
+            tool_calls_buffer = {}
             has_started_typing = False
 
             for chunk in response:
@@ -137,7 +176,9 @@ class AIEngineWorker(QThread):
                     break
 
                 if chunk.usage is not None:
-                    self.usage_reported.emit(chunk.usage.prompt_tokens, chunk.usage.completion_tokens)
+                    self.usage_reported.emit(
+                        chunk.usage.prompt_tokens,
+                        chunk.usage.completion_tokens)
                     continue
 
                 if not chunk.choices:
@@ -145,7 +186,8 @@ class AIEngineWorker(QThread):
 
                 delta = chunk.choices[0].delta
 
-                if not has_started_typing and (getattr(delta, 'content', None) or getattr(delta, 'tool_calls', None)):
+                if not has_started_typing and (
+                        getattr(delta, 'content', None) or getattr(delta, 'tool_calls', None)):  # noqa: E501
                     has_started_typing = True
                     self.state_changed.emit(AIState.GENERATING)
 
@@ -157,29 +199,32 @@ class AIEngineWorker(QThread):
                     for tc in delta.tool_calls:
                         idx = tc.index
                         if idx not in tool_calls_buffer:
-                            name = (tc.function.name or "") if tc.function else ""
-                            tool_calls_buffer[idx] = {"name": name, "arguments": ""}
+                            name = (
+                                tc.function.name or "") if tc.function else ""
+                            tool_calls_buffer[idx] = {
+                                "name": name, "arguments": ""}
                         elif tc.function and tc.function.name:
                             tool_calls_buffer[idx]["name"] = tc.function.name
-                            
+
                         if tc.function and tc.function.arguments:
-                            tool_calls_buffer[idx]["arguments"] += tc.function.arguments
+                            tool_calls_buffer[idx]["arguments"] += tc.function.arguments  # noqa: E501
 
             if tool_calls_buffer:
                 self.state_changed.emit(AIState.EXECUTING_TOOL)
                 for tc in tool_calls_buffer.values():
                     try:
-                        args = json.loads(tc["arguments"]) if tc["arguments"] else {}
+                        args = json.loads(
+                            tc["arguments"]) if tc["arguments"] else {}
                     except (json.JSONDecodeError, TypeError):
                         args = {}
                     self.tool_call_received.emit(tc["name"], args)
-            
+
             if not self._is_cancelled:
                 self.state_changed.emit(AIState.FINISHED)
                 self.finished_text.emit(full_text)
             else:
                 self.state_changed.emit(AIState.IDLE)
-            
+
         except Exception as e:
             self.state_changed.emit(AIState.ERROR)
             self.error_occurred.emit(str(e))
@@ -190,6 +235,7 @@ class AIManager(QObject):
     """
     单一职责的全局 AI 调度中心
     """
+
     def __init__(self, settings_manager=None):
         super().__init__()
         self.settings_manager = settings_manager
@@ -201,11 +247,13 @@ class AIManager(QObject):
         self.current_model = "deepseek-chat"
         self.reload_config()
 
-
-
     def reload_config(self):
         """当用户在偏好设置中修改 API 后，自动重载客户端"""
-        settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+        settings_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.abspath(__file__))),
+            'settings.json')
         settings = {}
         if os.path.exists(settings_path):
             try:
@@ -213,11 +261,11 @@ class AIManager(QObject):
                     settings = json.load(f)
             except Exception as e:
                 logger.error(f"加载 settings.json 失败: {e}")
-                
+
         api_key = settings.get("ai_api_key", "")
         base_url = settings.get("ai_base_url", "https://api.deepseek.com/v1")
         self.current_model = settings.get("ai_model", "deepseek-chat")
-        
+
         if api_key and OPENAI_AVAILABLE:
             self.client = OpenAI(api_key=api_key, base_url=base_url)
             logger.info(f"AI 引擎已初始化: {base_url} [{self.current_model}]")
@@ -229,17 +277,18 @@ class AIManager(QObject):
             self.current_worker.cancel()
             self.current_worker.wait(5000)
 
-    def ask(self, user_prompt: str, system_prompt: str = "", tools: list = None,
+    def ask(self, user_prompt: str, system_prompt: str = "", tools: list = None,  # noqa: E501
             canvas_state: str = None,
-            on_state_change=None, on_chunk=None, on_tool=None, on_usage=None, on_finish=None, on_error=None):
-        
+            on_state_change=None, on_chunk=None, on_tool=None, on_usage=None, on_finish=None, on_error=None):  # noqa: E501
+
         if not self.client:
-            if on_error: on_error("未配置 API Key。")
+            if on_error:
+                on_error("未配置 API Key。")
             return
 
         self.memory.add_message("user", user_prompt)
         messages = self.memory.get_context()
-        
+
         dynamic_system_prompt = system_prompt
         if canvas_state and canvas_state != "{}":
             dynamic_system_prompt += f"""\n\n
@@ -252,7 +301,8 @@ class AIManager(QObject):
 """
 
         if dynamic_system_prompt:
-            messages.insert(0, {"role": "system", "content": dynamic_system_prompt})
+            messages.insert(
+                0, {"role": "system", "content": dynamic_system_prompt})
 
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.cancel()
@@ -261,79 +311,85 @@ class AIManager(QObject):
                 # [BUG修复] 移除危险的 terminate()，改为警告并断开连接
                 logger.warning("AI Worker 未在 5 秒内停止，已断开信号连接")
 
-        self.current_worker = AIEngineWorker(self.client, self.current_model, messages, tools)
-        
-        if on_state_change: self.current_worker.state_changed.connect(on_state_change)
-        if on_chunk: self.current_worker.chunk_received.connect(on_chunk)
-        if on_tool:  self.current_worker.tool_call_received.connect(on_tool)
-        if on_usage: self.current_worker.usage_reported.connect(on_usage)
-        if on_error: self.current_worker.error_occurred.connect(on_error)
-        
+        self.current_worker = AIEngineWorker(
+            self.client, self.current_model, messages, tools)
+
+        if on_state_change:
+            self.current_worker.state_changed.connect(on_state_change)
+        if on_chunk:
+            self.current_worker.chunk_received.connect(on_chunk)
+        if on_tool:
+            self.current_worker.tool_call_received.connect(on_tool)
+        if on_usage:
+            self.current_worker.usage_reported.connect(on_usage)
+        if on_error:
+            self.current_worker.error_occurred.connect(on_error)
+
         def internal_finish(full_text):
-            if full_text: self.memory.add_message("assistant", full_text)
-            if on_finish: on_finish()
-            
+            if full_text:
+                self.memory.add_message("assistant", full_text)
+            if on_finish:
+                on_finish()
+
         self.current_worker.finished_text.connect(internal_finish)
         self.current_worker.start()
 
-
-        
     def load_onnx_model(self, model_path, model_name):
         if not ONNX_AVAILABLE:
             return {'success': False, 'error': 'ONNX Runtime not available'}
-        
+
         try:
-            import onnxruntime as ort
             session = ort.InferenceSession(model_path)
             self.models[model_name] = {
                 'session': session,
                 'input_name': session.get_inputs()[0].name,
                 'output_name': session.get_outputs()[0].name
             }
-            return {'success': True, 'message': f'Model {model_name} loaded successfully'}
+            return {'success': True,
+                    'message': f'Model {model_name} loaded successfully'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
-    
+
     def predict(self, model_name, input_data):
         if model_name not in self.models:
             return {'success': False, 'error': 'Model not found'}
-        
+
         model = self.models[model_name]
         try:
             input_data = np.array(input_data, dtype=np.float32)
             if len(input_data.shape) == 1:
                 input_data = input_data.reshape(1, -1)
-            
+
             result = model['session'].run(
                 [model['output_name']],
                 {model['input_name']: input_data}
             )
-            
+
             return {'success': True, 'prediction': result[0].tolist()}
         except Exception as e:
             return {'success': False, 'error': str(e)}
-    
+
     def fit_linear_regression(self, points):
         if not SKLEARN_AVAILABLE:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < 2:
             return {'success': False, 'error': 'Need at least 2 points'}
-        
+
         from sklearn.linear_model import LinearRegression
         from sklearn.metrics import mean_squared_error
-        
+
         X = np.array([[p[0]] for p in points], dtype=np.float32)
         y = np.array([p[1] for p in points], dtype=np.float32)
-        
+
         model = LinearRegression()
         model.fit(X, y)
-        
+
         slope = float(model.coef_[0])
         intercept = float(model.intercept_)
-        
+
         predictions = model.predict(X)
         mse = float(mean_squared_error(y, predictions))
-        
+
         return {
             'success': True,
             'slope': slope,
@@ -342,24 +398,25 @@ class AIManager(QObject):
             'mse': mse,
             'predictions': predictions.tolist()
         }
-    
+
     def fit_polynomial_regression(self, points, degree=2):
         if not SKLEARN_AVAILABLE:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < degree + 1:
-            return {'success': False, 'error': f'Need at least {degree + 1} points'}
-        
+            return {'success': False,
+                    'error': f'Need at least {degree + 1} points'}
+
         from sklearn.metrics import mean_squared_error
-        
+
         X = np.array([p[0] for p in points], dtype=np.float64)
         y = np.array([p[1] for p in points], dtype=np.float64)
-        
+
         coefficients = np.polyfit(X, y, degree)[::-1]
         poly = np.poly1d(coefficients[::-1])
-        
+
         predictions = poly(X)
         mse = float(mean_squared_error(y, predictions))
-        
+
         # 规范化公式字符串，避免多行输出
         # coefficients 已经是低次到高次排列（经过 [::-1] 反转），i 即为幂次
         terms = []
@@ -374,7 +431,7 @@ class AIManager(QObject):
             else:
                 terms.append(f"{c:.4f}x^{power}")
         equation = 'y = ' + ' + '.join(terms) if terms else 'y = 0'
-        
+
         return {
             'success': True,
             'coefficients': coefficients.tolist(),
@@ -383,48 +440,47 @@ class AIManager(QObject):
             'mse': mse,
             'predictions': predictions.tolist()
         }
-    
+
     def fit_neural_network(self, points, epochs=100, hidden_size=10):
         if not TORCH_AVAILABLE:
             return {'success': False, 'error': 'PyTorch not available'}
-        
+
         if len(points) < 2:
             return {'success': False, 'error': 'Need at least 2 points'}
-        
+
         # [P0修复 Bug1] 补充缺失的导入：mean_squared_error 在此函数中使用但未导入
-        import torch
-        import torch.nn as nn
-        
+
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
-        
+
         model = nn.Sequential(
             nn.Linear(1, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, 1)
         )
-        
+
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-        
+
         loss_history = []
-        
+
         for epoch in range(epochs):
             optimizer.zero_grad()
             outputs = model(X)
             loss = criterion(outputs, y)
             loss.backward()
             optimizer.step()
-            
+
             loss_history.append(float(loss.item()))
-        
+
         with torch.no_grad():
             predictions = model(X).numpy().flatten()
-        
+
         # [P0修复 Bug1] 移除错误的 self.emit()：AIManager 不是 QObject，无此方法
         # 使用 PyTorch 计算 MSE，移除对 sklearn 的隐式依赖
-        mse = float(criterion(torch.tensor(predictions).reshape(-1, 1), y).item())
-        
+        mse = float(criterion(torch.tensor(
+            predictions).reshape(-1, 1), y).item())
+
         return {
             'success': True,
             'loss_history': loss_history,
@@ -432,84 +488,86 @@ class AIManager(QObject):
             'predictions': predictions.tolist(),
             'epochs': epochs
         }
-    
+
     def cluster_kmeans(self, points, n_clusters=3):
         if not SKLEARN_AVAILABLE:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < n_clusters:
-            return {'success': False, 'error': 'Not enough points for clusters'}
-        
+            return {'success': False, 'error': 'Not enough points for clusters'}  # noqa: E501
+
         from sklearn.cluster import KMeans
-        
+
         X = np.array(points, dtype=np.float32)
-        
+
         model = KMeans(n_clusters=n_clusters, n_init=10)
         model.fit(X)
-        
+
         labels = model.labels_.tolist()
         centers = model.cluster_centers_.tolist()
-        
+
         return {
             'success': True,
             'labels': labels,
             'centers': centers,
             'inertia': float(model.inertia_)
         }
-    
+
     def cluster_dbscan(self, points, eps=0.5, min_samples=5):
         if not SKLEARN_AVAILABLE:
             return {'success': False, 'error': 'scikit-learn not available'}
         if len(points) < min_samples:
             return {'success': False, 'error': 'Not enough points'}
-        
+
         from sklearn.cluster import DBSCAN
-        
+
         X = np.array(points, dtype=np.float32)
-        
+
         model = DBSCAN(eps=eps, min_samples=min_samples)
         model.fit(X)
-        
+
         labels = model.labels_.tolist()
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-        
+
         return {
             'success': True,
             'labels': labels,
             'n_clusters': n_clusters,
             'n_noise': list(labels).count(-1)
         }
-    
+
     def recognize_digit(self, image_data):
         if not ONNX_AVAILABLE:
             return {'success': False, 'error': 'ONNX Runtime not available'}
-        
+
         if 'mnist' not in self.models:
             return {'success': False, 'error': 'MNIST model not loaded'}
-        
+
         model = self.models['mnist']
-        
+
         try:
-            image_data = np.array(image_data, dtype=np.float32).reshape(1, 1, 28, 28) / 255.0
-            
+            image_data = np.array(
+                image_data, dtype=np.float32).reshape(
+                1, 1, 28, 28) / 255.0
+
             result = model['session'].run(
                 [model['output_name']],
                 {model['input_name']: image_data}
             )
-            
+
             predictions = result[0][0]
             top3_indices = np.argsort(predictions)[::-1][:3]
             top3_probs = predictions[top3_indices].tolist()
             top3_digits = top3_indices.tolist()
-            
+
             return {
                 'success': True,
                 'prediction': int(np.argmax(predictions)),
                 'probabilities': predictions.tolist(),
-                'top3': [{'digit': d, 'probability': p} for d, p in zip(top3_digits, top3_probs)]
+                'top3': [{'digit': d, 'probability': p} for d, p in zip(top3_digits, top3_probs)]  # noqa: E501
             }
         except Exception as e:
             return {'success': False, 'error': str(e)}
-    
+
     def generate_random_points(self, n=10, x_range=(0, 100), y_range=(0, 100)):
         points = []
         for _ in range(n):
@@ -517,29 +575,26 @@ class AIManager(QObject):
             y = np.random.uniform(y_range[0], y_range[1])
             points.append((x, y))
         return {'success': True, 'points': points}
-    
+
     def run_training_sandbox(self, code):
         try:
             from .sandbox import SandboxProcess
         except ImportError:
             from sandbox import SandboxProcess
-        
+
         sandbox = SandboxProcess()
         result = sandbox.run_code(code)
         return result
 
-
-from mathlab.core.ai_tools import execute_math_task
-from mathlab.core.skill_manager import SkillLibrary
-import threading
 
 class BaseMathAgent:
     def __init__(self, ai_manager, model="deepseek-chat"):
         self.ai_manager = ai_manager
         self.model = model
         self.max_steps = 5
-        self.skill_lib = SkillLibrary() # 实例化本地技能库
-        self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"
+        self.skill_lib = SkillLibrary()  # 实例化本地技能库
+        self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"  # noqa: E501
+
 
 class GeometryAgent(BaseMathAgent):
     def __init__(self, ai_manager):
@@ -547,6 +602,7 @@ class GeometryAgent(BaseMathAgent):
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
 你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用现有的全局几何画板环境绘图。
 请通过 Thought, Action, Observation 闭环进行。"""
+
 
 class DataVizAgent(BaseMathAgent):
     def __init__(self, ai_manager):
@@ -567,7 +623,7 @@ import numpy as np
 from mathlab.plugins.echarts_viewer.bridge import render_chart
 
 # 1. 在这里进行数据计算（如生成随机数、计算3D曲面矩阵等）
-# ... 
+# ...
 
 # 2. 严格按照 ECharts Option 标准构建字典
 options = {
@@ -591,24 +647,33 @@ render_chart(options)
                 messages=messages,
                 temperature=0.1
             )
-            suggestion = response.choices[0].message.content if response.choices else ""
-            suggestion = suggestion.replace("```python\n", "").replace("\n```", "").replace("```", "")
+            suggestion = response.choices[0].message.content if response.choices else ""  # noqa: E501
+            suggestion = suggestion.replace(
+                "```python\n",
+                "").replace(
+                "\n```",
+                "").replace(
+                "```",
+                "")
             return suggestion
         except Exception as e:
             print(f"LLM Generate Code Error: {e}")
             return "print('Error generating code')"
 
-    def solve_problem(self, user_prompt: str, on_thought_cb=None, on_code_cb=None, on_finish_cb=None):
+    def solve_problem(self, user_prompt: str, on_thought_cb=None,
+                      on_code_cb=None, on_finish_cb=None):
         # ============== 1. RAG 检索阶段 ==============
         if on_thought_cb:
             on_thought_cb("🔍 正在检索本地技能库记忆...")
-            
+
         relevant_skills = self.skill_lib.retrieve_relevant_skills(user_prompt)
         skill_context = ""
         if relevant_skills:
-            skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"
+            skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"  # noqa: E501
             for s in relevant_skills:
-                skill_context += f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
+                skill_context += f"💡 意图: {
+                    s['intent']}\n```python\n{
+                    s['code']}\n```\n\n"
             if on_thought_cb:
                 on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
 
@@ -624,13 +689,13 @@ render_chart(options)
 
         for step in range(self.max_steps):
             if on_thought_cb:
-                on_thought_cb(f"⚙️ 正在生成代码 (第 {step+1} 次尝试)...")
-            
+                on_thought_cb(f"⚙️ 正在生成代码 (第 {step + 1} 次尝试)...")
+
             code_content = self._llm_generate_code(messages)
-            
+
             if on_code_cb:
                 on_code_cb(code_content)
-            
+
             # 执行代码
             try:
                 execution_result_str = execute_math_task(code_content)
@@ -640,30 +705,37 @@ render_chart(options)
                     execution_result = json.loads(execution_result_str)
             except Exception as e:
                 execution_result = {"status": "error", "error": str(e)}
-                
+
             if execution_result.get("status") == "ok":
                 if on_thought_cb:
-                    on_thought_cb(f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}")
-                
+                    on_thought_cb(
+                        f"✅ 沙箱执行成功！输出:\n{
+                            execution_result.get(
+                                'output', '')}")
+
                 # ============== 2. 触发后台“自我提炼”机制 ==============
                 threading.Thread(
-                    target=self._reflect_and_save_skill, 
-                    args=(user_prompt, code_content), 
+                    target=self._reflect_and_save_skill,
+                    args=(user_prompt, code_content),
                     daemon=True
                 ).start()
-                
+
                 if on_finish_cb:
                     on_finish_cb(True, code_content)
-                return {"status": "ok", "code": code_content, "result": execution_result.get("output", "")}
+                return {"status": "ok", "code": code_content,
+                        "result": execution_result.get("output", "")}
             else:
                 error_msg = execution_result.get("error", "未知错误")
                 if on_thought_cb:
-                    on_thought_cb(f"❌ 代码报错 (第 {step+1} 次尝试), 正在修正...\n报错内容: {error_msg}")
-                
+                    on_thought_cb(
+                        f"❌ 代码报错 (第 {step + 1} 次尝试), 正在修正...\n报错内容: {error_msg}")  # noqa: E501
+
                 # 将报错信息加入对话历史，让 AI 修正
-                messages.append({"role": "assistant", "content": f"```python\n{code_content}\n```"})
-                messages.append({"role": "user", "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。"})
-        
+                messages.append({"role": "assistant",
+                                 "content": f"```python\n{code_content}\n```"})
+                messages.append({"role": "user",
+                                 "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。"})  # noqa: E501
+
         if on_finish_cb:
             on_finish_cb(False, "超出最大重试次数")
         return {"status": "failed", "error": "超出最大重试次数"}
@@ -684,12 +756,13 @@ render_chart(options)
             response = self.ai_manager.client.chat.completions.create(
                 model=self.ai_manager.current_model,
                 messages=[{"role": "user", "content": reflection_prompt}],
-                response_format={"type": "json_object"} # 强制要求返回 JSON
+                response_format={"type": "json_object"}  # 强制要求返回 JSON
             )
             result_json = json.loads(response.choices[0].message.content)
-            
+
             # 存入本地知识库
-            self.skill_lib.save_skill(result_json["intent"], result_json["abstract_code"])
+            self.skill_lib.save_skill(
+                result_json["intent"],
+                result_json["abstract_code"])
         except Exception as e:
             print(f"技能提炼失败 (后台线程): {e}")
-

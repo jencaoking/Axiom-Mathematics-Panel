@@ -1,44 +1,52 @@
-__version__ = '3.7'
-__author__ = 'MathLab Team'
+__version__ = "3.7"
+__author__ = "MathLab Team"
 
 # Lazy imports: avoid triggering the full Qt import chain at package load time.
 # Tests and scripts can import submodules directly without side effects.
 
 __all__ = [
-    'MainWindow',
-    'GeometryEngine',
-    'CASProvider',
-    'AlgoAnimator',
-    'PythonREPL',
-    'AIManager',
-    'SandboxManager',
-    'ProjectManager',
+    "MainWindow",
+    "GeometryEngine",
+    "CASProvider",
+    "AlgoAnimator",
+    "PythonREPL",
+    "AIManager",
+    "SandboxManager",
+    "ProjectManager",
 ]
 
 
 def __getattr__(name):
-    if name == 'MainWindow':
+    if name == "MainWindow":
         from .ui import MainWindow
+
         return MainWindow
-    elif name == 'GeometryEngine':
+    elif name == "GeometryEngine":
         from .core import GeometryEngine
+
         return GeometryEngine
-    elif name == 'CASProvider':
+    elif name == "CASProvider":
         from .core import CASProvider
+
         return CASProvider
-    elif name == 'AlgoAnimator':
+    elif name == "AlgoAnimator":
         from .core import AlgoAnimator
+
         return AlgoAnimator
-    elif name == 'PythonREPL':
+    elif name == "PythonREPL":
         from .core import PythonREPL
+
         return PythonREPL
-    elif name == 'AIManager':
+    elif name == "AIManager":
         from .core import AIManager
+
         return AIManager
-    elif name == 'SandboxManager':
+    elif name == "SandboxManager":
         from .core import SandboxManager
+
         return SandboxManager
-    elif name == 'ProjectManager':
+    elif name == "ProjectManager":
         from .data import ProjectManager
+
         return ProjectManager
     raise AttributeError(f"module 'mathlab' has no attribute {name!r}")
