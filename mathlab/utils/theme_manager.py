@@ -82,13 +82,21 @@ THEMES = {
     },
 }
 
+_cached_theme = None
+
 def get_current_theme():
-    settings = load_settings()
-    return settings.get('theme', 'dark')
+    global _cached_theme
+    if _cached_theme is None:
+        settings = load_settings()
+        _cached_theme = settings.get('theme', 'dark')
+    return _cached_theme
 
 def set_theme(theme_name):
+    global _cached_theme
     if theme_name not in THEMES:
         return False
+
+    _cached_theme = theme_name
 
     app = QApplication.instance()
     theme = THEMES[theme_name]
