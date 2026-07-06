@@ -54,6 +54,7 @@ public class FastMath
     {
         if (flatMatrix == null) throw new ArgumentNullException(nameof(flatMatrix));
         if (flatMatrix.Length < rows * cols) throw new ArgumentException("Array size does not match rows * cols");
+        if (rows != cols) throw new ArgumentException($"Eigenvalue decomposition requires a square matrix, but got {rows}x{cols}.");
         var matrix = new double[rows, cols];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < cols; j++)
@@ -80,6 +81,7 @@ public class FastMath
     {
         if (flatMatrix == null) throw new ArgumentNullException(nameof(flatMatrix));
         if (flatMatrix.Length < rows * cols) throw new ArgumentException("Array size does not match rows * cols");
+        if (rows != cols) throw new ArgumentException($"Cholesky decomposition requires a square matrix, but got {rows}x{cols}.");
         var matrix = new double[rows, cols];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < cols; j++)

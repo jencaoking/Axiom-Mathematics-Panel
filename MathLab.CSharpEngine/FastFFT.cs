@@ -41,8 +41,10 @@ public class FastFFT
             double freq = i * sampleRate / n;
             
             // 计算幅值并进行物理归一化 (直流分量除以 N，其他交流分量除以 N/2)
+            // 奈奎斯特频点 (偶数长度时 i==n/2) 同样是自共轭的，不应乘以 2
             double magnitude = complexSignal[i].Magnitude;
-            magnitude = (i == 0) ? (magnitude / n) : (magnitude * 2.0 / n);
+            bool isNyquist = (n % 2 == 0) && (i == n / 2);
+            magnitude = (i == 0 || isNyquist) ? (magnitude / n) : (magnitude * 2.0 / n);
 
             result[i * 2] = freq;
             result[i * 2 + 1] = magnitude;

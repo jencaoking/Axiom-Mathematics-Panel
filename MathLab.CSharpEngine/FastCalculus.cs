@@ -42,7 +42,9 @@ public class FastCalculus
     /// </summary>
     public double IntegrateDiscrete(double[] yArray, double dx)
     {
-        if (yArray == null || yArray.Length < 3) return 0;
+        if (yArray == null) throw new ArgumentNullException(nameof(yArray));
+        if (yArray.Length < 2) throw new ArgumentException("IntegrateDiscrete requires at least 2 data points.");
+        if (yArray.Length == 2) return (yArray[0] + yArray[1]) * dx / 2.0; // 退化为梯形法则
 
         int n = yArray.Length - 1;
         

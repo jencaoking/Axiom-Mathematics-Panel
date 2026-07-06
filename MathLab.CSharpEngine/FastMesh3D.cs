@@ -62,8 +62,9 @@ public class FastMesh3D
     private float CalculateRipple(double x, double y, double t, double freq)
     {
         double r = Math.Sqrt(x * x + y * y);
-        if (r < 1e-6) return (float)(freq * Math.Cos(t)); // [BUG修复] 中心奇点值与 sin(freq*r-t)/r 的极限一致
-        return (float)(Math.Sin(freq * r - t) / r);
+        // sin(freq*r)*cos(t)/r 的极限 (r→0) = freq*cos(t)，数学上严格成立
+        if (r < 1e-6) return (float)(freq * Math.Cos(t));
+        return (float)(Math.Sin(freq * r) * Math.Cos(t) / r);
     }
 }
 

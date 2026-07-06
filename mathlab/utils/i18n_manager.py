@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import os
 import sys
@@ -115,8 +116,10 @@ class I18nManager:
         """
         # 缓存键 = (语言, 翻译键)，加速高频重复查找
         cache_key = (self.current_language, key)
-        raw_value = self._lookup_cache.get(cache_key)
-        if raw_value is None:
+        if cache_key in self._lookup_cache:
+            raw_value = self._lookup_cache.pop(cache_key)
+            self._lookup_cache[cache_key] = raw_value
+        else:
             keys = key.split('.')
             value = self.translations.get(self.current_language, {})
 

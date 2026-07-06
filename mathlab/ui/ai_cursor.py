@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPointF, Property, QPropertyAnimation, QEasingCurve, Signal, QRectF
+from PySide6.QtCore import Qt, QPointF, Property, QPropertyAnimation, QEasingCurve, Signal, QRectF, QTimer
 from PySide6.QtWidgets import QGraphicsObject
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush
 
@@ -45,7 +45,10 @@ class AICursorItem(QGraphicsObject):
         return self.scenePos()
 
     def set_cursor_pos(self, pos):
-        self.setPos(pos)
+        if self.parentItem():
+            self.setPos(self.parentItem().mapFromScene(pos))
+        else:
+            self.setPos(pos)
         self.cursorPosChanged.emit()
 
     cursorPos = Property(QPointF, get_cursor_pos, set_cursor_pos, notify=cursorPosChanged)
@@ -57,4 +60,11 @@ class AICursorItem(QGraphicsObject):
         self.move_anim.setDuration(duration_ms)
         self.move_anim.setStartValue(self.scenePos())
         self.move_anim.setEndValue(target_pos)
+        
+        try:
+            self.move_anim.finished.disconnect()
+        except RuntimeError:
+            pass
+            
+        self.move_anim.finished.connect(lambda: QTimer.singleShot(1000, self.hide))
         self.move_anim.start()

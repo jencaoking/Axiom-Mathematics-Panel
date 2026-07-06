@@ -1,5 +1,6 @@
 import io
 from functools import lru_cache
+from collections import OrderedDict
 
 try:
     import matplotlib
@@ -56,9 +57,17 @@ def export_canvas_to_latex(objects_data):
     latex_parts.append(r'\begin{document}')
     latex_parts.append(r'\begin{tikzpicture}[scale=0.5, every node/.style={font=\sffamily}]')
     
+    def escape_latex(text):
+        special_chars = {
+            '&': r'\&', '%': r'\%', '$': r'\$', '#': r'\#', '_': r'\_', 
+            '{': r'\{', '}': r'\}', '~': r'\textasciitilde{}', 
+            '^': r'\textasciicircum{}', '\\': r'\textbackslash{}'
+        }
+        return ''.join(special_chars.get(c, c) for c in str(text))
+    
     for obj in objects_data:
         obj_type = obj.get('type', '')
-        name = obj.get('name', '')
+        name = escape_latex(obj.get('name', ''))
         coords = obj.get('coordinates', {})
         
         if obj_type == 'Point':
@@ -116,13 +125,18 @@ class SharedSvgRendererCache:
     """
     复用 QSvgRenderer 实例，大幅降低画布放大缩小时的显存开销
     """
-    _cache = {}
+    _cache = OrderedDict()
+    _MAX_CACHE_SIZE = 128
 
     @classmethod
     def get_renderer(cls, latex_str, color='#0b1c30'):
         cache_key = f"{latex_str}_{color}"
-        if cache_key not in cls._cache:
+        if cache_key in cls._cache:
+            cls._cache.move_to_end(cache_key)
+        else:
             svg_data = generate_latex_svg(latex_str, color)
             renderer = QSvgRenderer(svg_data)
             cls._cache[cache_key] = renderer
+            if len(cls._cache) > cls._MAX_CACHE_SIZE:
+                cls._cache.popitem(last=False)
         return cls._cache[cache_key]

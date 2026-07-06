@@ -61,8 +61,7 @@ def setup_logger(
     logger = logging.getLogger(_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)  # 根 logger 捕获所有级别，由 handler 过滤
 
-    # 避免重复初始化（如单元测试中多次 import）
-    if logger.hasHandlers():
+    if logger.handlers:
         return logger
 
     formatter = logging.Formatter(_FMT, datefmt=_DATE_FMT)

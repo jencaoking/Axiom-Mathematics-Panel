@@ -83,8 +83,8 @@ THEMES = {
 }
 
 def get_current_theme():
-    # Force dark theme to match our modern fluent dark styles.qss
-    return 'dark'
+    settings = load_settings()
+    return settings.get('theme', 'dark')
 
 def set_theme(theme_name):
     if theme_name not in THEMES:
@@ -95,18 +95,18 @@ def set_theme(theme_name):
 
     palette = QPalette()
 
-    palette.setColor(QPalette.Window, QColor(theme['background']))
-    palette.setColor(QPalette.WindowText, QColor(theme['foreground']))
-    palette.setColor(QPalette.Base, QColor(theme['panel_bg']))
-    palette.setColor(QPalette.AlternateBase, QColor(theme['panel_bg']))
-    palette.setColor(QPalette.ToolTipBase, QColor(theme['accent']))
-    palette.setColor(QPalette.ToolTipText, QColor(theme['background']))
-    palette.setColor(QPalette.Text, QColor(theme['foreground']))
-    palette.setColor(QPalette.Button, QColor(theme['panel_bg']))
-    palette.setColor(QPalette.ButtonText, QColor(theme['foreground']))
-    palette.setColor(QPalette.BrightText, QColor(theme['error']))
-    palette.setColor(QPalette.Highlight, QColor(theme['accent']))
-    palette.setColor(QPalette.HighlightedText, QColor(theme['background']))
+    palette.setColor(QPalette.ColorRole.Window, QColor(theme['background']))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(theme['foreground']))
+    palette.setColor(QPalette.ColorRole.Base, QColor(theme['panel_bg']))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(theme['panel_bg']))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(theme['accent']))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(theme['background']))
+    palette.setColor(QPalette.ColorRole.Text, QColor(theme['foreground']))
+    palette.setColor(QPalette.ColorRole.Button, QColor(theme['panel_bg']))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(theme['foreground']))
+    palette.setColor(QPalette.ColorRole.BrightText, QColor(theme['error']))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(theme['accent']))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(theme['background']))
 
     app.setPalette(palette)
     app.setProperty('current_theme', theme_name)

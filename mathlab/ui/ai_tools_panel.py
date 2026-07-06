@@ -599,7 +599,7 @@ class AIToolsPanel(QDockWidget):
     def on_send_message(self):
         if self.is_generating:
             main_win = self.window()
-            if hasattr(main_win, 'ai_manager') and main_win.ai_manager.current_worker:
+            if hasattr(main_win, 'ai_manager') and getattr(main_win.ai_manager, 'current_worker', None):
                 main_win.ai_manager.current_worker.cancel()
             self.on_request_finished(was_cancelled=True)
             self.chat_display.add_message("ai", "*[已停止生成]*")
@@ -692,7 +692,14 @@ class AIToolsPanel(QDockWidget):
     def on_action_required(self, action_data: dict):
         self.action_requested.emit(action_data)
 
+    def _on_nested_request_finished(self, was_cancelled=False):
+        self._nested_ask_in_progress = False
+        self.on_request_finished(was_cancelled)
+
     def on_request_finished(self, was_cancelled=False):
+        if getattr(self, '_nested_ask_in_progress', False):
+            return
+
         self.chat_input.setEnabled(True)
         self.send_button.setEnabled(True)
         self.send_button.setText(t('ai_tools.send'))
@@ -718,9 +725,14 @@ class AIToolsPanel(QDockWidget):
         """
         MAX_RETRIES = 3 
         
+        main_window = self.window()
+        engine = getattr(main_window, 'geometry_engine', None)
+        
         if retry_count >= MAX_RETRIES:
             self.chat_display.add_message("ai", "🚨 **AI 尝试了 3 次修正均告失败，已自动中止操作。**")
             self.action_label.setText("❌ 执行中止")
+            if engine and hasattr(engine, 'discard_draft'):
+                engine.discard_draft()
             return
 
         try:
@@ -728,11 +740,8 @@ class AIToolsPanel(QDockWidget):
             if not commands and "cmd" in args_dict:
                 commands = [args_dict]
 
-            main_window = self.window()
-            engine = getattr(main_window, 'geometry_engine', None)
-            
             if engine:
-                if hasattr(engine, 'begin_draft'):
+                if retry_count == 0 and hasattr(engine, 'begin_draft'):
                     engine.begin_draft() # 开启草稿模式保护
                 
                 if hasattr(engine, 'validate_commands'):
@@ -763,13 +772,15 @@ class AIToolsPanel(QDockWidget):
 请立刻反思错误原因（如：是否引用了未创建的点？是否参数名称写错了？）。
 根据当前的画板状态，修正你的逻辑，并**直接再次调用画图工具**。禁止输出废话。
 """
-            main_window = self.window()
             if hasattr(main_window, 'ai_manager'):
+                self._nested_ask_in_progress = True
+                self.chat_input.setEnabled(False)
                 main_window.ai_manager.ask(
                     user_prompt=reflection_prompt,
                     system_prompt="你是一个具备极强自我反省能力的数学专家。当系统报错时，你必须通过再次调用工具来修复它。",
                     tools=get_agent(self.current_agent_id).tools,
                     on_tool=lambda name, new_args: self._execute_with_reflection(name, new_args, retry_count + 1),
+                    on_finish=self._on_nested_request_finished,
                     on_error=lambda err: print(f"静默修复网络异常: {err}")
                 )
 
@@ -803,6 +814,8 @@ class AIToolsPanel(QDockWidget):
             
             main_window = self.window()
             if hasattr(main_window, 'ai_manager'):
+                self._nested_ask_in_progress = True
+                self.chat_input.setEnabled(False)
                 main_window.ai_manager.ask(
                     user_prompt=relay_prompt,
                     system_prompt=new_agent.system_prompt,
@@ -811,7 +824,7 @@ class AIToolsPanel(QDockWidget):
                     on_tool=self.on_tool_call_received, 
                     on_chunk=self.on_chunk_received,
                     on_usage=self._on_usage_reported,
-                    on_finish=self.on_request_finished,
+                    on_finish=self._on_nested_request_finished,
                     on_error=self.on_request_error
                 )
             
@@ -845,8 +858,11 @@ class AIToolsPanel(QDockWidget):
         elif tool_name == "transfer_to_agent":
             self._handle_agent_handoff(args_dict)
         elif tool_name == "generate_math_quiz":
-            quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
-            self.card_layout.addWidget(quiz_card)
+            try:
+                quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
+                self.card_layout.addWidget(quiz_card)
+            except Exception as e:
+                print(f"生成测验卡片失败: {e}")
         elif tool_name == "execute_geometry_draw":
             self._execute_with_reflection(tool_name, args_dict, retry_count=0)
         elif tool_name == "speak_at_location":
@@ -1013,12 +1029,30 @@ class AIToolsPanel(QDockWidget):
 
     def _on_usage_reported(self, prompt_tokens, completion_tokens):
         total = prompt_tokens + completion_tokens
-        cost_estimate = (total / 10000) * 0.01 
+        
+        provider = self.provider_combo.currentData()
+        prices_per_1k = {
+            AIProvider.OPENAI.value: 0.05,
+            AIProvider.CLAUDE.value: 0.1,
+            AIProvider.GEMINI.value: 0.02,
+            AIProvider.DEEPSEEK.value: 0.01,
+            AIProvider.KIMI.value: 0.015,
+            AIProvider.MINIMAX.value: 0.01,
+            AIProvider.QWEN.value: 0.005,
+            AIProvider.ZHIPU.value: 0.005,
+            AIProvider.DOUBAO.value: 0.005,
+            AIProvider.LOCAL.value: 0.0,
+            AIProvider.OLLAMA.value: 0.0
+        }
+        price = prices_per_1k.get(provider, 0.01)
+        cost_estimate = (total / 1000) * price 
+        
+        cost_text = f"约 ￥{cost_estimate:.4f}" if cost_estimate > 0 else "免费"
         
         usage_html = f"""
         <div style='text-align: right; color: #aaa; font-size: 10px; margin-top: 5px;'>
             ⚡ 消耗: {total} Tokens (上下文 {prompt_tokens} + 生成 {completion_tokens}) 
-            | 约 ￥{cost_estimate:.4f}
+            | {cost_text}
         </div>
         """
         self.chat_display.append(usage_html)
