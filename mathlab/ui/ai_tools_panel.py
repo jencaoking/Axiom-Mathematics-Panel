@@ -41,11 +41,11 @@ except ImportError as e:
     from core.ai_manager import AIRequestConfig, AIProvider, AIState
 
 try:
-    from ..ui.animations import start_breathing_effect
+    from ..ui.animations import start_breathing_effect, stop_animation
 except ImportError as e:
     if "attempted relative import" not in str(e) and "No module named" not in str(e):
         raise
-    from ui.animations import start_breathing_effect
+    from ui.animations import start_breathing_effect, stop_animation
 
 from PySide6.QtCore import QThreadPool
 from mathlab.core.jupyter_manager import get_jupyter_sandbox
@@ -708,12 +708,7 @@ class AIToolsPanel(QDockWidget):
         self.is_generating = False
         
         if hasattr(self, 'breath_anim'):
-            self.breath_anim.stop()
-            try:
-                from ..ui.animations import get_opacity_effect
-            except ImportError as e:
-                from ui.animations import get_opacity_effect
-            get_opacity_effect(self.send_button).setOpacity(1.0)
+            stop_animation(self.send_button)
             
         if not was_cancelled:
             # 流式结束，固化到 WebEngine 内部状态

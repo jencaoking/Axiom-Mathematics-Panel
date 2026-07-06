@@ -20,6 +20,11 @@ class AICursorItem(QGraphicsObject):
         # 核心动画控制器
         self.move_anim = QPropertyAnimation(self, b"cursorPos")
         self.move_anim.setEasingCurve(QEasingCurve.Type.InOutQuad) # 模拟人类手臂运动的缓动曲线
+        
+        # 独立的隐藏计时器
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self.hide)
 
     def boundingRect(self):
         # 光标的光晕范围
@@ -56,6 +61,7 @@ class AICursorItem(QGraphicsObject):
     def move_to(self, target_pos: QPointF, duration_ms: int = 600):
         """控制光标飞向目标点"""
         self.setVisible(True)
+        self._hide_timer.stop() # 防止之前的计时器在中途把光标隐藏
         self.move_anim.stop()
         self.move_anim.setDuration(duration_ms)
         self.move_anim.setStartValue(self.scenePos())
@@ -66,5 +72,5 @@ class AICursorItem(QGraphicsObject):
         except RuntimeError:
             pass
             
-        self.move_anim.finished.connect(lambda: QTimer.singleShot(1000, self.hide))
+        self.move_anim.finished.connect(lambda: self._hide_timer.start(1000))
         self.move_anim.start()
