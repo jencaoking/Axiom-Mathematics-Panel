@@ -671,9 +671,7 @@ render_chart(options)
         if relevant_skills:
             skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"  # noqa: E501
             for s in relevant_skills:
-                skill_context += f"💡 意图: {
-                    s['intent']}\n```python\n{
-                    s['code']}\n```\n\n"
+                skill_context += f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
             if on_thought_cb:
                 on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
 

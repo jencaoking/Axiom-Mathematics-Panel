@@ -79,11 +79,7 @@ SPATIAL_SPEAK_TOOL = {
 }
 
 # 导出工具集字典，方便按需加载
-TOOLS_REGISTRY = {
-    "draw": GEOMETRY_DRAW_TOOL,
-    "quiz": QUIZ_GENERATOR_TOOL,
-    "speak": SPATIAL_SPEAK_TOOL
-}
+TOOLS_REGISTRY = {"draw": GEOMETRY_DRAW_TOOL, "quiz": QUIZ_GENERATOR_TOOL, "speak": SPATIAL_SPEAK_TOOL}
 
 
 # 获取完整工具列表的快捷方法

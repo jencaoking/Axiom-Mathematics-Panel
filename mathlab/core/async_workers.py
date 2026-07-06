@@ -4,17 +4,20 @@ from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class WorkerSignals(QObject):
     """定义通用异步任务的信号 (QRunnable 本身不能发信号，必须借由 QObject)"""
     finished = Signal(object)  # 任务成功完成，返回结果字典/对象
     error = Signal(str)        # 任务失败，返回错误堆栈
     progress = Signal(int)     # (预留) 任务进度 0-100
 
+
 class TaskWorker(QRunnable):
     """
     统一的底层执行单元
     你可以将任何阻塞函数抛给它，无需再为每个功能写单独的 QThread
     """
+
     def __init__(self, fn, *args, **kwargs):
         super().__init__()
         self.fn = fn
@@ -61,13 +64,14 @@ class TaskManager(QObject):
         self._pending_requests = {}
         # [BUG修复] 保护共享状态的线程锁
         self._state_lock = threading.Lock()
-        
+
         logger.info(f"TaskManager 启动，最大并发线程数: {max_threads}")
 
-    def submit(self, fn, on_success=None, on_error=None, group_id=None, *args, **kwargs):
+    def submit(self, fn, on_success=None, on_error=None,
+               group_id=None, *args, **kwargs):
         """
         核心 API：将阻塞任务提交至后台线程池
-        
+
         :param fn: 需要执行的阻塞函数 (如 cas_provider.integrate)
         :param on_success: 成功后的回调槽函数 (UI 更新操作应放这里)
         :param on_error: 失败后的回调槽函数
@@ -89,13 +93,21 @@ class TaskManager(QObject):
                     return
                 else:
                     self._running_groups.add(group_id)
-            self._submit_internal(group_id, fn, on_success, on_error, *args, **kwargs)
+            self._submit_internal(
+                group_id,
+                fn,
+                on_success,
+                on_error,
+                *args,
+                **kwargs)
         else:
-            self._submit_internal(None, fn, on_success, on_error, *args, **kwargs)
+            self._submit_internal(
+                None, fn, on_success, on_error, *args, **kwargs)
 
-    def _submit_internal(self, group_id, fn, on_success, on_error, *args, **kwargs):
+    def _submit_internal(self, group_id, fn, on_success,
+                         on_error, *args, **kwargs):
         worker = TaskWorker(fn, *args, **kwargs)
-        
+
         def success_interceptor(result):
             try:
                 if on_success:
@@ -109,24 +121,27 @@ class TaskManager(QObject):
                     on_error(err)
             finally:
                 self._check_pending(group_id)
-            
+
         worker.signals.finished.connect(success_interceptor)
         worker.signals.error.connect(error_interceptor)
-            
+
         self.thread_pool.start(worker)
-        logger.debug(f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}")
+        logger.debug(
+            f"已提交任务 [{
+                fn.__name__}] 至线程池，当前活动线程: {
+                self.thread_pool.activeThreadCount()}")
 
     def _check_pending(self, group_id):
         if group_id is None:
             return
-        
+
         with self._state_lock:
             if group_id in self._pending_requests:
                 req = self._pending_requests.pop(group_id)
             else:
                 self._running_groups.discard(group_id)
                 return
-        
+
         # 在锁外提交新任务
         self._submit_internal(
             group_id,
@@ -161,4 +176,4 @@ class AIRecognizeWorker(TaskWorker):
 
 class AIGeneratePointsWorker(TaskWorker):
     """AI 生成数据点 Worker（占位，待实现）"""
-    pass
+    pass

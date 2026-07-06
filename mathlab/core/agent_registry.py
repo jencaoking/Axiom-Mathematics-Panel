@@ -87,10 +87,7 @@ class AgentRegistry:
         if name in self.agents:
             logger.warning(f"⚠️ 专家 {name} 已存在，正在被覆盖注册！")
 
-        self.agents[name] = {
-            "description": description,
-            "instance": agent_instance
-        }
+        self.agents[name] = {"description": description, "instance": agent_instance}
 
         # 修复 Bug 2: 尝试打通动态注册系统与静态名片表 (_AGENT_PROFILES)
         matched_key = None
@@ -99,7 +96,9 @@ class AgentRegistry:
                 matched_key = k
                 break
         if matched_key:
-            _AGENT_PROFILES[matched_key].system_prompt = getattr(agent_instance, "system_prompt", _AGENT_PROFILES[matched_key].system_prompt)
+            _AGENT_PROFILES[matched_key].system_prompt = getattr(
+                agent_instance, "system_prompt", _AGENT_PROFILES[matched_key].system_prompt
+            )
 
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
 
@@ -134,7 +133,7 @@ class AgentRegistry:
                 messages=[{"role": "user", "content": router_prompt}],
                 temperature=0.0,
                 max_tokens=50,
-                timeout=30
+                timeout=30,
             )
 
             content = response.choices[0].message.content
@@ -145,7 +144,11 @@ class AgentRegistry:
 
             # 3. 容错回退机制
             if selected_agent_name not in self.agents:
-                fallback = "GeometryAgent" if "GeometryAgent" in self.agents else (list(self.agents.keys())[0] if self.agents else None)
+                fallback = (
+                    "GeometryAgent"
+                    if "GeometryAgent" in self.agents
+                    else (list(self.agents.keys())[0] if self.agents else None)
+                )
                 if not fallback:
                     raise RuntimeError("系统中没有任何已注册的专家。")
                 if on_thought_cb:
