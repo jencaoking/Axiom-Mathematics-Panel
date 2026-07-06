@@ -63,15 +63,15 @@ class CommandsMixin:
         reg(C('file.export.tex', '导出 LaTeX 文档',        self.on_export_latex,    '文件'))
 
         # ── 画布 ────────────────────────────────────────────────────────
-        reg(C('canvas.clear',    '清空画布与变量',       self.on_new_project,                          '画布'))
+        reg(C('canvas.clear',    '清空画布与变量',       self.on_clear_canvas,                         '画布'))
         reg(C('canvas.zoom_in',  '放大画布',             lambda: self.central_widget.zoom_in(),        '画布', 'Ctrl+='))
         reg(C('canvas.zoom_out', '缩小画布',             lambda: self.central_widget.zoom_out(),       '画布', 'Ctrl+-'))
-        reg(C('tool.select',     '切换工具: 选择',       lambda: self.on_action_selected('select'),     '画布', 'S'))
-        reg(C('tool.point',      '切换工具: 点',         lambda: self.on_action_selected('point'),      '画布', 'P'))
-        reg(C('tool.segment',    '切换工具: 线段',       lambda: self.on_action_selected('segment'),    '画布', 'L'))
-        reg(C('tool.circle',     '切换工具: 圆',         lambda: self.on_action_selected('circle'),     '画布', 'C'))
-        reg(C('tool.polygon',    '切换工具: 多边形',       lambda: self.on_action_selected('polygon'),    '画布', 'G'))
-        reg(C('tool.pan',        '切换工具: 平移画布',     lambda: self.on_action_selected('pan'),        '画布', 'H'))
+        reg(C('tool.select',     '切换工具: 选择',       lambda: self.on_action_selected('select'),     '画布', 'Alt+S'))
+        reg(C('tool.point',      '切换工具: 点',         lambda: self.on_action_selected('point'),      '画布', 'Alt+P'))
+        reg(C('tool.segment',    '切换工具: 线段',       lambda: self.on_action_selected('segment'),    '画布', 'Alt+L'))
+        reg(C('tool.circle',     '切换工具: 圆',         lambda: self.on_action_selected('circle'),     '画布', 'Alt+C'))
+        reg(C('tool.polygon',    '切换工具: 多边形',       lambda: self.on_action_selected('polygon'),    '画布', 'Alt+G'))
+        reg(C('tool.pan',        '切换工具: 平移画布',     lambda: self.on_action_selected('pan'),        '画布', 'Alt+H'))
 
         # ── 笔记本与工作区 ────────────────────────────────────────────────────────
         reg(C('notebook.new',    '新建笔记本 (> new notebook)', lambda: (self.central_tabs.setCurrentWidget(self.notebook), self.notebook.backend.cells.clear(), self._refresh_notebook_ui()), '工作区'))

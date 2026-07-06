@@ -22,10 +22,7 @@ logger = get_logger(__name__)
 
 class AIMixin:
     """MainWindow Mixin：AI 多智能体集成与异步 Worker 管理。"""
-    def on_code_completion_requested(self, code_text: str, line: int, column: int):
-        if hasattr(self, 'python_repl'):
-            completions = self.python_repl.get_completions(code_text, line, column)
-            self.ai_tools_panel.code_editor.set_completions(completions)
+
 
     # 🌟 2. 处理来自 Jupyter 的指令 🌟
     def _setup_ai_integration(self):
@@ -70,7 +67,7 @@ class AIMixin:
 
     def _setup_echarts_integration(self):
         # 绑定刚刚解析出的信号
-        self.code_editor.backend.echarts_data_ready.connect(self._show_echarts_panel)
+        self.ai_tools_panel.code_editor.backend.echarts_data_ready.connect(self._show_echarts_panel)
 
     def _show_echarts_panel(self, chart_options_dict):
         """唤醒 ECharts 插件面板并渲染"""
@@ -114,7 +111,7 @@ class AIMixin:
         """接收到 AI 代码，安全写入前端 Monaco"""
         import json
         escaped_code = json.dumps(code)
-        self.code_editor.web_view.page().runJavaScript(f"window.editor.setValue({escaped_code});")
+        self.ai_tools_panel.code_editor.web_view.page().runJavaScript(f"window.editor.setValue({escaped_code});")
         
         # 光标小幅抖动，模拟正在打字
         if hasattr(self, 'ai_cursor'):
@@ -129,7 +126,7 @@ class AIMixin:
         if success:
             self.console.append_agent_observation("🎉 任务完美执行并渲染！", is_error=False)
             # 触发底层执行，刷新所有的画布和 C# 引擎联动
-            self.code_editor.backend.execute_code(final_content)
+            self.ai_tools_panel.code_editor.backend.execute_code(final_content)
         else:
             self.console.append_agent_observation("⚠️ 尝试多次失败，请手动干预。", is_error=True)
             

@@ -56,11 +56,16 @@ class DialogsMixin:
             self.load_stylesheet()
 
         dlg.theme_changed.connect(on_theme_changed)
-        dlg.accent_color_changed.connect(lambda c: None) # reserved for future use
-        dlg.font_changed.connect(lambda f, s: None) # reserved for future use
-        dlg.graphics_settings_changed.connect(lambda gfx: None) # reserved for future use
-        dlg.console_settings_changed.connect(lambda con: None) # reserved for future use
-        dlg.advanced_settings_changed.connect(lambda adv: None) # reserved for future use
+        
+        def log_pref(name, val):
+            if hasattr(self, 'console'):
+                self.console.display_system_message(f"偏好设置已更新: {name} (功能预留)", level='info')
+                
+        dlg.accent_color_changed.connect(lambda c: log_pref("强调色", c))
+        dlg.font_changed.connect(lambda f, s: log_pref("字体", f"{f} {s}px"))
+        dlg.graphics_settings_changed.connect(lambda gfx: log_pref("图形设置", str(gfx)))
+        dlg.console_settings_changed.connect(lambda con: log_pref("控制台设置", str(con)))
+        dlg.advanced_settings_changed.connect(lambda adv: log_pref("高级设置", str(adv)))
         dlg.exec()
 
     def show_theme_dialog(self) -> None:

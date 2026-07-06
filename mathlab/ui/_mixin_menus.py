@@ -172,6 +172,10 @@ class MenusMixin:
         self.export_latex_action.triggered.connect(self.on_export_latex)
         self.exit_action.triggered.connect(self.close)
 
+        self.delete_action.triggered.connect(self.on_delete_selected)
+        self.undo_action.triggered.connect(lambda: self.console.display_system_message("Undo (撤销) 功能尚未实现", level='warn') if hasattr(self, 'console') else None)
+        self.redo_action.triggered.connect(lambda: self.console.display_system_message("Redo (重做) 功能尚未实现", level='warn') if hasattr(self, 'console') else None)
+
         self.algebra_panel_action.triggered.connect(self.toggle_algebra_panel)
         self.properties_panel_action.triggered.connect(self.toggle_properties_panel)
         self.console_action.triggered.connect(self.toggle_console)

@@ -37,6 +37,15 @@ class FileIOMixin:
             self.geometry_engine.clear()
         self.current_project = None
 
+    def on_clear_canvas(self) -> None:
+        self.central_widget.clear_canvas()
+        self.algebra_panel.clear()
+        self.properties_panel.clear()
+        self.console.clear()
+        self._objects_data.clear()
+        if hasattr(self, 'geometry_engine'):
+            self.geometry_engine.clear()
+
     def on_open_project(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -141,6 +150,9 @@ class FileIOMixin:
             svg_generator.setFileName(file_path)
 
             bounding_rect = self.central_widget.scene().itemsBoundingRect()
+            if bounding_rect.isEmpty():
+                from PySide6.QtCore import QRectF
+                bounding_rect = QRectF(0, 0, 800, 600)
             svg_generator.setViewBox(bounding_rect)
 
             painter = QtPainter(svg_generator)

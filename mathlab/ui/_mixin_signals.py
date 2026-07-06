@@ -316,6 +316,15 @@ class SignalsMixin:
             self.algebra_panel.remove_object(obj_id)
         self._objects_data.pop(obj_id, None)
 
+    def on_delete_selected(self) -> None:
+        if not hasattr(self, 'central_widget'):
+            return
+        
+        selected_items = self.central_widget.scene().selectedItems()
+        for item in selected_items:
+            if hasattr(item, 'obj_id'):
+                self.on_object_deleted(item.obj_id)
+
     def on_object_renamed(self, obj_id: str, new_name: str) -> None:
         if hasattr(self, 'geometry_engine'):
             obj = self.geometry_engine.get_object(obj_id)
