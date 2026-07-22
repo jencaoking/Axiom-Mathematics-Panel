@@ -846,9 +846,17 @@ class BaseMathAgent:
                     f"掌握度={profile['avg_mastery']}"
                 )
 
+        # 注入教学法约束（代码生成质量指导）
+        pedagogical_context = ""
+        if self.student_model is not None:
+            from mathlab.core.pedagogical_engine import PedagogicalPromptBuilder
+            pedagogical_builder = PedagogicalPromptBuilder(self.student_model)
+            pedagogical_context = pedagogical_builder.build_code_generation_constraint(user_prompt)
+
         system_prompt = f"""{self.system_prompt}
 {skill_context}
 {adaptive_context}
+{pedagogical_context}
 不要输出多余的 Markdown，必须且只能将代码写在 ```python 块中。"""
 
         messages = [
@@ -1002,6 +1010,15 @@ class PlannerAgent(BaseMathAgent):
         # 并行执行配置：当 parallel_execution=True 时，独立步骤可并行调度
         self.parallel_execution = parallel_execution
         self.max_workers = max_workers  # ThreadPoolExecutor 最大并发数
+        # 教学法引导引擎：注入 Bloom/ZPD/UDL/Socratic 约束
+        self._pedagogical_builder = None
+        self._quality_evaluator = None
+        if student_model is not None:
+            from mathlab.core.pedagogical_engine import (
+                PedagogicalPromptBuilder, TeachingQualityEvaluator
+            )
+            self._pedagogical_builder = PedagogicalPromptBuilder(student_model)
+            self._quality_evaluator = TeachingQualityEvaluator(student_model)
         self.system_prompt = """你是一个【数学教研组长 (PlannerAgent)】。
 你的核心职责是分析用户的数学问题，将其拆解为 3-5 个由浅入深、循序渐进的教学步骤，
 然后协调解析几何专家和数据可视化专家共同完成教学。
@@ -1019,10 +1036,16 @@ class PlannerAgent(BaseMathAgent):
         if self._adaptive_engine:
             adaptive_strategy = self._adaptive_engine.build_adaptive_prompt(user_prompt)
 
+        # 注入教学法约束（Bloom/ZPD/UDL/Socratic）
+        pedagogical_constraint = ""
+        if self._pedagogical_builder:
+            pedagogical_constraint = self._pedagogical_builder.build_decomposition_constraint()
+
         decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
 
 用户问题：{user_prompt}
 {adaptive_strategy}
+{pedagogical_constraint}
 
 你必须严格按照以下 JSON 格式返回，不要包含任何其他文本：
 {{
@@ -1039,7 +1062,9 @@ class PlannerAgent(BaseMathAgent):
 3. 不要一次性给最终答案
 4. 如果涉及画图，优先在前几步让几何专家画图
 5. parallelizable 设为 true 仅当该步骤不依赖任何前序步骤的输出结果（如独立画图、独立计算）
-6. 根据学生认知画像调整步骤难度梯度，确保在最近发展区内"""
+6. 根据学生认知画像调整步骤难度梯度，确保在最近发展区内
+7. 认知层级必须大致递增（如：记忆→理解→应用→分析），不要跳级超过2层
+8. 每个步骤只引入一个新概念，后续步骤建立在前序成果之上"""
         try:
             response = self.ai_manager.client.chat.completions.create(
                 model=self._get_effective_model(),
@@ -1172,11 +1197,21 @@ class PlannerAgent(BaseMathAgent):
             num = step.get("num", 0)
             title = step.get("title", "处理中...")
             hint = step.get("hint_for_teacher", "")
+            cognitive_level = step.get("cognitive_level", "理解")
 
             sub_prompt = (
                 f"在教学主题「{topic}」的框架下，完成第 {num} 步：{title}。"
                 f"\n教学提示：{hint}"
             )
+
+            # 注入教学法约束到子步骤（Bloom 层级行为指导）
+            if self._pedagogical_builder:
+                step_constraint = self._pedagogical_builder.build_step_execution_constraint(
+                    step_title=title,
+                    cognitive_level=cognitive_level,
+                    hint=hint,
+                )
+                sub_prompt += f"\n\n{step_constraint}"
 
             agent_key = self._pick_sub_agent(title, hint)
             agent_name = agent_key
@@ -1306,16 +1341,73 @@ class PlannerAgent(BaseMathAgent):
                 if on_thought_cb:
                     on_thought_cb(f"  ⚠️ 第 {num} 步未能产出完整结果，继续下一步")
 
-        # ========== 阶段 3: 汇总 ==========
+        # ========== 阶段 3: 汇总 + 教学质量评估 ==========
         final_code = "\n\n# ---- Planner 聚合代码 ----\n" + "\n\n".join(all_codes)
         if on_thought_cb:
             on_thought_cb(f"\n{'─' * 20}\n🏁 教研组已完成所有教学步骤！")
 
+        # 教学质量评估闭环：评估生成内容并反馈
+        quality_report = None
+        if self._quality_evaluator:
+            quality_report = self._run_quality_evaluation(
+                final_code, user_prompt, plan, on_thought_cb
+            )
+
         if on_finish_cb:
             on_finish_cb(True, final_code)
-        return {"status": "ok", "code": final_code,
-                "topic": topic, "steps_executed": len(steps),
-                "geom_commands": all_geom_commands}
+        result = {"status": "ok", "code": final_code,
+                  "topic": topic, "steps_executed": len(steps),
+                  "geom_commands": all_geom_commands}
+        if quality_report:
+            result["quality_report"] = quality_report
+        return result
+
+    def _run_quality_evaluation(
+        self, content: str, user_prompt: str, plan: dict,
+        on_thought_cb=None,
+    ) -> dict:
+        """执行教学质量评估并生成报告。
+
+        评估三维度：内容理解、上下文连贯性、教学设计。
+        如果评估不通过，将改进反馈注入到后续 Agent 对话中。
+        """
+        try:
+            from mathlab.core.pedagogical_engine import QualityDimension
+            reports = self._quality_evaluator.evaluate(
+                content=content,
+                user_prompt=user_prompt,
+                plan=plan,
+            )
+            overall = self._quality_evaluator.get_overall_score(reports)
+
+            if on_thought_cb:
+                dim_names = {
+                    QualityDimension.CONTENT_UNDERSTANDING: "内容理解",
+                    QualityDimension.CONTEXT_COHERENCE: "连贯性",
+                    QualityDimension.PEDAGOGICAL_DESIGN: "教学设计",
+                }
+                on_thought_cb(
+                    f"\n📊 教学质量评估完成（总分: {overall:.0%}）:"
+                )
+                for dim, report in reports.items():
+                    icon = "✅" if report.passed else "❌"
+                    name = dim_names.get(dim, dim.value)
+                    on_thought_cb(
+                        f"  {icon} {name}: {report.score:.0%}"
+                        + (f" — {report.issues[0]}" if report.issues else "")
+                    )
+
+            # 序列化报告
+            return {
+                "overall_score": overall,
+                "dimensions": {
+                    dim.value: report.to_dict()
+                    for dim, report in reports.items()
+                },
+            }
+        except Exception as e:
+            logger.error(f"教学质量评估失败: {e}")
+            return None
 
 
 class GeometryAgent(BaseMathAgent):
