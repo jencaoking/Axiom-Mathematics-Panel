@@ -131,7 +131,7 @@ class AIFacade:
         if not self.student_model:
             return
         try:
-            from mathlab.core.student_model import AdaptiveEngine, InteractionType
+            from mathlab.core.student_model import AdaptiveEngine
             engine = AdaptiveEngine(self.student_model)
             interaction_type = engine.classify_interaction(user_prompt)
             knowledge_point = engine.extract_knowledge_point(user_prompt)

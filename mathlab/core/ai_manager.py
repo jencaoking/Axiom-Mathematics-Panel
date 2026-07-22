@@ -1,10 +1,7 @@
 import threading
+from typing import Optional
 from mathlab.core.skill_manager import SkillLibrary
-from mathlab.core.ai_tools import (
-    execute_math_task,
-    GEOMETRY_DRAW_TOOL as DRAW_TOOL_SCHEMA,
-    QUIZ_GENERATOR_SCHEMA,
-)
+from mathlab.core.ai_tools import execute_math_task
 import numpy as np
 import importlib.util
 
@@ -959,7 +956,6 @@ class BaseMathAgent:
     def _record_student_interaction(self, user_prompt: str, success: bool):
         """记录学生互动到认知模型中（自适应学习核心）。"""
         try:
-            from mathlab.core.student_model import InteractionType, CognitiveLevel
             interaction_type = self._adaptive_engine.classify_interaction(
                 user_prompt, success
             )
@@ -1090,7 +1086,7 @@ class PlannerAgent(BaseMathAgent):
             )
             plan = json.loads(response.choices[0].message.content)
             return plan
-        except Exception as e:
+        except Exception:
             # 降级：返回一个极简大纲
             return {
                 "topic": user_prompt,
@@ -1272,6 +1268,7 @@ class PlannerAgent(BaseMathAgent):
             if sub_info is None:
                 if on_thought_cb:
                     on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
+
                 def _noop_finish_cb(success, content):
                     pass
                 result = super(PlannerAgent, self).solve_problem(

@@ -412,7 +412,6 @@ class MessageRouter:
     ):
         """处理任务请求消息：调用 Agent 的 solve_problem。"""
         task_prompt = message.content if isinstance(message.content, str) else str(message.content)
-        step_num = message.metadata.get("step_num")
 
         # 收集执行结果
         result_container = {
