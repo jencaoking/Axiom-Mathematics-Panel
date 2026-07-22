@@ -145,7 +145,6 @@ jobs:
             --no-strict-optional \
             --warn-unused-ignores \
             --warn-redundant-casts \
-            --disallow-untyped-defs=False \
             --exclude 'mathlab/resources/'
 
   # ────────────────────────────────────────────────────────────────────────
