@@ -1,24 +1,26 @@
-# MathLab (Axiom) — 多智能体交互式数学教育与科研桌面平台
 
-<div align="center">
-  <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20futuristic%20mathematics%20software%20interface%20with%20geometric%20shapes%2C%20AI%20neural%20network%20visualization%2C%20dark%20blue%20purple%20gradient%2C%20holographic%20UI%2C%20professional%20desktop%20application%20banner%2C%20cinematic%20lighting&image_size=landscape_16_9" alt="MathLab Banner">
-</div>
+<h1 align="center">MathLab (Axiom)</h1>
 
-<div align="center">
+<p align="center">
+  <b>多智能体交互式数学教育与科研桌面平台</b>
+</p>
 
-**[English](README_EN.md) | 简体中文**
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README_EN.md">English</a>
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
-[![PySide6](https://img.shields.io/badge/PySide6-6.5+-red.svg)](https://doc.qt.io/qtforpython-6/)
-[![Release](https://img.shields.io/badge/version-3.7.1-orange.svg)](https://github.com/jencaoking/Axiom-Mathematics-Panel/releases)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](#测试)
-
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/license-CASAL%20v4.0-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/python-3.10+-brightgreen.svg" alt="Python">
+  <img src="https://img.shields.io/badge/PySide6-6.5+-red.svg" alt="PySide6">
+  <img src="https://img.shields.io/badge/version-3.7.1-orange.svg" alt="Version">
+  <img src="https://img.shields.io/badge/tests-passing-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
+</p>
 
 ---
 
-**MathLab** 是一款面向未来的**多智能体交互式数学教育与科研桌面软件**。它突破了传统"套壳聊天框"的局限，打造了一套真正的工业级、L5 自动化自治的多智能体（Multi-Agent）桌面环境。
+MathLab 是一款面向未来的**多智能体交互式数学教育与科研桌面软件**。它突破了传统"套壳聊天框"的局限，打造了一套真正的工业级、L5 自动化自治的多智能体（Multi-Agent）桌面环境。
 
 从基础的几何作图、代数求解，到复杂的定理证明和交互式教学大纲驱动，MathLab 完美融合了本地高性能图形引擎（含 C# 加速内核）与云端大语言模型，并配以极具未来感的 Agentic UI。
 
@@ -26,23 +28,41 @@
 
 ## 目录
 
-- [核心亮点](#-核心亮点l5-agentic-架构)
-- [系统架构](#-系统架构)
-- [功能模块详解](#-功能模块详解)
-- [快速开始](#-快速开始)
-- [开发指南](#-开发指南)
-- [项目结构](#-项目结构)
-- [技术栈](#-技术栈)
-- [插件系统](#-插件系统)
-- [API 接口](#-api-接口)
-- [测试](#-测试)
-- [构建与发布](#-构建与发布)
-- [已知问题](#-已知问题)
-- [路线图](#-路线图)
-- [贡献指南](#-贡献指南)
-- [许可证](#-许可证)
-- [联系方式](#-联系方式)
-- [致谢](#-致谢与引用)
+- [功能特性](#功能特性)
+- [核心亮点：L5 Agentic 架构](#核心亮点l5-agentic-架构)
+- [系统架构](#系统架构)
+- [功能模块详解](#功能模块详解)
+- [快速开始](#快速开始)
+- [开发指南](#开发指南)
+- [项目结构](#项目结构)
+- [技术栈](#技术栈)
+- [插件系统](#插件系统)
+- [API 接口](#api-接口)
+- [测试](#测试)
+- [构建与发布](#构建与发布)
+- [已知问题](#已知问题)
+- [路线图](#路线图)
+- [贡献指南](#贡献指南)
+- [许可证](#许可证)
+- [联系方式](#联系方式)
+- [致谢与引用](#致谢与引用)
+
+---
+
+## 功能特性
+
+| 特性 | 说明 |
+| :--- | :--- |
+| 🤖 **L5 多智能体自治** | Swarm 协作架构，意图识别、自动路由、自我反思与纠错重试 |
+| 📐 **专业几何画板** | DAG 依赖驱动的几何引擎，支持圆锥曲线、约束求解与轨迹追踪 |
+| 🧊 **3D 渲染引擎** | 基于 Three.js 的曲面、向量场与等值面可视化，含 GPU 分形 |
+| 🧮 **CAS 符号计算** | SymPy 封装的方程求解、微积分、极限与因式分解 |
+| 📓 **交互笔记本** | SageMath 风格 Cell 笔记本，Markdown / 代码 / 公式 / 画板混排 |
+| 🧠 **AI 多智能体系统** | 支持 OpenAI / DeepSeek / Claude / Gemini 等 11 家大模型接入 |
+| 🔌 **Jupyter 集成** | 内嵌 JupyterLab，Python 与 Qt 双向变量同步 |
+| ⚡ **C# 加速内核** | pythonnet 桥接 Math.NET，几何采样 / FFT / 复数 / 数值积分加速 |
+| 🛡️ **安全沙箱** | subprocess 隔离执行，超时与内存限制保护 |
+| 🧩 **插件系统** | 可扩展的插件 API，内置 3D Viewer、ECharts、矩阵工具 |
 
 ---
 
@@ -50,7 +70,7 @@
 
 在 MathLab 3.7 的迭代中，我们完成了四大核心维度的跃迁，打造了"自动驾驶级别"的 AI 教学基建：
 
-### Phase 1: 视觉安全掌控 (Trust & Safety)
+### Phase 1：视觉安全掌控（Trust & Safety）
 
 建立极客级别的状态栏与"影子状态（Shadow State）"。让 AI 的每一步计算与画笔调用都在监控之下，消除了未知状态带来的恐惧，实现安全的"草稿模式"。
 
@@ -58,7 +78,7 @@
 - **影子状态**：后台记录 AI 行为轨迹
 - **安全沙盒**：代码执行在隔离环境中
 
-### Phase 2: 多智能体分工与容错自省 (Swarm Routing & Reflection)
+### Phase 2：多智能体分工与容错自省（Swarm Routing & Reflection）
 
 摒弃了臃肿的"全能大模型"，引入了多专家协作的 **Swarm 架构**：
 
@@ -67,13 +87,13 @@
 - **Self-Reflection（自我反思）**：当调用画板出错时，AI 能自主纠错并重新绘制
 
 | 专家角色 | 职责 | 工具 |
-|---------|------|------|
+| :--- | :--- | :--- |
 | 🟢 全科助教 | 前台接待，意图识别，任务分发 | Transfer Protocol |
 | 📐 几何专家 | 几何作图、证明、求面积/角度 | execute_geometry_draw, highlight_geometry_elements |
 | 📝 出题考官 | 智能出题、难度评估 | quiz_generator |
 | 🧠 教研组长 | 教学规划、大纲生成 | submit_teaching_plan |
 
-### Phase 3: 按需装载上下文 (JIT Context Assembly)
+### Phase 3：按需装载上下文（JIT Context Assembly）
 
 内置高精度动态上下文组装器（Context Assembler）：
 
@@ -81,7 +101,7 @@
 - **避免注意力稀释**：解决 Lost in the Middle 问题
 - **精准注入**：按需加载 LaTeX 规则、画布 JSON 或特定几何规则
 
-### Phase 4: 思执分离教学双轨制 (Plan + Teach)
+### Phase 4：思执分离教学双轨制（Plan + Teach）
 
 独创的教研、授课双层流转：
 
@@ -161,7 +181,7 @@ series(expression, var, point) # 级数展开
 内建丰富的天团专家和数十种原子操作 Tool 调用：
 
 | 专家 ID | 名称 | 图标 | 专属工具 |
-|---------|------|------|----------|
+| :--- | :--- | :--- | :--- |
 | `general` | 全科助教 | 🟢 | Transfer Protocol |
 | `geometry` | 几何专家 | 📐 | execute_geometry_draw, highlight_geometry_elements |
 | `quiz` | 出题考官 | 📝 | quiz_generator |
@@ -290,10 +310,12 @@ VSCode 风格的统一功能入口：
 
 ### 环境要求
 
-- **Python**：3.10 或更高版本
-- **操作系统**：Windows 10+、macOS 12+、Ubuntu 20.04+
-- **内存**：建议 8GB 以上
-- **磁盘空间**：至少 2GB 可用空间
+| 项目 | 要求 |
+| :--- | :--- |
+| **Python** | 3.10 或更高版本 |
+| **操作系统** | Windows 10+、macOS 12+、Ubuntu 20.04+ |
+| **内存** | 建议 8GB 以上 |
+| **磁盘空间** | 至少 2GB 可用空间 |
 
 ### 安装步骤
 
@@ -310,7 +332,7 @@ python -m venv venv
 # 3. 激活虚拟环境
 # Windows
 venv\Scripts\activate
-# macOS/Linux
+# macOS / Linux
 source venv/bin/activate
 
 # 4. 安装依赖
@@ -473,7 +495,7 @@ Axiom-Mathematics-Panel/
 │   │   ├── agent_bridge.py           # Agent 桥接
 │   │   ├── agent_registry.py         # 多智能体注册表
 │   │   ├── ai_manager.py             # AI 管理器（含 Worker）
-│   │   ├── ai_provider_config.py     # AI 提供商配置
+│   │   ├── ai_provider_config.py      # AI 提供商配置
 │   │   ├── ai_tools.py               # AI 工具定义
 │   │   ├── algo_animator.py          # 算法动画器
 │   │   ├── animation.py              # 动画引擎
@@ -487,7 +509,7 @@ Axiom-Mathematics-Panel/
 │   │   ├── extension_api.py          # 插件扩展 API
 │   │   ├── geogebra_engine.py        # GeoGebra 兼容引擎
 │   │   ├── geometry_engine.py        # 几何引擎核心（DAG）
-│   │   ├── geometry_helpers.py       # 几何辅助函数
+│   │   ├── geometry_helpers.py        # 几何辅助函数
 │   │   ├── ipc_client.py             # IPC 客户端
 │   │   ├── ipc_server.py             # IPC 服务端
 │   │   ├── jupyter_manager.py        # Jupyter 管理器
@@ -585,7 +607,7 @@ Axiom-Mathematics-Panel/
 │   └── MATHLAB_2.5_PLAN.md           # 2.5 版本规划
 ├── pyproject.toml                    # pytest 配置
 ├── mathlab.spec                      # PyInstaller 配置
-├── LICENSE                           # Apache 2.0 许可证
+├── LICENSE                           # CASAL v4.0 许可证
 └── README.md                         # 项目说明（本文档）
 ```
 
@@ -596,7 +618,7 @@ Axiom-Mathematics-Panel/
 ### 核心依赖（运行必须）
 
 | 类别 | 技术 | 版本 | 用途 |
-|------|------|------|------|
+| :--- | :--- | :--- | :--- |
 | **GUI 框架** | PySide6 | ≥6.5.0 | Qt for Python，跨平台桌面 UI |
 | **符号计算** | SymPy | ≥1.12 | CAS 符号计算引擎 |
 | **数值计算** | NumPy | ≥1.26 | 数组运算、线性代数 |
@@ -609,14 +631,14 @@ Axiom-Mathematics-Panel/
 ### Jupyter 集成
 
 | 组件 | 版本 | 用途 |
-|------|------|------|
+| :--- | :--- | :--- |
 | JupyterLab | ≥4.0 | 嵌入式交互式计算环境 |
 | ipykernel | ≥6.0 | IPython 内核 |
 
 ### AI 集成（多提供商）
 
 | 组件 | 用途 |
-|------|------|
+| :--- | :--- |
 | OpenAI / DeepSeek / Claude / Gemini / 通义千问 等 11 家 | 大语言模型接入（可插拔） |
 | Function Calling | 工具调用协议 |
 | Streaming | 流式响应 |
@@ -641,7 +663,7 @@ pip install mathlab[full]
 ```
 
 | 组件 | 用途 |
-|------|------|
+| :--- | :--- |
 | scikit-learn | AI 拟合 / 聚类 / 模式识别 |
 | onnxruntime | 本地 ONNX 模型推理 |
 | PyTorch | 神经网络模型 |
@@ -654,7 +676,7 @@ pip install mathlab[full]
 ### C# 加速内核
 
 | 模块 | 用途 |
-|------|------|
+| :--- | :--- |
 | `MathLab.CSharpEngine` (.NET Standard 2.0) | 通过 pythonnet 桥接的本地加速库 |
 | FastMath | 基础数学运算 |
 | FastGeometry | 几何加速计算（圆锥曲线采样等） |
@@ -667,7 +689,7 @@ pip install mathlab[full]
 ### 开发工具
 
 | 工具 | 用途 |
-|------|------|
+| :--- | :--- |
 | pytest | 单元测试 |
 | pre-commit | Git hooks |
 | PyInstaller / Nuitka | 应用打包 |
@@ -718,20 +740,20 @@ from mathlab.core.plugin_base import MathLabPlugin
 
 class MyPlugin(MathLabPlugin):
     """自定义插件示例"""
-    
+
     def __init__(self, api):
         super().__init__(api)
         self.name = "My Plugin"
         self.version = "1.0.0"
-    
+
     def activate(self):
         """插件激活时调用"""
         self.api.register_command("my_command", self.my_handler)
-    
+
     def deactivate(self):
         """插件停用时调用"""
         self.api.unregister_command("my_command")
-    
+
     def my_handler(self, *args):
         """命令处理器"""
         # 你的逻辑
@@ -766,7 +788,7 @@ sandbox = mathlab.SandboxManager()
 # ── 几何绘制 ──
 draw_point(x, y)                # 绘制点
 draw_segment(p1, p2)            # 绘制线段
-draw_circle(center, radius)      # 绘制圆
+draw_circle(center, radius)     # 绘制圆
 draw_ellipse(center_id, a, b)   # 绘制椭圆
 draw_hyperbola(center_id, a, b) # 绘制双曲线
 draw_parabola(vertex_id, p, direction) # 绘制抛物线
@@ -854,7 +876,7 @@ markers = [
 ### 测试分类
 
 | 类别 | 说明 | 命令 |
-|------|------|------|
+| :--- | :--- | :--- |
 | 单元测试 | 核心引擎测试 | `pytest tests/unit/` |
 | 集成测试 | 模块间交互测试 | `pytest tests/integration/` |
 | UI 测试 | Qt 界面测试 | `pytest -m qt tests/` |
@@ -931,7 +953,7 @@ python -m nuitka --standalone --enable-plugin=pyside6 mathlab/main.py
 ### 版本历史
 
 | 版本 | 代号 | 主要特性 |
-|------|------|----------|
+| :--- | :--- | :--- |
 | **1.0** | - | 基础几何画板 |
 | **2.0** | speed | 异步计算中枢、3D 渲染引擎、AI 集成 |
 | **2.5** | axiom | GeoGebra 约束求解、笔记本、动画引擎、插件系统 |
@@ -990,30 +1012,27 @@ python -m nuitka --standalone --enable-plugin=pyside6 mathlab/main.py
 
 ## 许可证
 
-本项目采用 **Apache License 2.0** 开源许可证。
+本项目采用 **Custom Advanced Source-Available License v1.0（CASAL v4.0）** 开源（源可用）许可证，版权归 **Jinpeng Cao (jencao)** 所有，发布于 2026 年 7 月 21 日。
 
-```
-Copyright 2024 MathLab Team
+> ⚠️ **重要提示**：CASAL 是一份**非 OSI 认证、源可用（source-available）**的自定义许可证，与 Apache 2.0 有本质区别。它在允许查看、修改与分发源代码的同时，对**竞争性使用**、**AI/ML 训练**以及**不道德应用**施加了严格限制，并包含强 Copyleft 义务。若需在闭源、商业竞争或 AI 训练场景下使用，须向版权方获取单独的商业授权。
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+核心条款摘要：
 
-    http://www.apache.org/licenses/LICENSE-2.0
+- **强制 Copyleft**：分发、托管（含 SaaS/云/API）衍生作品时，须以相同（或实质等同）许可证公开完整源代码。
+- **署名保留**：所有副本与显著位置须保留版权声明、完整许可证文本与免责声明。
+- **衍生作品改名**：修改后的分发版本须明确标注并采用区别于原项目（不得使用 "jencao"、"Cao" 等易混淆名称）的名称。
+- **伦理限制**：禁止用于违法监控、侵犯人权、军事或核设施等场景。
+- **非竞争条款**：不得利用本项目开发、推广或分发与原作者核心产品构成竞争的产品。
+- **AI/ML 训练禁止**：禁止将本项目（含源码、文档、日志等）用于训练、微调或验证任何 AI/ML/LLM 系统。
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+完整条款请查阅 [LICENSE](LICENSE) 文件。
 
 ---
 
 ## 联系方式
 
 | 渠道 | 信息 |
-|------|------|
+| :--- | :--- |
 | **项目主页** | https://github.com/jencaoking/Axiom-Mathematics-Panel |
 | **问题反馈** | https://github.com/jencaoking/Axiom-Mathematics-Panel/issues |
 | **讨论社区** | https://github.com/jencaoking/Axiom-Mathematics-Panel/discussions |
@@ -1050,10 +1069,10 @@ MathLab 受益于以下卓越的开源项目与框架：
 
 ---
 
-<div align="center">
+<p align="center">
 
 **Star us on GitHub** · **Report a Bug** · **Request a Feature**
 
-Built with ❤️ by the MathLab Team
+Built with ❤️ by jencao
 
-</div>
+</p>
