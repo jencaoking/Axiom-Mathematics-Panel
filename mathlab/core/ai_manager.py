@@ -249,11 +249,14 @@ class AIManager(QObject):
 
     def reload_config(self):
         """当用户在偏好设置中修改 API 后，自动重载客户端"""
-        settings_path = os.path.join(
-            os.path.dirname(
-                os.path.dirname(
-                    os.path.abspath(__file__))),
-            'settings.json')
+        # [修复] 使用 __package__ 获取包目录，更健壮
+        try:
+            package_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            settings_path = os.path.join(package_dir, 'settings.json')
+        except Exception:
+            # 降级方案：使用当前文件路径
+            settings_path = os.path.join(os.getcwd(), 'settings.json')
+
         settings = {}
         if os.path.exists(settings_path):
             try:

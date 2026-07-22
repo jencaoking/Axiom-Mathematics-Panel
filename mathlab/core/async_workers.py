@@ -167,7 +167,8 @@ class AIFitWorker(TaskWorker):
         self._fit_type = fit_type
         self._degree = degree
 
-        # 根据 fit_type 选择对应的函数
+        # 根据 fit_type 选择对应的函数，传给父类初始化
+        # 父类 TaskWorker.__init__ 已创建 self.signals，无需重复初始化
         if fit_type == 'polynomial':
             fn = ai_manager.fit_polynomial_regression
             super().__init__(fn, points, degree)
@@ -175,7 +176,6 @@ class AIFitWorker(TaskWorker):
             fn = ai_manager.fit_linear_regression
             super().__init__(fn, points)
 
-        self.signals = WorkerSignals()
         self.setAutoDelete(True)
 
     def run(self):
@@ -201,7 +201,6 @@ class AIClusterWorker(TaskWorker):
         self._kwargs = kwargs
 
         super().__init__(self._execute)
-        self.signals = WorkerSignals()
         self.setAutoDelete(True)
 
     def _execute(self):
@@ -222,7 +221,6 @@ class AIRecognizeWorker(TaskWorker):
         self._image_data = image_data
 
         super().__init__(ai_manager.recognize_digit, image_data)
-        self.signals = WorkerSignals()
         self.setAutoDelete(True)
 
 
@@ -236,5 +234,4 @@ class AIGeneratePointsWorker(TaskWorker):
         self._y_range = y_range
 
         super().__init__(ai_manager.generate_random_points, n, x_range, y_range)
-        self.signals = WorkerSignals()
         self.setAutoDelete(True)

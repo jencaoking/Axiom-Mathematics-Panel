@@ -1,4 +1,5 @@
 import logging
+import threading
 from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ class AgentRegistry:
     def __init__(self, ai_manager):
         self.ai_manager = ai_manager
         self.agents = {}  # 存放所有已注册的专家 Agent
+        self._execution_timeout = 300  # [修复] 整体执行超时时间（秒）
 
     def register_agent(self, name, description, agent_instance):
         """注册一个专家 Agent 及其能力描述"""
@@ -118,6 +120,8 @@ class AgentRegistry:
                           on_geom_cb=None):
         """
         核心路由逻辑：分类 -> 派发 -> 执行
+
+        [修复] 添加整体执行超时控制，防止 LLM 响应慢导致系统阻塞
         """
         if not self.agents:
             if on_thought_cb:
@@ -175,9 +179,31 @@ class AgentRegistry:
                     on_thought_cb(f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】")
 
             # 4. 真正移交控制权，启动该专家的 ReAct 推理闭环
+            # [修复] 添加超时控制，防止 LLM 响应慢导致系统阻塞
             expert_agent = self.agents[selected_agent_name]["instance"]
-            expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb,
-                                       on_finish_cb, on_geom_cb)
+
+            result_container = {'finished': False, 'error': None}
+
+            def _execute_with_timeout():
+                try:
+                    expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb,
+                                               on_finish_cb, on_geom_cb)
+                except Exception as e:
+                    result_container['error'] = e
+                finally:
+                    result_container['finished'] = True
+
+            exec_thread = threading.Thread(target=_execute_with_timeout, daemon=True)
+            exec_thread.start()
+            exec_thread.join(timeout=self._execution_timeout)
+
+            if not result_container['finished']:
+                if on_thought_cb:
+                    on_thought_cb(f"⏰ 专家执行超时（超过 {self._execution_timeout} 秒），已强制终止。")
+                if on_finish_cb:
+                    on_finish_cb(False, f"执行超时（{self._execution_timeout}秒）")
+            elif result_container['error']:
+                raise result_container['error']
 
         except Exception as e:
             if on_thought_cb:

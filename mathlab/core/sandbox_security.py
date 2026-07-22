@@ -17,9 +17,15 @@ class CodeSecurityScanner(ast.NodeVisitor):
         'inspect', 'importlib', 'ast', 'code', 'codeop',
         'ptrace', 'resource', 'signal',
     }
-    
+
     # 黑名单：严禁调用的高危内置函数
     BANNED_FUNCTIONS = {'eval', 'exec', 'open', 'compile', 'globals', 'locals', '__import__'}
+
+    # [安全修复] 黑名单：严禁访问的危险属性（用于逃逸沙箱）
+    BANNED_ATTRIBUTES = {
+        '__subclasses__', '__mro__', '__bases__', '__class__', '__globals__',
+        '__builtins__', '__code__', '__func__', '__dict__', '__module__',
+    }
 
     def __init__(self) -> None:
         super().__init__()
@@ -44,11 +50,20 @@ class CodeSecurityScanner(ast.NodeVisitor):
         if isinstance(node.func, ast.Name):
             if node.func.id in self.BANNED_FUNCTIONS:
                 self.errors.append(f"安全拦截: 禁止调用高危函数 '{node.func.id}()'")
+            # [安全修复] 拦截 type() 内置函数，防止通过 type() 创建新类逃逸
+            if node.func.id == 'type':
+                self.errors.append("安全拦截: 禁止调用 'type()' 函数")
         # [安全修复] 拦截通过属性访问绕过的调用，如 obj.__import__()
         elif isinstance(node.func, ast.Attribute):
             attr_name = node.func.attr
             if attr_name in self.BANNED_FUNCTIONS or attr_name.startswith('__'):
                 self.errors.append(f"安全拦截: 禁止通过属性访问 '{attr_name}'")
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        """[安全修复] 拦截危险属性访问，如 __subclasses__, __mro__ 等"""
+        if node.attr in self.BANNED_ATTRIBUTES:
+            self.errors.append(f"安全拦截: 禁止访问危险属性 '{node.attr}'")
         self.generic_visit(node)
 
 def is_code_safe(code_string: str) -> Tuple[bool, str]:

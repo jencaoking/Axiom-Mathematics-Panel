@@ -7,6 +7,13 @@ try:
 except ImportError:
     KernelManager = None
 
+try:
+    from mathlab.utils.logger import get_logger
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+
 from mathlab.core.sandbox_security import is_code_safe
 
 class JupyterSandbox:
@@ -19,13 +26,13 @@ class JupyterSandbox:
         self.km.start_kernel()
         self.kc = self.km.client()
         self.kc.start_channels()
-        
+
         # 等待内核启动
         try:
             self.kc.wait_for_ready(timeout=10)
-            print("Jupyter 内核已成功启动并在后台待命。")
+            logger.info("Jupyter 内核已成功启动并在后台待命。")
         except RuntimeError:
-            print("警告: Jupyter 内核启动超时。")
+            logger.warning("Jupyter 内核启动超时。")
 
     def execute_code(self, code: str, timeout: int = 5) -> Dict[str, Any]:
         """
@@ -87,13 +94,13 @@ class JupyterSandbox:
 
     def restart_kernel(self) -> None:
         """强杀并重启内核（用于清理内存或打破死循环）"""
-        print("正在重启 Jupyter 内核...")
+        logger.info("正在重启 Jupyter 内核...")
         # [BUG修复] 关闭旧客户端通道，防止 ZeroMQ socket 泄漏
         if hasattr(self, 'kc') and self.kc:
             try:
                 self.kc.stop_channels()
-            except:
-                pass
+            except Exception:
+                logger.warning("关闭旧内核通道时出现异常", exc_info=True)
         self.km.restart_kernel(now=True)
         self.kc = self.km.client()
         self.kc.start_channels()

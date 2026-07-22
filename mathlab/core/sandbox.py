@@ -105,19 +105,19 @@ class SandboxProcess:
     def run_code(self, code, timeout=None):
         if timeout is None:
             timeout = self.max_time_seconds
-        
+
         if not self.process or self.process.poll() is not None:
             self._start_process()
-            
+
         self._watchdog_triggered = False
         self._watchdog_error_msg = ""
-        
+
         req = json.dumps({'code': code})
         self.process.stdin.write(req + '\n')
         self.process.stdin.flush()
-        
+
         result_queue = Queue()
-        
+
         def read_response():
             try:
                 line = self.process.stdout.readline()
@@ -125,42 +125,28 @@ class SandboxProcess:
                     result_queue.put(json.loads(line))
             except Exception:
                 pass
-                
+
         reader_thread = threading.Thread(target=read_response, daemon=True)
         reader_thread.start()
-        
-        # Watchdog logic
-        start_time = time.time()
-        while reader_thread.is_alive():
-            elapsed = time.time() - start_time
-            if elapsed > timeout:
-                self._watchdog_triggered = True
-                self._watchdog_error_msg = f"Execution timed out after {timeout} seconds."
-                self.terminate()
-                break
-                
-            if psutil and self.process:
-                try:
-                    parent = psutil.Process(self.process.pid)
-                    total_memory = parent.memory_info().rss
-                    for child in parent.children(recursive=True):
-                        total_memory += child.memory_info().rss
-                    if (total_memory / (1024 * 1024)) > self.max_memory_mb:
-                        self._watchdog_triggered = True
-                        self._watchdog_error_msg = "Memory limit exceeded."
-                        self.terminate()
-                        break
-                except Exception:
-                    pass
-            time.sleep(0.05)
-            
+
+        # [修复] 启动独立的看门狗线程统一监控超时和内存，避免主循环重复检查
+        watchdog_thread = threading.Thread(
+            target=self._monitor_watchdog,
+            args=(timeout,),
+            daemon=True
+        )
+        watchdog_thread.start()
+
+        # 主循环仅等待读取线程完成，超时/内存由看门狗处理
+        reader_thread.join(timeout=timeout + 2)
+
         if self._watchdog_triggered:
             return {'success': False, 'output': '', 'error': self._watchdog_error_msg, 'result': None}
-            
+
         if not result_queue.empty():
             res = result_queue.get()
             return {'success': res.get('success', False), 'output': res.get('output', ''), 'error': res.get('error', ''), 'result': None}
-            
+
         return {'success': False, 'output': '', 'error': 'Sandbox process died unexpectedly', 'result': None}
 
     

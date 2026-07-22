@@ -1,43 +1,69 @@
 from mathlab.core.cs_calculus_engine import cs_calculus
 import re
 import functools
-from typing import TYPE_CHECKING
+import threading
+from typing import TYPE_CHECKING, Optional, Any
+
+try:
+    from mathlab.utils.logger import get_logger
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import sympy  # noqa: F401
-    from sympy import (  # noqa: F401
-        symbols, Symbol, Eq, solve, simplify, expand, factor,
-        diff, integrate, limit, latex, sin, cos, tan, log, exp,
-        sqrt, pi, Rational, Function, Derivative, Integral, sympify
-    )
-
-import threading
 
 _sympy_lock = threading.Lock()
 _sympy_loaded = False
 
+# 使用模块级字典安全存储 sympy 对象，避免污染全局命名空间
+_sympy_modules: dict[str, Any] = {}
+
 
 def _load_sympy():
+    """延迟加载 sympy 并将组件存入隔离字典，而非 globals()。"""
     global _sympy_loaded
     if _sympy_loaded:
         return
     with _sympy_lock:
         if _sympy_loaded:
             return
-        import sympy  # noqa: F401, F811
-        from sympy import (  # noqa: F401, F811
+        import sympy
+        from sympy import (
             symbols, Symbol, Eq, solve, simplify, expand, factor,
             diff, integrate, limit, latex, sin, cos, tan, log, exp,
             sqrt, pi, Rational, Function, Derivative, Integral, sympify
         )
-        globals().update(locals())
+        _sympy_modules.update({
+            'sympy': sympy,
+            'symbols': symbols,
+            'Symbol': Symbol,
+            'Eq': Eq,
+            'solve': solve,
+            'simplify': simplify,
+            'expand': expand,
+            'factor': factor,
+            'diff': diff,
+            'integrate': integrate,
+            'limit': limit,
+            'latex': latex,
+        })
         _sympy_loaded = True
+
+
+def _get_sympy_func(name: str) -> Any:
+    """从隔离字典中安全获取 sympy 函数。"""
+    _load_sympy()
+    if name not in _sympy_modules:
+        raise AttributeError(f"sympy 函数 '{name}' 未加载")
+    return _sympy_modules[name]
 
 
 @functools.lru_cache(maxsize=1024)
 def _cached_sympify(expr_str):
     _load_sympy()
-    from sympy import sympify  # noqa: F401, F811
+    from sympy import sympify
     return sympify(expr_str)
 
 
@@ -55,6 +81,8 @@ class CASProvider:
 
     def _get_symbol(self, name):
         _load_sympy()
+        sympy = _get_sympy_func('sympy')
+        Symbol = _get_sympy_func('Symbol')
         with self._cache_lock:
             if name in self.symbols_cache:
                 return self.symbols_cache[name]
@@ -67,6 +95,7 @@ class CASProvider:
 
     def parse_expression(self, expr_str):
         _load_sympy()
+        sympy = _get_sympy_func('sympy')
         try:
             result = _cached_sympify(expr_str)
             with self._cache_lock:
@@ -82,10 +111,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = simplify(expr)
+        result = _get_sympy_func('simplify')(expr)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
@@ -93,10 +122,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = expand(expr)
+        result = _get_sympy_func('expand')(expr)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
@@ -104,16 +133,20 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = factor(expr)
+        result = _get_sympy_func('factor')(expr)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
     def solve_equation(self, equation_str, variable='x'):
         try:
             x = self._get_symbol(variable)
+            sympy = _get_sympy_func('sympy')
+            Eq = _get_sympy_func('Eq')
+            solve = _get_sympy_func('solve')
+            latex = _get_sympy_func('latex')
 
             # 使用正则表达式精确匹配单个等号，排除 >=, <=, ==
             match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
@@ -145,10 +178,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = diff(expr, x)
+        result = _get_sympy_func('diff')(expr, x)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
@@ -157,10 +190,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = integrate(expr, x)
+        result = _get_sympy_func('integrate')(expr, x)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
@@ -169,10 +202,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = integrate(expr, (x, lower, upper))
+        result = _get_sympy_func('integrate')(expr, (x, lower, upper))
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result),
             "numeric": float(result) if result.is_number else None
         }
@@ -182,10 +215,10 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = limit(expr, x, point)
+        result = _get_sympy_func('limit')(expr, x, point)
         return {
             "success": True,
-            "latex": latex(result),
+            "latex": _get_sympy_func('latex')(result),
             "result": str(result)
         }
 
@@ -197,7 +230,7 @@ class CASProvider:
             result = expr.evalf()
             return {
                 "success": True,
-                "latex": latex(result),
+                "latex": _get_sympy_func('latex')(result),
                 "result": str(result),
                 "numeric": float(result) if result.is_number else None
             }
@@ -216,6 +249,9 @@ class CASProvider:
         """求解两个几何对象的交点"""
         _load_sympy()
         try:
+            symbols = _get_sympy_func('symbols')
+            solve = _get_sympy_func('solve')
+            Eq = _get_sympy_func('Eq')
             x, y = symbols('x y')
 
             eq1 = self._object_to_equation(obj1, x, y)
@@ -251,6 +287,7 @@ class CASProvider:
 
     def _object_to_equation(self, obj, x, y):
         """将几何对象转换为 SymPy 方程"""
+        Eq = _get_sympy_func('Eq')
         obj_type = obj.type
 
         if obj_type == 'Line':
@@ -276,6 +313,8 @@ class CASProvider:
         """从直线方程中提取两个控制点坐标"""
         _load_sympy()
         try:
+            symbols = _get_sympy_func('symbols')
+            simplify = _get_sympy_func('simplify')
             x, y = symbols('x y')
 
             match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
@@ -395,7 +434,7 @@ class SmartCalculusSolver:
         智能积分求解器：先解析 (Python)，后数值 (C#)
         """
         _load_sympy()
-        from sympy import Symbol, integrate, Integral, lambdify  # noqa: F401, F811
+        from sympy import Symbol, integrate, Integral, lambdify
         from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
         x = Symbol(var_name)
         try:
@@ -411,7 +450,7 @@ class SmartCalculusSolver:
             raise ValueError(f"无法解析数学表达式: {expression_str}")
 
         # 尝试 1：SymPy 寻找完美解析解 (符号运算)
-        print(f"正在尝试符号解析积分: {expression_str} ...")
+        logger.info(f"正在尝试符号解析积分: {expression_str} ...")
         integral_expr = integrate(expr, (x, a, b))
 
         # 如果 integral_expr 里不再包含未计算的 Integral 对象，说明求出了解析解
@@ -420,7 +459,7 @@ class SmartCalculusSolver:
             return {"type": "exact", "value": exact_val,
                     "method": "SymPy Symbolic"}
 
-        print("解析解不存在或过于复杂，正在降级到 C# 自适应数值引擎...")
+        logger.info("解析解不存在或过于复杂，正在降级到 C# 自适应数值引擎...")
         return SmartCalculusSolver._fallback_to_csharp(expr, x, a, b)
 
     @staticmethod
