@@ -181,7 +181,70 @@
     "dfs": "DFS",
     "dijkstra": "Dijkstra",
     "convex_hull": "凸包",
-    "k_means": "K-均值"
+    "k_means": "K-均值",
+    "desc": {
+      "bubble": {
+        "initial": "初始数组",
+        "comparing": "比较 {0} 和 {1}",
+        "swapped": "交换了 {0} 和 {1}",
+        "pass_complete": "第 {0} 趟完成",
+        "complete": "排序完成！"
+      },
+      "quick": {
+        "initial": "初始数组",
+        "pivot": "枢轴: {0}",
+        "comparing_pivot": "比较 {0} 与枢轴 {1}",
+        "swapped": "交换了 {0} 和 {1}",
+        "pivot_placed": "枢轴 {0} 放置到位置 {1}",
+        "complete": "快速排序完成！"
+      },
+      "binary": {
+        "searching": "在已排序数组中查找 {0}",
+        "check_mid": "检查索引 {0} 处的中间元素: {1}",
+        "found": "在索引 {1} 处找到 {0}！",
+        "go_right": "{0} < {1}，搜索右半部分",
+        "go_left": "{0} > {1}，搜索左半部分",
+        "not_found": "数组中未找到 {0}"
+      },
+      "bfs": {
+        "start": "从节点 {0} 开始广度优先搜索",
+        "processing": "处理节点 {0}",
+        "visit_neighbor": "访问邻居 {0}",
+        "complete": "BFS 完成！遍历顺序: {0}"
+      },
+      "dfs": {
+        "start": "从节点 {0} 开始深度优先搜索",
+        "visiting": "访问节点 {0}",
+        "add_neighbor": "将邻居 {0} 加入栈",
+        "complete": "DFS 完成！遍历顺序: {0}"
+      },
+      "dijkstra": {
+        "start": "从节点 {0} 开始 Dijkstra 算法",
+        "processing": "处理节点 {0}，距离 {1}",
+        "updated": "更新到 {0} 的距离: {1}",
+        "complete": "Dijkstra 完成！距离: {0}"
+      },
+      "convex": {
+        "initial": "初始点集",
+        "remove_lower": "从下凸包移除点 {0}",
+        "add_lower": "将点 {0} 加入下凸包",
+        "remove_upper": "从上凸包移除点 {0}",
+        "add_upper": "将点 {0} 加入上凸包",
+        "complete": "凸包完成！顶点: {0}"
+      },
+      "kmeans": {
+        "initial_centers": "初始中心: {0}",
+        "assigning": "将 {0} 分配到簇 {1}",
+        "empty_cluster": "簇 {0} 为空，保持中心在 {1}",
+        "updating_center": "更新中心 {0} 为 {1}",
+        "iteration_complete": "第 {0} 次迭代完成",
+        "complete": "K-means 在 {0} 次迭代后完成！"
+      },
+      "error": {
+        "nx_missing": "请先安装 networkx 库：pip install networkx",
+        "kmeans_failed": "K-means 失败：点数 ({0}) 小于簇数 ({1})"
+      }
+    }
   },
   "dialogs": {
     "error": "错误",

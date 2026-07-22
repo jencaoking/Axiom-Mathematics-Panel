@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MathLab.CSharpEngine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+da7a385d5ce057c2883d7a3663719a0ddc378f8b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+449daa7fc7972f8f53ecf572fabc93ba5a5f5d37")]
 [assembly: System.Reflection.AssemblyProductAttribute("MathLab.CSharpEngine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MathLab.CSharpEngine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

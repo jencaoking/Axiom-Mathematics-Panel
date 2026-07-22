@@ -31,7 +31,7 @@ class AlgoVisPanel(QDockWidget):
         self.algorithm_combo.addItem(t('algo_vis.dfs'), 'dfs')
         self.algorithm_combo.addItem(t('algo_vis.dijkstra'), 'dijkstra')
         self.algorithm_combo.addItem(t('algo_vis.convex_hull'), 'convex_hull')
-        self.algorithm_combo.addItem(t('algo_vis.k_means'), 'k-means')
+        self.algorithm_combo.addItem(t('algo_vis.k_means'), 'kmeans')
 
         # Parameter row
         self.params_layout = QHBoxLayout()
@@ -153,7 +153,7 @@ class AlgoVisPanel(QDockWidget):
         params = {}
         if algorithm_name in ['bubble_sort', 'quick_sort']:
             params['arr'] = list(range(self.array_size_spin.value(), 0, -1))
-        elif algorithm_name == 'k-means':
+        elif algorithm_name == 'kmeans':
             params['k'] = self.clusters_spin.value()
 
         self.algorithm_selected.emit(algorithm_name, params)

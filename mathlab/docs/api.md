@@ -230,8 +230,8 @@ class AlgoAnimator
 | `bfs` | Breadth-first search |
 | `dfs` | Depth-first search |
 | `dijkstra` | Dijkstra's algorithm |
-| `convex_hull` | Convex hull (Graham scan) |
-| `kmeans_visual` | K-means clustering animation |
+| `convex_hull` | Convex hull (Andrew's monotone chain) |
+| `kmeans` | K-means clustering animation |
 
 **Methods:**
 

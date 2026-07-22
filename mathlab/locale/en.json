@@ -181,7 +181,70 @@
     "dfs": "DFS",
     "dijkstra": "Dijkstra",
     "convex_hull": "Convex Hull",
-    "k_means": "K-means"
+    "k_means": "K-means",
+    "desc": {
+      "bubble": {
+        "initial": "Initial array",
+        "comparing": "Comparing {0} and {1}",
+        "swapped": "Swapped {0} and {1}",
+        "pass_complete": "Pass {0} complete",
+        "complete": "Sorting complete!"
+      },
+      "quick": {
+        "initial": "Initial array",
+        "pivot": "Pivot: {0}",
+        "comparing_pivot": "Comparing {0} with pivot {1}",
+        "swapped": "Swapped {0} and {1}",
+        "pivot_placed": "Pivot {0} placed at position {1}",
+        "complete": "Quick sort complete!"
+      },
+      "binary": {
+        "searching": "Searching for {0} in sorted array",
+        "check_mid": "Checking middle element at index {0}: {1}",
+        "found": "Found {0} at index {1}!",
+        "go_right": "{0} < {1}, searching right half",
+        "go_left": "{0} > {1}, searching left half",
+        "not_found": "{0} not found in array"
+      },
+      "bfs": {
+        "start": "Starting BFS from node {0}",
+        "processing": "Processing node {0}",
+        "visit_neighbor": "Visiting neighbor {0}",
+        "complete": "BFS complete! Order: {0}"
+      },
+      "dfs": {
+        "start": "Starting DFS from node {0}",
+        "visiting": "Visiting node {0}",
+        "add_neighbor": "Adding neighbor {0} to stack",
+        "complete": "DFS complete! Order: {0}"
+      },
+      "dijkstra": {
+        "start": "Starting Dijkstra from node {0}",
+        "processing": "Processing node {0} with distance {1}",
+        "updated": "Updated distance to {0}: {1}",
+        "complete": "Dijkstra complete! Distances: {0}"
+      },
+      "convex": {
+        "initial": "Initial points",
+        "remove_lower": "Removing point {0} from lower hull",
+        "add_lower": "Adding point {0} to lower hull",
+        "remove_upper": "Removing point {0} from upper hull",
+        "add_upper": "Adding point {0} to upper hull",
+        "complete": "Convex hull complete! Points: {0}"
+      },
+      "kmeans": {
+        "initial_centers": "Initial centers: {0}",
+        "assigning": "Assigning {0} to cluster {1}",
+        "empty_cluster": "Cluster {0} is empty, keeping center at {1}",
+        "updating_center": "Updating center {0} to {1}",
+        "iteration_complete": "Iteration {0} complete",
+        "complete": "K-means complete in {0} iterations!"
+      },
+      "error": {
+        "nx_missing": "Please install networkx first: pip install networkx",
+        "kmeans_failed": "K-means failed: number of points ({0}) is less than number of clusters ({1})"
+      }
+    }
   },
   "dialogs": {
     "error": "Error",

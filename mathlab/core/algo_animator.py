@@ -2,6 +2,8 @@ import random
 import heapq
 from collections import deque
 
+from mathlab.utils.i18n_manager import t
+
 # [P0修复 Bug2] 引入 networkx 并做异常降级处理，防止未安装时整个模块崩溃
 try:
     import networkx as nx
@@ -115,7 +117,7 @@ class AlgoAnimator:
             'comparing': [],
             'swapping': [],
             'sorted': [],
-            'description': 'Initial array'
+            'description': t('algo_vis.desc.bubble.initial')
         }
 
         for i in range(n):
@@ -127,7 +129,7 @@ class AlgoAnimator:
                     'comparing': [j, j + 1],
                     'swapping': [],
                     'sorted': list(range(n - i, n)),
-                    'description': f'Comparing {arr[j]} and {arr[j + 1]}'
+                    'description': t('algo_vis.desc.bubble.comparing', arr[j], arr[j + 1])
                 }
 
                 if arr[j] > arr[j + 1]:
@@ -139,7 +141,7 @@ class AlgoAnimator:
                         'comparing': [],
                         'swapping': [j, j + 1],
                         'sorted': list(range(n - i, n)),
-                        'description': f'Swapped {arr[j + 1]} and {arr[j]}'
+                        'description': t('algo_vis.desc.bubble.swapped', arr[j + 1], arr[j])
                     }
 
             if not swapped:
@@ -151,7 +153,7 @@ class AlgoAnimator:
                 'comparing': [],
                 'swapping': [],
                 'sorted': list(range(n - i - 1, n)),
-                'description': f'Pass {i + 1} complete'
+                'description': t('algo_vis.desc.bubble.pass_complete', i + 1)
             }
 
         yield {
@@ -160,7 +162,7 @@ class AlgoAnimator:
             'comparing': [],
             'swapping': [],
             'sorted': list(range(n)),
-            'description': 'Sorting complete!'
+            'description': t('algo_vis.desc.bubble.complete')
         }
 
     def quick_sort_generator(self, arr=None):
@@ -175,7 +177,7 @@ class AlgoAnimator:
             'swapping': [],
             'sorted': [],
             'pivot': -1,
-            'description': 'Initial array'
+            'description': t('algo_vis.desc.quick.initial')
         }
 
         def quick_sort_helper(low, high):
@@ -191,7 +193,7 @@ class AlgoAnimator:
                     'sorted': [],
                     'pivot': high,
                     'partition': (low, high),
-                    'description': f'Pivot: {pivot}'
+                    'description': t('algo_vis.desc.quick.pivot', pivot)
                 }
 
                 for j in range(low, high):
@@ -203,7 +205,7 @@ class AlgoAnimator:
                         'sorted': [],
                         'pivot': high,
                         'partition': (low, high),
-                        'description': f'Comparing {arr[j]} with pivot {pivot}'
+                        'description': t('algo_vis.desc.quick.comparing_pivot', arr[j], pivot)
                     }
 
                     if arr[j] <= pivot:
@@ -218,7 +220,7 @@ class AlgoAnimator:
                                 'sorted': [],
                                 'pivot': high,
                                 'partition': (low, high),
-                                'description': f'Swapped {arr[j]} and {arr[i]}'
+                                'description': t('algo_vis.desc.quick.swapped', arr[j], arr[i])
                             }
 
                 arr[i + 1], arr[high] = arr[high], arr[i + 1]
@@ -231,7 +233,7 @@ class AlgoAnimator:
                     'swapping': [pi, high],
                     'sorted': [pi],
                     'pivot': -1,
-                    'description': f'Pivot {pivot} placed at position {pi}'
+                    'description': t('algo_vis.desc.quick.pivot_placed', pivot, pi)
                 }
 
                 yield from quick_sort_helper(low, pi - 1)
@@ -246,7 +248,7 @@ class AlgoAnimator:
             'swapping': [],
             'sorted': list(range(len(arr))),
             'pivot': -1,
-            'description': 'Quick sort complete!'
+            'description': t('algo_vis.desc.quick.complete')
         }
 
     def binary_search_generator(self, arr=None, target=None):
@@ -264,7 +266,7 @@ class AlgoAnimator:
             'target': target,
             'search_range': (low, high),
             'found': False,
-            'description': f'Searching for {target} in sorted array'
+            'description': t('algo_vis.desc.binary.searching', target)
         }
 
         while low <= high:
@@ -277,7 +279,7 @@ class AlgoAnimator:
                 'search_range': (low, high),
                 'mid': mid,
                 'found': False,
-                'description': f'Checking middle element at index {mid}: {arr[mid]}'
+                'description': t('algo_vis.desc.binary.check_mid', mid, arr[mid])
             }
 
             if arr[mid] == target:
@@ -288,7 +290,7 @@ class AlgoAnimator:
                     'search_range': (mid, mid),
                     'mid': mid,
                     'found': True,
-                    'description': f'Found {target} at index {mid}!'
+                    'description': t('algo_vis.desc.binary.found', target, mid)
                 }
                 return
             elif arr[mid] < target:
@@ -300,7 +302,7 @@ class AlgoAnimator:
                     'search_range': (low, high),
                     'mid': mid,
                     'found': False,
-                    'description': f'{arr[mid]} < {target}, searching right half'
+                    'description': t('algo_vis.desc.binary.go_right', arr[mid], target)
                 }
             else:
                 high = mid - 1
@@ -311,7 +313,7 @@ class AlgoAnimator:
                     'search_range': (low, high),
                     'mid': mid,
                     'found': False,
-                    'description': f'{arr[mid]} > {target}, searching left half'
+                    'description': t('algo_vis.desc.binary.go_left', arr[mid], target)
                 }
 
         yield {
@@ -320,13 +322,13 @@ class AlgoAnimator:
             'target': target,
             'search_range': (-1, -1),
             'found': False,
-            'description': f'{target} not found in array'
+            'description': t('algo_vis.desc.binary.not_found', target)
         }
 
     def bfs_generator(self, graph=None, start=0):
         # [P0修复 Bug2] 进入函数先检查依赖
         if not NX_AVAILABLE:
-            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            yield {'type': 'error', 'description': t('algo_vis.desc.error.nx_missing')}
             return
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
@@ -348,7 +350,7 @@ class AlgoAnimator:
             'current': start,
             'queue': list(queue),
             'order': order.copy(),
-            'description': f'Starting BFS from node {start}'
+            'description': t('algo_vis.desc.bfs.start', start)
         }
 
         while queue:
@@ -363,7 +365,7 @@ class AlgoAnimator:
                 'current': node,
                 'queue': queue.copy(),
                 'order': order.copy(),
-                'description': f'Processing node {node}'
+                'description': t('algo_vis.desc.bfs.processing', node)
             }
 
             for neighbor in adj_list[node]:
@@ -379,7 +381,7 @@ class AlgoAnimator:
                         'current': neighbor,
                         'queue': queue.copy(),
                         'order': order.copy(),
-                        'description': f'Visiting neighbor {neighbor}'
+                        'description': t('algo_vis.desc.bfs.visit_neighbor', neighbor)
                     }
 
         yield {
@@ -390,13 +392,13 @@ class AlgoAnimator:
             'current': -1,
             'queue': [],
             'order': order.copy(),
-            'description': 'BFS complete! Order: ' + str(order)
+            'description': t('algo_vis.desc.bfs.complete', order)
         }
 
     def dfs_generator(self, graph=None, start=0):
         # [P0修复 Bug2] 进入函数先检查依赖
         if not NX_AVAILABLE:
-            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            yield {'type': 'error', 'description': t('algo_vis.desc.error.nx_missing')}
             return
         if graph is None:
             graph = nx.erdos_renyi_graph(6, 0.5, directed=False)
@@ -417,7 +419,7 @@ class AlgoAnimator:
             'current': start,
             'stack': stack.copy(),
             'order': order.copy(),
-            'description': f'Starting DFS from node {start}'
+            'description': t('algo_vis.desc.dfs.start', start)
         }
 
         while stack:
@@ -437,7 +439,7 @@ class AlgoAnimator:
                 'current': node,
                 'stack': stack.copy(),
                 'order': order.copy(),
-                'description': f'Visiting node {node}'
+                'description': t('algo_vis.desc.dfs.visiting', node)
             }
 
             for neighbor in reversed(adj_list[node]):
@@ -452,7 +454,7 @@ class AlgoAnimator:
                         'current': neighbor,
                         'stack': stack.copy(),
                         'order': order.copy(),
-                        'description': f'Adding neighbor {neighbor} to stack'
+                        'description': t('algo_vis.desc.dfs.add_neighbor', neighbor)
                     }
 
         yield {
@@ -463,13 +465,13 @@ class AlgoAnimator:
             'current': -1,
             'stack': [],
             'order': order.copy(),
-            'description': 'DFS complete! Order: ' + str(order)
+            'description': t('algo_vis.desc.dfs.complete', order)
         }
 
     def dijkstra_generator(self, graph=None, start=0):
         # [P0修复 Bug2] 进入函数先检查依赖
         if not NX_AVAILABLE:
-            yield {'type': 'error', 'description': '\u8bf7先安装 networkx 库\uff1apip install networkx'}
+            yield {'type': 'error', 'description': t('algo_vis.desc.error.nx_missing')}
             return
         if graph is None:
             graph = nx.complete_graph(5)
@@ -499,7 +501,7 @@ class AlgoAnimator:
             'distances': distances.copy(),
             'visited': visited.copy(),
             'current': start,
-            'description': f'Starting Dijkstra from node {start}'
+            'description': t('algo_vis.desc.dijkstra.start', start)
         }
 
         while pq:
@@ -517,7 +519,7 @@ class AlgoAnimator:
                 'distances': distances.copy(),
                 'visited': visited.copy(),
                 'current': u,
-                'description': f'Processing node {u} with distance {dist_u}'
+                'description': t('algo_vis.desc.dijkstra.processing', u, dist_u)
             }
 
             for v, weight in adj_list[u]:
@@ -533,7 +535,7 @@ class AlgoAnimator:
                         'distances': distances.copy(),
                         'visited': visited.copy(),
                         'current': v,
-                        'description': f'Updated distance to {v}: {distances[v]}'
+                        'description': t('algo_vis.desc.dijkstra.updated', v, distances[v])
                     }
 
         yield {
@@ -543,7 +545,7 @@ class AlgoAnimator:
             'distances': distances.copy(),
             'visited': visited.copy(),
             'current': -1,
-            'description': 'Dijkstra complete! Distances: ' + str(distances)
+            'description': t('algo_vis.desc.dijkstra.complete', distances)
         }
 
     def convex_hull_generator(self, points=None):
@@ -562,7 +564,7 @@ class AlgoAnimator:
             'points': points.copy(),
             'hull': [],
             'current_edge': None,
-            'description': 'Initial points'
+            'description': t('algo_vis.desc.convex.initial')
         }
 
         lower = []
@@ -575,7 +577,7 @@ class AlgoAnimator:
                     'hull': lower.copy(),
                     'current_edge': (lower[-1] if lower else None, p),
                     'removed_point': removed,
-                    'description': f'Removing point {removed} from lower hull'
+                    'description': t('algo_vis.desc.convex.remove_lower', removed)
                 }
             lower.append(p)
             yield {
@@ -583,7 +585,7 @@ class AlgoAnimator:
                 'points': points.copy(),
                 'hull': lower.copy(),
                 'current_edge': (lower[-2] if len(lower) > 1 else None, p),
-                'description': f'Adding point {p} to lower hull'
+                'description': t('algo_vis.desc.convex.add_lower', p)
             }
 
         upper = []
@@ -596,7 +598,7 @@ class AlgoAnimator:
                     'hull': lower + upper,
                     'current_edge': (upper[-1] if upper else None, p),
                     'removed_point': removed,
-                    'description': f'Removing point {removed} from upper hull'
+                    'description': t('algo_vis.desc.convex.remove_upper', removed)
                 }
             upper.append(p)
             yield {
@@ -604,7 +606,7 @@ class AlgoAnimator:
                 'points': points.copy(),
                 'hull': lower + upper,
                 'current_edge': (upper[-2] if len(upper) > 1 else None, p),
-                'description': f'Adding point {p} to upper hull'
+                'description': t('algo_vis.desc.convex.add_upper', p)
             }
 
         full_hull = lower[:-1] + upper[:-1]
@@ -614,7 +616,7 @@ class AlgoAnimator:
             'points': points.copy(),
             'hull': full_hull,
             'current_edge': None,
-            'description': 'Convex hull complete! Points: ' + str(full_hull)
+            'description': t('algo_vis.desc.convex.complete', full_hull)
         }
 
     def kmeans_generator(self, points=None, k=3):
@@ -623,7 +625,7 @@ class AlgoAnimator:
                       for _ in range(15)]
 
         if k > len(points):
-            yield {'type': 'error', 'description': f'K-means 失败：点数 ({len(points)}) 小于簇数 ({k})'}
+            yield {'type': 'error', 'description': t('algo_vis.desc.error.kmeans_failed', len(points), k)}
             return
 
         centers = random.sample(points, k)
@@ -635,7 +637,7 @@ class AlgoAnimator:
             'centers': centers.copy(),
             'clusters': clusters.copy(),
             'iteration': 0,
-            'description': f'Initial centers: {centers}'
+            'description': t('algo_vis.desc.kmeans.initial_centers', centers)
         }
 
         iteration = 0
@@ -658,7 +660,7 @@ class AlgoAnimator:
                     'current_point': point,
                     'assigned_cluster': cluster_idx,
                     'iteration': iteration,
-                    'description': f'Assigning {point} to cluster {cluster_idx}'
+                    'description': t('algo_vis.desc.kmeans.assigning', point, cluster_idx)
                 }
 
             new_centers = []
@@ -678,7 +680,7 @@ class AlgoAnimator:
                         'clusters': [list(c) for c in clusters],
                         'updated_center': i,
                         'iteration': iteration,
-                        'description': f'Cluster {i} is empty, keeping center at {new_center}'
+                        'description': t('algo_vis.desc.kmeans.empty_cluster', i, new_center)
                     }
                     continue
                 new_centers.append(new_center)
@@ -690,7 +692,7 @@ class AlgoAnimator:
                     'clusters': [list(c) for c in clusters],
                     'updated_center': i,
                     'iteration': iteration,
-                    'description': f'Updating center {i} to {new_center}'
+                    'description': t('algo_vis.desc.kmeans.updating_center', i, new_center)
                 }
 
             max_distance = max(((c1[0] - c2[0])**2 + (c1[1] - c2[1])**2)**0.5
@@ -707,7 +709,7 @@ class AlgoAnimator:
                 'centers': centers.copy(),
                 'clusters': [list(c) for c in clusters],
                 'iteration': iteration,
-                'description': f'Iteration {iteration} complete'
+                'description': t('algo_vis.desc.kmeans.iteration_complete', iteration)
             }
 
         yield {
@@ -716,5 +718,5 @@ class AlgoAnimator:
             'centers': centers.copy(),
             'clusters': [list(c) for c in clusters],
             'iteration': iteration,
-            'description': f'K-means complete in {iteration} iterations!'
+            'description': t('algo_vis.desc.kmeans.complete', iteration)
         }
