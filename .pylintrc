@@ -1,0 +1,34 @@
+[MASTER]
+init-hook=
+disable=
+    C0114,
+    C0115,
+    C0116,
+    R0801,
+
+[MESSAGES CONTROL]
+disable=
+    W0703,
+    R0903,
+    R0913,
+    R0914,
+    R0915,
+    W0611,
+    W0212,
+
+[REPORTS]
+reports=no
+
+[TYPECHECK]
+ignored-modules=PyQt6,
+                 PyQt6.QtWidgets,
+                 PyQt6.QtGui,
+                 PyQt6.QtCore,
+                 PyQt6.QtCharts,
+                 PyQt6.QtSvg,
+                 numpy,
+                 scipy,
+                 matplotlib,
+
+[FORMAT]
+max-line-length=120
