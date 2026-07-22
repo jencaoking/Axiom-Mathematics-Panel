@@ -3,15 +3,13 @@ import json
 import os
 import sys
 
-DEFAULT_LANGUAGE = 'en'
-SUPPORTED_LANGUAGES = {
-    'en': 'English',
-    'zh': '中文'
-}
+DEFAULT_LANGUAGE = "en"
+SUPPORTED_LANGUAGES = {"en": "English", "zh": "中文"}
 
 
 class I18nManager:
     """Singleton i18n manager with language-change notification support."""
+
     _instance = None
     _CACHE_MAX_SIZE = 256  # LRU 缓存上限
 
@@ -28,7 +26,7 @@ class I18nManager:
 
         self.current_language = DEFAULT_LANGUAGE
         self.translations: dict = {}
-        self._listeners: list = []   # list[callable]
+        self._listeners: list = []  # list[callable]
         self._lookup_cache: dict = {}  # {(lang, key): raw_value} — 翻译键查找缓存
 
         self._load_translations()
@@ -38,29 +36,29 @@ class I18nManager:
     # ------------------------------------------------------------------
     def _load_translations(self):
         # 🚨 动态判断运行环境
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             # PyInstaller 打包后的临时运行目录
             base_dir = sys._MEIPASS
         else:
             # 本地源码开发环境
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            
-        locale_dir = os.path.join(base_dir, 'locale')
+
+        locale_dir = os.path.join(base_dir, "locale")
 
         if not os.path.exists(locale_dir):
             print(f"[I18n Error] Locale directory not found: {locale_dir}")
 
         for lang_code in SUPPORTED_LANGUAGES:
-            file_path = os.path.join(locale_dir, f'{lang_code}.json')
+            file_path = os.path.join(locale_dir, f"{lang_code}.json")
             if os.path.exists(file_path):
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         self.translations[lang_code] = json.load(f)
                     print(f"[I18n Success] Loaded language package: {lang_code}")
                 except json.JSONDecodeError as e:
                     print(f"[I18n Fatal] JSON corrupted {lang_code}.json: {e}")
                 except Exception as e:
-                    print(f'[I18n Error] loading {file_path}: {e}')
+                    print(f"[I18n Error] loading {file_path}: {e}")
             else:
                 print(f"[I18n Error] Language file not found: {file_path}")
 
@@ -102,7 +100,7 @@ class I18nManager:
             try:
                 cb(lang_code)
             except Exception as e:
-                print(f'[i18n] Listener error: {e}')
+                print(f"[i18n] Listener error: {e}")
 
     # ------------------------------------------------------------------
     # Translation lookup
@@ -120,7 +118,7 @@ class I18nManager:
             raw_value = self._lookup_cache.pop(cache_key)
             self._lookup_cache[cache_key] = raw_value
         else:
-            keys = key.split('.')
+            keys = key.split(".")
             value = self.translations.get(self.current_language, {})
 
             for k in keys:

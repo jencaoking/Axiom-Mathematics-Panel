@@ -14,8 +14,14 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
-    QListWidget, QListWidgetItem, QLabel, QFrame,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QLabel,
+    QFrame,
     QGraphicsDropShadowEffect,
 )
 from PySide6.QtCore import Qt, Signal, QTimer, QEvent
@@ -23,10 +29,10 @@ from PySide6.QtGui import QColor, QKeySequence, QShortcut, QFont
 
 from mathlab.core.command_manager import CommandManager, Command
 
-
 # ══════════════════════════════════════════════════════════════════
 #  CommandPalette
 # ══════════════════════════════════════════════════════════════════
+
 
 class CommandPalette(QWidget):
     """VS Code 风格的全局命令面板。
@@ -35,7 +41,7 @@ class CommandPalette(QWidget):
     在画布上方。使用 Qt.Tool | Qt.FramelessWindowHint 作为独立浮层。
     """
 
-    command_executed = Signal(str)   # 执行命令后发出命令 id
+    command_executed = Signal(str)  # 执行命令后发出命令 id
 
     # ── 样式常量 ─────────────────────────────────────────────────
     _STYLE = """
@@ -91,7 +97,9 @@ class CommandPalette(QWidget):
     """
 
     def __init__(self, command_manager: CommandManager, parent: QWidget = None):
-        super().__init__(parent, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        super().__init__(
+            parent, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        )
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFixedSize(620, 440)
 
@@ -139,7 +147,9 @@ class CommandPalette(QWidget):
         # 分隔线
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet("background:#3a3b4e; min-height:1px; max-height:1px; border:none;")
+        sep.setStyleSheet(
+            "background:#3a3b4e; min-height:1px; max-height:1px; border:none;"
+        )
         frame_layout.addWidget(sep)
 
         # ── 结果列表 ───────────────────────────────────────────
@@ -208,6 +218,7 @@ class CommandPalette(QWidget):
             self.hide()
         elif event.type() == QEvent.MouseButtonPress:
             from PySide6.QtWidgets import QApplication
+
             widget = QApplication.widgetAt(event.globalPos())
             if widget is None or not self.isAncestorOf(widget):
                 self.hide()
@@ -221,6 +232,7 @@ class CommandPalette(QWidget):
 
     def _check_focus_lost(self):
         from PySide6.QtWidgets import QApplication
+
         fw = QApplication.focusWidget()
         if fw is None or (fw is not self._input and fw is not self._list):
             self.hide()
@@ -250,7 +262,7 @@ class CommandPalette(QWidget):
                 cat_item = QListWidgetItem()
                 cat_widget = self._make_category_header(cmd.category)
                 cat_item.setSizeHint(cat_widget.sizeHint())
-                cat_item.setFlags(Qt.NoItemFlags)   # 不可选
+                cat_item.setFlags(Qt.NoItemFlags)  # 不可选
                 self._list.addItem(cat_item)
                 self._list.setItemWidget(cat_item, cat_widget)
                 prev_category = cmd.category
@@ -273,7 +285,9 @@ class CommandPalette(QWidget):
         layout = QHBoxLayout(w)
         layout.setContentsMargins(16, 0, 16, 0)
         lbl = QLabel(category.upper())
-        lbl.setStyleSheet("background: transparent; color: #5a5c78; font-size: 10px; font-weight: bold; letter-spacing: 1px;")
+        lbl.setStyleSheet(
+            "background: transparent; color: #5a5c78; font-size: 10px; font-weight: bold; letter-spacing: 1px;"
+        )
         layout.addWidget(lbl)
         layout.addStretch()
         return w
@@ -293,7 +307,9 @@ class CommandPalette(QWidget):
 
         # 图标占位（可后期换成真实图标）
         icon_lbl = QLabel("›")
-        icon_lbl.setStyleSheet("background: transparent; color: #5a5c78; font-size: 14px; min-width:16px;")
+        icon_lbl.setStyleSheet(
+            "background: transparent; color: #5a5c78; font-size: 14px; min-width:16px;"
+        )
         icon_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_lbl)
 
@@ -301,12 +317,16 @@ class CommandPalette(QWidget):
         text_col = QVBoxLayout()
         text_col.setSpacing(1)
         title_lbl = QLabel(cmd.title)
-        title_lbl.setStyleSheet("background: transparent; color: #e8eaf0; font-size: 13px;")
+        title_lbl.setStyleSheet(
+            "background: transparent; color: #e8eaf0; font-size: 13px;"
+        )
         text_col.addWidget(title_lbl)
 
         if cmd.description:
             desc_lbl = QLabel(cmd.description)
-            desc_lbl.setStyleSheet("background: transparent; color: #6b6d84; font-size: 11px;")
+            desc_lbl.setStyleSheet(
+                "background: transparent; color: #6b6d84; font-size: 11px;"
+            )
             text_col.addWidget(desc_lbl)
 
         layout.addLayout(text_col)
@@ -360,8 +380,8 @@ class CommandPalette(QWidget):
         if w:
             w.setStyleSheet(
                 "QWidget#cp_row { background: #2d2f42; border-radius:4px; }"
-                if selected else
-                "QWidget#cp_row { background: transparent; }"
+                if selected
+                else "QWidget#cp_row { background: transparent; }"
                 "QWidget#cp_row:hover { background: #2d2f42; border-radius:4px; }"
             )
 
@@ -397,6 +417,7 @@ from PySide6.QtWidgets import QLineEdit, QCompleter, QToolBar
 
 class CommandBar(QToolBar):
     """原有的工具栏内嵌输入框，保持向后兼容。"""
+
     command_entered = Signal(str)
 
     def __init__(self, parent=None):
@@ -404,8 +425,10 @@ class CommandBar(QToolBar):
 
         self.command_edit = QLineEdit()
         from mathlab.utils.i18n_manager import get_i18n
+
         self.command_edit.setPlaceholderText(
-            get_i18n().t('command_bar.placeholder') or "Enter command (Ctrl+Shift+P to open Command Palette)"
+            get_i18n().t("command_bar.placeholder")
+            or "Enter command (Ctrl+Shift+P to open Command Palette)"
         )
         self.command_edit.setStyleSheet("""
             QLineEdit {
@@ -423,10 +446,20 @@ class CommandBar(QToolBar):
 
     def _setup_completer(self):
         commands = [
-            "Point", "Circle", "Segment", "Polygon",
-            "Line", "Ray", "Angle", "Midpoint",
-            "Perpendicular", "Parallel", "Intersection",
-            "Distance", "Area", "Clear",
+            "Point",
+            "Circle",
+            "Segment",
+            "Polygon",
+            "Line",
+            "Ray",
+            "Angle",
+            "Midpoint",
+            "Perpendicular",
+            "Parallel",
+            "Intersection",
+            "Distance",
+            "Area",
+            "Clear",
         ]
         self.completer = QCompleter(commands, self)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)

@@ -11,6 +11,7 @@
 8. AgentRegistry: 超时控制
 9. AIFacade: agent_registry 初始化检查
 """
+
 import os
 import sys
 import json
@@ -22,10 +23,10 @@ from unittest.mock import Mock, patch, MagicMock
 
 import pytest
 
-
 # ═══════════════════════════════════════════════════════════════════
 # 1. CASProvider 测试：验证 globals().update(locals()) 已移除
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestCASProviderFix:
     """测试 CASProvider 不再使用 globals().update(locals())。"""
@@ -38,29 +39,29 @@ class TestCASProviderFix:
         cas_provider._load_sympy()
 
         # 验证 _sympy_modules 字典存在且包含必要的函数
-        assert hasattr(cas_provider, '_sympy_modules')
+        assert hasattr(cas_provider, "_sympy_modules")
         assert isinstance(cas_provider._sympy_modules, dict)
-        assert 'sympy' in cas_provider._sympy_modules
-        assert 'symbols' in cas_provider._sympy_modules
-        assert 'Symbol' in cas_provider._sympy_modules
-        assert 'Eq' in cas_provider._sympy_modules
-        assert 'solve' in cas_provider._sympy_modules
-        assert 'simplify' in cas_provider._sympy_modules
+        assert "sympy" in cas_provider._sympy_modules
+        assert "symbols" in cas_provider._sympy_modules
+        assert "Symbol" in cas_provider._sympy_modules
+        assert "Eq" in cas_provider._sympy_modules
+        assert "solve" in cas_provider._sympy_modules
+        assert "simplify" in cas_provider._sympy_modules
 
     def test_get_sympy_func_returns_correct_object(self):
         """验证 _get_sympy_func 返回正确的 sympy 函数。"""
         from mathlab.core.cas_provider import _get_sympy_func
 
-        symbols = _get_sympy_func('symbols')
-        x = symbols('x')
-        assert str(x) == 'x'
+        symbols = _get_sympy_func("symbols")
+        x = symbols("x")
+        assert str(x) == "x"
 
     def test_get_sympy_func_raises_for_unknown(self):
         """验证 _get_sympy_func 对未知函数名抛出 AttributeError。"""
         from mathlab.core.cas_provider import _get_sympy_func
 
         with pytest.raises(AttributeError, match="未加载"):
-            _get_sympy_func('nonexistent_function')
+            _get_sympy_func("nonexistent_function")
 
     def test_cas_provider_simplify(self, cas):
         """验证 CASProvider.simplify 正常工作。"""
@@ -91,6 +92,7 @@ class TestCASProviderFix:
 # 2. AIFitWorker 测试：验证重复 signals 初始化已移除
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAIFitWorkerFix:
     """测试 AIFitWorker 不再重复初始化 signals。"""
 
@@ -104,7 +106,7 @@ class TestAIFitWorkerFix:
         worker = AIFitWorker(mock_ai_manager, [(1, 2), (3, 4)])
 
         # signals 应该是父类创建的，而非子类重新创建的
-        assert hasattr(worker, 'signals')
+        assert hasattr(worker, "signals")
         assert isinstance(worker.signals, WorkerSignals)
 
     def test_cluster_worker_signals_not_overwritten(self):
@@ -116,7 +118,7 @@ class TestAIFitWorkerFix:
 
         worker = AIClusterWorker(mock_ai_manager, [(1, 2), (3, 4)])
 
-        assert hasattr(worker, 'signals')
+        assert hasattr(worker, "signals")
         assert isinstance(worker.signals, WorkerSignals)
 
     def test_recognize_worker_signals_not_overwritten(self):
@@ -128,7 +130,7 @@ class TestAIFitWorkerFix:
 
         worker = AIRecognizeWorker(mock_ai_manager, [[0.1] * 784])
 
-        assert hasattr(worker, 'signals')
+        assert hasattr(worker, "signals")
         assert isinstance(worker.signals, WorkerSignals)
 
     def test_generate_points_worker_signals_not_overwritten(self):
@@ -140,13 +142,14 @@ class TestAIFitWorkerFix:
 
         worker = AIGeneratePointsWorker(mock_ai_manager, n=5)
 
-        assert hasattr(worker, 'signals')
+        assert hasattr(worker, "signals")
         assert isinstance(worker.signals, WorkerSignals)
 
 
 # ═══════════════════════════════════════════════════════════════════
 # 3. JupyterSandbox 测试：验证 print 替换为 logger
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestJupyterSandboxFix:
     """测试 JupyterSandbox 使用 logger 而非 print。"""
@@ -155,7 +158,7 @@ class TestJupyterSandboxFix:
         """验证模块导入了 logger。"""
         from mathlab.core import jupyter_manager
 
-        assert hasattr(jupyter_manager, 'logger')
+        assert hasattr(jupyter_manager, "logger")
         assert jupyter_manager.logger is not None
 
     def test_no_bare_print_in_source(self):
@@ -166,20 +169,26 @@ class TestJupyterSandboxFix:
         source = inspect.getsource(jupyter_manager)
 
         # 查找 print( 但排除 logger.print 之类
-        lines = source.split('\n')
+        lines = source.split("\n")
         for line in lines:
             stripped = line.strip()
             # 跳过注释和文档字符串
-            if stripped.startswith('#') or stripped.startswith('"') or stripped.startswith("'"):
+            if (
+                stripped.startswith("#")
+                or stripped.startswith('"')
+                or stripped.startswith("'")
+            ):
                 continue
             # 不应有裸 print( 调用
-            assert not (stripped.startswith('print(') or ' print(' in stripped), \
-                f"发现裸 print 调用: {line}"
+            assert not (
+                stripped.startswith("print(") or " print(" in stripped
+            ), f"发现裸 print 调用: {line}"
 
 
 # ═══════════════════════════════════════════════════════════════════
 # 4. CodeSecurityScanner 测试：验证危险属性拦截
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestCodeSecurityScannerFix:
     """测试 CodeSecurityScanner 拦截危险属性访问。"""
@@ -260,6 +269,7 @@ class TestCodeSecurityScannerFix:
 # 5. SandboxProcess 测试：验证重复超时逻辑移除
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestSandboxProcessFix:
     """测试 SandboxProcess 不再重复检查超时。"""
 
@@ -271,9 +281,9 @@ class TestSandboxProcessFix:
         source = inspect.getsource(SandboxProcess.run_code)
 
         # 验证使用了 _monitor_watchdog
-        assert '_monitor_watchdog' in source
+        assert "_monitor_watchdog" in source
         # 验证使用了 reader_thread.join 而非 while 循环
-        assert 'reader_thread.join' in source
+        assert "reader_thread.join" in source
 
     def test_no_duplicate_timeout_check(self):
         """验证主循环中不再有重复的超时检查。"""
@@ -284,9 +294,9 @@ class TestSandboxProcessFix:
 
         # 不应同时存在 elapsed > timeout 和 _monitor_watchdog
         # _monitor_watchdog 已经处理了超时
-        lines = source.split('\n')
-        has_monitor = any('_monitor_watchdog' in line for line in lines)
-        has_elapsed_check = any('elapsed > timeout' in line for line in lines)
+        lines = source.split("\n")
+        has_monitor = any("_monitor_watchdog" in line for line in lines)
+        has_elapsed_check = any("elapsed > timeout" in line for line in lines)
 
         assert has_monitor, "应使用 _monitor_watchdog 线程"
         assert not has_elapsed_check, "不应在主循环中重复检查超时"
@@ -295,6 +305,7 @@ class TestSandboxProcessFix:
 # ═══════════════════════════════════════════════════════════════════
 # 6. AIManager 测试：验证路径处理改进
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestAIManagerPathFix:
     """测试 AIManager.reload_config 路径处理改进。"""
@@ -307,14 +318,14 @@ class TestAIManagerPathFix:
         source = inspect.getsource(AIManager.reload_config)
 
         # 验证有 try-except 降级
-        assert 'except' in source
-        assert 'getcwd' in source  # 降级方案使用 getcwd
+        assert "except" in source
+        assert "getcwd" in source  # 降级方案使用 getcwd
 
     def test_reload_config_handles_missing_file(self, tmp_path):
         """验证 settings.json 不存在时不会崩溃。"""
         from mathlab.core.ai_manager import AIManager
 
-        with patch('os.path.exists', return_value=False):
+        with patch("os.path.exists", return_value=False):
             manager = AIManager.__new__(AIManager)
             manager.settings_manager = None
             manager.client = None
@@ -331,6 +342,7 @@ class TestAIManagerPathFix:
 # ═══════════════════════════════════════════════════════════════════
 # 7. ChatMemoryManager 测试：验证裁剪策略改进
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestChatMemoryManagerFix:
     """测试 ChatMemoryManager 改进的裁剪策略。"""
@@ -409,6 +421,7 @@ class TestChatMemoryManagerFix:
 # 8. AgentRegistry 测试：验证超时控制
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAgentRegistryTimeoutFix:
     """测试 AgentRegistry 添加的超时控制。"""
 
@@ -419,7 +432,7 @@ class TestAgentRegistryTimeoutFix:
         mock_ai_manager = Mock()
         registry = AgentRegistry(mock_ai_manager)
 
-        assert hasattr(registry, '_execution_timeout')
+        assert hasattr(registry, "_execution_timeout")
         assert isinstance(registry._execution_timeout, int)
         assert registry._execution_timeout > 0
 
@@ -430,9 +443,9 @@ class TestAgentRegistryTimeoutFix:
 
         source = inspect.getsource(AgentRegistry.route_and_execute)
 
-        assert 'threading.Thread' in source
-        assert 'exec_thread.join' in source
-        assert 'timeout=self._execution_timeout' in source
+        assert "threading.Thread" in source
+        assert "exec_thread.join" in source
+        assert "timeout=self._execution_timeout" in source
 
     def test_route_and_execute_no_agents(self):
         """验证没有注册 Agent 时正确处理。"""
@@ -448,7 +461,7 @@ class TestAgentRegistryTimeoutFix:
             "test",
             on_thought_cb=lambda t: thoughts.append(t),
             on_code_cb=lambda c: None,
-            on_finish_cb=lambda s, c: finish_called.append((s, c))
+            on_finish_cb=lambda s, c: finish_called.append((s, c)),
         )
 
         assert len(thoughts) > 0
@@ -460,6 +473,7 @@ class TestAgentRegistryTimeoutFix:
 # ═══════════════════════════════════════════════════════════════════
 # 9. AIFacade 测试：验证 agent_registry 初始化检查
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestAIFacadeFix:
     """测试 AIFacade 的 agent_registry 初始化检查。"""
@@ -475,8 +489,10 @@ class TestAIFacadeFix:
             facade = AIFacade(mock_ai_manager, agent_registry=None)
 
         assert facade.agent_registry is None
-        assert any("agent_registry" in record.message and "None" in record.message
-                    for record in caplog.records)
+        assert any(
+            "agent_registry" in record.message and "None" in record.message
+            for record in caplog.records
+        )
 
     def test_no_warning_when_registry_provided(self, caplog):
         """验证 agent_registry 提供时不记录警告。"""
@@ -490,8 +506,10 @@ class TestAIFacadeFix:
             facade = AIFacade(mock_ai_manager, agent_registry=mock_registry)
 
         assert facade.agent_registry is mock_registry
-        assert not any("agent_registry" in record.message and "None" in record.message
-                       for record in caplog.records)
+        assert not any(
+            "agent_registry" in record.message and "None" in record.message
+            for record in caplog.records
+        )
 
     def test_classify_intent_simple_tool(self):
         """验证简单工具调用意图分类。"""
@@ -517,6 +535,7 @@ class TestAIFacadeFix:
 # ═══════════════════════════════════════════════════════════════════
 # 集成测试：验证所有修复后的组件协同工作
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestIntegrationFixes:
     """集成测试：验证修复后的组件协同工作。"""

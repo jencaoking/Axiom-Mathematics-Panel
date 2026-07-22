@@ -3,9 +3,18 @@
 
 import math
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLabel, QLineEdit, QPushButton, QComboBox,
-    QDoubleSpinBox, QGroupBox, QScrollArea, QSlider,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QComboBox,
+    QDoubleSpinBox,
+    QGroupBox,
+    QScrollArea,
+    QSlider,
 )
 from PySide6.QtCore import Qt, QTimer
 
@@ -23,13 +32,13 @@ class AnimationPanelWidget(QWidget):
         self._timer = QTimer()
         self._timer.timeout.connect(self._on_tick)
         self._anim_state = {
-            "type": None,       # "translate" | "rotate" | "scale" | "param_func"
+            "type": None,  # "translate" | "rotate" | "scale" | "param_func"
             "elapsed": 0.0,
-            "duration": 4.0,    # 秒
-            "point_ids": [],    # 受动画影响的点 ID
+            "duration": 4.0,  # 秒
+            "point_ids": [],  # 受动画影响的点 ID
             "orig_coords": [],  # 原始坐标 [(x, y), ...]
-            "func_id": None,    # 函数参数动画时的 FunctionPlot ID
-            "func_expr": "",    # 原始表达式模板 (含参数 a)
+            "func_id": None,  # 函数参数动画时的 FunctionPlot ID
+            "func_expr": "",  # 原始表达式模板 (含参数 a)
             "center": (0.0, 0.0),  # 旋转/缩放中心
         }
         self._is_playing = False
@@ -50,7 +59,9 @@ class AnimationPanelWidget(QWidget):
 
         # ── 标题 ──
         title = QLabel(t("plugins.animation_studio") or "Animation Studio")
-        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;")
+        title.setStyleSheet(
+            "font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;"
+        )
         layout.addWidget(title)
 
         # ── 动画类型 ──
@@ -60,7 +71,9 @@ class AnimationPanelWidget(QWidget):
         self.combo_type.addItem(t("animation.translate") or "Translation", "translate")
         self.combo_type.addItem(t("animation.rotate") or "Rotation", "rotate")
         self.combo_type.addItem(t("animation.scale") or "Scaling", "scale")
-        self.combo_type.addItem(t("animation.param_func") or "Function Parameter", "param_func")
+        self.combo_type.addItem(
+            t("animation.param_func") or "Function Parameter", "param_func"
+        )
         self.combo_type.currentIndexChanged.connect(self._on_type_changed)
         type_layout.addWidget(self.combo_type)
         layout.addWidget(type_group)
@@ -167,7 +180,9 @@ class AnimationPanelWidget(QWidget):
         layout.addWidget(self.label_status)
 
         # ── 提示 ──
-        hint = QLabel(t("animation.hint") or "Tip: Select points on canvas first, then play.")
+        hint = QLabel(
+            t("animation.hint") or "Tip: Select points on canvas first, then play."
+        )
         hint.setStyleSheet("color: #777; font-size: 11px;")
         hint.setWordWrap(True)
         layout.addWidget(hint)
@@ -304,17 +319,13 @@ class AnimationPanelWidget(QWidget):
         self._is_playing = True
         interval = self.slider_speed.value()
         self._timer.start(interval)
-        self._set_status(
-            t("animation.status_playing") or "Status: Playing..."
-        )
+        self._set_status(t("animation.status_playing") or "Status: Playing...")
 
     def _on_pause(self):
         if self._timer.isActive():
             self._timer.stop()
             self._is_playing = False
-            self._set_status(
-                t("animation.status_paused") or "Status: Paused"
-            )
+            self._set_status(t("animation.status_paused") or "Status: Paused")
 
     def _on_stop(self):
         self._timer.stop()
@@ -324,9 +335,7 @@ class AnimationPanelWidget(QWidget):
         if engine and self._anim_state["orig_coords"]:
             self._restore_originals(engine)
         self._anim_state["elapsed"] = 0.0
-        self._set_status(
-            t("animation.status_ready") or "Status: Ready"
-        )
+        self._set_status(t("animation.status_ready") or "Status: Ready")
 
     def _set_status(self, text: str):
         if hasattr(self, "label_status"):
@@ -347,25 +356,29 @@ class AnimationPanelWidget(QWidget):
             else:
                 orig_coords.append(None)
 
-        self._anim_state.update({
-            "type": mode,
-            "elapsed": 0.0,
-            "duration": self.spin_duration.value(),
-            "point_ids": point_ids,
-            "orig_coords": orig_coords,
-            "center": (
-                self.spin_rot_cx.value() if mode == "rotate"
-                else self.spin_scale_cx.value() if mode == "scale"
-                else (0.0, 0.0)
-            ),
-        })
+        self._anim_state.update(
+            {
+                "type": mode,
+                "elapsed": 0.0,
+                "duration": self.spin_duration.value(),
+                "point_ids": point_ids,
+                "orig_coords": orig_coords,
+                "center": (
+                    self.spin_rot_cx.value()
+                    if mode == "rotate"
+                    else self.spin_scale_cx.value() if mode == "scale" else (0.0, 0.0)
+                ),
+            }
+        )
         if mode == "rotate":
             self._anim_state["center"] = (
-                self.spin_rot_cx.value(), self.spin_rot_cy.value()
+                self.spin_rot_cx.value(),
+                self.spin_rot_cy.value(),
             )
         elif mode == "scale":
             self._anim_state["center"] = (
-                self.spin_scale_cx.value(), self.spin_scale_cy.value()
+                self.spin_scale_cx.value(),
+                self.spin_scale_cy.value(),
             )
 
     def _start_param_func(self, engine):
@@ -382,13 +395,15 @@ class AnimationPanelWidget(QWidget):
             except Exception:
                 pass
 
-        self._anim_state.update({
-            "type": "param_func",
-            "elapsed": 0.0,
-            "duration": self.spin_duration.value(),
-            "func_expr": expr_template,
-            "func_id": None,
-        })
+        self._anim_state.update(
+            {
+                "type": "param_func",
+                "elapsed": 0.0,
+                "duration": self.spin_duration.value(),
+                "func_expr": expr_template,
+                "func_id": None,
+            }
+        )
         return True
 
     # ──────────────────────────────────────────────────────────────
@@ -404,9 +419,7 @@ class AnimationPanelWidget(QWidget):
             progress = 1.0
             self._timer.stop()
             self._is_playing = False
-            self._set_status(
-                t("animation.status_complete") or "Status: Complete"
-            )
+            self._set_status(t("animation.status_complete") or "Status: Complete")
 
         engine = self._get_engine()
         if engine is None:
@@ -515,9 +528,7 @@ class AnimationPanelWidget(QWidget):
             new_id = engine.add_function_plot(expr, x_range=(-10, 10))
             self._anim_state["func_id"] = new_id
         except Exception as e:
-            self.api.print_to_console(
-                f"[Animation] Function plot error: {e}", "error"
-            )
+            self.api.print_to_console(f"[Animation] Function plot error: {e}", "error")
 
     # ──────────────────────────────────────────────────────────────
     # 恢复与清理
@@ -562,7 +573,9 @@ class AnimationStudioPlugin(MathLabPlugin):
     name = "Animation Studio"
     version = "1.0.0"
     author = "MathLab Team"
-    description = "Geometric transformation, function parameter, and trajectory animations."
+    description = (
+        "Geometric transformation, function parameter, and trajectory animations."
+    )
 
     def __init__(self):
         self.api = None

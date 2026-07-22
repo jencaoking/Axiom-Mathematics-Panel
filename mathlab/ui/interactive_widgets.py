@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSlider
 from PySide6.QtCore import Qt, Signal
 
+
 class MathSlider(QWidget):
     # 信号：发射变量名和最新的浮点数值
     value_changed = Signal(str, float)
@@ -11,7 +12,7 @@ class MathSlider(QWidget):
         self.min_val = min_val
         self.max_val = max_val
         # QSlider 只能处理整数，所以我们放大 100 倍来实现 0.01 的精度
-        self.scale_factor = 100.0  
+        self.scale_factor = 100.0
 
         self.init_ui(current_val)
 
@@ -21,7 +22,7 @@ class MathSlider(QWidget):
 
         # 1. 变量名
         self.label_name = QLabel(f"<b>{self.name}</b>")
-        self.label_name.setStyleSheet("color: #4EC9B0; width: 50px;") # 青色高亮
+        self.label_name.setStyleSheet("color: #4EC9B0; width: 50px;")  # 青色高亮
 
         # 2. 滑块本体 (极客样式定制)
         self.slider = QSlider(Qt.Orientation.Horizontal)

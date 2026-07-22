@@ -2,6 +2,7 @@
 
 所有核心模块的事件信号在此集中定义，替代分散的手写监听器。
 """
+
 from PySide6.QtCore import QObject, Signal
 
 

@@ -18,15 +18,14 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 # ── 日志目录：打包模式写到 exe 同级目录，开发模式写到 mathlab/logs/ ──────
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # PyInstaller 打包模式：写到 exe 所在目录下的 logs/ 文件夹
     _APP_DIR = os.path.dirname(sys.executable)
     LOG_DIR = os.path.join(_APP_DIR, "logs")
 else:
     # 开发模式：写到 mathlab/logs/
     LOG_DIR = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "logs"
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
     )
 
 # 主日志文件路径（供外部模块读取，如"打开日志目录"命令）
@@ -43,7 +42,7 @@ _DATE_FMT = "%Y-%m-%d %H:%M:%S"
 def setup_logger(
     file_level: int = logging.DEBUG,
     console_level: int = logging.INFO,
-    max_bytes: int = 5 * 1024 * 1024,   # 5 MB
+    max_bytes: int = 5 * 1024 * 1024,  # 5 MB
     backup_count: int = 3,
 ) -> logging.Logger:
     """
@@ -81,12 +80,19 @@ def setup_logger(
         logger.addHandler(file_handler)
     except OSError as e:
         # 日志文件无法创建时，退化为只有控制台输出，程序仍可正常运行
-        print(f"[MathLab Logger] 警告: 无法创建日志文件或目录 ({e})，将仅使用控制台输出。")
+        print(
+            f"[MathLab Logger] 警告: 无法创建日志文件或目录 ({e})，将仅使用控制台输出。"
+        )
 
     # ── Handler 2: 控制台输出（StreamHandler）────────────────────────────────
     import codecs
+
     if sys.stdout:
-        safe_stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'replace') if hasattr(sys.stdout, 'buffer') else sys.stdout
+        safe_stdout = (
+            codecs.getwriter("utf-8")(sys.stdout.buffer, "replace")
+            if hasattr(sys.stdout, "buffer")
+            else sys.stdout
+        )
     else:
         safe_stdout = sys.stdout
     console_handler = logging.StreamHandler(safe_stdout)

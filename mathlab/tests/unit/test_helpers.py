@@ -74,36 +74,36 @@ class TestHelpers:
 
     @pytest.mark.unit
     def test_parse_coordinates_simple(self):
-        result = parse_coordinates('(1, 2)')
+        result = parse_coordinates("(1, 2)")
         assert result == (1.0, 2.0)
 
     @pytest.mark.unit
     def test_parse_coordinates_float(self):
-        result = parse_coordinates('(1.5, 2.7)')
+        result = parse_coordinates("(1.5, 2.7)")
         assert result == (1.5, 2.7)
 
     @pytest.mark.unit
     def test_parse_coordinates_no_parens(self):
-        result = parse_coordinates('1, 2')
+        result = parse_coordinates("1, 2")
         assert result == (1.0, 2.0)
 
     @pytest.mark.unit
     def test_generate_id_prefix(self):
-        id1 = generate_id('point')
-        assert id1.startswith('point_')
+        id1 = generate_id("point")
+        assert id1.startswith("point_")
 
     @pytest.mark.unit
     def test_generate_id_unique(self):
-        id1 = generate_id('test')
-        id2 = generate_id('test')
+        id1 = generate_id("test")
+        id2 = generate_id("test")
         assert id1 != id2
 
     @pytest.mark.unit
     def test_format_number_default_decimals(self):
         result = format_number(3.14159)
-        assert result == '3.14'
+        assert result == "3.14"
 
     @pytest.mark.unit
     def test_format_number_custom_decimals(self):
         result = format_number(3.14159, decimals=4)
-        assert result == '3.1416'
+        assert result == "3.1416"

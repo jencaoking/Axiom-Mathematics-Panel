@@ -4,6 +4,7 @@ import logging
 
 class MathLabAPI:
     """提供给插件的安全接口集合"""
+
     def __init__(self, main_window, cmd_manager, console):
         self._main_window = main_window
         self._cmd_manager = cmd_manager
@@ -14,6 +15,7 @@ class MathLabAPI:
     def register_command(self, id: str, title: str, action, category: str = "Plugin"):
         """允许插件向系统的命令面板注册新指令"""
         from mathlab.core.command_manager import Command
+
         cmd = Command(id, title, action, category)
         self._cmd_manager.register(cmd)
         self._registered_commands.append(id)
@@ -55,5 +57,7 @@ class MathLabAPI:
         for dock in self._dynamic_panels:
             self._main_window.removeDockWidget(dock)
             dock.deleteLater()
-            logging.info(f"[MathLabAPI] Removed sidebar panel dock: {dock.objectName()}")
+            logging.info(
+                f"[MathLabAPI] Removed sidebar panel dock: {dock.objectName()}"
+            )
         self._dynamic_panels.clear()

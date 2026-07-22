@@ -16,6 +16,7 @@
     facade = AIFacade(ai_manager, agent_registry)
     facade.route_request(user_prompt, context, callbacks...)
 """
+
 from enum import Enum
 from typing import Callable, Optional
 
@@ -26,6 +27,7 @@ logger = get_logger(__name__)
 
 class AITaskType(Enum):
     """AI 任务类型分类，决定使用哪种范式。"""
+
     SIMPLE_TOOL_CALL = "simple_tool_call"
     COMPLEX_REASONING = "complex_reasoning"
 
@@ -38,18 +40,51 @@ class AIFacade:
     """
 
     # 触发 Agent 代码生成范式的关键词
-    _AGENT_KEYWORDS = frozenset({
-        '证明', '求解', '推导', '计算', '化简', '积分', '微分',
-        '极限', '方程组', '证明题', '教学', '讲解', '步骤',
-        'prove', 'solve', 'derive', 'calculate', 'simplify',
-        'integrate', 'differentiate', 'limit', 'teach', 'explain step',
-    })
+    _AGENT_KEYWORDS = frozenset(
+        {
+            "证明",
+            "求解",
+            "推导",
+            "计算",
+            "化简",
+            "积分",
+            "微分",
+            "极限",
+            "方程组",
+            "证明题",
+            "教学",
+            "讲解",
+            "步骤",
+            "prove",
+            "solve",
+            "derive",
+            "calculate",
+            "simplify",
+            "integrate",
+            "differentiate",
+            "limit",
+            "teach",
+            "explain step",
+        }
+    )
 
     # 触发 Function Calling 范式的关键词
-    _TOOL_KEYWORDS = frozenset({
-        '画', '绘制', '画图', '作图', '出题', '测验', ' quiz',
-        '解释代码', '说明代码', 'draw', 'plot', 'render',
-    })
+    _TOOL_KEYWORDS = frozenset(
+        {
+            "画",
+            "绘制",
+            "画图",
+            "作图",
+            "出题",
+            "测验",
+            " quiz",
+            "解释代码",
+            "说明代码",
+            "draw",
+            "plot",
+            "render",
+        }
+    )
 
     def __init__(self, ai_manager, agent_registry=None, student_model=None):
         self.ai_manager = ai_manager
@@ -57,7 +92,9 @@ class AIFacade:
         self.student_model = student_model
         # [修复] 初始化时检查 agent_registry，提前发现问题
         if agent_registry is None:
-            logger.warning("AIFacade 初始化时 agent_registry 为 None，复杂推理任务将不可用")
+            logger.warning(
+                "AIFacade 初始化时 agent_registry 为 None，复杂推理任务将不可用"
+            )
 
     def classify_intent(self, user_prompt: str) -> AITaskType:
         """根据用户输入分类任务类型。
@@ -115,13 +152,22 @@ class AIFacade:
 
         if task_type == AITaskType.SIMPLE_TOOL_CALL:
             self._run_function_calling(
-                user_prompt, canvas_state,
-                on_chunk, on_tool, on_state_change, on_finish, on_error,
+                user_prompt,
+                canvas_state,
+                on_chunk,
+                on_tool,
+                on_state_change,
+                on_finish,
+                on_error,
             )
         else:
             self._run_agent_loop(
                 user_prompt,
-                on_thought, on_code, on_geom_commands, on_finish, on_error,
+                on_thought,
+                on_code,
+                on_geom_commands,
+                on_finish,
+                on_error,
             )
 
         return task_type
@@ -132,6 +178,7 @@ class AIFacade:
             return
         try:
             from mathlab.core.student_model import AdaptiveEngine
+
             engine = AdaptiveEngine(self.student_model)
             interaction_type = engine.classify_interaction(user_prompt)
             knowledge_point = engine.extract_knowledge_point(user_prompt)
@@ -147,7 +194,11 @@ class AIFacade:
         self,
         user_prompt: str,
         canvas_state: str,
-        on_chunk, on_tool, on_state_change, on_finish, on_error,
+        on_chunk,
+        on_tool,
+        on_state_change,
+        on_finish,
+        on_error,
     ):
         """范式 A：通过 AIEngineWorker + Function Calling 处理简单工具调用。"""
         from mathlab.core.ai_tools import AVAILABLE_TOOLS
@@ -170,7 +221,11 @@ class AIFacade:
     def _run_agent_loop(
         self,
         user_prompt: str,
-        on_thought, on_code, on_geom_commands, on_finish, on_error,
+        on_thought,
+        on_code,
+        on_geom_commands,
+        on_finish,
+        on_error,
     ):
         """范式 B：通过 AgentRegistry + 代码生成处理复杂多步推理。"""
         if not self.agent_registry:

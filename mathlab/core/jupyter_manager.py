@@ -14,9 +14,11 @@ except ImportError:
 
 try:
     from mathlab.utils.logger import get_logger
+
     logger = get_logger(__name__)
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 from mathlab.core.sandbox_security import is_code_safe
@@ -39,7 +41,7 @@ class JupyterSandbox:
         if KernelManager is None:
             raise ImportError("jupyter_client 未安装，无法启动 JupyterSandbox。")
 
-        self.km = KernelManager(kernel_name='python3')
+        self.km = KernelManager(kernel_name="python3")
         self.km.start_kernel()
         self.kc = self.km.client()
         self.kc.start_channels()
@@ -54,14 +56,18 @@ class JupyterSandbox:
         # 初始化内存监控
         try:
             from mathlab.utils.config_manager import get_config
-            jupyter_cfg = get_config('jupyter', {})
-            self._memory_limit_mb = jupyter_cfg.get('memory_limit_mb', self._MEMORY_LIMIT_MB)
+
+            jupyter_cfg = get_config("jupyter", {})
+            self._memory_limit_mb = jupyter_cfg.get(
+                "memory_limit_mb", self._MEMORY_LIMIT_MB
+            )
         except Exception:
             self._memory_limit_mb = self._MEMORY_LIMIT_MB
 
         self._psutil_available = False
         try:
             import psutil
+
             self._psutil_available = True
             self._psutil = psutil
         except ImportError:
@@ -93,32 +99,34 @@ class JupyterSandbox:
             while True:
                 # 从 iopub 频道获取执行结果
                 msg = self.kc.get_iopub_msg(timeout=timeout)  # type: ignore
-                msg_type = msg['header']['msg_type']
-                content = msg['content']
+                msg_type = msg["header"]["msg_type"]
+                content = msg["content"]
 
-                if msg_type == 'stream':
+                if msg_type == "stream":
                     # 捕获 print() 输出
-                    output_text.append(content['text'])
+                    output_text.append(content["text"])
 
-                elif msg_type == 'execute_result' or msg_type == 'display_data':
+                elif msg_type == "execute_result" or msg_type == "display_data":
                     # 捕获表达式结果或图片 (例如 matplotlib 输出)
-                    if 'text/plain' in content['data']:
-                        output_text.append(content['data']['text/plain'])
-                    if 'image/png' in content['data']:
-                        output_images.append(content['data']['image/png'])
+                    if "text/plain" in content["data"]:
+                        output_text.append(content["data"]["text/plain"])
+                    if "image/png" in content["data"]:
+                        output_images.append(content["data"]["image/png"])
 
-                elif msg_type == 'error':
+                elif msg_type == "error":
                     # 捕获代码报错信息
                     status = "error"
-                    error_traceback.extend(content['traceback'])
+                    error_traceback.extend(content["traceback"])
 
-                elif msg_type == 'status' and content['execution_state'] == 'idle':
+                elif msg_type == "status" and content["execution_state"] == "idle":
                     # 内核执行完毕并回到空闲状态
                     break
 
         except queue.Empty:
             status = "timeout"
-            error_traceback.append(f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。")
+            error_traceback.append(
+                f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。"
+            )
             # 发生严重超时（死循环）时，直接强杀并重启内核
             self.restart_kernel()
 
@@ -126,14 +134,14 @@ class JupyterSandbox:
             "status": status,
             "text": "".join(output_text),
             "images": output_images,
-            "traceback": error_traceback
+            "traceback": error_traceback,
         }
 
     def restart_kernel(self) -> None:
         """强杀并重启内核（用于清理内存或打破死循环）"""
         logger.info("正在重启 Jupyter 内核...")
         # [BUG修复] 关闭旧客户端通道，防止 ZeroMQ socket 泄漏
-        if hasattr(self, 'kc') and self.kc:
+        if hasattr(self, "kc") and self.kc:
             try:
                 self.kc.stop_channels()
             except Exception:
@@ -146,12 +154,12 @@ class JupyterSandbox:
     def shutdown(self) -> None:
         """关闭内核并释放所有资源"""
         try:
-            if hasattr(self, 'kc') and self.kc:
+            if hasattr(self, "kc") and self.kc:
                 self.kc.stop_channels()
         except Exception:
             logger.warning("关闭内核通道时出现异常", exc_info=True)
         try:
-            if hasattr(self, 'km') and self.km:
+            if hasattr(self, "km") and self.km:
                 self.km.shutdown_kernel(now=True)
         except Exception:
             logger.warning("关闭内核时出现异常", exc_info=True)
@@ -183,7 +191,8 @@ class JupyterSandbox:
         if mem_mb is not None and mem_mb > self._memory_limit_mb:
             logger.warning(
                 "内核内存占用 %.1f MB 超过限制 %d MB，自动重启内核。",
-                mem_mb, self._memory_limit_mb
+                mem_mb,
+                self._memory_limit_mb,
             )
             self.restart_kernel()
 
@@ -192,18 +201,19 @@ class JupyterSandbox:
 #  JupyterManager — JupyterLab 服务器进程管理器
 # ============================================================
 
+
 def _find_free_port(start: int = 8888, end: int = 8999) -> int:
     """在指定范围内寻找可用端口"""
     for port in range(start, end + 1):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('127.0.0.1', port))
+                s.bind(("127.0.0.1", port))
                 return port
         except OSError:
             continue
     # 兜底：让 OS 分配
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
+        s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
 
 
@@ -227,10 +237,11 @@ class JupyterManager:
         # 从配置中读取端口范围和超时
         try:
             from mathlab.utils.config_manager import get_config
-            jupyter_cfg = get_config('jupyter', {})
-            port_start = jupyter_cfg.get('port_start', 8888)
-            port_end = jupyter_cfg.get('port_end', 8999)
-            self._default_timeout = jupyter_cfg.get('start_timeout', 30)
+
+            jupyter_cfg = get_config("jupyter", {})
+            port_start = jupyter_cfg.get("port_start", 8888)
+            port_end = jupyter_cfg.get("port_end", 8999)
+            self._default_timeout = jupyter_cfg.get("start_timeout", 30)
         except Exception:
             port_start, port_end = 8888, 8999
             self._default_timeout = 30
@@ -266,18 +277,25 @@ class JupyterManager:
             # 构造启动命令
             cmd = [
                 sys.executable,
-                "-m", "jupyter", "lab",
+                "-m",
+                "jupyter",
+                "lab",
                 "--no-browser",
-                "--port", str(self.port),
-                "--ServerApp.token", self._token,
-                "--ServerApp.password", "",
-                "--ServerApp.allow_origin", "*",
-                "--ServerApp.disable_check_xsrf", "True",
+                "--port",
+                str(self.port),
+                "--ServerApp.token",
+                self._token,
+                "--ServerApp.password",
+                "",
+                "--ServerApp.allow_origin",
+                "*",
+                "--ServerApp.disable_check_xsrf",
+                "True",
             ]
 
             # PyInstaller 打包环境下的特殊处理
             env = os.environ.copy()
-            if getattr(sys, 'frozen', False):
+            if getattr(sys, "frozen", False):
                 env["PYINSTALLER_FROZEN"] = "1"
 
             try:
@@ -288,7 +306,11 @@ class JupyterManager:
                     stderr=subprocess.STDOUT,
                     env=env,
                     # Windows 下隐藏控制台窗口
-                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0) if sys.platform == 'win32' else 0,
+                    creationflags=(
+                        getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                        if sys.platform == "win32"
+                        else 0
+                    ),
                 )
             except FileNotFoundError:
                 logger.error("无法找到 jupyter 命令，请确认 jupyterlab 已安装。")
@@ -318,26 +340,36 @@ class JupyterManager:
 
         # 安全检查：验证 URL 协议和主机
         parsed_url = urllib.parse.urlparse(check_url)
-        if parsed_url.scheme not in ('http', 'https') or parsed_url.hostname not in ('localhost', '127.0.0.1'):
+        if parsed_url.scheme not in ("http", "https") or parsed_url.hostname not in (
+            "localhost",
+            "127.0.0.1",
+        ):
             logger.error("不允许的 URL 访问: %s", check_url)
             return False
 
         while time.time() < deadline:
             # 检查进程是否已退出
             if self._process is not None and self._process.poll() is not None:
-                logger.error("JupyterLab 进程意外退出，退出码: %s", self._process.poll())
+                logger.error(
+                    "JupyterLab 进程意外退出，退出码: %s", self._process.poll()
+                )
                 # 读取错误输出
                 try:
                     output = self._process.stdout.read(4096)
                     if output:
-                        logger.error("JupyterLab 输出: %s", output.decode('utf-8', errors='replace'))
+                        logger.error(
+                            "JupyterLab 输出: %s",
+                            output.decode("utf-8", errors="replace"),
+                        )
                 except Exception:
                     pass
                 return False
 
             try:
                 req = urllib.request.Request(check_url)
-                with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310 - 已验证仅访问本地地址
+                with urllib.request.urlopen(
+                    req, timeout=2
+                ) as resp:  # nosec B310 - 已验证仅访问本地地址
                     if resp.status == 200:
                         return True
             except (urllib.error.URLError, ConnectionError, OSError):

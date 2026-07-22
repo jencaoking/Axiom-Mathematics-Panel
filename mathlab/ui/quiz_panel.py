@@ -1,18 +1,28 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QRadioButton, 
-                               QPushButton, QButtonGroup, QLineEdit, QMessageBox)
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QRadioButton,
+    QPushButton,
+    QButtonGroup,
+    QLineEdit,
+    QMessageBox,
+)
 from PySide6.QtCore import Qt
 
 from mathlab.core.ai_manager import DRAW_TOOL_SCHEMA
+
 
 class QuizCardWidget(QWidget):
     """
     动态生成的交互式测验卡片
     """
+
     def __init__(self, quiz_data: dict, ai_manager, parent=None):
         super().__init__(parent)
         self.quiz_data = quiz_data
         self.ai_manager = ai_manager
-        
+
         # 卡片式 UI 样式
         self.setStyleSheet("""
             QuizCardWidget {
@@ -25,32 +35,34 @@ class QuizCardWidget(QWidget):
             QLabel#question { font-size: 14px; margin-top: 10px; margin-bottom: 10px; }
             QPushButton#submit { background-color: #27AE60; color: white; border-radius: 4px; padding: 6px; }
         """)
-        
+
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        
+
         # 1. 知识点标签
-        kp_label = QLabel(f"🧠 考点：{self.quiz_data.get('knowledge_point', '综合应用')}")
+        kp_label = QLabel(
+            f"🧠 考点：{self.quiz_data.get('knowledge_point', '综合应用')}"
+        )
         kp_label.setObjectName("knowledge")
         layout.addWidget(kp_label)
-        
+
         # 2. 题目正文 (支持简单的富文本或桥接 LaTeX 渲染器)
-        q_label = QLabel(self.quiz_data.get('question_text', ''))
+        q_label = QLabel(self.quiz_data.get("question_text", ""))
         q_label.setObjectName("question")
         q_label.setWordWrap(True)
         layout.addWidget(q_label)
-        
+
         # 3. 动态作答区
         self.answer_group = QButtonGroup(self)
         self.input_field = None
-        
-        if self.quiz_data.get('question_type') == "multiple_choice":
-            options = self.quiz_data.get('options', [])
+
+        if self.quiz_data.get("question_type") == "multiple_choice":
+            options = self.quiz_data.get("options", [])
             for i, opt_text in enumerate(options):
                 # 生成 A, B, C, D 选项
-                prefix = chr(65 + i) 
+                prefix = chr(65 + i)
                 rb = QRadioButton(f"{prefix}. {opt_text}")
                 self.answer_group.addButton(rb, i)
                 layout.addWidget(rb)
@@ -58,7 +70,7 @@ class QuizCardWidget(QWidget):
             self.input_field = QLineEdit()
             self.input_field.setPlaceholderText("请输入你的计算结果...")
             layout.addWidget(self.input_field)
-            
+
         # 4. 提交按钮
         self.submit_btn = QPushButton("提交答案")
         self.submit_btn.setObjectName("submit")
@@ -67,23 +79,25 @@ class QuizCardWidget(QWidget):
 
     def check_answer(self):
         user_answer = ""
-        if self.quiz_data.get('question_type') == "multiple_choice":
+        if self.quiz_data.get("question_type") == "multiple_choice":
             checked_id = self.answer_group.checkedId()
-            if checked_id == -1: return
+            if checked_id == -1:
+                return
             user_answer = chr(65 + checked_id)
         else:
-            if not self.input_field.text().strip(): return
+            if not self.input_field.text().strip():
+                return
             user_answer = self.input_field.text().strip()
-            
-        correct_answer = self.quiz_data.get('correct_answer', '')
-        
+
+        correct_answer = self.quiz_data.get("correct_answer", "")
+
         # 禁用操作，防止重复提交
         self.submit_btn.setEnabled(False)
         if self.input_field:
             self.input_field.setEnabled(False)
         for rb in self.answer_group.buttons():
             rb.setEnabled(False)
-        
+
         if user_answer.lower() == correct_answer.lower():
             self.submit_btn.setText("✅ 回答正确！")
             self.submit_btn.setStyleSheet("background-color: #2ECC71; color: white;")
@@ -108,5 +122,5 @@ class QuizCardWidget(QWidget):
         self.ai_manager.ask(
             user_prompt=prompt,
             system_prompt="你是一个极度耐心的数学私教。请指出学生的认知误区，并利用画板视觉化地教授正确概念。",
-            tools=[DRAW_TOOL_SCHEMA] 
+            tools=[DRAW_TOOL_SCHEMA],
         )

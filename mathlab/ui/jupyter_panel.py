@@ -19,12 +19,20 @@ import urllib.error
 import urllib.parse
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QFrame,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QFrame,
 )
 from PySide6.QtCore import (
-    Qt, QUrl, QTimer, QPropertyAnimation,
-    QEasingCurve, Property,
+    Qt,
+    QUrl,
+    QTimer,
+    QPropertyAnimation,
+    QEasingCurve,
+    Property,
 )
 from PySide6.QtGui import QColor
 
@@ -34,12 +42,14 @@ try:
         QWebEngineSettings,
         QWebEnginePage,
     )
+
     _WEBENGINE_AVAILABLE = True
 except ImportError:
     _WEBENGINE_AVAILABLE = False
 
 
 # ── 加载占位卡片 ─────────────────────────────────────────────────────────────
+
 
 class _LoadingCard(QFrame):
     """启动期间显示的深色渐变占位卡片"""
@@ -88,9 +98,7 @@ class _LoadingCard(QFrame):
 
         self.spinner_lbl = QLabel("◌")
         self.spinner_lbl.setAlignment(Qt.AlignCenter)
-        self.spinner_lbl.setStyleSheet(
-            "color: #58A6FF; font-size: 36px;"
-        )
+        self.spinner_lbl.setStyleSheet("color: #58A6FF; font-size: 36px;")
         root.addWidget(self.spinner_lbl)
 
         self.title_lbl = QLabel("🌌  正在启动 JupyterLab 内核…")
@@ -136,6 +144,7 @@ class _LoadingCard(QFrame):
 
 # ── 主面板 ───────────────────────────────────────────────────────────────────
 
+
 class JupyterPanel(QWidget):
     """
     嵌入式 JupyterLab 交互面板
@@ -178,9 +187,7 @@ class JupyterPanel(QWidget):
         settings.setAttribute(
             QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
         )
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.JavascriptEnabled, True
-        )
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
         settings.setAttribute(
             QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True
         )
@@ -280,6 +287,7 @@ class JupyterPanel(QWidget):
         port = None
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(self.jupyter_url)
             port = parsed.port
         except Exception:
@@ -293,7 +301,7 @@ class JupyterPanel(QWidget):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(2)
-                port_open = (s.connect_ex(('127.0.0.1', port)) == 0)
+                port_open = s.connect_ex(("127.0.0.1", port)) == 0
         except Exception:
             pass
 
@@ -309,15 +317,20 @@ class JupyterPanel(QWidget):
 
         # 检查 2: HTTP 是否可访问
         api_url = f"http://127.0.0.1:{port}/api/status"
-        
+
         # 安全检查：验证 URL 协议和主机
         parsed_url = urllib.parse.urlparse(api_url)
-        if parsed_url.scheme not in ('http', 'https') or parsed_url.hostname not in ('localhost', '127.0.0.1'):
+        if parsed_url.scheme not in ("http", "https") or parsed_url.hostname not in (
+            "localhost",
+            "127.0.0.1",
+        ):
             return f"不允许的 URL 访问: {api_url}"
-        
+
         try:
             req = urllib.request.Request(api_url)
-            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 - 已验证仅访问本地地址
+            with urllib.request.urlopen(
+                req, timeout=3
+            ) as resp:  # nosec B310 - 已验证仅访问本地地址
                 if resp.status == 200:
                     return (
                         f"服务器 HTTP 正常，但页面加载失败\n"
@@ -325,10 +338,7 @@ class JupyterPanel(QWidget):
                         f"这可能是 WebEngine 兼容性问题"
                     )
         except urllib.error.HTTPError as e:
-            return (
-                f"服务器返回 HTTP {e.code}\n"
-                f"目标：{self.jupyter_url}"
-            )
+            return f"服务器返回 HTTP {e.code}\n" f"目标：{self.jupyter_url}"
         except Exception:
             pass
 

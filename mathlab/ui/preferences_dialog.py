@@ -24,16 +24,31 @@ Signals exported to main window
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
-    QWidget, QFormLayout, QComboBox, QPushButton, QFontComboBox,
-    QSpinBox, QDoubleSpinBox, QCheckBox, QSlider, QTableWidget,
-    QTableWidgetItem, QHeaderView, QLabel, QMessageBox, QScrollArea,
-    QFrame, QLineEdit,
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTabWidget,
+    QWidget,
+    QFormLayout,
+    QComboBox,
+    QPushButton,
+    QFontComboBox,
+    QSpinBox,
+    QDoubleSpinBox,
+    QCheckBox,
+    QSlider,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QLabel,
+    QMessageBox,
+    QScrollArea,
+    QFrame,
+    QLineEdit,
 )
 
 from mathlab.utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
 from mathlab.utils.theme_manager import THEMES, set_theme, get_current_theme
-
 
 _TAB_STYLE = """
 QTabWidget::pane {
@@ -102,28 +117,28 @@ class PreferencesDialog(QDialog):
     @staticmethod
     def _default_settings() -> dict:
         return {
-            "theme":             get_current_theme(),
-            "accent":            "#004ac6",
-            "ui_font":           "Segoe UI",
-            "ui_font_size":      10,
-            "canvas_bg":         "grid",
-            "line_width":        1.5,
-            "point_size":        4,
-            "aa_enabled":        True,
-            "anim_speed":        50,
-            "console_font":      "Consolas",
+            "theme": get_current_theme(),
+            "accent": "#004ac6",
+            "ui_font": "Segoe UI",
+            "ui_font_size": 10,
+            "canvas_bg": "grid",
+            "line_width": 1.5,
+            "point_size": 4,
+            "aa_enabled": True,
+            "anim_speed": 50,
+            "console_font": "Consolas",
             "console_font_size": 11,
-            "console_history":   1000,
-            "autocomplete":      True,
-            "hw_accel":          False,
+            "console_history": 1000,
+            "autocomplete": True,
+            "hw_accel": False,
             "autosave_interval": 5,
             "shortcuts": {
-                "New Project":  "Ctrl+N",
-                "Save":         "Ctrl+S",
-                "Undo":         "Ctrl+Z",
-                "Redo":         "Ctrl+Shift+Z",
+                "New Project": "Ctrl+N",
+                "Save": "Ctrl+S",
+                "Undo": "Ctrl+Z",
+                "Redo": "Ctrl+Shift+Z",
                 "Clear Canvas": "Ctrl+Del",
-                "Select Mode":  "Esc",
+                "Select Mode": "Esc",
                 "Execute Code": "Shift+Enter",
             },
         }
@@ -138,7 +153,7 @@ class PreferencesDialog(QDialog):
         for widget in self.findChildren(QSlider):
             widget.valueChanged.connect(self._on_setting_changed)
         self.shortcut_table.itemChanged.connect(self._on_setting_changed)
-        if hasattr(self, 'accent_btns'):
+        if hasattr(self, "accent_btns"):
             for _, btn in self.accent_btns:
                 btn.clicked.connect(self._on_setting_changed)
 
@@ -192,11 +207,11 @@ class PreferencesDialog(QDialog):
         self.tabs.setStyleSheet(_TAB_STYLE)
 
         self.tabs.addTab(self._page_appearance(), t("preferences.appearance"))
-        self.tabs.addTab(self._page_graphics(),   t("preferences.graphics"))
-        self.tabs.addTab(self._page_console(),    t("preferences.console_tab"))
-        self.tabs.addTab(self._page_shortcuts(),  t("preferences.shortcuts"))
+        self.tabs.addTab(self._page_graphics(), t("preferences.graphics"))
+        self.tabs.addTab(self._page_console(), t("preferences.console_tab"))
+        self.tabs.addTab(self._page_shortcuts(), t("preferences.shortcuts"))
         self.tabs.addTab(self._page_ai_lab(), "AI 实验室")
-        self.tabs.addTab(self._page_advanced(),   t("preferences.advanced"))
+        self.tabs.addTab(self._page_advanced(), t("preferences.advanced"))
 
         body_layout.addWidget(self.tabs, 1)
         root.addWidget(body, 1)
@@ -222,7 +237,7 @@ class PreferencesDialog(QDialog):
             "}"
         )
 
-        self.btn_apply  = QPushButton(t("preferences.apply"))
+        self.btn_apply = QPushButton(t("preferences.apply"))
         self.btn_apply.setEnabled(False)
         self.btn_apply.setStyleSheet(
             "QPushButton {"
@@ -238,7 +253,7 @@ class PreferencesDialog(QDialog):
             "}"
         )
 
-        self.btn_ok     = QPushButton(t("preferences.ok"))
+        self.btn_ok = QPushButton(t("preferences.ok"))
         self.btn_ok.setDefault(True)
         self.btn_ok.setStyleSheet(
             "QPushButton {"
@@ -292,7 +307,9 @@ class PreferencesDialog(QDialog):
         section = QWidget()
         section_layout = QVBoxLayout(section)
         section_layout.setSpacing(16)
-        section_layout.addWidget(self._create_section_header(t("preferences.appearance")))
+        section_layout.addWidget(
+            self._create_section_header(t("preferences.appearance"))
+        )
 
         form = QFormLayout()
         form.setContentsMargins(0, 0, 0, 0)
@@ -322,7 +339,12 @@ class PreferencesDialog(QDialog):
             btn.setStyleSheet(
                 f"background-color:{color}; border-radius:13px; border:2px solid transparent;"
             )
-            btn.setToolTip(t("preferences.accent_tooltip", "Click Apply or OK to save the accent color."))
+            btn.setToolTip(
+                t(
+                    "preferences.accent_tooltip",
+                    "Click Apply or OK to save the accent color.",
+                )
+            )
             btn.clicked.connect(lambda _checked, c=color: self._set_accent(c))
             accent_row.addWidget(btn)
             self.accent_btns.append((color, btn))
@@ -351,7 +373,7 @@ class PreferencesDialog(QDialog):
         bg_label = QLabel(t("preferences.canvas_background"))
         bg_label.setStyleSheet("font-size: 12px; color: #434655;")
         self.bg_combo = QComboBox()
-        self.bg_combo.addItem(t("preferences.canvas_bg_grid"),  "grid")
+        self.bg_combo.addItem(t("preferences.canvas_bg_grid"), "grid")
         self.bg_combo.addItem(t("preferences.canvas_bg_blank"), "blank")
         self.bg_combo.addItem(t("preferences.canvas_bg_polar"), "polar")
         self.bg_combo.setStyleSheet(
@@ -456,7 +478,9 @@ class PreferencesDialog(QDialog):
         section = QWidget()
         section_layout = QVBoxLayout(section)
         section_layout.setSpacing(16)
-        section_layout.addWidget(self._create_section_header(t("preferences.console_tab")))
+        section_layout.addWidget(
+            self._create_section_header(t("preferences.console_tab"))
+        )
 
         form = QFormLayout()
         form.setContentsMargins(0, 0, 0, 0)
@@ -654,7 +678,6 @@ class PreferencesDialog(QDialog):
 
         return self._scroll(inner)
 
-    
     def _page_ai_lab(self) -> QScrollArea:
         inner = QWidget()
         layout = QVBoxLayout(inner)
@@ -671,7 +694,9 @@ class PreferencesDialog(QDialog):
         form.setSpacing(16)
 
         self.ai_provider_combo = QComboBox()
-        self.ai_provider_combo.addItems(["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"])
+        self.ai_provider_combo.addItems(
+            ["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"]
+        )
         self.ai_provider_combo.setStyleSheet(
             "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
             "border-radius: 4px; background: white;"
@@ -706,8 +731,10 @@ class PreferencesDialog(QDialog):
         form.addRow("默认模型:", self.ai_model_input)
 
         section_layout.addLayout(form)
-        
-        tip_label = QLabel("💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
+
+        tip_label = QLabel(
+            "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。"
+        )
         tip_label.setStyleSheet("color: gray; font-size: 11px;")
         section_layout.addWidget(tip_label)
 
@@ -718,17 +745,22 @@ class PreferencesDialog(QDialog):
 
     def _on_ai_provider_changed(self, text):
         templates = {
-            "DeepSeek": {"url": "https://api.deepseek.com/v1", "model": "deepseek-chat"},
-            "硅基流动 (SiliconFlow)": {"url": "https://api.siliconflow.cn/v1", "model": "deepseek-ai/DeepSeek-V3"},
+            "DeepSeek": {
+                "url": "https://api.deepseek.com/v1",
+                "model": "deepseek-chat",
+            },
+            "硅基流动 (SiliconFlow)": {
+                "url": "https://api.siliconflow.cn/v1",
+                "model": "deepseek-ai/DeepSeek-V3",
+            },
             "Ollama (本地)": {"url": "http://localhost:11434/v1", "model": "llama3"},
-            "OpenAI": {"url": "https://api.openai.com/v1", "model": "gpt-4o"}
+            "OpenAI": {"url": "https://api.openai.com/v1", "model": "gpt-4o"},
         }
         if text in templates:
             self.ai_base_url_input.setText(templates[text]["url"])
             self.ai_model_input.setText(templates[text]["model"])
             if text == "Ollama (本地)":
                 self.ai_api_key_input.setText("ollama")
-
 
     def _load_settings(self):
         s = self.settings
@@ -772,8 +804,9 @@ class PreferencesDialog(QDialog):
         self.hw_accel_check.setChecked(s.get("hw_accel", False))
         self.autosave_spin.setValue(s.get("autosave_interval", 5))
 
-        
-        self.ai_base_url_input.setText(s.get("ai_base_url", "https://api.deepseek.com/v1"))
+        self.ai_base_url_input.setText(
+            s.get("ai_base_url", "https://api.deepseek.com/v1")
+        )
         self.ai_api_key_input.setText(s.get("ai_api_key", ""))
         self.ai_model_input.setText(s.get("ai_model", "deepseek-chat"))
 
@@ -834,7 +867,7 @@ class PreferencesDialog(QDialog):
         self.accent_color_changed.emit(self.settings["accent"])
 
         family = self.ui_font_combo.currentFont().family()
-        size   = self.ui_font_size_spin.value()
+        size = self.ui_font_size_spin.value()
         self.settings.update({"ui_font": family, "ui_font_size": size})
         self.font_changed.emit(family, size)
 
@@ -852,70 +885,80 @@ class PreferencesDialog(QDialog):
         gfx = {
             "line_width": self.line_width_spin.value(),
             "point_size": self.point_size_spin.value(),
-            "aa":         self.aa_check.isChecked(),
-            "speed":      self.speed_slider.value(),
-            "snap":       self.snap_combo.currentData(),
+            "aa": self.aa_check.isChecked(),
+            "speed": self.speed_slider.value(),
+            "snap": self.snap_combo.currentData(),
         }
-        self.settings.update({
-            "line_width": gfx["line_width"],
-            "point_size": gfx["point_size"],
-            "aa_enabled": gfx["aa"],
-            "anim_speed": gfx["speed"],
-        })
+        self.settings.update(
+            {
+                "line_width": gfx["line_width"],
+                "point_size": gfx["point_size"],
+                "aa_enabled": gfx["aa"],
+                "anim_speed": gfx["speed"],
+            }
+        )
         self.graphics_settings_changed.emit(gfx)
 
         con = {
-            "font":         self.con_font_combo.currentFont().family(),
-            "font_size":    self.con_font_size_spin.value(),
-            "history":      self.history_spin.value(),
+            "font": self.con_font_combo.currentFont().family(),
+            "font_size": self.con_font_size_spin.value(),
+            "history": self.history_spin.value(),
             "autocomplete": self.autocomplete_check.isChecked(),
             "color_scheme": self.color_scheme_combo.currentData(),
         }
-        self.settings.update({
-            "console_font":      con["font"],
-            "console_font_size": con["font_size"],
-            "console_history":   con["history"],
-            "autocomplete":      con["autocomplete"],
-        })
+        self.settings.update(
+            {
+                "console_font": con["font"],
+                "console_font_size": con["font_size"],
+                "console_history": con["history"],
+                "autocomplete": con["autocomplete"],
+            }
+        )
         self.console_settings_changed.emit(con)
 
         adv = {
-            "hw_accel":  self.hw_accel_check.isChecked(),
-            "autosave":  self.autosave_spin.value(),
+            "hw_accel": self.hw_accel_check.isChecked(),
+            "autosave": self.autosave_spin.value(),
         }
-        self.settings.update({
-            "hw_accel":          adv["hw_accel"],
-            "autosave_interval": adv["autosave"],
-        })
+        self.settings.update(
+            {
+                "hw_accel": adv["hw_accel"],
+                "autosave_interval": adv["autosave"],
+            }
+        )
         self.advanced_settings_changed.emit(adv)
 
         shortcuts = {}
         for row in range(self.shortcut_table.rowCount()):
             action_item = self.shortcut_table.item(row, 0)
-            key_item    = self.shortcut_table.item(row, 1)
+            key_item = self.shortcut_table.item(row, 1)
             if action_item and key_item:
                 shortcuts[action_item.text()] = key_item.text()
         self.settings["shortcuts"] = shortcuts
         self.shortcuts_changed.emit(shortcuts)
 
         # [BUG修复] AI 实验室设置保存（从 _build_ui 中移出到这里）
-        if hasattr(self, 'ai_base_url_input'):
+        if hasattr(self, "ai_base_url_input"):
             self.settings["ai_base_url"] = self.ai_base_url_input.text()
             self.settings["ai_api_key"] = self.ai_api_key_input.text()
             self.settings["ai_model"] = self.ai_model_input.text()
 
             import json
             import os
-            settings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'settings.json')
+
+            settings_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "settings.json",
+            )
             try:
-                with open(settings_path, 'w', encoding='utf-8') as f:
+                with open(settings_path, "w", encoding="utf-8") as f:
                     json.dump(self.settings, f, ensure_ascii=False, indent=4)
             except Exception:
                 pass
 
-            if hasattr(self.parent(), 'ai_manager'):
+            if hasattr(self.parent(), "ai_manager"):
                 self.parent().ai_manager.reload_config()
-        
+
         self.btn_apply.setEnabled(False)
 
     def _on_ok(self):

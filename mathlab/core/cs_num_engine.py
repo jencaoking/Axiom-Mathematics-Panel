@@ -4,16 +4,28 @@ import clr
 import numpy as np
 
 # 确保能找到 DLL 路径
-dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'MathLab.CSharpEngine', 'bin', 'Release', 'netstandard2.0'))
+dll_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "MathLab.CSharpEngine",
+        "bin",
+        "Release",
+        "netstandard2.0",
+    )
+)
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
+os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastMath
 except Exception as e:
-    print(f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}")
+    print(
+        f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}"
+    )
     FastMath = None
 
 
@@ -26,6 +38,7 @@ class CsNumEngine:
     底层数值引擎 (C# Python.NET 版本)
     全面启用一维平铺 (Flat Array) 进行极速跨语言内存封送。
     """
+
     def __init__(self):
         if FastMath is None:
             raise CsNumEngineError("C# Engine DLL is not loaded.")
@@ -38,6 +51,7 @@ class CsNumEngine:
         避开 pythonnet 处理二维数组高昂的反射开销。
         """
         import System
+
         # .ravel() 返回连续视图，.tolist() 生成原生列表，pythonnet 转换极快
         return System.Array[System.Double](arr.ravel().tolist())
 
@@ -100,14 +114,13 @@ class CsNumEngine:
         c_b_flat = self._to_double_array_flat(vec_b)
 
         try:
-            res_dict = self._engine.SolveLinearSystemFlat(c_A_flat, rows, cols, c_b_flat)
+            res_dict = self._engine.SolveLinearSystemFlat(
+                c_A_flat, rows, cols, c_b_flat
+            )
 
             # 极速提取：利用 list() 一次性取出一维结果
             x_np = np.array(list(res_dict["x"]), dtype=float)
 
-            return {
-                "x": x_np,
-                "residual_norm": float(res_dict["residual_norm"])
-            }
+            return {"x": x_np, "residual_norm": float(res_dict["residual_norm"])}
         except Exception as e:
             raise CsNumEngineError(f"求解失败: {e}")

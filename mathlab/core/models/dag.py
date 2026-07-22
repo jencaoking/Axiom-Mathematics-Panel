@@ -8,7 +8,7 @@ class DAG:
 
     def add_edge(self, from_node, to_node):
         if self._is_reachable(to_node, from_node):
-            raise ValueError(f'Cycle detected: {from_node} → {to_node}')
+            raise ValueError(f"Cycle detected: {from_node} → {to_node}")
         if to_node not in self.graph[from_node]:
             self.graph[from_node].append(to_node)
         if from_node not in self.reverse_graph[to_node]:
@@ -48,13 +48,14 @@ class DAG:
             if n in visited:
                 return
             if n in visiting:
-                raise ValueError(f'Cycle detected at node {n}')
+                raise ValueError(f"Cycle detected at node {n}")
             visiting.add(n)
             for dep in self.reverse_graph[n]:
                 dfs(dep)
             visiting.remove(n)
             visited.add(n)
             result.append(n)
+
         dfs(node)
         return result
 
@@ -73,7 +74,7 @@ class DAG:
             if n in visited:
                 return
             if n in visiting:
-                raise ValueError(f'Cycle detected at node {n}')
+                raise ValueError(f"Cycle detected at node {n}")
             visiting.add(n)
             for dep in self.graph.get(n, []):
                 dfs(dep)  # 先深入到底

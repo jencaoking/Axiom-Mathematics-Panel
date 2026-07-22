@@ -9,9 +9,11 @@ except ImportError:
 
 try:
     from mathlab.utils.logger import get_logger
+
     logger = get_logger(__name__)
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 # ============================================================
@@ -101,14 +103,25 @@ GEOMETRY_DRAW_TOOL = {
                         "properties": {
                             "cmd": {
                                 "type": "string",
-                                "enum": ["add_point", "add_circle", "add_polygon", "add_segment"],
+                                "enum": [
+                                    "add_point",
+                                    "add_circle",
+                                    "add_polygon",
+                                    "add_segment",
+                                ],
                                 "description": "操作类型",
                             },
                             "x": {"type": "number", "description": "点的 X 坐标"},
                             "y": {"type": "number", "description": "点的 Y 坐标"},
-                            "name": {"type": "string", "description": "图形的字母标签，如 'A', 'B'"},
+                            "name": {
+                                "type": "string",
+                                "description": "图形的字母标签，如 'A', 'B'",
+                            },
                             "radius": {"type": "number", "description": "圆的半径"},
-                            "center": {"type": "string", "description": "圆心点的名称引用，如 'A'"},
+                            "center": {
+                                "type": "string",
+                                "description": "圆心点的名称引用，如 'A'",
+                            },
                             "points": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -144,7 +157,10 @@ VISUAL_HIGHLIGHT_TOOL = {
                     "enum": ["red", "blue", "green", "orange"],
                     "description": "高亮的颜色。如果是警告/纠错用红色，启发思考用橙色或蓝色",
                 },
-                "reason": {"type": "string", "description": "为什么要高亮这些元素（后台记录，不在 UI 显示）"},
+                "reason": {
+                    "type": "string",
+                    "description": "为什么要高亮这些元素（后台记录，不在 UI 显示）",
+                },
             },
             "required": ["element_names", "color"],
         },
@@ -163,7 +179,10 @@ QUIZ_GENERATOR_SCHEMA = {
                     "type": "string",
                     "description": "本题考查的核心知识点，如 '勾股定理' 或 '导数极值'",
                 },
-                "question_text": {"type": "string", "description": "题目正文，支持 LaTeX 公式（用 $$ 包裹）"},
+                "question_text": {
+                    "type": "string",
+                    "description": "题目正文，支持 LaTeX 公式（用 $$ 包裹）",
+                },
                 "question_type": {
                     "type": "string",
                     "enum": ["multiple_choice", "fill_in_blank"],
@@ -174,10 +193,22 @@ QUIZ_GENERATOR_SCHEMA = {
                     "items": {"type": "string"},
                     "description": "如果是选择题，提供4个选项数组；如果是填空题，此项传空数组",
                 },
-                "correct_answer": {"type": "string", "description": "标准答案（如 'A' 或具体的计算数值）"},
-                "explanation": {"type": "string", "description": "详细的解题思路和步骤"},
+                "correct_answer": {
+                    "type": "string",
+                    "description": "标准答案（如 'A' 或具体的计算数值）",
+                },
+                "explanation": {
+                    "type": "string",
+                    "description": "详细的解题思路和步骤",
+                },
             },
-            "required": ["knowledge_point", "question_text", "question_type", "correct_answer", "explanation"],
+            "required": [
+                "knowledge_point",
+                "question_text",
+                "question_type",
+                "correct_answer",
+                "explanation",
+            ],
         },
     },
 }
@@ -214,23 +245,32 @@ SUBMIT_TEACHING_PLAN_TOOL = {
         "parameters": {
             "type": "object",
             "properties": {
-                "topic": {"type": "string", "description": "本次课题的总主题，如'探索圆锥曲线的切线性质'"},
+                "topic": {
+                    "type": "string",
+                    "description": "本次课题的总主题，如'探索圆锥曲线的切线性质'",
+                },
                 "steps": {
                     "type": "array",
                     "description": "大纲步骤列表",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "num": {"type": "integer", "description": "步骤序号 (1, 2, 3...)"},
+                            "num": {
+                                "type": "integer",
+                                "description": "步骤序号 (1, 2, 3...)",
+                            },
                             "title": {
                                 "type": "string",
                                 "description": "本步骤的核心探讨点（如：观察直角边、添加直径辅助线、应用相似三角形定理）",
                             },
-                            "hint_for_teacher": {"type": "string", "description": "给授课老师的后台提示，指导该步骤如何教学"},
+                            "hint_for_teacher": {
+                                "type": "string",
+                                "description": "给授课老师的后台提示，指导该步骤如何教学",
+                            },
                         },
                         "required": ["num", "title", "hint_for_teacher"],
                     },
-                }
+                },
             },
             "required": ["topic", "steps"],
         },
@@ -302,30 +342,51 @@ def _validate_geometry_draw(args: dict):
     if not commands:
         return False, "execute_geometry_draw: 'commands' 不能为空"
     if len(commands) > _MAX_COMMANDS:
-        return False, f"execute_geometry_draw: 命令数量超限 ({len(commands)} > {_MAX_COMMANDS})"
+        return (
+            False,
+            f"execute_geometry_draw: 命令数量超限 ({len(commands)} > {_MAX_COMMANDS})",
+        )
 
     for i, cmd in enumerate(commands):
         if not isinstance(cmd, dict):
             return False, f"execute_geometry_draw: 第 {i+1} 条命令必须是对象"
         cmd_type = cmd.get("cmd")
         if cmd_type not in _VALID_CMD_TYPES:
-            return False, f"execute_geometry_draw: 第 {i+1} 条命令的 cmd='{cmd_type}' 无效，允许值: {_VALID_CMD_TYPES}"
+            return (
+                False,
+                f"execute_geometry_draw: 第 {i+1} 条命令的 cmd='{cmd_type}' 无效，允许值: {_VALID_CMD_TYPES}",
+            )
 
         if cmd_type == "add_point":
             if not _is_number(cmd.get("x")) or not _is_number(cmd.get("y")):
-                return False, f"execute_geometry_draw: 第 {i+1} 条 add_point 缺少有效的 x/y 坐标"
+                return (
+                    False,
+                    f"execute_geometry_draw: 第 {i+1} 条 add_point 缺少有效的 x/y 坐标",
+                )
         elif cmd_type == "add_circle":
             if not cmd.get("center") or not _is_number(cmd.get("radius")):
-                return False, f"execute_geometry_draw: 第 {i+1} 条 add_circle 缺少 center 或 radius"
+                return (
+                    False,
+                    f"execute_geometry_draw: 第 {i+1} 条 add_circle 缺少 center 或 radius",
+                )
             if float(cmd["radius"]) <= 0:
-                return False, f"execute_geometry_draw: 第 {i+1} 条 add_circle 的 radius 必须为正数"
+                return (
+                    False,
+                    f"execute_geometry_draw: 第 {i+1} 条 add_circle 的 radius 必须为正数",
+                )
         elif cmd_type == "add_polygon":
             pts = cmd.get("points")
             if not isinstance(pts, list) or len(pts) < 3:
-                return False, f"execute_geometry_draw: 第 {i+1} 条 add_polygon 的 points 至少需要 3 个顶点"
+                return (
+                    False,
+                    f"execute_geometry_draw: 第 {i+1} 条 add_polygon 的 points 至少需要 3 个顶点",
+                )
         elif cmd_type == "add_segment":
             if not cmd.get("p1") or not cmd.get("p2"):
-                return False, f"execute_geometry_draw: 第 {i+1} 条 add_segment 缺少 p1 或 p2"
+                return (
+                    False,
+                    f"execute_geometry_draw: 第 {i+1} 条 add_segment 缺少 p1 或 p2",
+                )
 
     return True, ""
 
@@ -335,15 +396,27 @@ def _validate_highlight(args: dict):
     if not isinstance(element_names, list) or not element_names:
         return False, "highlight_geometry_elements: 'element_names' 必须是非空数组"
     if len(element_names) > _MAX_ELEMENT_NAMES:
-        return False, f"highlight_geometry_elements: 元素数量超限 ({len(element_names)} > {_MAX_ELEMENT_NAMES})"
+        return (
+            False,
+            f"highlight_geometry_elements: 元素数量超限 ({len(element_names)} > {_MAX_ELEMENT_NAMES})",
+        )
     color = args.get("color", "orange")
     if color not in _VALID_HIGHLIGHT_COLORS:
-        return False, f"highlight_geometry_elements: color='{color}' 无效，允许值: {_VALID_HIGHLIGHT_COLORS}"
+        return (
+            False,
+            f"highlight_geometry_elements: color='{color}' 无效，允许值: {_VALID_HIGHLIGHT_COLORS}",
+        )
     return True, ""
 
 
 def _validate_quiz(args: dict):
-    required = ["knowledge_point", "question_text", "question_type", "correct_answer", "explanation"]
+    required = [
+        "knowledge_point",
+        "question_text",
+        "question_type",
+        "correct_answer",
+        "explanation",
+    ]
     for field in required:
         val = args.get(field)
         if not val or not isinstance(val, str):
@@ -351,13 +424,19 @@ def _validate_quiz(args: dict):
 
     qt = args.get("question_type")
     if qt not in _VALID_QUIZ_TYPES:
-        return False, f"generate_math_quiz: question_type='{qt}' 无效，允许值: {_VALID_QUIZ_TYPES}"
+        return (
+            False,
+            f"generate_math_quiz: question_type='{qt}' 无效，允许值: {_VALID_QUIZ_TYPES}",
+        )
 
     options = args.get("options", [])
     if not isinstance(options, list):
         return False, "generate_math_quiz: 'options' 必须是数组"
     if qt == "multiple_choice" and len(options) > _MAX_QUIZ_OPTIONS:
-        return False, f"generate_math_quiz: 选项数量超限 ({len(options)} > {_MAX_QUIZ_OPTIONS})"
+        return (
+            False,
+            f"generate_math_quiz: 选项数量超限 ({len(options)} > {_MAX_QUIZ_OPTIONS})",
+        )
 
     return True, ""
 
@@ -367,7 +446,10 @@ def _validate_transfer(args: dict):
     if not target or not isinstance(target, str):
         return False, "transfer_to_agent: 'target_agent' 必须是非空字符串"
     if target not in _VALID_AGENT_IDS:
-        return False, f"transfer_to_agent: target_agent='{target}' 无效，允许值: {_VALID_AGENT_IDS}"
+        return (
+            False,
+            f"transfer_to_agent: target_agent='{target}' 无效，允许值: {_VALID_AGENT_IDS}",
+        )
     notes = args.get("handover_notes")
     if not notes or not isinstance(notes, str):
         return False, "transfer_to_agent: 'handover_notes' 必须是非空字符串"
@@ -382,7 +464,10 @@ def _validate_teaching_plan(args: dict):
     if not isinstance(steps, list) or not steps:
         return False, "submit_teaching_plan: 'steps' 必须是非空数组"
     if len(steps) > _MAX_TEACHING_STEPS:
-        return False, f"submit_teaching_plan: 步骤数量超限 ({len(steps)} > {_MAX_TEACHING_STEPS})"
+        return (
+            False,
+            f"submit_teaching_plan: 步骤数量超限 ({len(steps)} > {_MAX_TEACHING_STEPS})",
+        )
     for i, step in enumerate(steps):
         if not isinstance(step, dict):
             return False, f"submit_teaching_plan: 第 {i+1} 步必须是对象"
@@ -418,8 +503,10 @@ def execute_math_task(code_snippet: str):
     """
     # 将画板桥接函数注入到用户代码中
     wrapped_code = (
-        _GEOM_BRIDGE_INJECT + "\n"
-        + code_snippet + "\n"
+        _GEOM_BRIDGE_INJECT
+        + "\n"
+        + code_snippet
+        + "\n"
         + "print('__GEOBRIDGE_CMDS__' + repr(__gbcmds))"
     )
     result = get_jupyter_sandbox().execute_code(wrapped_code)
@@ -430,7 +517,7 @@ def execute_math_task(code_snippet: str):
     _MARKER = "__GEOBRIDGE_CMDS__"
     if _MARKER in output_text:
         idx = output_text.index(_MARKER)
-        cmds_str = output_text[idx + len(_MARKER):].strip()
+        cmds_str = output_text[idx + len(_MARKER) :].strip()
         output_text = output_text[:idx].rstrip()
         result["text"] = output_text
         try:
@@ -442,9 +529,11 @@ def execute_math_task(code_snippet: str):
 
     tb = result.get("traceback") or []
     error_text = "\n".join(tb) if isinstance(tb, list) else str(tb)
-    return json.dumps({
-        "status": result.get("status"),
-        "output": output_text,
-        "error": error_text if result.get("status") == "error" else None,
-        "geom_commands": geom_commands,
-    })
+    return json.dumps(
+        {
+            "status": result.get("status"),
+            "output": output_text,
+            "error": error_text if result.get("status") == "error" else None,
+            "geom_commands": geom_commands,
+        }
+    )

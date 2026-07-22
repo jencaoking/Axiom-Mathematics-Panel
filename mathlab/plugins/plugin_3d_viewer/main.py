@@ -32,7 +32,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         self.dock = api.add_sidebar_panel(t("plugins.3d_viewer"), self.web_view)
 
         # 核心：监听底层几何引擎的拓扑变化！
-        if hasattr(self.api, 'geometry_engine'):
+        if hasattr(self.api, "geometry_engine"):
             self.api.geometry_engine.add_listener(self.on_geometry_event)
 
         # =================================================================
@@ -48,15 +48,18 @@ class ThreeJSViewerPlugin(MathLabPlugin):
     def _render_frame(self):
         self.time_elapsed += 0.05
 
-        if not hasattr(cs_mesh_3d, '_engine') or cs_mesh_3d._engine is None:
+        if not hasattr(cs_mesh_3d, "_engine") or cs_mesh_3d._engine is None:
             return
 
         # 1. 呼叫 C# 暴力计算 150x150 密度的波纹曲面网格点 (共产生 405,000 个浮点数)
         # 这在纯 Python 下要跑死，但 C# 只需要 1ms！
         flat_vertices = cs_mesh_3d.get_ripple_mesh_data(
-            x_range=(-10, 10), y_range=(-10, 10),
-            x_seg=150, y_seg=150,
-            time_val=self.time_elapsed, freq=1.5
+            x_range=(-10, 10),
+            y_range=(-10, 10),
+            x_seg=150,
+            y_seg=150,
+            time_val=self.time_elapsed,
+            freq=1.5,
         )
 
         # 2. 将数据作为参数直接打入 WebGL 页面中执行
@@ -67,7 +70,9 @@ class ThreeJSViewerPlugin(MathLabPlugin):
     def on_geometry_event(self, event_type, data):
         """当引擎中添加、移动或删除物体时，立即同步给 Three.js"""
         # 如果是 JS 本身发起的拖拽更新，则不要再推回去（防止无限踢皮球）
-        if hasattr(self, 'bridge') and getattr(self.bridge, '_is_syncing_from_js', False):
+        if hasattr(self, "bridge") and getattr(
+            self.bridge, "_is_syncing_from_js", False
+        ):
             return
 
         # 无论发生什么事件，直接把整棵依赖树的所有坐标打包发给前端
@@ -75,7 +80,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
 
     def sync_scene(self):
         """序列化当前 GeometryEngine 中的所有对象，推送到 JS"""
-        if not hasattr(self.api, 'geometry_engine'):
+        if not hasattr(self.api, "geometry_engine"):
             return
 
         objects = self.api.geometry_engine.get_all_objects()
@@ -88,5 +93,5 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         self.web_view.page().runJavaScript(js_code)
 
     def on_deactivate(self):
-        if hasattr(self, 'dock'):
+        if hasattr(self, "dock"):
             self.dock.close()

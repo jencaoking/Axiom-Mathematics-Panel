@@ -7,6 +7,7 @@ class ThreeJSBridge(QObject):
     负责 Python 与 Three.js 前端之间的双向通信。
     所有暴露给 JS 的槽函数必须使用 @Slot 装饰器。
     """
+
     # 当 JS 端报告渲染完成时触发（携带顶点数量）
     on_render_complete = Signal(int)
 
@@ -38,7 +39,7 @@ class ThreeJSBridge(QObject):
         """当用户在 3D 画布中拖动点时，更新核心引擎"""
         self._is_syncing_from_js = True
         try:
-            if hasattr(self.api, 'geometry_engine'):
+            if hasattr(self.api, "geometry_engine"):
                 # 阻塞信号防止循环触发 (Python->JS->Python)
                 self.api.geometry_engine.block_signals(True)
                 self.api.geometry_engine.update_point(obj_id, x=x, y=y, z=z)
@@ -48,6 +49,8 @@ class ThreeJSBridge(QObject):
                 # 因为引擎的 update_point 内部会自动触发下游物体的更新
                 updated_obj = self.api.geometry_engine.get_object(obj_id)
                 if updated_obj:
-                    self.api.geometry_engine._notify('object_updated', updated_obj.serialize())
+                    self.api.geometry_engine._notify(
+                        "object_updated", updated_obj.serialize()
+                    )
         finally:
             self._is_syncing_from_js = False

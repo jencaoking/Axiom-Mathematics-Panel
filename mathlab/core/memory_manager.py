@@ -9,8 +9,9 @@ class ChatMemoryManager:
 
     [修复] 改进裁剪策略：保留 system 消息和最近的重要上下文
     """
+
     # 需要优先保留的消息角色
-    _PRESERVE_ROLES = {'system', 'tool'}
+    _PRESERVE_ROLES = {"system", "tool"}
 
     def __init__(self, max_history_turns=10, max_chars=8000):
         self.max_history_turns = max_history_turns
@@ -26,12 +27,14 @@ class ChatMemoryManager:
 
     def add_tool_message(self, tool_call_id: str, name: str, content: str):
         """专门记录工具调用的结果，保持上下文一致性"""
-        self.history.append({
-            "role": "tool",
-            "tool_call_id": tool_call_id,
-            "name": name,
-            "content": content
-        })
+        self.history.append(
+            {
+                "role": "tool",
+                "tool_call_id": tool_call_id,
+                "name": name,
+                "content": content,
+            }
+        )
         self._prune_memory()
 
     def _prune_memory(self):
@@ -53,7 +56,10 @@ class ChatMemoryManager:
         self.history = system_msgs + non_system_msgs
 
         # 2. 按字符数裁剪（优先删除最老的普通消息，保留 system 和 tool 消息）
-        while sum(len(str(m.get("content", ""))) for m in self.history) > self.max_chars and len(self.history) > 2:
+        while (
+            sum(len(str(m.get("content", ""))) for m in self.history) > self.max_chars
+            and len(self.history) > 2
+        ):
             # 找到第一个可以删除的消息（非 system、非 tool）
             deleted = False
             for i, msg in enumerate(self.history):

@@ -25,14 +25,15 @@ class SandboxProcess:
         self.output_queue = Queue()
         self.error_queue = Queue()
         self.result_queue = Queue()
-        self.max_memory_mb = max_memory_mb        # 严格限制内存 (MB)
-        self.max_time_seconds = max_time_seconds   # 严格限制执行时间 (秒)
-        self.max_cpu_percent = max_cpu_percent     # 严格限制 CPU 占比 (%)
+        self.max_memory_mb = max_memory_mb  # 严格限制内存 (MB)
+        self.max_time_seconds = max_time_seconds  # 严格限制执行时间 (秒)
+        self.max_cpu_percent = max_cpu_percent  # 严格限制 CPU 占比 (%)
         self._watchdog_triggered = False
         self._watchdog_error_msg = ""
 
-    def configure(self, max_memory_mb=None, max_time_seconds=None,
-                  max_cpu_percent=None):
+    def configure(
+        self, max_memory_mb=None, max_time_seconds=None, max_cpu_percent=None
+    ):
         """运行时动态调整资源限制"""
         if max_memory_mb is not None:
             self.max_memory_mb = max_memory_mb
@@ -54,7 +55,7 @@ class SandboxProcess:
                 line = pipe.readline()
                 if not line:
                     break
-                queue.put(line.decode('utf-8', errors='replace'))
+                queue.put(line.decode("utf-8", errors="replace"))
         except Exception:
             pass
 
@@ -71,7 +72,9 @@ class SandboxProcess:
             # 1. 检查时间超时（防止任何级别的 CPU 死循环）
             if elapsed_time > timeout:
                 self._watchdog_triggered = True
-                self._watchdog_error_msg = f"Execution timed out after {timeout} seconds."
+                self._watchdog_error_msg = (
+                    f"Execution timed out after {timeout} seconds."
+                )
                 self.terminate()
                 break
 
@@ -93,7 +96,8 @@ class SandboxProcess:
                         self._watchdog_triggered = True
                         self._watchdog_error_msg = (
                             f"Memory limit exceeded: Used {total_memory_mb:.1f}MB "
-                            f"/ Max {self.max_memory_mb}MB.")
+                            f"/ Max {self.max_memory_mb}MB."
+                        )
                         self.terminate()
                         break
 
@@ -108,7 +112,8 @@ class SandboxProcess:
                             self._watchdog_triggered = True
                             self._watchdog_error_msg = (
                                 f"CPU limit exceeded: Used {recheck_cpu:.1f}% "
-                                f"/ Max {self.max_cpu_percent}%.")
+                                f"/ Max {self.max_cpu_percent}%."
+                            )
                             self.terminate()
                             break
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -117,20 +122,22 @@ class SandboxProcess:
             time.sleep(0.1)  # 高频轮询，兼顾性能
 
     def _start_process(self):
-        sandbox_script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
+        sandbox_script_path = os.path.join(
+            os.path.dirname(__file__), "sandbox_script.py"
+        )
         env = os.environ.copy()
         # [安全修复] 仅保留非空的绝对路径，排除当前目录 '' 和相对路径
-        sep = ';' if sys.platform == 'win32' else ':'
+        sep = ";" if sys.platform == "win32" else ":"
         safe_paths = [p for p in sys.path if p and os.path.isabs(p)]
         extra_paths = sep.join(safe_paths)
-        env['PYTHONPATH'] = f"{env.get('PYTHONPATH', '')}{sep}{extra_paths}".strip(sep)
+        env["PYTHONPATH"] = f"{env.get('PYTHONPATH', '')}{sep}{extra_paths}".strip(sep)
 
         creation_flags = 0
         preexec_fn = None
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
-            preexec_fn = getattr(os, 'setsid', None)
+            preexec_fn = getattr(os, "setsid", None)
 
         self.process = subprocess.Popen(
             [sys.executable, sandbox_script_path],
@@ -138,7 +145,7 @@ class SandboxProcess:
             stdout=subprocess.PIPE,
             creationflags=creation_flags,
             preexec_fn=preexec_fn,
-            text=True
+            text=True,
         )
         self.running = True
 
@@ -152,8 +159,8 @@ class SandboxProcess:
         self._watchdog_triggered = False
         self._watchdog_error_msg = ""
 
-        req = json.dumps({'code': code})
-        self.process.stdin.write(req + '\n')
+        req = json.dumps({"code": code})
+        self.process.stdin.write(req + "\n")
         self.process.stdin.flush()
 
         result_queue = Queue()
@@ -171,9 +178,7 @@ class SandboxProcess:
 
         # [修复] 启动独立的看门狗线程统一监控超时和内存，避免主循环重复检查
         watchdog_thread = threading.Thread(
-            target=self._monitor_watchdog,
-            args=(timeout,),
-            daemon=True
+            target=self._monitor_watchdog, args=(timeout,), daemon=True
         )
         watchdog_thread.start()
 
@@ -181,13 +186,28 @@ class SandboxProcess:
         reader_thread.join(timeout=timeout + 2)
 
         if self._watchdog_triggered:
-            return {'success': False, 'output': '', 'error': self._watchdog_error_msg, 'result': None}
+            return {
+                "success": False,
+                "output": "",
+                "error": self._watchdog_error_msg,
+                "result": None,
+            }
 
         if not result_queue.empty():
             res = result_queue.get()
-            return {'success': res.get('success', False), 'output': res.get('output', ''), 'error': res.get('error', ''), 'result': None}
+            return {
+                "success": res.get("success", False),
+                "output": res.get("output", ""),
+                "error": res.get("error", ""),
+                "result": None,
+            }
 
-        return {'success': False, 'output': '', 'error': 'Sandbox process died unexpectedly', 'result': None}
+        return {
+            "success": False,
+            "output": "",
+            "error": "Sandbox process died unexpectedly",
+            "result": None,
+        }
 
     def terminate(self):
         """
@@ -195,18 +215,19 @@ class SandboxProcess:
         """
         if self.process and self.running:
             try:
-                if sys.platform == 'win32':
+                if sys.platform == "win32":
                     # Windows下使用 /T 杀死进程树，/F 强制杀死
                     subprocess.call(
-                        ['taskkill', '/F', '/T', '/PID', str(self.process.pid)],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                        ["taskkill", "/F", "/T", "/PID", str(self.process.pid)],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
                     )
                 else:
                     # Unix下通过向进程组 ID（负的 PID）发送 SIGKILL，全组连带子进程瞬间清除
                     try:
-                        killpg = getattr(os, 'killpg', None)
-                        getpgid = getattr(os, 'getpgid', None)
-                        sigkill = getattr(signal, 'SIGKILL', 9)
+                        killpg = getattr(os, "killpg", None)
+                        getpgid = getattr(os, "getpgid", None)
+                        sigkill = getattr(signal, "SIGKILL", 9)
                         if killpg and getpgid:
                             killpg(getpgid(self.process.pid), sigkill)
                     except ProcessLookupError:
@@ -233,7 +254,7 @@ class SandboxManager:
 
     def create_sandbox(self, resource_config=None):
         """创建沙箱实例，可选传入 ResourceConfig 配置资源限制"""
-        sandbox_id = f'sandbox_{self.sandbox_counter}'
+        sandbox_id = f"sandbox_{self.sandbox_counter}"
         self.sandbox_counter += 1
         sandbox = SandboxProcess()
         if resource_config:
@@ -243,7 +264,7 @@ class SandboxManager:
 
     def run_in_sandbox(self, sandbox_id, code, timeout=None):
         if sandbox_id not in self.sandboxes:
-            return {'success': False, 'error': 'Sandbox not found'}
+            return {"success": False, "error": "Sandbox not found"}
 
         sandbox = self.sandboxes[sandbox_id]
         return sandbox.run_code(code, timeout)
@@ -260,6 +281,4 @@ class SandboxManager:
     def get_sandbox_status(self, sandbox_id):
         if sandbox_id not in self.sandboxes:
             return None
-        return {
-            'running': self.sandboxes[sandbox_id].is_running()
-        }
+        return {"running": self.sandboxes[sandbox_id].is_running()}

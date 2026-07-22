@@ -9,6 +9,7 @@ class EChartsBridge(QObject):
     ECharts 插件的 Python <-> JavaScript 双向通信桥梁。
     参考 plugin_3d_viewer/bridge.py 中 ThreeJSBridge 的实现模式。
     """
+
     # 当 JS 端报告渲染完成时触发
     on_render_complete = Signal(str)
 
@@ -29,9 +30,7 @@ class EChartsBridge(QObject):
     @Slot(str)
     def on_chart_ready(self, chart_type: str):
         """当 ECharts 图表渲染完毕时，JS 会回调此方法"""
-        self.api.print_to_console(
-            f"[ECharts ✅] 图表渲染完成: {chart_type}", "info"
-        )
+        self.api.print_to_console(f"[ECharts ✅] 图表渲染完成: {chart_type}", "info")
         self.on_render_complete.emit(chart_type)
 
 

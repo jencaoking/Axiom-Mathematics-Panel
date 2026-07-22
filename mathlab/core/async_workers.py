@@ -9,9 +9,10 @@ logger = get_logger(__name__)
 
 class WorkerSignals(QObject):
     """定义通用异步任务的信号 (QRunnable 本身不能发信号，必须借由 QObject)"""
+
     finished = Signal(object)  # 任务成功完成，返回结果字典/对象
-    error = Signal(str)        # 任务失败，返回错误堆栈
-    progress = Signal(int)     # (预留) 任务进度 0-100
+    error = Signal(str)  # 任务失败，返回错误堆栈
+    progress = Signal(int)  # (预留) 任务进度 0-100
 
 
 class TaskWorker(QRunnable):
@@ -44,6 +45,7 @@ class TaskManager(QObject):
     """
     全局异步任务调度中心 (单例模式)
     """
+
     _instance = None
     _lock = threading.Lock()
 
@@ -67,8 +69,9 @@ class TaskManager(QObject):
 
         logger.info(f"TaskManager 启动，最大并发线程数: {max_threads}")
 
-    def submit(self, fn, on_success=None, on_error=None,
-               group_id=None, *args, **kwargs):
+    def submit(
+        self, fn, on_success=None, on_error=None, group_id=None, *args, **kwargs
+    ):
         """
         核心 API：将阻塞任务提交至后台线程池
 
@@ -84,28 +87,20 @@ class TaskManager(QObject):
                 if group_id in self._running_groups:
                     # 已有同组任务正在执行，覆盖挂起队列中的请求
                     self._pending_requests[group_id] = {
-                        'fn': fn,
-                        'on_success': on_success,
-                        'on_error': on_error,
-                        'args': args,
-                        'kwargs': kwargs
+                        "fn": fn,
+                        "on_success": on_success,
+                        "on_error": on_error,
+                        "args": args,
+                        "kwargs": kwargs,
                     }
                     return
                 else:
                     self._running_groups.add(group_id)
-            self._submit_internal(
-                group_id,
-                fn,
-                on_success,
-                on_error,
-                *args,
-                **kwargs)
+            self._submit_internal(group_id, fn, on_success, on_error, *args, **kwargs)
         else:
-            self._submit_internal(
-                None, fn, on_success, on_error, *args, **kwargs)
+            self._submit_internal(None, fn, on_success, on_error, *args, **kwargs)
 
-    def _submit_internal(self, group_id, fn, on_success,
-                         on_error, *args, **kwargs):
+    def _submit_internal(self, group_id, fn, on_success, on_error, *args, **kwargs):
         worker = TaskWorker(fn, *args, **kwargs)
 
         def success_interceptor(result):
@@ -127,7 +122,8 @@ class TaskManager(QObject):
 
         self.thread_pool.start(worker)
         logger.debug(
-            f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}")
+            f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}"
+        )
 
     def _check_pending(self, group_id):
         if group_id is None:
@@ -143,11 +139,11 @@ class TaskManager(QObject):
         # 在锁外提交新任务
         self._submit_internal(
             group_id,
-            req['fn'],
-            req['on_success'],
-            req['on_error'],
-            *req['args'],
-            **req['kwargs']
+            req["fn"],
+            req["on_success"],
+            req["on_error"],
+            *req["args"],
+            **req["kwargs"],
         )
 
 
@@ -156,10 +152,11 @@ class TaskManager(QObject):
 # 将 AIManager 中的同步 ML 方法包装为异步 QRunnable，防止 UI 阻塞
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class AIFitWorker(TaskWorker):
     """散点拟合 AI Worker：支持线性和多项式回归"""
 
-    def __init__(self, ai_manager, points, fit_type='linear', degree=2):
+    def __init__(self, ai_manager, points, fit_type="linear", degree=2):
         self._ai_manager = ai_manager
         self._points = points
         self._fit_type = fit_type
@@ -167,7 +164,7 @@ class AIFitWorker(TaskWorker):
 
         # 根据 fit_type 选择对应的函数，传给父类初始化
         # 父类 TaskWorker.__init__ 已创建 self.signals，无需重复初始化
-        if fit_type == 'polynomial':
+        if fit_type == "polynomial":
             fn = ai_manager.fit_polynomial_regression
             super().__init__(fn, points, degree)
         else:
@@ -178,8 +175,10 @@ class AIFitWorker(TaskWorker):
 
     def run(self):
         try:
-            if self._fit_type == 'polynomial':
-                result = self._ai_manager.fit_polynomial_regression(self._points, self._degree)
+            if self._fit_type == "polynomial":
+                result = self._ai_manager.fit_polynomial_regression(
+                    self._points, self._degree
+                )
             else:
                 result = self._ai_manager.fit_linear_regression(self._points)
             self.signals.finished.emit(result)
@@ -192,7 +191,7 @@ class AIFitWorker(TaskWorker):
 class AIClusterWorker(TaskWorker):
     """聚类分析 AI Worker：支持 KMeans 和 DBSCAN"""
 
-    def __init__(self, ai_manager, points, algorithm='kmeans', **kwargs):
+    def __init__(self, ai_manager, points, algorithm="kmeans", **kwargs):
         self._ai_manager = ai_manager
         self._points = points
         self._algorithm = algorithm
@@ -202,12 +201,12 @@ class AIClusterWorker(TaskWorker):
         self.setAutoDelete(True)
 
     def _execute(self):
-        if self._algorithm == 'dbscan':
-            eps = self._kwargs.get('eps', 0.5)
-            min_samples = self._kwargs.get('min_samples', 5)
+        if self._algorithm == "dbscan":
+            eps = self._kwargs.get("eps", 0.5)
+            min_samples = self._kwargs.get("min_samples", 5)
             return self._ai_manager.cluster_dbscan(self._points, eps, min_samples)
         else:
-            n_clusters = self._kwargs.get('n_clusters', 3)
+            n_clusters = self._kwargs.get("n_clusters", 3)
             return self._ai_manager.cluster_kmeans(self._points, n_clusters)
 
 

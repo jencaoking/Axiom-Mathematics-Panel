@@ -9,9 +9,9 @@ class ProjectManager:
         self.objects = {}
         self.console_history = []
         self.settings = {
-            'created': datetime.now().isoformat(),
-            'modified': datetime.now().isoformat(),
-            'version': '1.0'
+            "created": datetime.now().isoformat(),
+            "modified": datetime.now().isoformat(),
+            "version": "1.0",
         }
 
     def new_project(self):
@@ -19,24 +19,24 @@ class ProjectManager:
         self.objects = {}
         self.console_history = []
         self.settings = {
-            'created': datetime.now().isoformat(),
-            'modified': datetime.now().isoformat(),
-            'version': '1.0'
+            "created": datetime.now().isoformat(),
+            "modified": datetime.now().isoformat(),
+            "version": "1.0",
         }
 
     def open_project(self, file_path):
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             self.current_project = file_path
-            self.objects = data.get('objects', {})
-            self.console_history = data.get('console_history', [])
-            self.settings = data.get('settings', {})
+            self.objects = data.get("objects", {})
+            self.console_history = data.get("console_history", [])
+            self.settings = data.get("settings", {})
 
-            return {'success': True}
+            return {"success": True}
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def save_project(self, file_path=None, file_manager=None):
         """保存项目到磁盘。
@@ -54,20 +54,17 @@ class ProjectManager:
             file_path = self.current_project
 
         if file_path is None:
-            return {'success': False, 'error': 'No file path specified'}
+            return {"success": False, "error": "No file path specified"}
 
         try:
             data = {
-                'objects': self.objects,
-                'console_history': self.console_history,
-                'settings': {
-                    **self.settings,
-                    'modified': datetime.now().isoformat()
-                }
+                "objects": self.objects,
+                "console_history": self.console_history,
+                "settings": {**self.settings, "modified": datetime.now().isoformat()},
             }
 
-            tmp_path = file_path + '.tmp'
-            with open(tmp_path, 'w', encoding='utf-8') as f:
+            tmp_path = file_path + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
             os.replace(tmp_path, file_path)
 
@@ -76,21 +73,27 @@ class ProjectManager:
             # 同步刷新 FileIndex，避免索引里的 modified/checksum 过期
             if file_manager is not None:
                 try:
-                    object_types = list(set(
-                        obj.get('type') for obj in self.objects.values()
-                        if obj.get('type') is not None
-                    ))
-                    file_manager.index.add_entry(file_path, {
-                        'category': self.settings.get('category', 'untitled'),
-                        'object_types': object_types,
-                        'tags': self.settings.get('tags', [])
-                    })
+                    object_types = list(
+                        set(
+                            obj.get("type")
+                            for obj in self.objects.values()
+                            if obj.get("type") is not None
+                        )
+                    )
+                    file_manager.index.add_entry(
+                        file_path,
+                        {
+                            "category": self.settings.get("category", "untitled"),
+                            "object_types": object_types,
+                            "tags": self.settings.get("tags", []),
+                        },
+                    )
                 except Exception:
                     pass  # 索引刷新失败不影响保存结果
 
-            return {'success': True}
+            return {"success": True}
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def add_object(self, obj_id, obj_data):
         self.objects[obj_id] = obj_data
@@ -98,7 +101,11 @@ class ProjectManager:
 
     def _deep_update(self, target, source):
         for key, value in source.items():
-            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+            if (
+                isinstance(value, dict)
+                and key in target
+                and isinstance(target[key], dict)
+            ):
                 self._deep_update(target[key], value)
             else:
                 target[key] = value
@@ -114,10 +121,9 @@ class ProjectManager:
             self._update_modified()
 
     def add_console_entry(self, entry):
-        self.console_history.append({
-            'timestamp': datetime.now().isoformat(),
-            'entry': entry
-        })
+        self.console_history.append(
+            {"timestamp": datetime.now().isoformat(), "entry": entry}
+        )
         if len(self.console_history) > 1000:
             self.console_history = self.console_history[-1000:]
 
@@ -128,28 +134,25 @@ class ProjectManager:
         return list(self.objects.values())
 
     def _update_modified(self):
-        self.settings['modified'] = datetime.now().isoformat()
+        self.settings["modified"] = datetime.now().isoformat()
 
     def serialize_current_state(self):
         return {
-            'objects': self.objects,
-            'console_history': self.console_history,
-            'settings': {
-                **self.settings,
-                'modified': datetime.now().isoformat()
-            }
+            "objects": self.objects,
+            "console_history": self.console_history,
+            "settings": {**self.settings, "modified": datetime.now().isoformat()},
         }
 
     def export_to_png(self, canvas_widget, file_path):
         try:
             pixmap = canvas_widget.grab()
             pixmap.save(file_path)
-            return {'success': True}
+            return {"success": True}
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def export_to_svg(self, canvas_widget, file_path):
-        return {'success': False, 'error': 'SVG export not implemented yet'}
+        return {"success": False, "error": "SVG export not implemented yet"}
 
     def export_algebra_to_latex(self):
         """将画布上所有几何对象导出为 LaTeX 字符串。
@@ -159,97 +162,99 @@ class ProjectManager:
         latex_lines = []
 
         for obj_data in self.objects.values():
-            obj_type = obj_data.get('type')
-            name = obj_data.get('name', '')
-            coords = obj_data.get('coordinates', {})
+            obj_type = obj_data.get("type")
+            name = obj_data.get("name", "")
+            coords = obj_data.get("coordinates", {})
 
             line = None
 
-            if obj_type == 'Point':
-                x = coords.get('x', 0)
-                y = coords.get('y', 0)
-                line = rf'\({name} = ({x},\ {y})\)'
+            if obj_type == "Point":
+                x = coords.get("x", 0)
+                y = coords.get("y", 0)
+                line = rf"\({name} = ({x},\ {y})\)"
 
-            elif obj_type == 'Circle':
-                cx = coords.get('cx', 0)
-                cy = coords.get('cy', 0)
-                r = coords.get('r', 1)
-                line = rf'\((x - {cx})^2 + (y - {cy})^2 = {r}^2\)'
+            elif obj_type == "Circle":
+                cx = coords.get("cx", 0)
+                cy = coords.get("cy", 0)
+                r = coords.get("r", 1)
+                line = rf"\((x - {cx})^2 + (y - {cy})^2 = {r}^2\)"
 
-            elif obj_type in ('Line', 'Segment'):
-                a = obj_data.get('a')
-                b = obj_data.get('b')
-                c = obj_data.get('c')
+            elif obj_type in ("Line", "Segment"):
+                a = obj_data.get("a")
+                b = obj_data.get("b")
+                c = obj_data.get("c")
                 if a is not None and b is not None and c is not None:
-                    line = rf'\({a}x + {b}y + {c} = 0\)'
+                    line = rf"\({a}x + {b}y + {c} = 0\)"
                 else:
-                    x1 = coords.get('x1', 0)
-                    y1 = coords.get('y1', 0)
-                    x2 = coords.get('x2', 0)
-                    y2 = coords.get('y2', 0)
-                    prefix = r'\overline{' + name + '}' if obj_type == 'Segment' else name
-                    line = rf'\({prefix}: ({x1},\ {y1}) \to ({x2},\ {y2})\)'
+                    x1 = coords.get("x1", 0)
+                    y1 = coords.get("y1", 0)
+                    x2 = coords.get("x2", 0)
+                    y2 = coords.get("y2", 0)
+                    prefix = (
+                        r"\overline{" + name + "}" if obj_type == "Segment" else name
+                    )
+                    line = rf"\({prefix}: ({x1},\ {y1}) \to ({x2},\ {y2})\)"
 
-            elif obj_type == 'Polygon':
-                pts = coords.get('points', [])
-                pts_str = r',\ '.join(rf'({p[0]},\ {p[1]})' for p in pts)
-                line = rf'\(\text{{Polygon}}({name}): {pts_str}\)'
+            elif obj_type == "Polygon":
+                pts = coords.get("points", [])
+                pts_str = r",\ ".join(rf"({p[0]},\ {p[1]})" for p in pts)
+                line = rf"\(\text{{Polygon}}({name}): {pts_str}\)"
 
-            elif obj_type == 'Ellipse':
-                cx = coords.get('cx', 0)
-                cy = coords.get('cy', 0)
-                a = coords.get('a', 2)
-                b = coords.get('b', 1)
-                rotation = coords.get('rotation', 0)
+            elif obj_type == "Ellipse":
+                cx = coords.get("cx", 0)
+                cy = coords.get("cy", 0)
+                a = coords.get("a", 2)
+                b = coords.get("b", 1)
+                rotation = coords.get("rotation", 0)
                 if rotation == 0:
-                    line = rf'\(\dfrac{{(x-{cx})^2}}{{{a}^2}} + \dfrac{{(y-{cy})^2}}{{{b}^2}} = 1\)'
+                    line = rf"\(\dfrac{{(x-{cx})^2}}{{{a}^2}} + \dfrac{{(y-{cy})^2}}{{{b}^2}} = 1\)"
                 else:
-                    line = rf'\(\text{{Ellipse}}({name},\ \theta={rotation:.4f}\text{{ rad}})\)'
+                    line = rf"\(\text{{Ellipse}}({name},\ \theta={rotation:.4f}\text{{ rad}})\)"
 
-            elif obj_type == 'Hyperbola':
-                cx = coords.get('cx', 0)
-                cy = coords.get('cy', 0)
-                a = coords.get('a', 1)
-                b = coords.get('b', 1)
-                rotation = coords.get('rotation', 0)
+            elif obj_type == "Hyperbola":
+                cx = coords.get("cx", 0)
+                cy = coords.get("cy", 0)
+                a = coords.get("a", 1)
+                b = coords.get("b", 1)
+                rotation = coords.get("rotation", 0)
                 if rotation == 0:
-                    line = rf'\(\dfrac{{(x-{cx})^2}}{{{a}^2}} - \dfrac{{(y-{cy})^2}}{{{b}^2}} = 1\)'
+                    line = rf"\(\dfrac{{(x-{cx})^2}}{{{a}^2}} - \dfrac{{(y-{cy})^2}}{{{b}^2}} = 1\)"
                 else:
-                    line = rf'\(\text{{Hyperbola}}({name},\ \theta={rotation:.4f}\text{{ rad}})\)'
+                    line = rf"\(\text{{Hyperbola}}({name},\ \theta={rotation:.4f}\text{{ rad}})\)"
 
-            elif obj_type == 'Parabola':
-                vx = coords.get('vx', 0)
-                vy = coords.get('vy', 0)
-                p = coords.get('p', 1)
-                direction = coords.get('direction', 'up')
-                if direction in ('up', 'down'):
-                    sign = 1 if direction == 'up' else -1
-                    line = rf'\((x-{vx})^2 = {4 * p * sign}(y-{vy})\)'
+            elif obj_type == "Parabola":
+                vx = coords.get("vx", 0)
+                vy = coords.get("vy", 0)
+                p = coords.get("p", 1)
+                direction = coords.get("direction", "up")
+                if direction in ("up", "down"):
+                    sign = 1 if direction == "up" else -1
+                    line = rf"\((x-{vx})^2 = {4 * p * sign}(y-{vy})\)"
                 else:
-                    sign = 1 if direction == 'right' else -1
-                    line = rf'\((y-{vy})^2 = {4 * p * sign}(x-{vx})\)'
+                    sign = 1 if direction == "right" else -1
+                    line = rf"\((y-{vy})^2 = {4 * p * sign}(x-{vx})\)"
 
-            elif obj_type == 'Intersection':
-                x = coords.get('x', 0)
-                y = coords.get('y', 0)
-                line = rf'\({name} = ({x},\ {y})\)'
+            elif obj_type == "Intersection":
+                x = coords.get("x", 0)
+                y = coords.get("y", 0)
+                line = rf"\({name} = ({x},\ {y})\)"
 
-            elif obj_type == 'FunctionPlot':
-                expr = obj_data.get('expression', '')
-                line = rf'\(y = {expr}\)'
+            elif obj_type == "FunctionPlot":
+                expr = obj_data.get("expression", "")
+                line = rf"\(y = {expr}\)"
 
-            elif obj_type == 'ImplicitPlot':
-                expr = obj_data.get('expression', '')
-                line = rf'\({expr} = 0\)'
+            elif obj_type == "ImplicitPlot":
+                expr = obj_data.get("expression", "")
+                line = rf"\({expr} = 0\)"
 
-            elif obj_type == 'PolarPlot':
-                expr = obj_data.get('expression', '')
-                line = rf'\(r = {expr}\)'
+            elif obj_type == "PolarPlot":
+                expr = obj_data.get("expression", "")
+                line = rf"\(r = {expr}\)"
 
-            elif obj_type == 'Locus':
-                line = rf'\(\text{{Locus of }}\,{name}\)'
+            elif obj_type == "Locus":
+                line = rf"\(\text{{Locus of }}\,{name}\)"
 
             if line is not None:
                 latex_lines.append(line)
 
-        return '\n'.join(latex_lines)
+        return "\n".join(latex_lines)

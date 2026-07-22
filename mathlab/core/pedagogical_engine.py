@@ -11,6 +11,7 @@
 - UDL (Universal Design for Learning): 多元表达、多元参与、多元表达方式
 - Socratic Method: 苏格拉底式提问引导，禁止直接给答案
 """
+
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -18,7 +19,10 @@ from typing import Dict, List, Optional, Tuple
 
 from mathlab.utils.logger import get_logger
 from mathlab.core.student_model import (
-    CognitiveLevel, LearningStyle, StudentModel, AdaptiveEngine,
+    CognitiveLevel,
+    LearningStyle,
+    StudentModel,
+    AdaptiveEngine,
 )
 
 logger = get_logger(__name__)
@@ -26,21 +30,23 @@ logger = get_logger(__name__)
 
 class TeachingPrinciple(Enum):
     """教学法原则枚举。"""
-    BLOOM_TAXONOMY = "bloom_taxonomy"        # Bloom 认知层级覆盖
-    ZPD_DIFFICULTY = "zpd_difficulty"        # 最近发展区难度控制
+
+    BLOOM_TAXONOMY = "bloom_taxonomy"  # Bloom 认知层级覆盖
+    ZPD_DIFFICULTY = "zpd_difficulty"  # 最近发展区难度控制
     UDL_REPRESENTATION = "udl_representation"  # UDL 多元表达
-    SOCRATIC_GUIDED = "socratic_guided"      # 苏格拉底引导式
-    SCAFFOLDING = "scaffolding"              # 脚手架式渐进
-    INSTANT_FEEDBACK = "instant_feedback"    # 即时反馈
+    SOCRATIC_GUIDED = "socratic_guided"  # 苏格拉底引导式
+    SCAFFOLDING = "scaffolding"  # 脚手架式渐进
+    INSTANT_FEEDBACK = "instant_feedback"  # 即时反馈
 
 
 @dataclass
 class PedagogicalConstraint:
     """单条教学法约束规则。"""
+
     principle: TeachingPrinciple
     description: str
-    check_pattern: Optional[str] = None      # 正则检查模式
-    violation_hint: str = ""                 # 违规时的修正提示
+    check_pattern: Optional[str] = None  # 正则检查模式
+    violation_hint: str = ""  # 违规时的修正提示
 
     def validate(self, content: str) -> Tuple[bool, str]:
         """验证内容是否满足此约束。
@@ -114,9 +120,7 @@ class PedagogicalPromptBuilder:
 
     def __init__(self, student_model: Optional[StudentModel] = None):
         self.student = student_model
-        self._adaptive_engine = (
-            AdaptiveEngine(student_model) if student_model else None
-        )
+        self._adaptive_engine = AdaptiveEngine(student_model) if student_model else None
 
     def build_decomposition_constraint(self) -> str:
         """构建问题拆解阶段的教学法约束。
@@ -136,7 +140,9 @@ class PedagogicalPromptBuilder:
         return "\n".join(constraints)
 
     def build_step_execution_constraint(
-        self, step_title: str, cognitive_level: str,
+        self,
+        step_title: str,
+        cognitive_level: str,
         hint: str = "",
     ) -> str:
         """构建单个教学步骤的执行约束。
@@ -212,7 +218,8 @@ class PedagogicalPromptBuilder:
             current_level = self.student.cognitive_level
 
         comfort, stretch = (
-            self.student.get_zpd_zone() if self.student
+            self.student.get_zpd_zone()
+            if self.student
             else (CognitiveLevel.UNDERSTAND, CognitiveLevel.APPLY)
         )
 
@@ -278,9 +285,7 @@ class PedagogicalPromptBuilder:
             }
             style_hint = f"\n  当前学生偏好：{style_map.get(self.student.learning_style, '均衡')}"
 
-        udl_text = "\n".join(
-            f"  - {k}：{v}" for k, v in self.UDL_PRINCIPLES.items()
-        )
+        udl_text = "\n".join(f"  - {k}：{v}" for k, v in self.UDL_PRINCIPLES.items())
 
         return f"""【UDL 多元表达约束】
 {udl_text}{style_hint}
@@ -289,17 +294,19 @@ class PedagogicalPromptBuilder:
 
 class QualityDimension(Enum):
     """教学质量评估维度。"""
-    CONTENT_UNDERSTANDING = "content_understanding"    # 内容理解
-    CONTEXT_COHERENCE = "context_coherence"           # 上下文连贯性
-    PEDAGOGICAL_DESIGN = "pedagogical_design"         # 教学设计
+
+    CONTENT_UNDERSTANDING = "content_understanding"  # 内容理解
+    CONTEXT_COHERENCE = "context_coherence"  # 上下文连贯性
+    PEDAGOGICAL_DESIGN = "pedagogical_design"  # 教学设计
 
 
 @dataclass
 class QualityReport:
     """教学质量评估报告。"""
+
     dimension: QualityDimension
-    score: float                          # 0.0~1.0
-    passed: bool                          # score >= threshold
+    score: float  # 0.0~1.0
+    passed: bool  # score >= threshold
     issues: List[str] = field(default_factory=list)
     suggestions: List[str] = field(default_factory=list)
 
@@ -322,8 +329,9 @@ class TeachingQualityEvaluator:
     3. 教学设计 (Pedagogical Design)：是否遵循教育原则
     """
 
-    def __init__(self, student_model: Optional[StudentModel] = None,
-                 pass_threshold: float = 0.6):
+    def __init__(
+        self, student_model: Optional[StudentModel] = None, pass_threshold: float = 0.6
+    ):
         self.student = student_model
         self.pass_threshold = pass_threshold
         self._prompt_builder = PedagogicalPromptBuilder(student_model)
@@ -348,8 +356,8 @@ class TeachingQualityEvaluator:
         reports[QualityDimension.CONTENT_UNDERSTANDING] = (
             self._evaluate_content_understanding(content, user_prompt)
         )
-        reports[QualityDimension.CONTEXT_COHERENCE] = (
-            self._evaluate_context_coherence(content, plan)
+        reports[QualityDimension.CONTEXT_COHERENCE] = self._evaluate_context_coherence(
+            content, plan
         )
         reports[QualityDimension.PEDAGOGICAL_DESIGN] = (
             self._evaluate_pedagogical_design(content, user_prompt)
@@ -369,19 +377,27 @@ class TeachingQualityEvaluator:
             suggestions.append("增加详细解释和中间步骤")
 
         # 检查 2：是否包含数学公式/代码
-        has_math = bool(re.search(r'\$.*\$|\\[a-zA-Z]+|numpy|scipy|def\s+', content))
+        has_math = bool(re.search(r"\$.*\$|\\[a-zA-Z]+|numpy|scipy|def\s+", content))
         if not has_math:
             issues.append("内容缺少数学公式或代码，教学深度不足")
             suggestions.append("添加 LaTeX 公式或 Python 代码来展示数学原理")
 
         # 检查 3：是否包含解释性文字
-        has_explanation = bool(re.search(r'因为|所以|由于|因此|这意味着|原理是|解释', content))
+        has_explanation = bool(
+            re.search(r"因为|所以|由于|因此|这意味着|原理是|解释", content)
+        )
         if not has_explanation:
             issues.append("缺少解释性文字，学生可能无法理解为什么这样做")
             suggestions.append("在代码/公式后添加'为什么'的解释")
 
         # 检查 4：是否有中间步骤展示
-        has_steps = bool(re.search(r'步骤|第.步|Step\s|print\(|输出结果|中间结果|计算结果', content, re.IGNORECASE))
+        has_steps = bool(
+            re.search(
+                r"步骤|第.步|Step\s|print\(|输出结果|中间结果|计算结果",
+                content,
+                re.IGNORECASE,
+            )
+        )
         if not has_steps:
             issues.append("缺少中间步骤展示，学生看不到推理过程")
             suggestions.append("将计算拆分为多个步骤，每步打印中间结果")
@@ -416,8 +432,7 @@ class TeachingQualityEvaluator:
             if levels:
                 # 检查是否大致递增（允许个别持平）
                 increases = sum(
-                    1 for i in range(1, len(levels))
-                    if levels[i] >= levels[i - 1]
+                    1 for i in range(1, len(levels)) if levels[i] >= levels[i - 1]
                 )
                 ratio = increases / max(1, len(levels) - 1)
                 if ratio < 0.6:
@@ -431,15 +446,13 @@ class TeachingQualityEvaluator:
                 level_span = max(levels) - min(levels)
                 if level_span > 4:
                     issues.append(
-                        f"认知层级跨度过大（{level_span}层），"
-                        f"学生可能无法跟上"
+                        f"认知层级跨度过大（{level_span}层），" f"学生可能无法跟上"
                     )
                     suggestions.append("增加中间过渡步骤，减小层级跨度")
 
         # 检查内容中的逻辑连接词
         connectives = re.findall(
-            r'首先|其次|然后|接着|最后|因此|所以|综上|接下来',
-            content
+            r"首先|其次|然后|接着|最后|因此|所以|综上|接下来", content
         )
         if len(connectives) < 2 and len(content) > 200:
             issues.append("缺少逻辑连接词，叙事连贯性不足")
@@ -467,21 +480,19 @@ class TeachingQualityEvaluator:
         for constraint in constraints:
             passed, hint = constraint.validate(content)
             if not passed:
-                issues.append(
-                    f"违反「{constraint.principle.value}」原则：{hint}"
-                )
+                issues.append(f"违反「{constraint.principle.value}」原则：{hint}")
                 suggestions.append(hint)
 
         # 检查苏格拉底式引导：是否有提问
-        has_question = bool(re.search(r'[？\?]\s*$', content, re.MULTILINE))
+        has_question = bool(re.search(r"[？\?]\s*$", content, re.MULTILINE))
         if not has_question and len(content) > 100:
             issues.append("缺少引导式提问，不符合苏格拉底教学法")
             suggestions.append("在内容末尾添加启发式问题引导学生思考")
 
         # 检查 UDL 多元表达：是否有多种表达方式
-        has_formula = bool(re.search(r'\$.*\$|\\[a-zA-Z]+', content))
-        has_code = bool(re.search(r'```python|def\s+|import\s+', content))
-        has_visual = bool(re.search(r'画图|绘制|draw\(|plot\(|画板', content))
+        has_formula = bool(re.search(r"\$.*\$|\\[a-zA-Z]+", content))
+        has_code = bool(re.search(r"```python|def\s+|import\s+", content))
+        has_visual = bool(re.search(r"画图|绘制|draw\(|plot\(|画板", content))
         representation_count = sum([has_formula, has_code, has_visual])
         if representation_count < 2 and len(content) > 200:
             issues.append(
@@ -506,13 +517,13 @@ class TeachingQualityEvaluator:
             PedagogicalConstraint(
                 principle=TeachingPrinciple.SOCRATIC_GUIDED,
                 description="禁止直接给最终答案（非最后步骤）",
-                check_pattern=r'答案是[:：]|最终结果[:：]|正确答案[:：]',
+                check_pattern=r"答案是[:：]|最终结果[:：]|正确答案[:：]",
                 violation_hint="不应直接给出答案，应使用引导式提问让学生自己发现",
             ),
             PedagogicalConstraint(
                 principle=TeachingPrinciple.SCAFFOLDING,
                 description="禁止一步到位跳过推理过程",
-                check_pattern=r'显然|很明显|trivially|一目了然',
+                check_pattern=r"显然|很明显|trivially|一目了然",
                 violation_hint="不应使用'显然'等词跳过推理，需要展示中间步骤",
             ),
         ]
@@ -526,10 +537,7 @@ class TeachingQualityEvaluator:
             QualityDimension.CONTEXT_COHERENCE: 0.25,
             QualityDimension.PEDAGOGICAL_DESIGN: 0.35,
         }
-        total = sum(
-            weights[dim] * reports[dim].score
-            for dim in reports
-        )
+        total = sum(weights[dim] * reports[dim].score for dim in reports)
         return round(total, 2)
 
     def build_improvement_feedback(

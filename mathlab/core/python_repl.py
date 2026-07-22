@@ -50,10 +50,10 @@ class PythonREPL:
             sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
 
             return {
-                'success': sandbox_result['success'],
-                'output': sandbox_result['output'],
-                'error': sandbox_result['error'],
-                'more': False  # 沙箱模式下不支持多行交互
+                "success": sandbox_result["success"],
+                "output": sandbox_result["output"],
+                "error": sandbox_result["error"],
+                "more": False,  # 沙箱模式下不支持多行交互
             }
         finally:
             self.running = False
@@ -66,12 +66,53 @@ class PythonREPL:
 
         # 仅补全 Python 内置函数
         builtin_names = [
-            'abs', 'all', 'any', 'bool', 'callable', 'chr', 'complex', 'dict',
-            'dir', 'divmod', 'enumerate', 'float', 'hash', 'hex', 'id', 'int',
-            'isinstance', 'issubclass', 'iter', 'len', 'list', 'map', 'max',
-            'min', 'next', 'oct', 'ord', 'pow', 'range', 'repr', 'reversed',
-            'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type',
-            'zip', 'print', 'input', 'open', 'file', 'True', 'False', 'None'
+            "abs",
+            "all",
+            "any",
+            "bool",
+            "callable",
+            "chr",
+            "complex",
+            "dict",
+            "dir",
+            "divmod",
+            "enumerate",
+            "float",
+            "hash",
+            "hex",
+            "id",
+            "int",
+            "isinstance",
+            "issubclass",
+            "iter",
+            "len",
+            "list",
+            "map",
+            "max",
+            "min",
+            "next",
+            "oct",
+            "ord",
+            "pow",
+            "range",
+            "repr",
+            "reversed",
+            "round",
+            "set",
+            "slice",
+            "sorted",
+            "str",
+            "sum",
+            "tuple",
+            "type",
+            "zip",
+            "print",
+            "input",
+            "open",
+            "file",
+            "True",
+            "False",
+            "None",
         ]
 
         for name in builtin_names:
@@ -91,13 +132,14 @@ class PythonREPL:
             return []
         try:
             # 沙箱模式下传入空命名空间，仅提供基础补全
-            interpreter = jedi.Interpreter(code_str, namespaces=[{'__builtins__': __builtins__}])
+            interpreter = jedi.Interpreter(
+                code_str, namespaces=[{"__builtins__": __builtins__}]
+            )
             completions = interpreter.complete(line, column)
-            return [{
-                'name': c.name,
-                'type': c.type,
-                'description': c.description
-            } for c in completions]
+            return [
+                {"name": c.name, "type": c.type, "description": c.description}
+                for c in completions
+            ]
         except Exception as e:
             logger.debug("Jedi 代码补全异常: %s", e)
             return []

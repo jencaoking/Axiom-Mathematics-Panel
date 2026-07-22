@@ -23,8 +23,9 @@ logger = get_logger(__name__)
 
 class RenderEngine(Enum):
     """渲染引擎类型"""
-    PYTHON = "python"          # python-markdown + matplotlib LaTeX
-    WEBENGINE = "webengine"    # marked.js + KaTeX
+
+    PYTHON = "python"  # python-markdown + matplotlib LaTeX
+    WEBENGINE = "webengine"  # marked.js + KaTeX
 
 
 class MarkdownService:
@@ -50,17 +51,17 @@ class MarkdownService:
     _instance = None
 
     # LaTeX 定界符正则
-    _LATEX_DISPLAY_RE = re.compile(r'\$\$(.+?)\$\$', re.DOTALL)
-    _LATEX_SQUARE_RE = re.compile(r'\\\[(.+?)\\\]', re.DOTALL)
-    _LATEX_INLINE_RE = re.compile(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)', re.DOTALL)
-    _LATEX_BRACKET_RE = re.compile(r'\\\((.+?)\\\)', re.DOTALL)
+    _LATEX_DISPLAY_RE = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
+    _LATEX_SQUARE_RE = re.compile(r"\\\[(.+?)\\\]", re.DOTALL)
+    _LATEX_INLINE_RE = re.compile(r"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)", re.DOTALL)
+    _LATEX_BRACKET_RE = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
 
     # 任意 LaTeX 定界符检测
     _HAS_LATEX_RE = re.compile(
-        r'\$\$.+?\$\$'
-        r'|(?<!\$)\$(?!\$).+?(?<!\$)\$(?!\$)'
-        r'|\\\(.+?\\\)'
-        r'|\\\[.+?\\\]',
+        r"\$\$.+?\$\$"
+        r"|(?<!\$)\$(?!\$).+?(?<!\$)\$(?!\$)"
+        r"|\\\(.+?\\\)"
+        r"|\\\[.+?\\\]",
         re.DOTALL,
     )
 
@@ -78,15 +79,15 @@ class MarkdownService:
         # 初始化 python-markdown
         self._md = md_lib.Markdown(
             extensions=[
-                'extra',        # tables, fenced_code, footnotes, abbr, attr_list, def_list
-                'codehilite',   # 语法高亮
-                'nl2br',        # 换行转 <br>
-                'sane_lists',   # 更好的列表处理
+                "extra",  # tables, fenced_code, footnotes, abbr, attr_list, def_list
+                "codehilite",  # 语法高亮
+                "nl2br",  # 换行转 <br>
+                "sane_lists",  # 更好的列表处理
             ],
             extension_configs={
-                'codehilite': {
-                    'guess_lang': False,
-                    'noclasses': True,
+                "codehilite": {
+                    "guess_lang": False,
+                    "noclasses": True,
                 },
             },
         )
@@ -94,8 +95,10 @@ class MarkdownService:
         # 检查 matplotlib 可用性（用于 LaTeX→PNG）
         try:
             import matplotlib
-            matplotlib.use('Agg')
+
+            matplotlib.use("Agg")
             import matplotlib.pyplot as plt
+
             self._plt = plt
             self._latex_render_available = True
         except ImportError:
@@ -160,10 +163,10 @@ class MarkdownService:
             else:
                 # 降级：以 serif 字体显示原始 LaTeX
                 style = (
-                    'font-family: serif; font-style: italic; display: block; '
-                    'text-align: center; margin: 8px 0;'
-                    if display else
-                    'font-family: serif; font-style: italic;'
+                    "font-family: serif; font-style: italic; display: block; "
+                    "text-align: center; margin: 8px 0;"
+                    if display
+                    else "font-family: serif; font-style: italic;"
                 )
                 html = html.replace(
                     placeholder,
@@ -200,7 +203,8 @@ class MarkdownService:
     # ──────────────────────────────────────────────────────────────
 
     def _extract_and_replace_latex(
-        self, text: str,
+        self,
+        text: str,
     ) -> Tuple[List[Tuple[str, str, bool, str]], str]:
         """提取 LaTeX 公式并替换为 HTML 注释占位符
 
@@ -219,17 +223,18 @@ class MarkdownService:
                 placeholder = f"<!--LATEX_{idx}-->"
 
                 # 清理 LaTeX 源码（去掉定界符）
-                if latex_src.startswith('$$'):
+                if latex_src.startswith("$$"):
                     latex_clean = latex_src[2:-2].strip()
-                elif latex_src.startswith('\\('):
+                elif latex_src.startswith("\\("):
                     latex_clean = latex_src[2:-2].strip()
-                elif latex_src.startswith('\\['):
+                elif latex_src.startswith("\\["):
                     latex_clean = latex_src[2:-2].strip()
                 else:
-                    latex_clean = latex_src.strip('$').strip()
+                    latex_clean = latex_src.strip("$").strip()
 
                 placeholders.append((placeholder, latex_src, display, latex_clean))
                 return placeholder
+
             return replacer
 
         # 按优先级替换：$$ → \[\] → $ → \(\)
@@ -249,7 +254,7 @@ class MarkdownService:
     def _generate_latex_png(
         self,
         latex_str: str,
-        color: str = '#d4d4d4',
+        color: str = "#d4d4d4",
         font_size: int = 12,
     ) -> bytes:
         """将 LaTeX 字符串渲染为 PNG 字节流（带 LRU 缓存）
@@ -257,26 +262,34 @@ class MarkdownService:
         使用 matplotlib mathtext 渲染，无需系统 LaTeX 安装。
         """
         if not self._latex_render_available:
-            return b''
+            return b""
 
         try:
             fig = self._plt.figure(figsize=(0.01, 0.01))
             fig.text(
-                0, 0, f'${latex_str}$',
-                fontsize=font_size, color=color,
-                ha='left', va='center',
+                0,
+                0,
+                f"${latex_str}$",
+                fontsize=font_size,
+                color=color,
+                ha="left",
+                va="center",
             )
 
             buf = io.BytesIO()
             fig.savefig(
-                buf, format='png', transparent=True,
-                bbox_inches='tight', pad_inches=0.05, dpi=150,
+                buf,
+                format="png",
+                transparent=True,
+                bbox_inches="tight",
+                pad_inches=0.05,
+                dpi=150,
             )
             self._plt.close(fig)
             return buf.getvalue()
         except Exception as e:
             logger.error(f"LaTeX PNG 渲染失败: {e}")
-            return b''
+            return b""
 
     def _render_latex_to_img(
         self,
@@ -292,7 +305,7 @@ class MarkdownService:
         if not png_data:
             return f'<span style="font-family: serif;">${latex_str}$</span>'
 
-        img = QImage.fromData(png_data, 'PNG')
+        img = QImage.fromData(png_data, "PNG")
         if img.isNull():
             return f'<span style="font-family: serif;">${latex_str}$</span>'
 
@@ -317,44 +330,44 @@ class MarkdownService:
     def _wrap_dark_theme(self, html: str) -> str:
         """暗黑主题 CSS（匹配 VSCode 风格）"""
         css = (
-            '<style>'
+            "<style>"
             'body { color: #d4d4d4; font-family: -apple-system, "Segoe UI", '
             '"Microsoft YaHei", sans-serif; font-size: 14px; line-height: 1.6; }'
-            'code { font-family: Consolas, monospace; color: #ce9178; '
-            'background-color: #2d2d2d; padding: 2px 4px; border-radius: 3px; }'
-            'pre { background-color: #1e1e1e; padding: 10px; border-radius: 5px; '
-            'overflow-x: auto; }'
-            'pre code { background-color: transparent; padding: 0; color: #d4d4d4; }'
-            'blockquote { border-left: 4px solid #007acc; margin: 0; '
-            'padding-left: 15px; color: #858585; }'
-            'table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }'
-            'th, td { border: 1px solid #444; padding: 8px; text-align: left; }'
-            'th { background-color: #2d2d2d; }'
-            'a { color: #4EC9B0; }'
-            'h1, h2, h3, h4, h5, h6 { color: #569cd6; }'
-            '.codehilite { background-color: #1e1e1e; padding: 10px; '
-            'border-radius: 5px; overflow-x: auto; }'
-            '</style>'
+            "code { font-family: Consolas, monospace; color: #ce9178; "
+            "background-color: #2d2d2d; padding: 2px 4px; border-radius: 3px; }"
+            "pre { background-color: #1e1e1e; padding: 10px; border-radius: 5px; "
+            "overflow-x: auto; }"
+            "pre code { background-color: transparent; padding: 0; color: #d4d4d4; }"
+            "blockquote { border-left: 4px solid #007acc; margin: 0; "
+            "padding-left: 15px; color: #858585; }"
+            "table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }"
+            "th, td { border: 1px solid #444; padding: 8px; text-align: left; }"
+            "th { background-color: #2d2d2d; }"
+            "a { color: #4EC9B0; }"
+            "h1, h2, h3, h4, h5, h6 { color: #569cd6; }"
+            ".codehilite { background-color: #1e1e1e; padding: 10px; "
+            "border-radius: 5px; overflow-x: auto; }"
+            "</style>"
         )
         return css + html
 
     def _wrap_light_theme(self, html: str) -> str:
         """浅色主题 CSS"""
         css = (
-            '<style>'
+            "<style>"
             'body { color: #333; font-family: -apple-system, "Segoe UI", '
             '"Microsoft YaHei", sans-serif; font-size: 14px; line-height: 1.6; }'
-            'code { font-family: Consolas, monospace; color: #c7254e; '
-            'background-color: #f9f2f4; padding: 2px 4px; border-radius: 3px; }'
-            'pre { background-color: #f5f5f5; padding: 10px; border-radius: 5px; '
-            'overflow-x: auto; }'
-            'pre code { background-color: transparent; padding: 0; color: #333; }'
-            'blockquote { border-left: 4px solid #007acc; margin: 0; '
-            'padding-left: 15px; color: #666; }'
-            'table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }'
-            'th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }'
-            'th { background-color: #f0f0f0; }'
-            'a { color: #007acc; }'
-            '</style>'
+            "code { font-family: Consolas, monospace; color: #c7254e; "
+            "background-color: #f9f2f4; padding: 2px 4px; border-radius: 3px; }"
+            "pre { background-color: #f5f5f5; padding: 10px; border-radius: 5px; "
+            "overflow-x: auto; }"
+            "pre code { background-color: transparent; padding: 0; color: #333; }"
+            "blockquote { border-left: 4px solid #007acc; margin: 0; "
+            "padding-left: 15px; color: #666; }"
+            "table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }"
+            "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }"
+            "th { background-color: #f0f0f0; }"
+            "a { color: #007acc; }"
+            "</style>"
         )
         return css + html

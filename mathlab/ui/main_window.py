@@ -1,4 +1,3 @@
-
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
 
@@ -10,7 +9,13 @@ from mathlab.core.python_repl import PythonREPL
 from mathlab.core.ai_manager import AIManager
 from mathlab.core.cas_provider import CASProvider
 from mathlab.core.algo_animator import AlgoAnimator
-from mathlab.core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+from mathlab.core.async_workers import (
+    TaskManager,
+    AIFitWorker,
+    AIClusterWorker,
+    AIRecognizeWorker,
+    AIGeneratePointsWorker,
+)
 from mathlab.core.command_manager import CommandManager, Command
 from mathlab.core.ipc_server import JupyterIPCServer
 from mathlab.core.ipc_client import JupyterIPCClient
@@ -57,11 +62,11 @@ class MainWindow(
     AIMixin,
     FileIOMixin,
     DialogsMixin,
-    QMainWindow
+    QMainWindow,
 ):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(t('main_window.title'))
+        self.setWindowTitle(t("main_window.title"))
         self.setGeometry(100, 100, 1200, 800)
 
         self._objects_data: dict = {}
@@ -75,9 +80,10 @@ class MainWindow(
 
         # ── IPC 通信（端口可配置化） ────────────────────────────────────
         from mathlab.utils.config_manager import get_config
-        ipc_config = get_config('ipc', {})
-        ipc_server_port = ipc_config.get('server_port', 45678)
-        ipc_client_port = ipc_config.get('client_port', 45679)
+
+        ipc_config = get_config("ipc", {})
+        ipc_server_port = ipc_config.get("server_port", 45678)
+        ipc_client_port = ipc_config.get("client_port", 45679)
 
         self.ipc_server = JupyterIPCServer(port=ipc_server_port, parent=self)
         self.ipc_server.command_received.connect(self.handle_kernel_command)
@@ -115,6 +121,7 @@ class MainWindow(
 
         # 挂载画板追踪器
         from mathlab.core.canvas_tracker import CanvasShadowTracker
+
         self.canvas_tracker = CanvasShadowTracker(self.geometry_engine)
 
         # 实例化 Omni-Bar，保证生命周期绑定
@@ -146,45 +153,73 @@ class MainWindow(
 
         # 将 ai_manager 注入给代码编辑器
         from mathlab.ui.code_editor import AutocompleteTextEdit
+
         self.code_editor = AutocompleteTextEdit(ai_manager=self.ai_manager)
 
     def _init_post_setup(self):
         """后置初始化：REPL 命名空间注入、事件监听注册、插件系统启动。"""
         # ── 注入 Python REPL 快捷命令命名空间 ───────────────────────────
-        self.python_repl.update_namespace({
-            'draw_point': lambda x, y: self.geometry_engine.add_point(x, y),
-            'draw_segment': lambda p1, p2: self.geometry_engine.add_segment(p1, p2),
-            'draw_circle': lambda center, radius: self.geometry_engine.add_circle(center, radius),
-            'clear_canvas': lambda: self.geometry_engine.objects.clear(),
-            'draw_ellipse': lambda center_id, a=2.0, b=1.0: self.geometry_engine.add_ellipse(center_id, a, b),
-            'draw_hyperbola': lambda center_id, a=1.0, b=1.0: self.geometry_engine.add_hyperbola(center_id, a, b),
-            'draw_parabola': lambda vertex_id, p=1.0, direction='up': self.geometry_engine.add_parabola(vertex_id, p, direction),
-            'draw_conic': lambda A=1, B=0, C=1, D=0, E=0, F=-1: self.geometry_engine.add_conic_section(A, B, C, D, E, F),
-            'plot_function': lambda expr, x_range=(-10, 10): self.geometry_engine.add_function_plot(expr, x_range),
-            'plot_implicit': lambda expr, x_range=(-10, 10), y_range=(-10, 10): self.geometry_engine.add_implicit_plot(expr, x_range, y_range),
-            'plot_polar': lambda expr, theta_range=(0, 6.28318): self.geometry_engine.add_polar_plot(expr, theta_range),
-            'create_locus': lambda tracer_id, driver_id: self.geometry_engine.add_locus(tracer_id, driver_id),
-            'update_locus': lambda locus_id: self.geometry_engine.update_locus(locus_id),
-            'solve': self.cas_provider.solve_equation,
-            'simplify': self.cas_provider.simplify,
-            'integrate': self.cas_provider.integrate,
-            'differentiate': self.cas_provider.differentiate,
-            'limit': self.cas_provider.limit,
-            'app': self,
-        })
+        self.python_repl.update_namespace(
+            {
+                "draw_point": lambda x, y: self.geometry_engine.add_point(x, y),
+                "draw_segment": lambda p1, p2: self.geometry_engine.add_segment(p1, p2),
+                "draw_circle": lambda center, radius: self.geometry_engine.add_circle(
+                    center, radius
+                ),
+                "clear_canvas": lambda: self.geometry_engine.objects.clear(),
+                "draw_ellipse": lambda center_id, a=2.0, b=1.0: self.geometry_engine.add_ellipse(
+                    center_id, a, b
+                ),
+                "draw_hyperbola": lambda center_id, a=1.0, b=1.0: self.geometry_engine.add_hyperbola(
+                    center_id, a, b
+                ),
+                "draw_parabola": lambda vertex_id, p=1.0, direction="up": self.geometry_engine.add_parabola(
+                    vertex_id, p, direction
+                ),
+                "draw_conic": lambda A=1, B=0, C=1, D=0, E=0, F=-1: self.geometry_engine.add_conic_section(
+                    A, B, C, D, E, F
+                ),
+                "plot_function": lambda expr, x_range=(
+                    -10,
+                    10,
+                ): self.geometry_engine.add_function_plot(expr, x_range),
+                "plot_implicit": lambda expr, x_range=(-10, 10), y_range=(
+                    -10,
+                    10,
+                ): self.geometry_engine.add_implicit_plot(expr, x_range, y_range),
+                "plot_polar": lambda expr, theta_range=(
+                    0,
+                    6.28318,
+                ): self.geometry_engine.add_polar_plot(expr, theta_range),
+                "create_locus": lambda tracer_id, driver_id: self.geometry_engine.add_locus(
+                    tracer_id, driver_id
+                ),
+                "update_locus": lambda locus_id: self.geometry_engine.update_locus(
+                    locus_id
+                ),
+                "solve": self.cas_provider.solve_equation,
+                "simplify": self.cas_provider.simplify,
+                "integrate": self.cas_provider.integrate,
+                "differentiate": self.cas_provider.differentiate,
+                "limit": self.cas_provider.limit,
+                "app": self,
+            }
+        )
 
         # ── 注册几何引擎事件监听 ─────────────────────────────────────────
         def on_geometry_event(event_type, data):
-            if not hasattr(self, 'algebra_panel') or not hasattr(self, 'central_widget'):
+            if not hasattr(self, "algebra_panel") or not hasattr(
+                self, "central_widget"
+            ):
                 return
-            if event_type == 'object_added':
+            if event_type == "object_added":
                 self.algebra_panel.add_object(data)
-                self.central_widget.draw_object(data['id'], data)
-            elif event_type == 'object_updated':
+                self.central_widget.draw_object(data["id"], data)
+            elif event_type == "object_updated":
                 self.algebra_panel.update_object(data)
-                self.central_widget.update_object(data['id'], data)
-            elif event_type == 'object_removed':
-                obj_id = data['id'] if isinstance(data, dict) else data
+                self.central_widget.update_object(data["id"], data)
+            elif event_type == "object_removed":
+                obj_id = data["id"] if isinstance(data, dict) else data
                 self.algebra_panel.remove_object(obj_id)
                 self.central_widget.remove_object(obj_id)
 
@@ -192,7 +227,7 @@ class MainWindow(
 
         # ── 算法动画回调 ─────────────────────────────────────────────────
         def on_algorithm_step(state):
-            if hasattr(self, 'algo_vis_panel'):
+            if hasattr(self, "algo_vis_panel"):
                 self.algo_vis_panel.update_visualization(state)
 
         self.algo_animator.step_ready = on_algorithm_step
@@ -208,18 +243,18 @@ class MainWindow(
         else:
             # 传入当前主窗口的几何数据，用于 Omni-Bar 计算居中位置
             self.omni_bar.summon(self.geometry())
-            
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if hasattr(self, 'omni_bar') and self.omni_bar.isVisible():
+        if hasattr(self, "omni_bar") and self.omni_bar.isVisible():
             self.omni_bar.dismiss()
 
     def closeEvent(self, event):
         """在窗口关闭时卸载所有插件，释放资源"""
-        if hasattr(self, 'autosaver'):
+        if hasattr(self, "autosaver"):
             self.autosaver.clean_up()
 
-        if hasattr(self, 'plugin_manager'):
+        if hasattr(self, "plugin_manager"):
             try:
                 self.plugin_manager.unload_all()
             except Exception as e:
@@ -232,11 +267,11 @@ class MainWindow(
             except Exception:
                 pass
 
-        if hasattr(self, 'ipc_server') and self.ipc_server is not None:
+        if hasattr(self, "ipc_server") and self.ipc_server is not None:
             self.ipc_server.stop()
 
         # 🛑 优雅关闭 JupyterLab 后台进程
-        if hasattr(self, 'jupyter_mgr') and self.jupyter_mgr is not None:
+        if hasattr(self, "jupyter_mgr") and self.jupyter_mgr is not None:
             try:
                 self.jupyter_mgr.stop()
             except Exception as e:
@@ -245,9 +280,9 @@ class MainWindow(
         # 🛑 关闭 JupyterSandbox 内核进程，防止资源泄漏
         try:
             from mathlab.core.jupyter_manager import shutdown_jupyter_sandbox
+
             shutdown_jupyter_sandbox()
         except Exception as e:
             logger.warning("关闭 JupyterSandbox 时出错：%s", e)
 
         super().closeEvent(event)
-

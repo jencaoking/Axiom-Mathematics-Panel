@@ -1,9 +1,19 @@
 from PySide6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
-    QComboBox, QPushButton, QSpinBox, QLabel,
-    QGraphicsView, QGraphicsScene, QGraphicsRectItem,
-    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem,
-    QSlider
+    QDockWidget,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QComboBox,
+    QPushButton,
+    QSpinBox,
+    QLabel,
+    QGraphicsView,
+    QGraphicsScene,
+    QGraphicsRectItem,
+    QGraphicsEllipseItem,
+    QGraphicsLineItem,
+    QGraphicsTextItem,
+    QSlider,
 )
 from PySide6.QtGui import QPen, QBrush, QColor, QFont, QPainter
 from PySide6.QtCore import Qt, Signal, Slot, QTimer
@@ -16,7 +26,7 @@ class AlgoVisPanel(QDockWidget):
     step_requested = Signal()  # 新增专用信号，避免使用字符串 'step'
 
     def __init__(self, parent=None):
-        super().__init__(t('algo_vis.title'), parent)
+        super().__init__(t("algo_vis.title"), parent)
         self.setAllowedAreas(Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
 
         self.widget = QWidget()
@@ -24,42 +34,42 @@ class AlgoVisPanel(QDockWidget):
 
         # Algorithm selector (display text + internal data key)
         self.algorithm_combo = QComboBox()
-        self.algorithm_combo.addItem(t('algo_vis.bubble_sort'), 'bubble_sort')
-        self.algorithm_combo.addItem(t('algo_vis.quick_sort'), 'quick_sort')
-        self.algorithm_combo.addItem(t('algo_vis.binary_search'), 'binary_search')
-        self.algorithm_combo.addItem(t('algo_vis.bfs'), 'bfs')
-        self.algorithm_combo.addItem(t('algo_vis.dfs'), 'dfs')
-        self.algorithm_combo.addItem(t('algo_vis.dijkstra'), 'dijkstra')
-        self.algorithm_combo.addItem(t('algo_vis.convex_hull'), 'convex_hull')
-        self.algorithm_combo.addItem(t('algo_vis.k_means'), 'kmeans')
+        self.algorithm_combo.addItem(t("algo_vis.bubble_sort"), "bubble_sort")
+        self.algorithm_combo.addItem(t("algo_vis.quick_sort"), "quick_sort")
+        self.algorithm_combo.addItem(t("algo_vis.binary_search"), "binary_search")
+        self.algorithm_combo.addItem(t("algo_vis.bfs"), "bfs")
+        self.algorithm_combo.addItem(t("algo_vis.dfs"), "dfs")
+        self.algorithm_combo.addItem(t("algo_vis.dijkstra"), "dijkstra")
+        self.algorithm_combo.addItem(t("algo_vis.convex_hull"), "convex_hull")
+        self.algorithm_combo.addItem(t("algo_vis.k_means"), "kmeans")
 
         # Parameter row
         self.params_layout = QHBoxLayout()
 
-        self.array_size_label = QLabel(t('algo_vis.array_size'))
+        self.array_size_label = QLabel(t("algo_vis.array_size"))
         self.params_layout.addWidget(self.array_size_label)
         self.array_size_spin = QSpinBox()
         self.array_size_spin.setRange(5, 20)
         self.array_size_spin.setValue(8)
         self.params_layout.addWidget(self.array_size_spin)
 
-        self.clusters_label = QLabel(t('algo_vis.clusters'))
+        self.clusters_label = QLabel(t("algo_vis.clusters"))
         self.params_layout.addWidget(self.clusters_label)
         self.clusters_spin = QSpinBox()
         self.clusters_spin.setRange(2, 10)
         self.clusters_spin.setValue(3)
         self.params_layout.addWidget(self.clusters_spin)
 
-        self.load_button = QPushButton(t('algo_vis.load_algorithm'))
+        self.load_button = QPushButton(t("algo_vis.load_algorithm"))
         self.load_button.clicked.connect(self.on_load_algorithm)
 
         # Playback controls
         self.control_layout = QHBoxLayout()
-        self.play_button = QPushButton(t('algo_vis.play'))
-        self.pause_button = QPushButton(t('algo_vis.pause'))
-        self.step_button = QPushButton(t('algo_vis.step'))
-        self.reset_button = QPushButton(t('algo_vis.reset'))
-        self.fast_forward_button = QPushButton(t('algo_vis.fast_forward'))
+        self.play_button = QPushButton(t("algo_vis.play"))
+        self.pause_button = QPushButton(t("algo_vis.pause"))
+        self.step_button = QPushButton(t("algo_vis.step"))
+        self.reset_button = QPushButton(t("algo_vis.reset"))
+        self.fast_forward_button = QPushButton(t("algo_vis.fast_forward"))
 
         self.control_layout.addWidget(self.play_button)
         self.control_layout.addWidget(self.pause_button)
@@ -71,7 +81,7 @@ class AlgoVisPanel(QDockWidget):
         self.speed_slider.setRange(1, 10)
         self.speed_slider.setValue(5)
 
-        self.status_label = QLabel(t('algo_vis.status_ready'))
+        self.status_label = QLabel(t("algo_vis.status_ready"))
 
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
@@ -83,7 +93,7 @@ class AlgoVisPanel(QDockWidget):
         self.layout.addLayout(self.params_layout)
         self.layout.addWidget(self.load_button)
         self.layout.addLayout(self.control_layout)
-        self.animation_speed_label = QLabel(t('algo_vis.animation_speed'))
+        self.animation_speed_label = QLabel(t("algo_vis.animation_speed"))
         self.layout.addWidget(self.animation_speed_label)
         self.layout.addWidget(self.speed_slider)
         self.layout.addWidget(self.status_label)
@@ -112,36 +122,36 @@ class AlgoVisPanel(QDockWidget):
     # i18n
     # ------------------------------------------------------------------
     def retranslate_ui(self):
-        self.setWindowTitle(t('algo_vis.title'))
+        self.setWindowTitle(t("algo_vis.title"))
 
         # Algorithm combo items (order must match __init__)
         algo_keys = [
-            'algo_vis.bubble_sort',
-            'algo_vis.quick_sort',
-            'algo_vis.binary_search',
-            'algo_vis.bfs',
-            'algo_vis.dfs',
-            'algo_vis.dijkstra',
-            'algo_vis.convex_hull',
-            'algo_vis.k_means',
+            "algo_vis.bubble_sort",
+            "algo_vis.quick_sort",
+            "algo_vis.binary_search",
+            "algo_vis.bfs",
+            "algo_vis.dfs",
+            "algo_vis.dijkstra",
+            "algo_vis.convex_hull",
+            "algo_vis.k_means",
         ]
         for i, key in enumerate(algo_keys):
             self.algorithm_combo.setItemText(i, t(key))
 
         # Labels
-        self.array_size_label.setText(t('algo_vis.array_size'))
-        self.clusters_label.setText(t('algo_vis.clusters'))
-        self.load_button.setText(t('algo_vis.load_algorithm'))
+        self.array_size_label.setText(t("algo_vis.array_size"))
+        self.clusters_label.setText(t("algo_vis.clusters"))
+        self.load_button.setText(t("algo_vis.load_algorithm"))
 
         # Control buttons
-        self.play_button.setText(t('algo_vis.play'))
-        self.pause_button.setText(t('algo_vis.pause'))
-        self.step_button.setText(t('algo_vis.step'))
-        self.reset_button.setText(t('algo_vis.reset'))
-        self.fast_forward_button.setText(t('algo_vis.fast_forward'))
+        self.play_button.setText(t("algo_vis.play"))
+        self.pause_button.setText(t("algo_vis.pause"))
+        self.step_button.setText(t("algo_vis.step"))
+        self.reset_button.setText(t("algo_vis.reset"))
+        self.fast_forward_button.setText(t("algo_vis.fast_forward"))
 
         # Speed label
-        self.animation_speed_label.setText(t('algo_vis.animation_speed'))
+        self.animation_speed_label.setText(t("algo_vis.animation_speed"))
 
     # ------------------------------------------------------------------
     # Slot handlers
@@ -151,13 +161,13 @@ class AlgoVisPanel(QDockWidget):
         algorithm_name = self.algorithm_combo.currentData()
 
         params = {}
-        if algorithm_name in ['bubble_sort', 'quick_sort']:
-            params['arr'] = list(range(self.array_size_spin.value(), 0, -1))
-        elif algorithm_name == 'kmeans':
-            params['k'] = self.clusters_spin.value()
+        if algorithm_name in ["bubble_sort", "quick_sort"]:
+            params["arr"] = list(range(self.array_size_spin.value(), 0, -1))
+        elif algorithm_name == "kmeans":
+            params["k"] = self.clusters_spin.value()
 
         self.algorithm_selected.emit(algorithm_name, params)
-        self.status_label.setText(t('algo_vis.status_loaded'))
+        self.status_label.setText(t("algo_vis.status_loaded"))
 
     def on_play(self):
         self.is_playing = True
@@ -175,9 +185,9 @@ class AlgoVisPanel(QDockWidget):
 
     def on_reset(self):
         self.on_pause()
-        self.algorithm_selected.emit('reset', {})
+        self.algorithm_selected.emit("reset", {})
         self.scene.clear()
-        self.status_label.setText(t('algo_vis.status_ready'))
+        self.status_label.setText(t("algo_vis.status_ready"))
 
     def on_speed_changed(self, value):
         self.timer.setInterval(int(500 / value))
@@ -196,7 +206,7 @@ class AlgoVisPanel(QDockWidget):
     # ------------------------------------------------------------------
     def update_visualization(self, state):
         if state is None:
-            self.status_label.setText(t('algo_vis.status_complete'))
+            self.status_label.setText(t("algo_vis.status_complete"))
             self.on_pause()
             return
 
@@ -204,32 +214,32 @@ class AlgoVisPanel(QDockWidget):
         self.scene.clear()
 
         self.status_label.setText(
-            t('algo_vis.status_prefix') + state.get('description', '')
+            t("algo_vis.status_prefix") + state.get("description", "")
         )
 
-        state_type = state.get('type')
+        state_type = state.get("type")
 
-        if state_type == 'sorting':
+        if state_type == "sorting":
             self.draw_sorting(state)
-        elif state_type == 'search':
+        elif state_type == "search":
             self.draw_search(state)
-        elif state_type == 'graph':
+        elif state_type == "graph":
             self.draw_graph(state)
-        elif state_type == 'shortest_path':
+        elif state_type == "shortest_path":
             self.draw_shortest_path(state)
-        elif state_type == 'convex_hull':
+        elif state_type == "convex_hull":
             self.draw_convex_hull(state)
-        elif state_type == 'clustering':
+        elif state_type == "clustering":
             self.draw_clustering(state)
 
     # ------------------------------------------------------------------
     # Drawing helpers
     # ------------------------------------------------------------------
     def draw_sorting(self, state):
-        arr = state.get('array', [])
-        comparing = state.get('comparing', [])
-        swapping = state.get('swapping', [])
-        sorted_indices = state.get('sorted', [])
+        arr = state.get("array", [])
+        comparing = state.get("comparing", [])
+        swapping = state.get("swapping", [])
+        sorted_indices = state.get("sorted", [])
 
         if not arr:
             return
@@ -244,18 +254,18 @@ class AlgoVisPanel(QDockWidget):
             x = start_x + i * (bar_width + bar_spacing)
             height = (val / max_val) * 150
 
-            color = QColor('#d3e4fe')
+            color = QColor("#d3e4fe")
 
             if i in comparing:
-                color = QColor('#ba1a1a')
+                color = QColor("#ba1a1a")
             elif i in swapping:
-                color = QColor('#22c55e')
+                color = QColor("#22c55e")
             elif i in sorted_indices:
-                color = QColor('#006058')
+                color = QColor("#006058")
 
             bar = QGraphicsRectItem(x, start_y - height, bar_width, height)
             bar.setBrush(QBrush(color))
-            bar.setPen(QPen(QColor('#737686'), 1))
+            bar.setPen(QPen(QColor("#737686"), 1))
             self.scene.addItem(bar)
 
             label = QGraphicsTextItem(str(val))
@@ -263,10 +273,10 @@ class AlgoVisPanel(QDockWidget):
             self.scene.addItem(label)
 
     def draw_search(self, state):
-        arr = state.get('array', [])
-        target = state.get('target', 0)
-        search_range = state.get('search_range', (-1, -1))
-        mid = state.get('mid', -1)
+        arr = state.get("array", [])
+        target = state.get("target", 0)
+        search_range = state.get("search_range", (-1, -1))
+        mid = state.get("mid", -1)
 
         if not arr:
             return
@@ -281,24 +291,24 @@ class AlgoVisPanel(QDockWidget):
             x = start_x + i * (bar_width + bar_spacing)
             height = (val / max_val) * 150
 
-            color = QColor('#d3e4fe')
+            color = QColor("#d3e4fe")
 
             if search_range[0] <= i <= search_range[1]:
-                color = QColor('#dbe1ff')
+                color = QColor("#dbe1ff")
             if i == mid:
-                color = QColor('#004ac6')
+                color = QColor("#004ac6")
             if val == target:
-                color = QColor('#22c55e')
+                color = QColor("#22c55e")
 
             bar = QGraphicsRectItem(x, start_y - height, bar_width, height)
             bar.setBrush(QBrush(color))
             self.scene.addItem(bar)
 
     def draw_graph(self, state):
-        nodes = state.get('nodes', [])
-        edges = state.get('edges', [])
-        visited = state.get('visited', {})
-        current = state.get('current', -1)
+        nodes = state.get("nodes", [])
+        edges = state.get("edges", [])
+        visited = state.get("visited", {})
+        current = state.get("current", -1)
 
         node_positions = {}
         center_x = 300
@@ -306,50 +316,51 @@ class AlgoVisPanel(QDockWidget):
         radius = 100
 
         for i, node in enumerate(nodes):
-            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (0.5 + 0.5 * (i % 3))
+            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (
+                0.5 + 0.5 * (i % 3)
+            )
             y = center_y + radius * (i % 2 - 0.5) * 2
             node_positions[node] = (x, y)
 
-            color = QColor('#d3e4fe')
+            color = QColor("#d3e4fe")
             if visited.get(node, False):
-                color = QColor('#22c55e')
+                color = QColor("#22c55e")
             if node == current:
-                color = QColor('#004ac6')
+                color = QColor("#004ac6")
                 node_radius = 25
             else:
                 node_radius = 20
 
             circle = QGraphicsEllipseItem(
-                x - node_radius, y - node_radius,
-                node_radius * 2, node_radius * 2
+                x - node_radius, y - node_radius, node_radius * 2, node_radius * 2
             )
             circle.setBrush(QBrush(color))
-            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            circle.setPen(QPen(QColor("#0b1c30"), 2))
             self.scene.addItem(circle)
 
             label = QGraphicsTextItem(str(node))
             label.setPos(x - 5, y - 5)
-            label.setFont(QFont('Arial', 12, QFont.Bold))
+            label.setFont(QFont("Arial", 12, QFont.Bold))
             self.scene.addItem(label)
 
         for edge in edges:
             x1, y1 = node_positions[edge[0]]
             x2, y2 = node_positions[edge[1]]
 
-            color = QColor('#737686')
+            color = QColor("#737686")
             if visited.get(edge[0], False) and visited.get(edge[1], False):
-                color = QColor('#22c55e')
+                color = QColor("#22c55e")
 
             line = QGraphicsLineItem(x1, y1, x2, y2)
             line.setPen(QPen(color, 2))
             self.scene.addItem(line)
 
     def draw_shortest_path(self, state):
-        nodes = state.get('nodes', [])
-        edges = state.get('edges', [])
-        distances = state.get('distances', {})
-        visited = state.get('visited', {})
-        current = state.get('current', -1)
+        nodes = state.get("nodes", [])
+        edges = state.get("edges", [])
+        distances = state.get("distances", {})
+        visited = state.get("visited", {})
+        current = state.get("current", -1)
 
         node_positions = {}
         center_x = 300
@@ -357,29 +368,31 @@ class AlgoVisPanel(QDockWidget):
         radius = 100
 
         for i, node in enumerate(nodes):
-            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (0.5 + 0.5 * (i % 3))
+            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (
+                0.5 + 0.5 * (i % 3)
+            )
             y = center_y + radius * (i % 2 - 0.5) * 2
             node_positions[node] = (x, y)
 
-            color = QColor('#d3e4fe')
+            color = QColor("#d3e4fe")
             if visited.get(node, False):
-                color = QColor('#22c55e')
+                color = QColor("#22c55e")
             if node == current:
-                color = QColor('#004ac6')
+                color = QColor("#004ac6")
 
             circle = QGraphicsEllipseItem(x - 20, y - 20, 40, 40)
             circle.setBrush(QBrush(color))
-            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            circle.setPen(QPen(QColor("#0b1c30"), 2))
             self.scene.addItem(circle)
 
             label = QGraphicsTextItem(str(node))
             label.setPos(x - 5, y - 5)
             self.scene.addItem(label)
 
-            dist = distances.get(node, float('inf'))
-            dist_label = QGraphicsTextItem(f'{dist:.1f}')
+            dist = distances.get(node, float("inf"))
+            dist_label = QGraphicsTextItem(f"{dist:.1f}")
             dist_label.setPos(x - 10, y + 25)
-            dist_label.setFont(QFont('Arial', 10))
+            dist_label.setFont(QFont("Arial", 10))
             self.scene.addItem(dist_label)
 
         for edge in edges:
@@ -388,7 +401,7 @@ class AlgoVisPanel(QDockWidget):
             weight = edge[2] if len(edge) > 2 else 1
 
             line = QGraphicsLineItem(x1, y1, x2, y2)
-            line.setPen(QPen(QColor('#737686'), 2))
+            line.setPen(QPen(QColor("#737686"), 2))
             self.scene.addItem(line)
 
             mid_x = (x1 + x2) / 2
@@ -398,8 +411,8 @@ class AlgoVisPanel(QDockWidget):
             self.scene.addItem(weight_label)
 
     def draw_convex_hull(self, state):
-        points = state.get('points', [])
-        hull = state.get('hull', [])
+        points = state.get("points", [])
+        hull = state.get("hull", [])
 
         if not points:
             return
@@ -417,7 +430,7 @@ class AlgoVisPanel(QDockWidget):
             x = point[0] * scale + offset_x
             y = -point[1] * scale + offset_y
 
-            color = QColor('#004ac6') if point in hull else QColor('#d3e4fe')
+            color = QColor("#004ac6") if point in hull else QColor("#d3e4fe")
 
             circle = QGraphicsEllipseItem(x - 5, y - 5, 10, 10)
             circle.setBrush(QBrush(color))
@@ -434,20 +447,24 @@ class AlgoVisPanel(QDockWidget):
                 y2 = -p2[1] * scale + offset_y
 
                 line = QGraphicsLineItem(x1, y1, x2, y2)
-                line.setPen(QPen(QColor('#4b41e1'), 2))
+                line.setPen(QPen(QColor("#4b41e1"), 2))
                 self.scene.addItem(line)
 
     def draw_clustering(self, state):
-        points = state.get('points', [])
-        centers = state.get('centers', [])
-        clusters = state.get('clusters', [])
+        points = state.get("points", [])
+        centers = state.get("centers", [])
+        clusters = state.get("clusters", [])
 
         if not points:
             return
 
         colors = [
-            QColor('#004ac6'), QColor('#4b41e1'), QColor('#006058'),
-            QColor('#ba1a1a'), QColor('#9333ea'), QColor('#06b6d4'),
+            QColor("#004ac6"),
+            QColor("#4b41e1"),
+            QColor("#006058"),
+            QColor("#ba1a1a"),
+            QColor("#9333ea"),
+            QColor("#06b6d4"),
         ]
 
         for i, cluster in enumerate(clusters):
@@ -467,5 +484,5 @@ class AlgoVisPanel(QDockWidget):
             color = colors[i % len(colors)]
             circle = QGraphicsEllipseItem(x - 8, y - 8, 16, 16)
             circle.setBrush(QBrush(color))
-            circle.setPen(QPen(QColor('#0b1c30'), 2))
+            circle.setPen(QPen(QColor("#0b1c30"), 2))
             self.scene.addItem(circle)

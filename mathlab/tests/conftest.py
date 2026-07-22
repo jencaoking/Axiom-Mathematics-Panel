@@ -26,17 +26,23 @@ if str(_PROJECT_ROOT) not in sys.path:
 def pytest_configure(config):
     config.addinivalue_line("markers", "unit: fast isolated unit tests")
     config.addinivalue_line("markers", "integration: multi-component integration tests")
-    config.addinivalue_line("markers", "e2e: end-to-end UI tests requiring Qt event loop")
-    config.addinivalue_line("markers", "slow: tests that take >2s (deselect with '-m \"not slow\"')")
+    config.addinivalue_line(
+        "markers", "e2e: end-to-end UI tests requiring Qt event loop"
+    )
+    config.addinivalue_line(
+        "markers", "slow: tests that take >2s (deselect with '-m \"not slow\"')"
+    )
     config.addinivalue_line("markers", "qt: tests that require a Qt event loop")
 
 
 # ─── Shared Fixtures ────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def engine():
     """Fresh GeometryEngine instance for each test."""
     from mathlab.core.geometry_engine import GeometryEngine
+
     return GeometryEngine()
 
 
@@ -44,6 +50,7 @@ def engine():
 def dag():
     """Fresh DAG instance."""
     from mathlab.core.geometry_engine import DAG
+
     return DAG()
 
 
@@ -51,6 +58,7 @@ def dag():
 def cas():
     """Fresh CASProvider instance."""
     from mathlab.core.cas_provider import CASProvider
+
     return CASProvider()
 
 
@@ -58,6 +66,7 @@ def cas():
 def repl():
     """Fresh PythonREPL in isolated (non-session) mode."""
     from mathlab.core.python_repl import PythonREPL
+
     return PythonREPL(session_mode=False)
 
 
@@ -65,6 +74,7 @@ def repl():
 def session_repl():
     """Fresh PythonREPL in session (persistent) mode."""
     from mathlab.core.python_repl import PythonREPL
+
     return PythonREPL(session_mode=True)
 
 
@@ -72,6 +82,7 @@ def session_repl():
 def sandbox():
     """Fresh SandboxProcess; auto-terminated after test."""
     from mathlab.core.sandbox import SandboxProcess
+
     s = SandboxProcess()
     yield s
     try:
@@ -84,6 +95,7 @@ def sandbox():
 def ai_manager():
     """Fresh AIManager instance."""
     from mathlab.core.ai_manager import AIManager
+
     return AIManager()
 
 
@@ -91,6 +103,7 @@ def ai_manager():
 def animator():
     """Fresh AlgoAnimator instance."""
     from mathlab.core.algo_animator import AlgoAnimator
+
     return AlgoAnimator()
 
 
@@ -98,6 +111,7 @@ def animator():
 def num_engine():
     """Fresh NumEngine instance."""
     from mathlab.core.num_engine import NumEngine
+
     return NumEngine()
 
 
@@ -105,6 +119,7 @@ def num_engine():
 def bridge():
     """Fresh OctaveBridge instance."""
     from mathlab.core.octave_bridge import OctaveBridge
+
     return OctaveBridge()
 
 
@@ -120,4 +135,5 @@ def temp_dir():
 def file_manager(temp_dir):
     """Fresh FileManager rooted in a temp directory."""
     from mathlab.data.file_manager import FileManager
+
     return FileManager(base_directory=temp_dir)

@@ -100,6 +100,7 @@ class AgentRegistry:
         self._execution_timeout = 300  # [修复] 整体执行超时时间（秒）
         # 结构化通信协议：消息总线与路由器
         from mathlab.core.agent_message import get_message_bus, get_message_router
+
         self.message_bus = get_message_bus()
         self.message_router = get_message_router()
         self.message_router.agent_registry = self
@@ -127,7 +128,9 @@ class AgentRegistry:
                 break
         if matched_key:
             _AGENT_PROFILES[matched_key].system_prompt = getattr(
-                agent_instance, "system_prompt", _AGENT_PROFILES[matched_key].system_prompt
+                agent_instance,
+                "system_prompt",
+                _AGENT_PROFILES[matched_key].system_prompt,
             )
 
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
@@ -152,7 +155,12 @@ class AgentRegistry:
         del self.agents[name]
         # 从静态名片表中移除（仅限动态添加的）
         if name.lower() in _AGENT_PROFILES and _AGENT_PROFILES[name.lower()].id not in (
-                "planner", "general", "geometry", "quiz", "dataviz"):
+            "planner",
+            "general",
+            "geometry",
+            "quiz",
+            "dataviz",
+        ):
             del _AGENT_PROFILES[name.lower()]
 
         logger.info(f"🔌 [Agent Registry] 已卸载专家: {name}")
@@ -185,8 +193,10 @@ class AgentRegistry:
             logger.warning(f"⚠️ 专家 {name} 已存在，将被覆盖")
 
         description = config.get("description", "自定义专家")
-        system_prompt = config.get("system_prompt",
-                                   "你是一个数学科研助手。请通过 Thought, Action, Observation 闭环解决问题。")
+        system_prompt = config.get(
+            "system_prompt",
+            "你是一个数学科研助手。请通过 Thought, Action, Observation 闭环解决问题。",
+        )
         model_override = config.get("model_override")
 
         # 构建资源限制配置
@@ -234,7 +244,7 @@ class AgentRegistry:
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"Agent 配置文件不存在: {config_path}")
 
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
         return self.load_agent_from_config(config)
@@ -256,7 +266,7 @@ class AgentRegistry:
             return loaded, failed
 
         for filename in os.listdir(dir_path):
-            if not filename.endswith('.json'):
+            if not filename.endswith(".json"):
                 continue
             filepath = os.path.join(dir_path, filename)
             try:
@@ -274,18 +284,24 @@ class AgentRegistry:
         result = []
         for name, info in self.agents.items():
             instance = info["instance"]
-            model = getattr(instance, "_get_effective_model",
-                            lambda: getattr(instance, "model", "unknown"))()
-            result.append({
-                "name": name,
-                "description": info["description"],
-                "model": model,
-                "resource_config": getattr(instance, "resource_config", None),
-            })
+            model = getattr(
+                instance,
+                "_get_effective_model",
+                lambda: getattr(instance, "model", "unknown"),
+            )()
+            result.append(
+                {
+                    "name": name,
+                    "description": info["description"],
+                    "model": model,
+                    "resource_config": getattr(instance, "resource_config", None),
+                }
+            )
         return result
 
-    def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb,
-                          on_geom_cb=None):
+    def route_and_execute(
+        self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb=None
+    ):
         """
         核心路由逻辑：分类 -> 派发 -> 执行
 
@@ -299,15 +315,17 @@ class AgentRegistry:
             return
 
         # 1. 构建动态的路由 Prompt，列出所有可用专家
-        agent_descriptions = "\n".join([f"- {name}: {info['description']}" for name, info in self.agents.items()])
+        agent_descriptions = "\n".join(
+            [f"- {name}: {info['description']}" for name, info in self.agents.items()]
+        )
 
         # BUG 10 修复：使用三引号嵌套避免用户输入中的引号破坏格式
-        router_prompt = f'''你是一个高级任务调度路由大脑。
+        router_prompt = f"""你是一个高级任务调度路由大脑。
 请分析用户的需求：{user_prompt}
 根据以下可用的专家 Agent，决定将任务派发给谁最合适：
 {agent_descriptions}
 
-规则：你必须且只能返回专家的名字，不要输出任何多余的字符或标点。'''
+规则：你必须且只能返回专家的名字，不要输出任何多余的字符或标点。"""
 
         if on_thought_cb:
             on_thought_cb("🧠 路由大脑正在分析意图，寻找最合适的专家...")
@@ -333,45 +351,54 @@ class AgentRegistry:
                 fallback = (
                     "PlannerAgent"
                     if "PlannerAgent" in self.agents
-                    else ("GeometryAgent"
-                          if "GeometryAgent" in self.agents
-                          else (list(self.agents.keys())[0] if self.agents else None))
+                    else (
+                        "GeometryAgent"
+                        if "GeometryAgent" in self.agents
+                        else (list(self.agents.keys())[0] if self.agents else None)
+                    )
                 )
                 if not fallback:
                     raise RuntimeError("系统中没有任何已注册的专家。")
                 if on_thought_cb:
-                    on_thought_cb(f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 {fallback}。")
+                    on_thought_cb(
+                        f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 {fallback}。"
+                    )
                 selected_agent_name = fallback
             else:
                 if on_thought_cb:
-                    on_thought_cb(f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】")
+                    on_thought_cb(
+                        f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】"
+                    )
 
             # 4. 真正移交控制权，启动该专家的 ReAct 推理闭环
             # [修复] 添加超时控制，防止 LLM 响应慢导致系统阻塞
             expert_agent = self.agents[selected_agent_name]["instance"]
 
-            result_container = {'finished': False, 'error': None}
+            result_container = {"finished": False, "error": None}
 
             def _execute_with_timeout():
                 try:
-                    expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb,
-                                               on_finish_cb, on_geom_cb)
+                    expert_agent.solve_problem(
+                        user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb
+                    )
                 except Exception as e:
-                    result_container['error'] = e
+                    result_container["error"] = e
                 finally:
-                    result_container['finished'] = True
+                    result_container["finished"] = True
 
             exec_thread = threading.Thread(target=_execute_with_timeout, daemon=True)
             exec_thread.start()
             exec_thread.join(timeout=self._execution_timeout)
 
-            if not result_container['finished']:
+            if not result_container["finished"]:
                 if on_thought_cb:
-                    on_thought_cb(f"⏰ 专家执行超时（超过 {self._execution_timeout} 秒），已强制终止。")
+                    on_thought_cb(
+                        f"⏰ 专家执行超时（超过 {self._execution_timeout} 秒），已强制终止。"
+                    )
                 if on_finish_cb:
                     on_finish_cb(False, f"执行超时（{self._execution_timeout}秒）")
-            elif result_container['error']:
-                raise result_container['error']
+            elif result_container["error"]:
+                raise result_container["error"]
 
         except Exception as e:
             if on_thought_cb:

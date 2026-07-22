@@ -10,7 +10,13 @@ class MagnetSnapper:
         # 屏幕物理像素阈值，无论怎么缩放，用户感觉吸附距离都是固定的 10px
         self.threshold_px = snap_threshold_pixels
 
-    def snap(self, raw_logical_pos: QPointF, scale_factor: float, existing_points: list[QPointF], grid_size: float = 1.0) -> QPointF:
+    def snap(
+        self,
+        raw_logical_pos: QPointF,
+        scale_factor: float,
+        existing_points: list[QPointF],
+        grid_size: float = 1.0,
+    ) -> QPointF:
         """
         计算吸附后的安全坐标
 
@@ -25,13 +31,15 @@ class MagnetSnapper:
             return raw_logical_pos
 
         # 2. 动态计算当前的逻辑阈值 (物理阈值 / 缩放系数)
-        logical_threshold = self.threshold_px / scale_factor if scale_factor > 0 else 0.001
+        logical_threshold = (
+            self.threshold_px / scale_factor if scale_factor > 0 else 0.001
+        )
 
         snapped_x = raw_logical_pos.x()
         snapped_y = raw_logical_pos.y()
 
         # === 优先级 1：吸附到其他点（点对点绝对锁定）===
-        best_dist = float('inf')
+        best_dist = float("inf")
         target_point = None
         for pt in existing_points:
             dist = math.hypot(snapped_x - pt.x(), snapped_y - pt.y())

@@ -5,6 +5,7 @@ enforcement, sandbox isolation, and the SandboxManager factory. Merged
 from the legacy ``test_core.py`` and ``test_sandbox_security.py``
 modules.
 """
+
 import pytest
 
 from mathlab.core.sandbox import SandboxManager
@@ -16,18 +17,18 @@ class TestSandboxProcess:
     @pytest.mark.unit
     def test_run_code_success(self, sandbox):
         result = sandbox.run_code('print("test")', timeout=5)
-        assert 'test' in result['output']
+        assert "test" in result["output"]
 
     @pytest.mark.unit
     def test_sandbox_timeout(self, sandbox):
         """Timeout termination mechanism works."""
         result = sandbox.run_code("while True: pass", timeout=2)
-        assert result['success'] is False
+        assert result["success"] is False
         # Watchdog triggers timeout or memory limit.
         assert (
-            'timed out' in result['error'].lower()
-            or 'Memory limit' in result['error']
-            or 'execution timed out' in result['error'].lower()
+            "timed out" in result["error"].lower()
+            or "Memory limit" in result["error"]
+            or "execution timed out" in result["error"].lower()
         )
 
     @pytest.mark.unit
@@ -36,20 +37,21 @@ class TestSandboxProcess:
         sandbox.max_memory_mb = 50  # Lowered threshold for fast testing.
         code = "arr = []\nwhile True:\n    arr.append('X' * 1000000)"
         result = sandbox.run_code(code, timeout=10)
-        assert result['success'] is False
+        assert result["success"] is False
         # Triggers memory limit or timeout.
         assert (
-            'Memory limit' in result['error']
-            or 'timed out' in result['error'].lower()
+            "Memory limit" in result["error"] or "timed out" in result["error"].lower()
         )
 
     @pytest.mark.unit
     def test_sandbox_normal_execution(self, sandbox):
         """Normal code with numpy executes successfully."""
-        result = sandbox.run_code("print('Hello'); import numpy as np; print(np.array([1,2,3]))")
-        assert result['success'] is True
-        assert 'Hello' in result['output']
-        assert '[1 2 3]' in result['output']
+        result = sandbox.run_code(
+            "print('Hello'); import numpy as np; print(np.array([1,2,3]))"
+        )
+        assert result["success"] is True
+        assert "Hello" in result["output"]
+        assert "[1 2 3]" in result["output"]
 
 
 class TestSandboxManager:
@@ -59,7 +61,7 @@ class TestSandboxManager:
     def test_create_sandbox(self):
         manager = SandboxManager()
         sandbox_id = manager.create_sandbox()
-        assert sandbox_id.startswith('sandbox_')
+        assert sandbox_id.startswith("sandbox_")
 
 
 class TestNormalExecution:
@@ -99,7 +101,9 @@ class TestMemoryProtection:
         code = "arr = []\nwhile True:\n    arr.append('X' * 1000000)"
         result = sandbox.run_code(code, timeout=10)
         assert result["success"] is False
-        assert "Memory limit" in result["error"] or "timed out" in result["error"].lower()
+        assert (
+            "Memory limit" in result["error"] or "timed out" in result["error"].lower()
+        )
 
 
 class TestSandboxIsolation:

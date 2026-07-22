@@ -6,8 +6,11 @@
 3. PedagogicalConstraint — 约束验证规则
 4. QualityReport — 评估报告序列化
 """
+
 from mathlab.core.student_model import (
-    StudentModel, CognitiveLevel, InteractionType,
+    StudentModel,
+    CognitiveLevel,
+    InteractionType,
 )
 from mathlab.core.pedagogical_engine import (
     PedagogicalPromptBuilder,
@@ -26,7 +29,7 @@ class TestPedagogicalConstraint:
         constraint = PedagogicalConstraint(
             principle=TeachingPrinciple.SOCRATIC_GUIDED,
             description="禁止直接给最终答案",
-            check_pattern=r'答案是[:：]|最终结果[:：]|正确答案[:：]',
+            check_pattern=r"答案是[:：]|最终结果[:：]|正确答案[:：]",
             violation_hint="不应直接给出答案",
         )
         passed, hint = constraint.validate("答案是：42")
@@ -37,7 +40,7 @@ class TestPedagogicalConstraint:
         constraint = PedagogicalConstraint(
             principle=TeachingPrinciple.SOCRATIC_GUIDED,
             description="禁止直接给最终答案",
-            check_pattern=r'答案是[:：]|最终结果[:：]|正确答案[:：]',
+            check_pattern=r"答案是[:：]|最终结果[:：]|正确答案[:：]",
             violation_hint="不应直接给出答案",
         )
         passed, _ = constraint.validate("你觉得下一步该怎么做？")
@@ -47,7 +50,7 @@ class TestPedagogicalConstraint:
         constraint = PedagogicalConstraint(
             principle=TeachingPrinciple.SCAFFOLDING,
             description="禁止一步到位",
-            check_pattern=r'显然|很明显|trivially',
+            check_pattern=r"显然|很明显|trivially",
             violation_hint="不应跳过推理",
         )
         passed, hint = constraint.validate("显然结果是正确的")
@@ -218,8 +221,9 @@ class TestTeachingQualityEvaluator:
 
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
         assert not pedagogy_report.passed
-        assert any("苏格拉底" in issue or "答案" in issue
-                   for issue in pedagogy_report.issues)
+        assert any(
+            "苏格拉底" in issue or "答案" in issue for issue in pedagogy_report.issues
+        )
 
     def test_evaluate_missing_question_ending(self):
         evaluator = TeachingQualityEvaluator()
@@ -252,8 +256,9 @@ class TestTeachingQualityEvaluator:
         reports = evaluator.evaluate(content, "什么是导数", plan=None)
 
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
-        assert any("表达方式" in issue or "UDL" in issue
-                   for issue in pedagogy_report.issues)
+        assert any(
+            "表达方式" in issue or "UDL" in issue for issue in pedagogy_report.issues
+        )
 
     def test_evaluate_coherence_with_good_plan(self):
         evaluator = TeachingQualityEvaluator()
@@ -288,8 +293,9 @@ class TestTeachingQualityEvaluator:
 
         coherence_report = reports[QualityDimension.CONTEXT_COHERENCE]
         assert not coherence_report.passed
-        assert any("梯度" in issue or "跨度" in issue
-                   for issue in coherence_report.issues)
+        assert any(
+            "梯度" in issue or "跨度" in issue for issue in coherence_report.issues
+        )
 
     def test_evaluate_coherence_excessive_level_span(self):
         evaluator = TeachingQualityEvaluator()
@@ -311,15 +317,18 @@ class TestTeachingQualityEvaluator:
         reports = {
             QualityDimension.CONTENT_UNDERSTANDING: QualityReport(
                 dimension=QualityDimension.CONTENT_UNDERSTANDING,
-                score=1.0, passed=True,
+                score=1.0,
+                passed=True,
             ),
             QualityDimension.CONTEXT_COHERENCE: QualityReport(
                 dimension=QualityDimension.CONTEXT_COHERENCE,
-                score=0.0, passed=False,
+                score=0.0,
+                passed=False,
             ),
             QualityDimension.PEDAGOGICAL_DESIGN: QualityReport(
                 dimension=QualityDimension.PEDAGOGICAL_DESIGN,
-                score=1.0, passed=True,
+                score=1.0,
+                passed=True,
             ),
         }
         overall = evaluator.get_overall_score(reports)
@@ -331,17 +340,20 @@ class TestTeachingQualityEvaluator:
         reports = {
             QualityDimension.CONTENT_UNDERSTANDING: QualityReport(
                 dimension=QualityDimension.CONTENT_UNDERSTANDING,
-                score=0.2, passed=False,
+                score=0.2,
+                passed=False,
                 issues=["内容过短"],
                 suggestions=["增加详细解释"],
             ),
             QualityDimension.CONTEXT_COHERENCE: QualityReport(
                 dimension=QualityDimension.CONTEXT_COHERENCE,
-                score=0.8, passed=True,
+                score=0.8,
+                passed=True,
             ),
             QualityDimension.PEDAGOGICAL_DESIGN: QualityReport(
                 dimension=QualityDimension.PEDAGOGICAL_DESIGN,
-                score=0.9, passed=True,
+                score=0.9,
+                passed=True,
             ),
         }
         feedback = evaluator.build_improvement_feedback(reports)
@@ -356,7 +368,9 @@ class TestTeachingQualityEvaluator:
         evaluator = TeachingQualityEvaluator()
         reports = {
             dim: QualityReport(
-                dimension=dim, score=1.0, passed=True,
+                dimension=dim,
+                score=1.0,
+                passed=True,
             )
             for dim in QualityDimension
         }

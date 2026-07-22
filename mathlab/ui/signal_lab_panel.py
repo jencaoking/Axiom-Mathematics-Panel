@@ -7,8 +7,14 @@ import os
 import json
 import numpy as np
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QSlider, 
-    QLabel, QGroupBox, QSplitter, QCheckBox
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSlider,
+    QLabel,
+    QGroupBox,
+    QSplitter,
+    QCheckBox,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -17,27 +23,29 @@ from mathlab.core.async_workers import TaskManager
 # 尝试导入我们的底层引擎
 try:
     from mathlab.core.cs_fft_engine import cs_fft
+
     HAS_FFT_ENGINE = True
 except ImportError:
     HAS_FFT_ENGINE = False
+
 
 class SignalLabPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("⚡ 实时信号处理实验室 (C# FFT Accelerated)")
         self.setMinimumSize(900, 700)
-        
+
         # 信号发生器参数
         self.sample_rate = 1000.0
         self.t = np.arange(0, 1.0, 1.0 / self.sample_rate)
-        
+
         # 动画与时间流逝状态
         self.phase_shift = 0.0
         self.is_playing = True
-        
+
         self._build_ui()
         self._init_echarts()
-        
+
         # 核心：设置一个 33ms (约 30FPS) 的定时器，形成实时处理循环
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._on_frame_update)
@@ -45,41 +53,47 @@ class SignalLabPanel(QWidget):
 
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
-        
+
         # --- 左侧：控制台 ---
         control_panel = QWidget()
         control_panel.setFixedWidth(280)
         control_layout = QVBoxLayout(control_panel)
-        
+
         # 信号源 1 控制
         group1 = QGroupBox("🌊 信号源 1 (正弦波)")
         vbox1 = QVBoxLayout(group1)
-        self.freq1_slider, self.freq1_label = self._create_slider(vbox1, "频率 (Hz)", 1, 100, 10)
+        self.freq1_slider, self.freq1_label = self._create_slider(
+            vbox1, "频率 (Hz)", 1, 100, 10
+        )
         self.amp1_slider, self.amp1_label = self._create_slider(vbox1, "振幅", 0, 10, 5)
         control_layout.addWidget(group1)
-        
+
         # 信号源 2 控制
         group2 = QGroupBox("🌊 信号源 2 (正弦波)")
         vbox2 = QVBoxLayout(group2)
-        self.freq2_slider, self.freq2_label = self._create_slider(vbox2, "频率 (Hz)", 1, 250, 50)
+        self.freq2_slider, self.freq2_label = self._create_slider(
+            vbox2, "频率 (Hz)", 1, 250, 50
+        )
         self.amp2_slider, self.amp2_label = self._create_slider(vbox2, "振幅", 0, 10, 2)
         control_layout.addWidget(group2)
-        
+
         # 噪声干扰控制
         group3 = QGroupBox("🌩️ 高斯白噪声干扰")
         vbox3 = QVBoxLayout(group3)
-        self.noise_slider, self.noise_label = self._create_slider(vbox3, "噪声强度", 0, 20, 0)
+        self.noise_slider, self.noise_label = self._create_slider(
+            vbox3, "噪声强度", 0, 20, 0
+        )
         control_layout.addWidget(group3)
-        
+
         # 动态流水控制
         self.animate_checkbox = QCheckBox("开启时间流逝 (相位滚动)")
         self.animate_checkbox.setChecked(True)
         self.animate_checkbox.stateChanged.connect(self._toggle_animation)
         control_layout.addWidget(self.animate_checkbox)
-        
+
         control_layout.addStretch()
         main_layout.addWidget(control_panel)
-        
+
         # --- 右侧：Echarts 示波器 ---
         self.web_view = QWebEngineView()
         main_layout.addWidget(self.web_view, stretch=1)
@@ -88,14 +102,14 @@ class SignalLabPanel(QWidget):
         row = QHBoxLayout()
         label = QLabel(f"{name}: {default_val}")
         row.addWidget(label)
-        
+
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(min_val, max_val)
         slider.setValue(default_val)
-        
+
         # 实时更新标签
         slider.valueChanged.connect(lambda v: label.setText(f"{name}: {v}"))
-        
+
         parent_layout.addLayout(row)
         parent_layout.addWidget(slider)
         return slider, label
@@ -180,7 +194,7 @@ class SignalLabPanel(QWidget):
 
     def closeEvent(self, event):
         """[BUG修复] 面板关闭时，停止定时器以释放资源"""
-        if hasattr(self, 'timer'):
+        if hasattr(self, "timer"):
             self.timer.stop()
         super().closeEvent(event)
 
@@ -197,13 +211,14 @@ class SignalLabPanel(QWidget):
         # 2. 如果开启了动画，滚动相位，制造“波浪流逝”的视觉效果
         if self.is_playing:
             self.phase_shift += 0.05
-            
+
         # [BUG修复] 将耗时的信号合成和 FFT 计算放到子线程中执行，避免阻塞主线程
         def compute_fft(current_phase):
             # 3. 在 Python 中合成包含噪声的信号
-            signal = (a1 * np.sin(2 * np.pi * f1 * self.t + current_phase) + 
-                      a2 * np.sin(2 * np.pi * f2 * self.t + current_phase))
-            
+            signal = a1 * np.sin(2 * np.pi * f1 * self.t + current_phase) + a2 * np.sin(
+                2 * np.pi * f2 * self.t + current_phase
+            )
+
             if noise_level > 0:
                 signal += (noise_level / 5.0) * np.random.randn(len(self.t))
 
@@ -211,8 +226,8 @@ class SignalLabPanel(QWidget):
             freqs, magnitudes = cs_fft.analyze_spectrum(signal, self.sample_rate)
 
             # 5. 组装给 Echarts 的数据包
-            display_signal = signal[::3].tolist() 
-            
+            display_signal = signal[::3].tolist()
+
             valid_idx = freqs <= 250
             freq_display = magnitudes[valid_idx].tolist()
             return display_signal, freq_display
@@ -226,6 +241,6 @@ class SignalLabPanel(QWidget):
         TaskManager().submit(
             fn=compute_fft,
             on_success=update_ui,
-            group_id='signal_lab_fft',  # 利用组 ID 防止堆积处理
-            current_phase=self.phase_shift
+            group_id="signal_lab_fft",  # 利用组 ID 防止堆积处理
+            current_phase=self.phase_shift,
         )

@@ -12,22 +12,29 @@ logger = get_logger(__name__)
 
 class CognitiveLevel(Enum):
     """Bloom 认知层级（从低到高）。"""
-    REMEMBER = 1      # 记忆：回忆事实、术语、基本概念
-    UNDERSTAND = 2    # 理解：解释、总结、推断
-    APPLY = 3         # 应用：在新情境中使用知识
-    ANALYZE = 4       # 分析：分解、比较、组织
-    EVALUATE = 5      # 评价：判断、批判、辩护
-    CREATE = 6        # 创造：设计、构建、规划
+
+    REMEMBER = 1  # 记忆：回忆事实、术语、基本概念
+    UNDERSTAND = 2  # 理解：解释、总结、推断
+    APPLY = 3  # 应用：在新情境中使用知识
+    ANALYZE = 4  # 分析：分解、比较、组织
+    EVALUATE = 5  # 评价：判断、批判、辩护
+    CREATE = 6  # 创造：设计、构建、规划
 
     @classmethod
     def from_string(cls, level_str: str) -> "CognitiveLevel":
         mapping = {
-            "记忆": cls.REMEMBER, "remember": cls.REMEMBER,
-            "理解": cls.UNDERSTAND, "understand": cls.UNDERSTAND,
-            "应用": cls.APPLY, "apply": cls.APPLY,
-            "分析": cls.ANALYZE, "analyze": cls.ANALYZE,
-            "评价": cls.EVALUATE, "evaluate": cls.EVALUATE,
-            "创造": cls.CREATE, "create": cls.CREATE,
+            "记忆": cls.REMEMBER,
+            "remember": cls.REMEMBER,
+            "理解": cls.UNDERSTAND,
+            "understand": cls.UNDERSTAND,
+            "应用": cls.APPLY,
+            "apply": cls.APPLY,
+            "分析": cls.ANALYZE,
+            "analyze": cls.ANALYZE,
+            "评价": cls.EVALUATE,
+            "evaluate": cls.EVALUATE,
+            "创造": cls.CREATE,
+            "create": cls.CREATE,
         }
         return mapping.get(level_str.lower().strip(), cls.UNDERSTAND)
 
@@ -45,20 +52,22 @@ class CognitiveLevel(Enum):
 
 class LearningStyle(Enum):
     """学习偏好风格（UDL 多元表达原则）。"""
-    VISUAL = "visual"        # 视觉型：偏好图表、几何图形
+
+    VISUAL = "visual"  # 视觉型：偏好图表、几何图形
     ANALYTICAL = "analytical"  # 分析型：偏好公式推导、符号运算
-    VERBAL = "verbal"        # 语言型：偏好文字解释、口语化讲解
-    BALANCED = "balanced"    # 均衡型：多种方式交替
+    VERBAL = "verbal"  # 语言型：偏好文字解释、口语化讲解
+    BALANCED = "balanced"  # 均衡型：多种方式交替
 
 
 class InteractionType(Enum):
     """互动类型分类。"""
-    QUESTION = "question"        # 提问
+
+    QUESTION = "question"  # 提问
     ANSWER_CORRECT = "answer_correct"  # 正确回答
-    ANSWER_WRONG = "answer_wrong"      # 错误回答
-    DRAW_REQUEST = "draw_request"      # 绘图请求
+    ANSWER_WRONG = "answer_wrong"  # 错误回答
+    DRAW_REQUEST = "draw_request"  # 绘图请求
     EXPLAIN_REQUEST = "explain_request"  # 解释请求
-    SOLVE_REQUEST = "solve_request"    # 求解请求
+    SOLVE_REQUEST = "solve_request"  # 求解请求
 
 
 class StudentModel:
@@ -109,7 +118,9 @@ class StudentModel:
                 "knowledge_point": knowledge_point,
                 "prompt": prompt_text[:200],  # 截断防止过长
                 "success": success,
-                "cognitive_demand": cognitive_demand.value if cognitive_demand else None,
+                "cognitive_demand": (
+                    cognitive_demand.value if cognitive_demand else None
+                ),
             }
             self.interaction_history.append(entry)
 
@@ -156,17 +167,21 @@ class StudentModel:
 
         self.knowledge_mastery[knowledge_point] = max(0.0, min(1.0, current))
 
-    def _update_cognitive_level(
-        self, demand: CognitiveLevel, success: Optional[bool]
-    ):
+    def _update_cognitive_level(self, demand: CognitiveLevel, success: Optional[bool]):
         """根据互动结果动态调整学生的 Bloom 认知层级。"""
         if success is True:
             # 成功完成高认知需求任务 -> 提升层级
-            if demand.value >= self.cognitive_level.value and self.cognitive_level.value < 6:
+            if (
+                demand.value >= self.cognitive_level.value
+                and self.cognitive_level.value < 6
+            ):
                 self.cognitive_level = CognitiveLevel(self.cognitive_level.value + 1)
         elif success is False:
             # 高认知需求任务失败 -> 可能需要降级巩固
-            if demand.value > self.cognitive_level.value and self.cognitive_level.value > 1:
+            if (
+                demand.value > self.cognitive_level.value
+                and self.cognitive_level.value > 1
+            ):
                 # 不直接降级，而是标记为薄弱（通过 weakness_areas 处理）
                 pass
 
@@ -214,13 +229,10 @@ class StudentModel:
     def _refresh_weakness_areas(self):
         """刷新薄弱知识点列表。"""
         self.weakness_areas = [
-            kp for kp, mastery in self.knowledge_mastery.items()
-            if mastery < 0.4
+            kp for kp, mastery in self.knowledge_mastery.items() if mastery < 0.4
         ]
         # 按掌握度升序排列（最薄弱的在前）
-        self.weakness_areas.sort(
-            key=lambda kp: self.knowledge_mastery.get(kp, 0)
-        )
+        self.weakness_areas.sort(key=lambda kp: self.knowledge_mastery.get(kp, 0))
 
     def get_mastery_level(self, knowledge_point: str) -> str:
         """返回知识点的掌握等级描述。"""
@@ -250,7 +262,8 @@ class StudentModel:
         comfort, stretch = self.get_zpd_zone()
         avg_mastery = (
             sum(self.knowledge_mastery.values()) / len(self.knowledge_mastery)
-            if self.knowledge_mastery else 0.0
+            if self.knowledge_mastery
+            else 0.0
         )
 
         style_map = {
@@ -271,7 +284,8 @@ class StudentModel:
             "total_interactions": self.total_interactions,
             "accuracy": (
                 f"{self.correct_count / self.total_interactions:.0%}"
-                if self.total_interactions > 0 else "N/A"
+                if self.total_interactions > 0
+                else "N/A"
             ),
             "top_mastered": self._get_top_mastered(5),
         }
@@ -281,14 +295,9 @@ class StudentModel:
         if not self.knowledge_mastery:
             return []
         sorted_kp = sorted(
-            self.knowledge_mastery.items(),
-            key=lambda x: x[1],
-            reverse=True
+            self.knowledge_mastery.items(), key=lambda x: x[1], reverse=True
         )
-        return [
-            {"point": kp, "mastery": f"{m:.0%}"}
-            for kp, m in sorted_kp[:n]
-        ]
+        return [{"point": kp, "mastery": f"{m:.0%}"} for kp, m in sorted_kp[:n]]
 
     def to_dict(self) -> Dict:
         """序列化为可持久化的字典。"""
@@ -456,7 +465,15 @@ class AdaptiveEngine:
         prompt_lower = user_prompt.lower()
 
         draw_keywords = ["画", "绘制", "作图", "draw", "plot", "render", "图形"]
-        solve_keywords = ["求解", "计算", "解方程", "积分", "微分", "solve", "calculate"]
+        solve_keywords = [
+            "求解",
+            "计算",
+            "解方程",
+            "积分",
+            "微分",
+            "solve",
+            "calculate",
+        ]
         explain_keywords = ["解释", "为什么", "讲解", "explain", "why", "证明"]
 
         if any(kw in prompt_lower for kw in draw_keywords):
@@ -551,9 +568,7 @@ class StudentModelManager:
             model = self._models.get(student_id)
             if model is None:
                 return
-            filepath = os.path.join(
-                self.storage_dir, f"{student_id}.json"
-            )
+            filepath = os.path.join(self.storage_dir, f"{student_id}.json")
             try:
                 with open(filepath, "w", encoding="utf-8") as f:
                     json.dump(model.to_dict(), f, ensure_ascii=False, indent=2)

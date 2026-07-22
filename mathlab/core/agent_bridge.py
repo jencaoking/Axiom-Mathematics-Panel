@@ -3,8 +3,17 @@ import traceback
 
 
 class AgentTaskWorker(QThread):
-    def __init__(self, agent_registry, user_prompt, thought_cb, code_cb, finish_cb,
-                 observation_cb, geom_cb=None, parent=None):
+    def __init__(
+        self,
+        agent_registry,
+        user_prompt,
+        thought_cb,
+        code_cb,
+        finish_cb,
+        observation_cb,
+        geom_cb=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.agent_registry = agent_registry
         self.user_prompt = user_prompt
@@ -17,9 +26,13 @@ class AgentTaskWorker(QThread):
     def run(self):
         try:
             # 兼容当前的参数列表，保留 observation_cb 用于将来在 agent 内部进行结果回调
-            self.agent_registry.route_and_execute(self.user_prompt, self.thought_cb,
-                                                  self.code_cb, self.finish_cb,
-                                                  on_geom_cb=self.geom_cb)
+            self.agent_registry.route_and_execute(
+                self.user_prompt,
+                self.thought_cb,
+                self.code_cb,
+                self.finish_cb,
+                on_geom_cb=self.geom_cb,
+            )
         except Exception as e:
             error_msg = f"Task execution failed: {str(e)}\n{traceback.format_exc()}"
             self.finish_cb(False, error_msg)
@@ -71,8 +84,14 @@ class AgentUIBridge(QObject):
 
         # 启动 QThread 运行大模型闭环，实现生命周期托管与异常兜底
         self._current_worker = AgentTaskWorker(
-            self.agent_registry, user_prompt, _thought_cb, _code_cb, _finish_cb,
-            _observation_cb, geom_cb=_geom_cb, parent=self
+            self.agent_registry,
+            user_prompt,
+            _thought_cb,
+            _code_cb,
+            _finish_cb,
+            _observation_cb,
+            geom_cb=_geom_cb,
+            parent=self,
         )
         self._current_worker.finished.connect(self._current_worker.deleteLater)
         self._current_worker.start()

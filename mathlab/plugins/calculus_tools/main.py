@@ -3,9 +3,19 @@
 
 import numpy as np
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLabel, QLineEdit, QPushButton, QComboBox, QSpinBox,
-    QDoubleSpinBox, QTextEdit, QGroupBox, QScrollArea,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QFormLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QComboBox,
+    QSpinBox,
+    QDoubleSpinBox,
+    QTextEdit,
+    QGroupBox,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt
 
@@ -38,17 +48,25 @@ class CalculusPanelWidget(QWidget):
 
         # ── 标题 ──
         title = QLabel(t("plugins.calculus_tools") or "Calculus Tools")
-        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;")
+        title.setStyleSheet(
+            "font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;"
+        )
         layout.addWidget(title)
 
         # ── 操作模式选择 ──
         mode_group = QGroupBox(t("calculus.mode") or "Mode")
         mode_layout = QVBoxLayout(mode_group)
         self.combo_mode = QComboBox()
-        self.combo_mode.addItem(t("calculus.derivative") or "Derivative / Tangent", "derivative")
-        self.combo_mode.addItem(t("calculus.definite_integral") or "Definite Integral", "integral")
+        self.combo_mode.addItem(
+            t("calculus.derivative") or "Derivative / Tangent", "derivative"
+        )
+        self.combo_mode.addItem(
+            t("calculus.definite_integral") or "Definite Integral", "integral"
+        )
         self.combo_mode.addItem(t("calculus.limit") or "Limit", "limit")
-        self.combo_mode.addItem(t("calculus.taylor_series") or "Taylor Series", "taylor")
+        self.combo_mode.addItem(
+            t("calculus.taylor_series") or "Taylor Series", "taylor"
+        )
         self.combo_mode.currentIndexChanged.connect(self._on_mode_changed)
         mode_layout.addWidget(self.combo_mode)
         layout.addWidget(mode_group)
@@ -106,7 +124,9 @@ class CalculusPanelWidget(QWidget):
         self.text_result = QTextEdit()
         self.text_result.setReadOnly(True)
         self.text_result.setMaximumHeight(120)
-        self.text_result.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #333;")
+        self.text_result.setStyleSheet(
+            "background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #333;"
+        )
         result_layout.addWidget(self.text_result)
         layout.addWidget(result_group)
 
@@ -203,7 +223,9 @@ class CalculusPanelWidget(QWidget):
     def _on_compute(self):
         expr_str = self.input_expr.text().strip()
         if not expr_str:
-            self._show_error(t("calculus.empty_expr") or "Please enter a function expression.")
+            self._show_error(
+                t("calculus.empty_expr") or "Please enter a function expression."
+            )
             return
 
         cas = self._get_cas()
@@ -234,6 +256,7 @@ class CalculusPanelWidget(QWidget):
         # 数值计算 f'(x₀)
         try:
             from sympy import symbols, lambdify
+
             x_sym = symbols("x")
             deriv_expr = result.get("result", "0")
             func = lambdify(x_sym, deriv_expr, "math")
@@ -260,16 +283,12 @@ class CalculusPanelWidget(QWidget):
             return
 
         numeric_val = result.get("numeric")
-        text = (
-            f"∫[{a},{b}] f(x) dx = {result.get('result', '')}\n"
-        )
+        text = f"∫[{a},{b}] f(x) dx = {result.get('result', '')}\n"
         if numeric_val is not None:
             text += f"Numeric ≈ {numeric_val:.6f}\n"
         text += f"LaTeX: {result.get('latex', '')}"
         self.text_result.setPlainText(text)
-        self.api.print_to_console(
-            f"[Calculus] ∫[{a},{b}] = {result.get('result', '')}"
-        )
+        self.api.print_to_console(f"[Calculus] ∫[{a},{b}] = {result.get('result', '')}")
 
     def _compute_limit(self, cas, expr_str: str):
         point = self.spin_limit_point.value()
@@ -293,6 +312,7 @@ class CalculusPanelWidget(QWidget):
         n = self.spin_taylor_order.value()
         try:
             from sympy import symbols, series
+
             x_sym = symbols("x")
             expr = cas.parse_expression(expr_str)
             if expr is None:
@@ -300,6 +320,7 @@ class CalculusPanelWidget(QWidget):
                 return
             taylor = series(expr, x_sym, x0, n + 1).removeO()
             from sympy import latex as sympy_latex
+
             text = (
                 f"Taylor(f, x₀={x0}, n={n}):\n"
                 f"  {taylor}\n"
@@ -318,7 +339,9 @@ class CalculusPanelWidget(QWidget):
     def _on_plot(self):
         expr_str = self.input_expr.text().strip()
         if not expr_str:
-            self._show_error(t("calculus.empty_expr") or "Please enter a function expression.")
+            self._show_error(
+                t("calculus.empty_expr") or "Please enter a function expression."
+            )
             return
 
         engine = self._get_engine()
@@ -361,6 +384,7 @@ class CalculusPanelWidget(QWidget):
             return
 
         from sympy import symbols, lambdify
+
         x_sym = symbols("x")
         f_expr = cas.parse_expression(expr_str)
         d_expr = cas.parse_expression(deriv_result.get("result", "0"))
@@ -406,6 +430,7 @@ class CalculusPanelWidget(QWidget):
 
         # 2. 标记积分端点
         from sympy import symbols, lambdify
+
         x_sym = symbols("x")
         cas = self._get_cas()
         if cas is None:
@@ -451,9 +476,7 @@ class CalculusPanelWidget(QWidget):
             except (ValueError, TypeError):
                 pass
 
-        self.api.print_to_console(
-            f"[Calculus] Plotted f(x) near x→{point}", "info"
-        )
+        self.api.print_to_console(f"[Calculus] Plotted f(x) near x→{point}", "info")
 
     def _plot_taylor(self, engine, expr_str: str):
         """绘制原函数与泰勒逼近多项式"""
@@ -473,6 +496,7 @@ class CalculusPanelWidget(QWidget):
 
         try:
             from sympy import symbols, series
+
             x_sym = symbols("x")
             expr = cas.parse_expression(expr_str)
             if expr is None:
@@ -523,7 +547,9 @@ class CalculusToolsPlugin(MathLabPlugin):
     name = "Calculus Tools"
     version = "1.0.0"
     author = "MathLab Team"
-    description = "Derivative/tangent, definite integral, limit, and Taylor series visualization."
+    description = (
+        "Derivative/tangent, definite integral, limit, and Taylor series visualization."
+    )
 
     def __init__(self):
         self.api = None
@@ -532,7 +558,9 @@ class CalculusToolsPlugin(MathLabPlugin):
     def on_activate(self, api: MathLabAPI):
         self.api = api
         self.widget = CalculusPanelWidget(api)
-        api.add_sidebar_panel(t("plugins.calculus_tools") or "Calculus Tools", self.widget)
+        api.add_sidebar_panel(
+            t("plugins.calculus_tools") or "Calculus Tools", self.widget
+        )
 
         # 注册命令
         api.register_command(

@@ -2,6 +2,7 @@
 MathConsole — 交互式数学控制台
 支持 MATLAB/Octave 语法，执行后将结果渲染为富文本（HTML 表格）。
 """
+
 import html
 from typing import Any
 
@@ -9,32 +10,38 @@ import numpy as np
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QFont, QTextCursor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
-    QTextBrowser, QLineEdit, QPushButton, QLabel, QSplitter,
+    QDockWidget,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextBrowser,
+    QLineEdit,
+    QPushButton,
+    QLabel,
+    QSplitter,
 )
 
 from mathlab.core.octave_bridge import OctaveBridge, OctaveBridgeError
 from mathlab.utils.i18n_manager import t
 from mathlab.ui.easter_eggs import EasterEggDetector
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 调色板常量（与项目深色主题保持一致）
 # ─────────────────────────────────────────────────────────────────────────────
-_BG_MAIN   = "#13131A"   # 控制台背景
-_BG_INPUT  = "#1E1E28"   # 输入框背景
-_BG_TABLE  = "#1A1A28"   # 矩阵表格背景
-_BG_CELL_H = "#252535"   # 表头背景
+_BG_MAIN = "#13131A"  # 控制台背景
+_BG_INPUT = "#1E1E28"  # 输入框背景
+_BG_TABLE = "#1A1A28"  # 矩阵表格背景
+_BG_CELL_H = "#252535"  # 表头背景
 
-_COL_INPUT   = "#569CD6"  # 用户输入文字（VSCode 蓝）
-_COL_PROMPT  = "#C586C0"  # 提示符（紫色）
-_COL_SCALAR  = "#B5CEA8"  # 标量数值（浅绿）
-_COL_MATRIX  = "#4EC9B0"  # 矩阵数值（青色）
-_COL_KEY     = "#9CDCFE"  # dict key（浅蓝）
-_COL_ACCENT  = "#00A67E"  # 强调绿
-_COL_ERROR   = "#F14C4C"  # 错误红
-_COL_MUTED   = "#6A6A7A"  # 次要灰
-_COL_BORDER  = "#2E2E42"  # 表格边框
+_COL_INPUT = "#569CD6"  # 用户输入文字（VSCode 蓝）
+_COL_PROMPT = "#C586C0"  # 提示符（紫色）
+_COL_SCALAR = "#B5CEA8"  # 标量数值（浅绿）
+_COL_MATRIX = "#4EC9B0"  # 矩阵数值（青色）
+_COL_KEY = "#9CDCFE"  # dict key（浅蓝）
+_COL_ACCENT = "#00A67E"  # 强调绿
+_COL_ERROR = "#F14C4C"  # 错误红
+_COL_MUTED = "#6A6A7A"  # 次要灰
+_COL_BORDER = "#2E2E42"  # 表格边框
 
 _FONT_MONO = "Consolas, 'Courier New', monospace"
 
@@ -51,23 +58,23 @@ class MathConsole(QDockWidget):
 
     def __init__(self, parent=None):
         from mathlab.utils.i18n_manager import get_i18n
+
         t = get_i18n().t
-        title = t('math_console.title')
-        if title == 'math_console.title': title = 'Interactive Console'
+        title = t("math_console.title")
+        if title == "math_console.title":
+            title = "Interactive Console"
         super().__init__(f"{title} (Octave / NumEngine)", parent)
-        self.setAllowedAreas(
-            Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea
-        )
+        self.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.setFeatures(
-            QDockWidget.DockWidgetMovable |
-            QDockWidget.DockWidgetFloatable |
-            QDockWidget.DockWidgetClosable
+            QDockWidget.DockWidgetMovable
+            | QDockWidget.DockWidgetFloatable
+            | QDockWidget.DockWidgetClosable
         )
 
         self.bridge = OctaveBridge()
         self._history: list[str] = []
         self._history_idx: int = -1
-        
+
         # 初始化彩蛋检测器
         self.egg_detector = EasterEggDetector(self.topLevelWidget())
 
@@ -86,7 +93,9 @@ class MathConsole(QDockWidget):
 
         # ── 工具栏 ────────────────────────────────────────────────────────────
         toolbar = QWidget()
-        toolbar.setStyleSheet(f"background:{_BG_INPUT}; border-bottom:1px solid {_COL_BORDER};")
+        toolbar.setStyleSheet(
+            f"background:{_BG_INPUT}; border-bottom:1px solid {_COL_BORDER};"
+        )
         tb_layout = QHBoxLayout(toolbar)
         tb_layout.setContentsMargins(8, 4, 8, 4)
         tb_layout.setSpacing(6)
@@ -98,11 +107,11 @@ class MathConsole(QDockWidget):
         tb_layout.addWidget(lbl_title)
         tb_layout.addStretch()
 
-        self._lbl_ws = QLabel(t('math_console.workspace_empty') or "Workspace: Empty")
+        self._lbl_ws = QLabel(t("math_console.workspace_empty") or "Workspace: Empty")
         self._lbl_ws.setStyleSheet(f"color:{_COL_MUTED}; font-size:11px;")
         tb_layout.addWidget(self._lbl_ws)
 
-        btn_clear = QPushButton(t('math_console.clear') or "Clear")
+        btn_clear = QPushButton(t("math_console.clear") or "Clear")
         btn_clear.setFixedHeight(24)
         btn_clear.setStyleSheet(
             f"QPushButton{{background:#252535;color:{_COL_MUTED};"
@@ -112,7 +121,7 @@ class MathConsole(QDockWidget):
         btn_clear.clicked.connect(self._clear_output)
         tb_layout.addWidget(btn_clear)
 
-        btn_reset = QPushButton(t('math_console.reset') or "Reset Workspace")
+        btn_reset = QPushButton(t("math_console.reset") or "Reset Workspace")
         btn_reset.setFixedHeight(24)
         btn_reset.setStyleSheet(btn_clear.styleSheet())
         btn_reset.clicked.connect(self._reset_workspace)
@@ -137,7 +146,9 @@ class MathConsole(QDockWidget):
 
         # ── 输入行 ────────────────────────────────────────────────────────────
         input_row = QWidget()
-        input_row.setStyleSheet(f"background:{_BG_INPUT}; border-top:2px solid #007ACC;")
+        input_row.setStyleSheet(
+            f"background:{_BG_INPUT}; border-top:2px solid #007ACC;"
+        )
         ir_layout = QHBoxLayout(input_row)
         ir_layout.setContentsMargins(8, 4, 8, 4)
         ir_layout.setSpacing(6)
@@ -159,13 +170,14 @@ class MathConsole(QDockWidget):
             f"}}"
         )
         self._input.setPlaceholderText(
-            t('math_console.placeholder') or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
+            t("math_console.placeholder")
+            or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
         )
         self._input.returnPressed.connect(self._execute)
         self._input.installEventFilter(self)
         ir_layout.addWidget(self._input, stretch=1)
 
-        btn_run = QPushButton(t('math_console.run') or "▶ Run")
+        btn_run = QPushButton(t("math_console.run") or "▶ Run")
         btn_run.setFixedHeight(28)
         btn_run.setStyleSheet(
             f"QPushButton{{background:#007ACC;color:white;"
@@ -197,10 +209,9 @@ class MathConsole(QDockWidget):
     def _navigate_history(self, direction: int) -> None:
         if not self._history:
             return
-        self._history_idx = max(0, min(
-            len(self._history) - 1,
-            self._history_idx + direction
-        ))
+        self._history_idx = max(
+            0, min(len(self._history) - 1, self._history_idx + direction)
+        )
         self._input.setText(self._history[self._history_idx])
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -215,7 +226,7 @@ class MathConsole(QDockWidget):
         self._input.clear()
         self._history.append(code)
         self._history_idx = len(self._history)
-        
+
         # 1. 优先检测并触发彩蛋（后台默默执行，不打断主业务流）
         self.egg_detector.check_and_trigger(code)
 
@@ -292,7 +303,9 @@ class MathConsole(QDockWidget):
             for v in arr
         )
         shape_hint = f"<span style='color:{_COL_MUTED};font-size:10px;'>1×{len(arr)}</span>&nbsp;"
-        return shape_hint + f"<table style='{self._tbl_style()}'><tr>{cells}</tr></table>"
+        return (
+            shape_hint + f"<table style='{self._tbl_style()}'><tr>{cells}</tr></table>"
+        )
 
     def _render_2d(self, arr: np.ndarray) -> str:
         rows_html = []
@@ -394,10 +407,19 @@ class MathConsole(QDockWidget):
         sb.setValue(sb.maximum())
 
     def _print_welcome(self) -> None:
-        backend_info = t('math_console.backend_info') or "Backend: NumPy / SciPy / NumEngine &nbsp;·&nbsp; Syntax: MATLAB/Octave Compatible<br>"
-        hint1 = t('math_console.hint1') or "Hint: Enter <code style='color:{0};'>A = [1 2; 3 4]</code> to build matrix, "
+        backend_info = (
+            t("math_console.backend_info")
+            or "Backend: NumPy / SciPy / NumEngine &nbsp;·&nbsp; Syntax: MATLAB/Octave Compatible<br>"
+        )
+        hint1 = (
+            t("math_console.hint1")
+            or "Hint: Enter <code style='color:{0};'>A = [1 2; 3 4]</code> to build matrix, "
+        )
         hint1 = hint1.format(_COL_INPUT)
-        hint2 = t('math_console.hint2') or "<code style='color:{0};'>eig(A)</code> for eigenvalues, ↑↓ to browse history"
+        hint2 = (
+            t("math_console.hint2")
+            or "<code style='color:{0};'>eig(A)</code> for eigenvalues, ↑↓ to browse history"
+        )
         hint2 = hint2.format(_COL_INPUT)
         self._append_html(
             f"<div style='margin-bottom:12px;'>"
@@ -416,7 +438,7 @@ class MathConsole(QDockWidget):
     def _reset_workspace(self) -> None:
         self.bridge.reset()
         self._clear_output()
-        reset_success = t('math_console.reset_success') or "✓ Workspace reset"
+        reset_success = t("math_console.reset_success") or "✓ Workspace reset"
         self._append_html(
             f"<span style='color:{_COL_MUTED};font-size:11px;'>"
             f"{reset_success}</span><br><br>"
@@ -428,11 +450,15 @@ class MathConsole(QDockWidget):
         if ws:
             names = ", ".join(list(ws.keys())[:8])
             suffix = " …" if len(ws) > 8 else ""
-            workspace_prefix = t('math_console.workspace') or "Workspace"
-            vars_suffix = t('math_console.vars') or "vars"
-            self._lbl_ws.setText(f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})")
+            workspace_prefix = t("math_console.workspace") or "Workspace"
+            vars_suffix = t("math_console.vars") or "vars"
+            self._lbl_ws.setText(
+                f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})"
+            )
         else:
-            self._lbl_ws.setText(t('math_console.workspace_empty') or "Workspace: Empty")
+            self._lbl_ws.setText(
+                t("math_console.workspace_empty") or "Workspace: Empty"
+            )
 
     # ─────────────────────────────────────────────────────────────────────────
     # 公开 API（供 main_window 调用）
@@ -449,8 +475,8 @@ class MathConsole(QDockWidget):
     def display_message(self, msg: str, level: str = "info") -> None:
         """向控制台输出一条系统消息"""
         color = {
-            "info":  _COL_ACCENT,
-            "warn":  "#F0A500",
+            "info": _COL_ACCENT,
+            "warn": "#F0A500",
             "error": _COL_ERROR,
         }.get(level, _COL_MUTED)
         safe = html.escape(msg).replace("\n", "<br>")

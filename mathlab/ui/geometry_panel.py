@@ -1,11 +1,20 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QButtonGroup, QSplitter
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QButtonGroup,
+    QSplitter,
+)
 from PySide6.QtCore import Qt
 
 from mathlab.ui.geogebra_canvas import GeoGebraCanvas, ToolMode
 from mathlab.ui.geogebra_algebra_panel import GeoGebraAlgebraPanel
 
+
 class GeometryPanel(QWidget):
     """几何引擎的完整 UI 容器：顶部工具栏 + 底部(代数区/画板区)"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
@@ -18,7 +27,9 @@ class GeometryPanel(QWidget):
         # ── 1. 顶部工具栏 ──
         self.toolbar = QWidget()
         self.toolbar.setFixedHeight(45)
-        self.toolbar.setStyleSheet("background-color: #2d2d2d; border-bottom: 1px solid #1e1e1e;")
+        self.toolbar.setStyleSheet(
+            "background-color: #2d2d2d; border-bottom: 1px solid #1e1e1e;"
+        )
         tb_layout = QHBoxLayout(self.toolbar)
         tb_layout.setContentsMargins(10, 0, 10, 0)
         tb_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -27,13 +38,14 @@ class GeometryPanel(QWidget):
         self.btn_group.setExclusive(True)
 
         from mathlab.utils.i18n_manager import get_i18n
+
         t = get_i18n().t
 
         tools = [
             (f"👆 {t('geogebra.tool_move') or 'Move'}", ToolMode.SELECT),
             (f"⏺ {t('geogebra.tool_point') or 'Point'}", ToolMode.POINT),
             (f"📏 {t('geogebra.tool_line') or 'Line'}", ToolMode.LINE),
-            (f"❌ {t('geogebra.tool_intersect') or 'Intersect'}", ToolMode.INTERSECT)
+            (f"❌ {t('geogebra.tool_intersect') or 'Intersect'}", ToolMode.INTERSECT),
         ]
 
         for text, mode in tools:
@@ -54,15 +66,17 @@ class GeometryPanel(QWidget):
 
         # ── 2. 核心分割视窗 (左代数，右几何) ──
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        
+
         self.algebra_view = GeoGebraAlgebraPanel(self)
         self.canvas = GeoGebraCanvas(self)
-        
+
         self.splitter.addWidget(self.algebra_view)
         self.splitter.addWidget(self.canvas)
-        
-        self.splitter.setSizes([250, 750]) 
-        self.splitter.setStyleSheet("QSplitter::handle { background-color: #333; width: 2px; }")
+
+        self.splitter.setSizes([250, 750])
+        self.splitter.setStyleSheet(
+            "QSplitter::handle { background-color: #333; width: 2px; }"
+        )
 
         self.layout.addWidget(self.splitter)
 
@@ -76,5 +90,5 @@ class GeometryPanel(QWidget):
     def _handle_user_algebra_edit(self, entity_id: str, new_text: str):
         entity = self.canvas.engine.entities.get(entity_id)
         if entity and entity.update_from_string(new_text):
-            entity.notify_update() 
+            entity.notify_update()
             self.canvas.sync_ui_from_engine()

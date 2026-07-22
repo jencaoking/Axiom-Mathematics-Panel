@@ -4,6 +4,7 @@ Covers basic execution, output capture, history tracking, and the
 sandbox/session-mode isolation semantics. Merged from the legacy
 ``test_core.py`` and ``test_session_context.py`` modules.
 """
+
 import pytest
 
 
@@ -13,8 +14,8 @@ class TestPythonREPL:
     @pytest.mark.unit
     def test_execute_simple(self, repl):
         """Isolated mode executes simple code."""
-        result = repl.execute('x = 5')
-        assert result['success']
+        result = repl.execute("x = 5")
+        assert result["success"]
         # Isolated mode does not persist variables, so the namespace
         # cannot be inspected across executions.
 
@@ -22,26 +23,26 @@ class TestPythonREPL:
     def test_execute_with_output(self, repl):
         """Output capture works."""
         result = repl.execute('print("hello")')
-        assert 'hello' in result['output']
+        assert "hello" in result["output"]
 
     @pytest.mark.unit
     def test_history(self, repl):
         """History is recorded across executions."""
-        repl.execute('x = 1')
-        repl.execute('y = 2')
+        repl.execute("x = 1")
+        repl.execute("y = 2")
         history = repl.get_history()
         assert len(history) == 2
 
     @pytest.mark.unit
     def test_sandbox_isolation(self, repl):
         """Each execution runs in an independent environment."""
-        result1 = repl.execute('a = 10')
-        assert result1['success']
+        result1 = repl.execute("a = 10")
+        assert result1["success"]
 
         # On the second execution, ``a`` is no longer defined.
-        result2 = repl.execute('print(a)')
-        assert not result2['success']
-        assert 'name' in result2['error'].lower()
+        result2 = repl.execute("print(a)")
+        assert not result2["success"]
+        assert "name" in result2["error"].lower()
 
 
 class TestSessionModePersistence:

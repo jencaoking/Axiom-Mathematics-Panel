@@ -6,7 +6,7 @@ from typing import List, Dict
 
 
 class GeoEntity:
-    def __init__(self, name: str, parents: List['GeoEntity'] = None):
+    def __init__(self, name: str, parents: List["GeoEntity"] = None):
         self.id = str(uuid.uuid4())
         self.name = name
         self.parents = parents or []
@@ -19,7 +19,7 @@ class GeoEntity:
     def update_from_string(self, expr: str) -> bool:
         return False
 
-    def add_child(self, child: 'GeoEntity'):
+    def add_child(self, child: "GeoEntity"):
         if child not in self.children:
             self.children.append(child)
 
@@ -52,7 +52,7 @@ class GeoPoint(GeoEntity):
         if self.parents:
             return False
 
-        match = re.search(r'\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)', expr)
+        match = re.search(r"\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)", expr)
         if match:
             new_x, new_y = float(match.group(1)), float(match.group(2))
             self.set_coords(new_x, new_y)
@@ -88,6 +88,7 @@ class GeoLine(GeoEntity):
 
 class GeoCircle(GeoEntity):
     """由圆心和圆上一点定义的圆"""
+
     def __init__(self, name: str, center: GeoPoint, radius_point: GeoPoint):
         super().__init__(name)
         self.parents = [center, radius_point]
@@ -115,14 +116,14 @@ def solve_line_circle(line: GeoLine, circle: GeoCircle, root_index: int):
     fx = p1.x - circle.center_x
     fy = p1.y - circle.center_y
 
-    a = dx*dx + dy*dy
-    b = 2 * (fx*dx + fy*dy)
-    c_eq = fx*fx + fy*fy - circle.r*circle.r
+    a = dx * dx + dy * dy
+    b = 2 * (fx * dx + fy * dy)
+    c_eq = fx * fx + fy * fy - circle.r * circle.r
 
     if a == 0:
         return None, False
 
-    delta = b*b - 4*a*c_eq
+    delta = b * b - 4 * a * c_eq
 
     if delta < 0:
         return None, False
@@ -153,7 +154,9 @@ def solve_line_line(l1: GeoLine, l2: GeoLine):
 
 
 class GeoIntersection(GeoPoint):
-    def __init__(self, name: str, shape1: GeoEntity, shape2: GeoEntity, root_index: int = 0):
+    def __init__(
+        self, name: str, shape1: GeoEntity, shape2: GeoEntity, root_index: int = 0
+    ):
         super().__init__(name, parents=[shape1, shape2])
         shape1.add_child(self)
         shape2.add_child(self)

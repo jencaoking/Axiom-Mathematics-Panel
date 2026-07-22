@@ -8,8 +8,8 @@ from mathlab.core.octave_bridge import OctaveBridge
 
 
 class CellType(Enum):
-    CODE = "code"           # Octave/Python 代码
-    MARKDOWN = "markdown"   # 富文本与 LaTeX 公式
+    CODE = "code"  # Octave/Python 代码
+    MARKDOWN = "markdown"  # 富文本与 LaTeX 公式
     # 计划中的其他类型：MATH, GEO, PLOT, SLIDER 等可以在后续扩展
 
 
@@ -18,7 +18,10 @@ class NotebookCell:
     笔记本的最小单元
     记录了输入内容、执行状态、输出结果以及独立的 ID
     """
-    def __init__(self, cell_type: CellType, content: str = "", language: str = "mathlab"):
+
+    def __init__(
+        self, cell_type: CellType, content: str = "", language: str = "mathlab"
+    ):
         self.id = str(uuid.uuid4())[:8]  # 生成简短的唯一标识符
         self.type = cell_type
         self.content = content
@@ -52,18 +55,14 @@ class NotebookCell:
                 result = kernel.evaluate(self.content)
                 if result is not None:
                     # 成功执行并有返回值
-                    self.outputs.append({
-                        "type": "result",
-                        "data": result,
-                        "status": "success"
-                    })
+                    self.outputs.append(
+                        {"type": "result", "data": result, "status": "success"}
+                    )
             except Exception as e:
                 # 捕获语法错误或计算异常
-                self.outputs.append({
-                    "type": "error",
-                    "data": str(e),
-                    "status": "failed"
-                })
+                self.outputs.append(
+                    {"type": "error", "data": str(e), "status": "failed"}
+                )
 
     def to_dict(self) -> dict:
         """序列化为字典，用于保存文件"""
@@ -72,13 +71,15 @@ class NotebookCell:
             "id": self.id,
             "type": self.type.value,
             "content": self.content,
-            "language": getattr(self, "language", "mathlab")
+            "language": getattr(self, "language", "mathlab"),
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "NotebookCell":
         """从字典反序列化"""
-        cell = cls(CellType(data["type"]), data["content"], data.get("language", "mathlab"))
+        cell = cls(
+            CellType(data["type"]), data["content"], data.get("language", "mathlab")
+        )
         cell.id = data.get("id", cell.id)
         return cell
 
@@ -88,12 +89,19 @@ class MathLabNotebook:
     交互笔记本管理器
     维护所有 Cell 的列表，并持有一个共享的上下文 Kernel。
     """
+
     def __init__(self):
         self.cells: List[NotebookCell] = []
         self.kernel = OctaveBridge()  # 笔记本拥有独立的计算内核
         self._execution_counter = 0
 
-    def add_cell(self, cell_type: CellType, content: str = "", index: int = -1, language: str = "mathlab") -> NotebookCell:
+    def add_cell(
+        self,
+        cell_type: CellType,
+        content: str = "",
+        index: int = -1,
+        language: str = "mathlab",
+    ) -> NotebookCell:
         """在指定位置添加一个新单元格"""
         cell = NotebookCell(cell_type, content, language)
         if index == -1:
@@ -130,16 +138,13 @@ class MathLabNotebook:
 
     def save_to_file(self, filepath: str) -> None:
         """导出为 .mlnb (MathLab Notebook) JSON 文件"""
-        data = {
-            "version": "2.6",
-            "cells": [cell.to_dict() for cell in self.cells]
-        }
-        with open(filepath, 'w', encoding='utf-8') as f:
+        data = {"version": "2.6", "cells": [cell.to_dict() for cell in self.cells]}
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
     def load_from_file(self, filepath: str) -> None:
         """从文件加载"""
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         self.cells = []

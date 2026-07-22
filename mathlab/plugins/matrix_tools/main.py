@@ -12,7 +12,9 @@ class MatrixPanelWidget(QWidget):
         layout = QVBoxLayout(self)
 
         self.label = QLabel("矩阵工具插件面板")
-        self.label.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #ffffff;")
+        self.label.setStyleSheet(
+            "font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #ffffff;"
+        )
         layout.addWidget(self.label)
 
         self.btn_inject = QPushButton("注入 3x3 单位矩阵 (I3)")
@@ -55,14 +57,17 @@ class MatrixToolsPlugin(MathLabPlugin):
             id="matrix.inject_identity",
             title="生成 3x3 单位矩阵 (Identity Matrix)",
             action=self._inject_identity_matrix,
-            category="线性代数"
+            category="线性代数",
         )
 
         # 2. 注册并添加侧边栏面板
         self.widget = MatrixPanelWidget(api)
         api.add_sidebar_panel(t("plugins.matrix"), self.widget)
 
-        api.print_to_console("[Matrix Extension] Plugin successfully loaded and activated!", color_or_level="info")
+        api.print_to_console(
+            "[Matrix Extension] Plugin successfully loaded and activated!",
+            color_or_level="info",
+        )
 
     def _inject_identity_matrix(self):
         """执行命令注入逻辑"""

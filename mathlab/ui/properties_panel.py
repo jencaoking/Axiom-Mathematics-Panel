@@ -6,19 +6,28 @@ Properties Panel — redesigned with three collapsible sections:
 """
 
 from PySide6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QSlider, QCheckBox, QTextEdit,
-    QFrame, QSizePolicy, QScrollArea
+    QDockWidget,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QCheckBox,
+    QTextEdit,
+    QFrame,
+    QSizePolicy,
+    QScrollArea,
 )
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QColor, QPainter, QBrush, QPen, QFont
 
 from mathlab.utils.i18n_manager import t
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Helper: collapsible section header widget
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class _SectionHeader(QLabel):
     """Clickable section header that can toggle a body widget."""
@@ -68,6 +77,7 @@ class _SectionHeader(QLabel):
 # ──────────────────────────────────────────────────────────────────────────────
 # Helper: circular color-dot button
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class _ColorDot(QPushButton):
     """20×20 filled circle button with an outer ring when selected."""
@@ -125,6 +135,7 @@ class _ColorDot(QPushButton):
 # Helper: horizontal divider
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _make_divider() -> QFrame:
     line = QFrame()
     line.setFrameShape(QFrame.Shape.HLine)
@@ -137,21 +148,22 @@ def _make_divider() -> QFrame:
 # Main panel
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class PropertiesPanel(QDockWidget):
     # ── existing signals ──────────────────────────────────────────────
     property_changed = Signal(str, str, object)
-    object_renamed   = Signal(str, str)
+    object_renamed = Signal(str, str)
 
     # ── new signals ───────────────────────────────────────────────────
-    color_changed   = Signal(str, str)   # (obj_id, color_hex)
-    opacity_changed = Signal(str, int)   # (obj_id, 0-100)
-    stroke_changed  = Signal(str, float) # (obj_id, 1.0-10.0)
-    label_toggled   = Signal(str, bool)  # (obj_id, show_label)
+    color_changed = Signal(str, str)  # (obj_id, color_hex)
+    opacity_changed = Signal(str, int)  # (obj_id, 0-100)
+    stroke_changed = Signal(str, float)  # (obj_id, 1.0-10.0)
+    label_toggled = Signal(str, bool)  # (obj_id, show_label)
 
-    COLORS = ['#004ac6', '#4b41e1', '#006058', '#ba1a1a']
+    COLORS = ["#004ac6", "#4b41e1", "#006058", "#ba1a1a"]
 
     def __init__(self, parent=None):
-        super().__init__(t('properties_panel.title'), parent)
+        super().__init__(t("properties_panel.title"), parent)
         self.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea)
         self.setMinimumWidth(220)
 
@@ -162,7 +174,9 @@ class PropertiesPanel(QDockWidget):
         self._scroll_area = QScrollArea()
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
 
         container = QWidget()
         container.setObjectName("properties_container")
@@ -171,7 +185,7 @@ class PropertiesPanel(QDockWidget):
         root_layout.setSpacing(0)
 
         # ── title label ("PROPERTIES: …") ────────────────────────────
-        self._title_label = QLabel(t('properties_panel.title').upper())
+        self._title_label = QLabel(t("properties_panel.title").upper())
         self._title_label.setObjectName("section_label")
         self._title_label.setStyleSheet(
             "QLabel#section_label {"
@@ -184,7 +198,7 @@ class PropertiesPanel(QDockWidget):
         root_layout.addWidget(_make_divider())
 
         # ── APPEARANCE section ────────────────────────────────────────
-        self._app_header = _SectionHeader(t('properties_panel.appearance').upper())
+        self._app_header = _SectionHeader(t("properties_panel.appearance").upper())
         root_layout.addWidget(self._app_header)
 
         self._app_body = self._build_appearance_section()
@@ -194,7 +208,7 @@ class PropertiesPanel(QDockWidget):
         root_layout.addWidget(_make_divider())
 
         # ── LABEL section ─────────────────────────────────────────────
-        self._lbl_header = _SectionHeader(t('properties_panel.label_section').upper())
+        self._lbl_header = _SectionHeader(t("properties_panel.label_section").upper())
         root_layout.addWidget(self._lbl_header)
 
         self._lbl_body = self._build_label_section()
@@ -204,7 +218,7 @@ class PropertiesPanel(QDockWidget):
         root_layout.addWidget(_make_divider())
 
         # ── DEFINITION section ────────────────────────────────────────
-        self._def_header = _SectionHeader(t('properties_panel.definition').upper())
+        self._def_header = _SectionHeader(t("properties_panel.definition").upper())
         root_layout.addWidget(self._def_header)
 
         self._def_body = self._build_definition_section()
@@ -220,13 +234,13 @@ class PropertiesPanel(QDockWidget):
         self.clear()
 
     def retranslate_ui(self):
-        self._app_header.setText(t('properties_panel.appearance').upper())
-        self._lbl_header.setText(t('properties_panel.label_section').upper())
-        self._def_header.setText(t('properties_panel.definition').upper())
-        self._color_label.setText(t('properties_panel.color'))
-        self._opacity_label.setText(t('properties_panel.opacity'))
-        self._thickness_label.setText(t('properties_panel.thickness'))
-        self._show_lbl_cb.setText(t('properties_panel.show_label'))
+        self._app_header.setText(t("properties_panel.appearance").upper())
+        self._lbl_header.setText(t("properties_panel.label_section").upper())
+        self._def_header.setText(t("properties_panel.definition").upper())
+        self._color_label.setText(t("properties_panel.color"))
+        self._opacity_label.setText(t("properties_panel.opacity"))
+        self._thickness_label.setText(t("properties_panel.thickness"))
+        self._show_lbl_cb.setText(t("properties_panel.show_label"))
 
     # ──────────────────────────────────────────────────────────────────
     # Section builders
@@ -241,7 +255,7 @@ class PropertiesPanel(QDockWidget):
         # ── Color row ─────────────────────────────────────────────────
         color_row = QHBoxLayout()
         color_row.setSpacing(6)
-        self._color_label = QLabel(t('properties_panel.color'))
+        self._color_label = QLabel(t("properties_panel.color"))
         self._color_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._color_label.setFixedWidth(64)
         color_row.addWidget(self._color_label)
@@ -249,7 +263,9 @@ class PropertiesPanel(QDockWidget):
         self._color_dots: list[_ColorDot] = []
         for hex_col in self.COLORS:
             dot = _ColorDot(hex_col)
-            dot.clicked.connect(lambda checked=False, c=hex_col: self._on_color_clicked(c))
+            dot.clicked.connect(
+                lambda checked=False, c=hex_col: self._on_color_clicked(c)
+            )
             self._color_dots.append(dot)
             color_row.addWidget(dot)
         color_row.addStretch()
@@ -258,7 +274,7 @@ class PropertiesPanel(QDockWidget):
         # ── Opacity row ───────────────────────────────────────────────
         opacity_row = QHBoxLayout()
         opacity_row.setSpacing(8)
-        self._opacity_label = QLabel(t('properties_panel.opacity'))
+        self._opacity_label = QLabel(t("properties_panel.opacity"))
         self._opacity_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._opacity_label.setFixedWidth(64)
         opacity_row.addWidget(self._opacity_label)
@@ -267,7 +283,9 @@ class PropertiesPanel(QDockWidget):
         self._opacity_value_label.setStyleSheet(
             "font-size: 12px; color: #737686; min-width: 36px;"
         )
-        self._opacity_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._opacity_value_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self._opacity_slider = QSlider(Qt.Orientation.Horizontal)
         self._opacity_slider.setRange(0, 100)
@@ -282,7 +300,7 @@ class PropertiesPanel(QDockWidget):
         # ── Stroke row ────────────────────────────────────────────────
         stroke_row = QHBoxLayout()
         stroke_row.setSpacing(8)
-        self._stroke_label = QLabel(t('properties_panel.stroke'))
+        self._stroke_label = QLabel(t("properties_panel.stroke"))
         self._stroke_label.setStyleSheet("font-size: 13px; color: #434655;")
         self._stroke_label.setFixedWidth(64)
         stroke_row.addWidget(self._stroke_label)
@@ -291,7 +309,9 @@ class PropertiesPanel(QDockWidget):
         self._stroke_value_label.setStyleSheet(
             "font-size: 12px; color: #737686; min-width: 36px;"
         )
-        self._stroke_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._stroke_value_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         self._stroke_slider = QSlider(Qt.Orientation.Horizontal)
         self._stroke_slider.setRange(1, 10)
@@ -312,7 +332,7 @@ class PropertiesPanel(QDockWidget):
         layout.setSpacing(8)
 
         # ── Show Label checkbox ───────────────────────────────────────
-        self._show_label_cb = QCheckBox(t('properties_panel.show_label'))
+        self._show_label_cb = QCheckBox(t("properties_panel.show_label"))
         self._show_label_cb.setStyleSheet("font-size: 13px; color: #44475a;")
         self._show_label_cb.setChecked(True)
         self._show_label_cb.toggled.connect(self._on_label_toggled)
@@ -322,8 +342,8 @@ class PropertiesPanel(QDockWidget):
         toggle_row = QHBoxLayout()
         toggle_row.setSpacing(0)
 
-        self._name_btn = QPushButton(t('properties_panel.name_tab'))
-        self._value_btn = QPushButton(t('properties_panel.value_tab'))
+        self._name_btn = QPushButton(t("properties_panel.name_tab"))
+        self._value_btn = QPushButton(t("properties_panel.value_tab"))
 
         for btn in (self._name_btn, self._value_btn):
             btn.setCheckable(True)
@@ -335,14 +355,14 @@ class PropertiesPanel(QDockWidget):
         self._value_btn.setObjectName("tab_btn_right")
         self._apply_tab_styles()
 
-        self._name_btn.clicked.connect(lambda: self._set_label_mode('name'))
-        self._value_btn.clicked.connect(lambda: self._set_label_mode('value'))
+        self._name_btn.clicked.connect(lambda: self._set_label_mode("name"))
+        self._value_btn.clicked.connect(lambda: self._set_label_mode("value"))
 
         toggle_row.addWidget(self._name_btn)
         toggle_row.addWidget(self._value_btn)
         layout.addLayout(toggle_row)
 
-        self._label_mode = 'name'
+        self._label_mode = "name"
         return body
 
     def _build_definition_section(self) -> QWidget:
@@ -406,10 +426,10 @@ class PropertiesPanel(QDockWidget):
             "  background: #e8eaff;"
             "}"
         )
-        left_radius  = "border-top-left-radius: 6px; border-bottom-left-radius: 6px;"
+        left_radius = "border-top-left-radius: 6px; border-bottom-left-radius: 6px;"
         right_radius = "border-top-right-radius: 6px; border-bottom-right-radius: 6px;"
 
-        name_active  = self._name_btn.isChecked()
+        name_active = self._name_btn.isChecked()
         value_active = self._value_btn.isChecked()
 
         self._name_btn.setStyleSheet(
@@ -449,8 +469,8 @@ class PropertiesPanel(QDockWidget):
 
     def _set_label_mode(self, mode: str):
         self._label_mode = mode
-        self._name_btn.setChecked(mode == 'name')
-        self._value_btn.setChecked(mode == 'value')
+        self._name_btn.setChecked(mode == "name")
+        self._value_btn.setChecked(mode == "value")
         self._apply_tab_styles()
 
     # ──────────────────────────────────────────────────────────────────
@@ -460,10 +480,10 @@ class PropertiesPanel(QDockWidget):
     def set_object(self, obj_data: dict) -> None:
         """Populate the panel with the given object's data."""
         self._block_signals = True
-        self._current_obj_id = obj_data.get('id')
+        self._current_obj_id = obj_data.get("id")
 
-        obj_type = obj_data.get('type', '')
-        obj_name = obj_data.get('name', '')
+        obj_type = obj_data.get("type", "")
+        obj_name = obj_data.get("name", "")
 
         # window title
         label = f"{t('properties_panel.title').upper()}: {obj_type.upper()} {obj_name}"
@@ -471,9 +491,9 @@ class PropertiesPanel(QDockWidget):
         self._title_label.setText(label)
 
         # ── appearance ────────────────────────────────────────────────
-        saved_color   = obj_data.get('color', self.COLORS[0])
-        saved_opacity = int(obj_data.get('opacity', 100))
-        saved_stroke  = int(obj_data.get('stroke', 2))
+        saved_color = obj_data.get("color", self.COLORS[0])
+        saved_opacity = int(obj_data.get("opacity", 100))
+        saved_stroke = int(obj_data.get("stroke", 2))
 
         for dot in self._color_dots:
             dot.set_selected(dot.hex_color == saved_color)
@@ -485,11 +505,11 @@ class PropertiesPanel(QDockWidget):
         self._stroke_value_label.setText(f"{saved_stroke}px")
 
         # ── label ─────────────────────────────────────────────────────
-        show_label = bool(obj_data.get('show_label', True))
+        show_label = bool(obj_data.get("show_label", True))
         self._show_label_cb.setChecked(show_label)
-        label_mode = obj_data.get('label_mode', 'name')
+        label_mode = obj_data.get("label_mode", "name")
         self._set_label_mode(label_mode)
-        
+
         # 确保按钮状态与 show_label 同步
         self._name_btn.setEnabled(show_label)
         self._value_btn.setEnabled(show_label)
@@ -505,7 +525,7 @@ class PropertiesPanel(QDockWidget):
         self._block_signals = True
         self._current_obj_id = None
 
-        title = t('properties_panel.title').upper()
+        title = t("properties_panel.title").upper()
         self.setWindowTitle(title)
         self._title_label.setText(title)
 
@@ -517,25 +537,25 @@ class PropertiesPanel(QDockWidget):
         self._stroke_value_label.setText("2px")
 
         self._show_label_cb.setChecked(True)
-        self._set_label_mode('name')
+        self._set_label_mode("name")
         self._definition_edit.clear()
 
         self._block_signals = False
 
     def retranslate_ui(self) -> None:
         """Re-apply all translated strings (called on language switch)."""
-        self.setWindowTitle(t('properties_panel.title'))
-        self._app_header.setText(t('properties_panel.appearance').upper())
-        self._lbl_header.setText(t('properties_panel.label_section').upper())
-        self._def_header.setText(t('properties_panel.definition').upper())
+        self.setWindowTitle(t("properties_panel.title"))
+        self._app_header.setText(t("properties_panel.appearance").upper())
+        self._lbl_header.setText(t("properties_panel.label_section").upper())
+        self._def_header.setText(t("properties_panel.definition").upper())
 
-        self._color_label.setText(t('properties_panel.color'))
-        self._opacity_label.setText(t('properties_panel.opacity'))
-        self._stroke_label.setText(t('properties_panel.stroke'))
+        self._color_label.setText(t("properties_panel.color"))
+        self._opacity_label.setText(t("properties_panel.opacity"))
+        self._stroke_label.setText(t("properties_panel.stroke"))
 
-        self._show_label_cb.setText(t('properties_panel.show_label'))
-        self._name_btn.setText(t('properties_panel.name_tab'))
-        self._value_btn.setText(t('properties_panel.value_tab'))
+        self._show_label_cb.setText(t("properties_panel.show_label"))
+        self._name_btn.setText(t("properties_panel.name_tab"))
+        self._value_btn.setText(t("properties_panel.value_tab"))
 
     # ──────────────────────────────────────────────────────────────────
     # Definition formatter
@@ -543,19 +563,19 @@ class PropertiesPanel(QDockWidget):
 
     @staticmethod
     def _format_definition(obj_data: dict) -> str:
-        obj_type = obj_data.get('type', '')
-        coords   = obj_data.get('coordinates', {})
-        name     = obj_data.get('name', '?')
+        obj_type = obj_data.get("type", "")
+        coords = obj_data.get("coordinates", {})
+        name = obj_data.get("name", "?")
 
-        if obj_type == 'Point':
-            x = coords.get('x', 0.0)
-            y = coords.get('y', 0.0)
+        if obj_type == "Point":
+            x = coords.get("x", 0.0)
+            y = coords.get("y", 0.0)
             return f"{name} = ({x:.2f}, {y:.2f})"
 
-        elif obj_type == 'Circle':
-            cx = coords.get('cx', 0.0)
-            cy = coords.get('cy', 0.0)
-            r  = coords.get('r', 1.0)
+        elif obj_type == "Circle":
+            cx = coords.get("cx", 0.0)
+            cy = coords.get("cy", 0.0)
+            r = coords.get("r", 1.0)
             # use Unicode superscript 2
             cx_str = f"{abs(cx):.2f}"
             cy_str = f"{abs(cy):.2f}"
@@ -566,15 +586,15 @@ class PropertiesPanel(QDockWidget):
                 f"(y {y_eq_sign} {cy_str})\u00b2 = {r:.2f}\u00b2"
             )
 
-        elif obj_type == 'Segment':
-            x1 = coords.get('x1', 0.0)
-            y1 = coords.get('y1', 0.0)
-            x2 = coords.get('x2', 0.0)
-            y2 = coords.get('y2', 0.0)
+        elif obj_type == "Segment":
+            x1 = coords.get("x1", 0.0)
+            y1 = coords.get("y1", 0.0)
+            x2 = coords.get("x2", 0.0)
+            y2 = coords.get("y2", 0.0)
             return f"({x1:.2f}, {y1:.2f}) \u2192 ({x2:.2f}, {y2:.2f})"
 
-        elif obj_type == 'Polygon':
-            points = obj_data.get('points', [])
+        elif obj_type == "Polygon":
+            points = obj_data.get("points", [])
             n = len(points)
             return f"{n} vertices"
 

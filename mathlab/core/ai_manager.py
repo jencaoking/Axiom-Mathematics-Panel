@@ -5,7 +5,7 @@ from mathlab.core.ai_tools import execute_math_task
 import numpy as np
 import importlib.util
 
-if importlib.util.find_spec('sklearn') is not None:
+if importlib.util.find_spec("sklearn") is not None:
     SKLEARN_AVAILABLE = True
 else:
     SKLEARN_AVAILABLE = False
@@ -15,10 +15,12 @@ from enum import Enum
 
 try:
     from PyQt5.QtCore import QObject, QThread, pyqtSignal as Signal
+
     QT_AVAILABLE = True
 except ImportError:
     try:
         from PySide6.QtCore import QObject, QThread, Signal
+
         QT_AVAILABLE = True
     except ImportError:
         QT_AVAILABLE = False
@@ -26,6 +28,7 @@ except ImportError:
 
 try:
     from openai import OpenAI, AuthenticationError, APIConnectionError
+
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -44,18 +47,21 @@ logger = get_logger(__name__)
 try:
     import torch  # noqa: F401
     import torch.nn as nn  # noqa: F401
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
 
 try:
     import onnxruntime as ort  # noqa: F401
+
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
 
 try:
     import requests  # noqa: F401
+
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
@@ -78,8 +84,12 @@ class AIProvider(Enum):
 
 
 class AIRequestConfig:
-    def __init__(self, provider: AIProvider = AIProvider.LOCAL,
-                 api_key: str = "", base_url: str = ""):
+    def __init__(
+        self,
+        provider: AIProvider = AIProvider.LOCAL,
+        api_key: str = "",
+        base_url: str = "",
+    ):
         self.provider = provider
         self.api_key = api_key
         self.base_url = base_url
@@ -87,8 +97,8 @@ class AIRequestConfig:
 
 class AIState(Enum):
     IDLE = "空闲"
-    THINKING = "思考中..."           # 已发请求，等待首字节 (TTFB)
-    GENERATING = "生成中..."         # 正在打字输出
+    THINKING = "思考中..."  # 已发请求，等待首字节 (TTFB)
+    GENERATING = "生成中..."  # 正在打字输出
     EXECUTING_TOOL = "执行工具中..."  # 正在调用画笔等本地函数
     FINISHED = "完成"
     ERROR = "出错了"
@@ -99,6 +109,7 @@ class AIEngineWorker(QThread):
     统一、纯净的流式 AI 核心线程
     全面废弃野路子正则，严格使用 Function Calling，支持 Token 统计
     """
+
     state_changed = Signal(AIState)
     chunk_received = Signal(str)
     tool_call_received = Signal(str, object)
@@ -106,8 +117,7 @@ class AIEngineWorker(QThread):
     finished_text = Signal(str)
     error_occurred = Signal(str)
 
-    def __init__(self, client: OpenAI, model: str,
-                 messages: list, tools: list = None):
+    def __init__(self, client: OpenAI, model: str, messages: list, tools: list = None):
         super().__init__()
         self.client = client
         self.model = model
@@ -129,7 +139,7 @@ class AIEngineWorker(QThread):
                 "messages": self.messages,
                 "stream": True,
                 "temperature": 0.3,
-                "stream_options": {"include_usage": True}
+                "stream_options": {"include_usage": True},
             }
             if self.tools:
                 kwargs["tools"] = self.tools
@@ -147,8 +157,8 @@ class AIEngineWorker(QThread):
 
                 if chunk.usage is not None:
                     self.usage_reported.emit(
-                        chunk.usage.prompt_tokens,
-                        chunk.usage.completion_tokens)
+                        chunk.usage.prompt_tokens, chunk.usage.completion_tokens
+                    )
                     continue
 
                 if not chunk.choices:
@@ -157,34 +167,35 @@ class AIEngineWorker(QThread):
                 delta = chunk.choices[0].delta
 
                 if not has_started_typing and (
-                        getattr(delta, 'content', None) or getattr(delta, 'tool_calls', None)):  # noqa: E501
+                    getattr(delta, "content", None)
+                    or getattr(delta, "tool_calls", None)
+                ):  # noqa: E501
                     has_started_typing = True
                     self.state_changed.emit(AIState.GENERATING)
 
-                if getattr(delta, 'content', None):
+                if getattr(delta, "content", None):
                     full_text += delta.content
                     self.chunk_received.emit(delta.content)
 
-                if getattr(delta, 'tool_calls', None):
+                if getattr(delta, "tool_calls", None):
                     for tc in delta.tool_calls:
                         idx = tc.index
                         if idx not in tool_calls_buffer:
-                            name = (
-                                tc.function.name or "") if tc.function else ""
-                            tool_calls_buffer[idx] = {
-                                "name": name, "arguments": ""}
+                            name = (tc.function.name or "") if tc.function else ""
+                            tool_calls_buffer[idx] = {"name": name, "arguments": ""}
                         elif tc.function and tc.function.name:
                             tool_calls_buffer[idx]["name"] = tc.function.name
 
                         if tc.function and tc.function.arguments:
-                            tool_calls_buffer[idx]["arguments"] += tc.function.arguments  # noqa: E501
+                            tool_calls_buffer[idx][
+                                "arguments"
+                            ] += tc.function.arguments  # noqa: E501
 
             if tool_calls_buffer:
                 self.state_changed.emit(AIState.EXECUTING_TOOL)
                 for tc in tool_calls_buffer.values():
                     try:
-                        args = json.loads(
-                            tc["arguments"]) if tc["arguments"] else {}
+                        args = json.loads(tc["arguments"]) if tc["arguments"] else {}
                     except (json.JSONDecodeError, TypeError):
                         args = {}
                     self.tool_call_received.emit(tc["name"], args)
@@ -222,15 +233,15 @@ class AIManager(QObject):
         # [修复] 使用 __package__ 获取包目录，更健壮
         try:
             package_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            settings_path = os.path.join(package_dir, 'settings.json')
+            settings_path = os.path.join(package_dir, "settings.json")
         except Exception:
             # 降级方案：使用当前文件路径
-            settings_path = os.path.join(os.getcwd(), 'settings.json')
+            settings_path = os.path.join(os.getcwd(), "settings.json")
 
         settings = {}
         if os.path.exists(settings_path):
             try:
-                with open(settings_path, 'r', encoding='utf-8') as f:
+                with open(settings_path, "r", encoding="utf-8") as f:
                     settings = json.load(f)
             except Exception as e:
                 logger.error(f"加载 settings.json 失败: {e}")
@@ -250,9 +261,19 @@ class AIManager(QObject):
             self.current_worker.cancel()
             self.current_worker.wait(5000)
 
-    def ask(self, user_prompt: str, system_prompt: str = "", tools: list = None,  # noqa: E501
-            canvas_state: str = None,
-            on_state_change=None, on_chunk=None, on_tool=None, on_usage=None, on_finish=None, on_error=None):  # noqa: E501
+    def ask(
+        self,
+        user_prompt: str,
+        system_prompt: str = "",
+        tools: list = None,  # noqa: E501
+        canvas_state: str = None,
+        on_state_change=None,
+        on_chunk=None,
+        on_tool=None,
+        on_usage=None,
+        on_finish=None,
+        on_error=None,
+    ):  # noqa: E501
 
         if not self.client:
             if on_error:
@@ -274,8 +295,7 @@ class AIManager(QObject):
 """
 
         if dynamic_system_prompt:
-            messages.insert(
-                0, {"role": "system", "content": dynamic_system_prompt})
+            messages.insert(0, {"role": "system", "content": dynamic_system_prompt})
 
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.cancel()
@@ -285,7 +305,8 @@ class AIManager(QObject):
                 logger.warning("AI Worker 未在 5 秒内停止，已断开信号连接")
 
         self.current_worker = AIEngineWorker(
-            self.client, self.current_model, messages, tools)
+            self.client, self.current_model, messages, tools
+        )
 
         if on_state_change:
             self.current_worker.state_changed.connect(on_state_change)
@@ -309,23 +330,25 @@ class AIManager(QObject):
 
     def load_onnx_model(self, model_path, model_name):
         if not ONNX_AVAILABLE:
-            return {'success': False, 'error': 'ONNX Runtime not available'}
+            return {"success": False, "error": "ONNX Runtime not available"}
 
         try:
             session = ort.InferenceSession(model_path)
             self.models[model_name] = {
-                'session': session,
-                'input_name': session.get_inputs()[0].name,
-                'output_name': session.get_outputs()[0].name
+                "session": session,
+                "input_name": session.get_inputs()[0].name,
+                "output_name": session.get_outputs()[0].name,
             }
-            return {'success': True,
-                    'message': f'Model {model_name} loaded successfully'}
+            return {
+                "success": True,
+                "message": f"Model {model_name} loaded successfully",
+            }
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def predict(self, model_name, input_data):
         if model_name not in self.models:
-            return {'success': False, 'error': 'Model not found'}
+            return {"success": False, "error": "Model not found"}
 
         model = self.models[model_name]
         try:
@@ -333,20 +356,19 @@ class AIManager(QObject):
             if len(input_data.shape) == 1:
                 input_data = input_data.reshape(1, -1)
 
-            result = model['session'].run(
-                [model['output_name']],
-                {model['input_name']: input_data}
+            result = model["session"].run(
+                [model["output_name"]], {model["input_name"]: input_data}
             )
 
-            return {'success': True, 'prediction': result[0].tolist()}
+            return {"success": True, "prediction": result[0].tolist()}
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def fit_linear_regression(self, points):
         if not SKLEARN_AVAILABLE:
-            return {'success': False, 'error': 'scikit-learn not available'}
+            return {"success": False, "error": "scikit-learn not available"}
         if len(points) < 2:
-            return {'success': False, 'error': 'Need at least 2 points'}
+            return {"success": False, "error": "Need at least 2 points"}
 
         from sklearn.linear_model import LinearRegression
         from sklearn.metrics import mean_squared_error
@@ -364,20 +386,19 @@ class AIManager(QObject):
         mse = float(mean_squared_error(y, predictions))
 
         return {
-            'success': True,
-            'slope': slope,
-            'intercept': intercept,
-            'equation': f'y = {slope:.4f}x + {intercept:.4f}',
-            'mse': mse,
-            'predictions': predictions.tolist()
+            "success": True,
+            "slope": slope,
+            "intercept": intercept,
+            "equation": f"y = {slope:.4f}x + {intercept:.4f}",
+            "mse": mse,
+            "predictions": predictions.tolist(),
         }
 
     def fit_polynomial_regression(self, points, degree=2):
         if not SKLEARN_AVAILABLE:
-            return {'success': False, 'error': 'scikit-learn not available'}
+            return {"success": False, "error": "scikit-learn not available"}
         if len(points) < degree + 1:
-            return {'success': False,
-                    'error': f'Need at least {degree + 1} points'}
+            return {"success": False, "error": f"Need at least {degree + 1} points"}
 
         from sklearn.metrics import mean_squared_error
 
@@ -403,23 +424,23 @@ class AIManager(QObject):
                 terms.append(f"{c:.4f}x")
             else:
                 terms.append(f"{c:.4f}x^{power}")
-        equation = 'y = ' + ' + '.join(terms) if terms else 'y = 0'
+        equation = "y = " + " + ".join(terms) if terms else "y = 0"
 
         return {
-            'success': True,
-            'coefficients': coefficients.tolist(),
-            'intercept': float(coefficients[0]),  # coefficients[0] 是常数项（低次在前）
-            'equation': equation,
-            'mse': mse,
-            'predictions': predictions.tolist()
+            "success": True,
+            "coefficients": coefficients.tolist(),
+            "intercept": float(coefficients[0]),  # coefficients[0] 是常数项（低次在前）
+            "equation": equation,
+            "mse": mse,
+            "predictions": predictions.tolist(),
         }
 
     def fit_neural_network(self, points, epochs=100, hidden_size=10):
         if not TORCH_AVAILABLE:
-            return {'success': False, 'error': 'PyTorch not available'}
+            return {"success": False, "error": "PyTorch not available"}
 
         if len(points) < 2:
-            return {'success': False, 'error': 'Need at least 2 points'}
+            return {"success": False, "error": "Need at least 2 points"}
 
         # [P0修复 Bug1] 补充缺失的导入：mean_squared_error 在此函数中使用但未导入
 
@@ -427,9 +448,7 @@ class AIManager(QObject):
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
 
         model = nn.Sequential(
-            nn.Linear(1, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1)
+            nn.Linear(1, hidden_size), nn.ReLU(), nn.Linear(hidden_size, 1)
         )
 
         criterion = nn.MSELoss()
@@ -451,22 +470,24 @@ class AIManager(QObject):
 
         # [P0修复 Bug1] 移除错误的 self.emit()：AIManager 不是 QObject，无此方法
         # 使用 PyTorch 计算 MSE，移除对 sklearn 的隐式依赖
-        mse = float(criterion(torch.tensor(
-            predictions).reshape(-1, 1), y).item())
+        mse = float(criterion(torch.tensor(predictions).reshape(-1, 1), y).item())
 
         return {
-            'success': True,
-            'loss_history': loss_history,
-            'mse': mse,
-            'predictions': predictions.tolist(),
-            'epochs': epochs
+            "success": True,
+            "loss_history": loss_history,
+            "mse": mse,
+            "predictions": predictions.tolist(),
+            "epochs": epochs,
         }
 
     def cluster_kmeans(self, points, n_clusters=3):
         if not SKLEARN_AVAILABLE:
-            return {'success': False, 'error': 'scikit-learn not available'}
+            return {"success": False, "error": "scikit-learn not available"}
         if len(points) < n_clusters:
-            return {'success': False, 'error': 'Not enough points for clusters'}  # noqa: E501
+            return {
+                "success": False,
+                "error": "Not enough points for clusters",
+            }  # noqa: E501
 
         from sklearn.cluster import KMeans
 
@@ -479,17 +500,17 @@ class AIManager(QObject):
         centers = model.cluster_centers_.tolist()
 
         return {
-            'success': True,
-            'labels': labels,
-            'centers': centers,
-            'inertia': float(model.inertia_)
+            "success": True,
+            "labels": labels,
+            "centers": centers,
+            "inertia": float(model.inertia_),
         }
 
     def cluster_dbscan(self, points, eps=0.5, min_samples=5):
         if not SKLEARN_AVAILABLE:
-            return {'success': False, 'error': 'scikit-learn not available'}
+            return {"success": False, "error": "scikit-learn not available"}
         if len(points) < min_samples:
-            return {'success': False, 'error': 'Not enough points'}
+            return {"success": False, "error": "Not enough points"}
 
         from sklearn.cluster import DBSCAN
 
@@ -502,29 +523,28 @@ class AIManager(QObject):
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
 
         return {
-            'success': True,
-            'labels': labels,
-            'n_clusters': n_clusters,
-            'n_noise': list(labels).count(-1)
+            "success": True,
+            "labels": labels,
+            "n_clusters": n_clusters,
+            "n_noise": list(labels).count(-1),
         }
 
     def recognize_digit(self, image_data):
         if not ONNX_AVAILABLE:
-            return {'success': False, 'error': 'ONNX Runtime not available'}
+            return {"success": False, "error": "ONNX Runtime not available"}
 
-        if 'mnist' not in self.models:
-            return {'success': False, 'error': 'MNIST model not loaded'}
+        if "mnist" not in self.models:
+            return {"success": False, "error": "MNIST model not loaded"}
 
-        model = self.models['mnist']
+        model = self.models["mnist"]
 
         try:
-            image_data = np.array(
-                image_data, dtype=np.float32).reshape(
-                1, 1, 28, 28) / 255.0
+            image_data = (
+                np.array(image_data, dtype=np.float32).reshape(1, 1, 28, 28) / 255.0
+            )
 
-            result = model['session'].run(
-                [model['output_name']],
-                {model['input_name']: image_data}
+            result = model["session"].run(
+                [model["output_name"]], {model["input_name"]: image_data}
             )
 
             predictions = result[0][0]
@@ -533,13 +553,16 @@ class AIManager(QObject):
             top3_digits = top3_indices.tolist()
 
             return {
-                'success': True,
-                'prediction': int(np.argmax(predictions)),
-                'probabilities': predictions.tolist(),
-                'top3': [{'digit': d, 'probability': p} for d, p in zip(top3_digits, top3_probs)]  # noqa: E501
+                "success": True,
+                "prediction": int(np.argmax(predictions)),
+                "probabilities": predictions.tolist(),
+                "top3": [
+                    {"digit": d, "probability": p}
+                    for d, p in zip(top3_digits, top3_probs)
+                ],  # noqa: E501
             }
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
     def generate_random_points(self, n=10, x_range=(0, 100), y_range=(0, 100)):
         points = []
@@ -547,7 +570,7 @@ class AIManager(QObject):
             x = np.random.uniform(x_range[0], x_range[1])
             y = np.random.uniform(y_range[0], y_range[1])
             points.append((x, y))
-        return {'success': True, 'points': points}
+        return {"success": True, "points": points}
 
     def run_training_sandbox(self, code):
         from mathlab.core.sandbox import SandboxProcess
@@ -565,7 +588,8 @@ class ReasoningCache:
 
     def __init__(self, cache_path=None, similarity_threshold=0.85):
         self._cache_path = cache_path or os.path.join(
-            os.path.dirname(__file__), '..', 'data', 'reasoning_cache.json')
+            os.path.dirname(__file__), "..", "data", "reasoning_cache.json"
+        )
         self._similarity_threshold = similarity_threshold
         self._cache = []
         self._lock = threading.Lock()
@@ -576,7 +600,7 @@ class ReasoningCache:
     def _load(self):
         if os.path.exists(self._cache_path):
             try:
-                with open(self._cache_path, 'r', encoding='utf-8') as f:
+                with open(self._cache_path, "r", encoding="utf-8") as f:
                     self._cache = json.load(f)
             except Exception as e:
                 logger.error(f"加载推理缓存失败: {e}")
@@ -584,13 +608,13 @@ class ReasoningCache:
 
     def _save(self):
         os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
-        with open(self._cache_path, 'w', encoding='utf-8') as f:
+        with open(self._cache_path, "w", encoding="utf-8") as f:
             json.dump(self._cache, f, ensure_ascii=False, indent=2)
 
     @staticmethod
     def _normalize_prompt(prompt):
         """归一化 prompt：去除多余空白、统一大小写"""
-        return ' '.join(prompt.lower().split())
+        return " ".join(prompt.lower().split())
 
     def get(self, user_prompt):
         """检索缓存，返回匹配的结果或 None"""
@@ -602,9 +626,9 @@ class ReasoningCache:
 
             # 快速精确匹配
             for entry in self._cache:
-                if self._normalize_prompt(entry['prompt']) == normalized:
+                if self._normalize_prompt(entry["prompt"]) == normalized:
                     logger.info(f"📦 推理缓存精确命中: {user_prompt[:40]}...")
-                    return entry['result']
+                    return entry["result"]
 
             # TF-IDF 相似度匹配
             if SKLEARN_AVAILABLE and len(self._cache) > 1:
@@ -612,7 +636,7 @@ class ReasoningCache:
                     from sklearn.feature_extraction.text import TfidfVectorizer
                     from sklearn.metrics.pairwise import cosine_similarity as _cos_sim
 
-                    corpus = [self._normalize_prompt(e['prompt']) for e in self._cache]
+                    corpus = [self._normalize_prompt(e["prompt"]) for e in self._cache]
                     if self._vectorizer is None:
                         self._vectorizer = TfidfVectorizer()
                         self._tfidf_matrix = self._vectorizer.fit_transform(corpus)
@@ -624,8 +648,9 @@ class ReasoningCache:
                     if sims[best_idx] >= self._similarity_threshold:
                         logger.info(
                             f"📦 推理缓存相似命中 (sim={sims[best_idx]:.3f}): "
-                            f"{user_prompt[:40]}...")
-                        return self._cache[best_idx]['result']
+                            f"{user_prompt[:40]}..."
+                        )
+                        return self._cache[best_idx]["result"]
                 except Exception as e:
                     logger.error(f"缓存相似度检索失败: {e}")
 
@@ -637,21 +662,23 @@ class ReasoningCache:
             normalized = self._normalize_prompt(user_prompt)
             # 去重：已存在相似 prompt 则覆盖
             for i, entry in enumerate(self._cache):
-                if self._normalize_prompt(entry['prompt']) == normalized:
+                if self._normalize_prompt(entry["prompt"]) == normalized:
                     self._cache[i] = {
-                        'prompt': user_prompt,
-                        'result': result,
-                        'ttl_keys': ttl_keys or [],
+                        "prompt": user_prompt,
+                        "result": result,
+                        "ttl_keys": ttl_keys or [],
                     }
                     self._save()
                     self._invalidate_cache()
                     return
 
-            self._cache.append({
-                'prompt': user_prompt,
-                'result': result,
-                'ttl_keys': ttl_keys or [],
-            })
+            self._cache.append(
+                {
+                    "prompt": user_prompt,
+                    "result": result,
+                    "ttl_keys": ttl_keys or [],
+                }
+            )
             self._save()
             self._invalidate_cache()
             logger.info(f"📦 推理结果已缓存: {user_prompt[:40]}...")
@@ -681,8 +708,9 @@ class ResourceConfig:
 
     DEFAULT = None  # 类级默认实例，延迟初始化
 
-    def __init__(self, max_memory_mb=512, max_time_seconds=60,
-                 max_cpu_percent=80, max_steps=5):
+    def __init__(
+        self, max_memory_mb=512, max_time_seconds=60, max_cpu_percent=80, max_steps=5
+    ):
         self.max_memory_mb = max_memory_mb
         self.max_time_seconds = max_time_seconds
         self.max_cpu_percent = max_cpu_percent
@@ -690,10 +718,10 @@ class ResourceConfig:
 
     def to_dict(self):
         return {
-            'max_memory_mb': self.max_memory_mb,
-            'max_time_seconds': self.max_time_seconds,
-            'max_cpu_percent': self.max_cpu_percent,
-            'max_steps': self.max_steps,
+            "max_memory_mb": self.max_memory_mb,
+            "max_time_seconds": self.max_time_seconds,
+            "max_cpu_percent": self.max_cpu_percent,
+            "max_steps": self.max_steps,
         }
 
     @classmethod
@@ -706,19 +734,29 @@ class ResourceConfig:
     def for_agent(cls, agent_name):
         """根据 Agent 名称返回预设的资源限制"""
         presets = {
-            'PlannerAgent': cls(max_memory_mb=512, max_time_seconds=120,
-                                max_cpu_percent=80, max_steps=5),
-            'GeometryAgent': cls(max_memory_mb=256, max_time_seconds=60,
-                                 max_cpu_percent=70, max_steps=5),
-            'DataVizAgent': cls(max_memory_mb=512, max_time_seconds=90,
-                                max_cpu_percent=80, max_steps=5),
+            "PlannerAgent": cls(
+                max_memory_mb=512, max_time_seconds=120, max_cpu_percent=80, max_steps=5
+            ),
+            "GeometryAgent": cls(
+                max_memory_mb=256, max_time_seconds=60, max_cpu_percent=70, max_steps=5
+            ),
+            "DataVizAgent": cls(
+                max_memory_mb=512, max_time_seconds=90, max_cpu_percent=80, max_steps=5
+            ),
         }
         return presets.get(agent_name, cls.get_default())
 
 
 class BaseMathAgent:
-    def __init__(self, ai_manager, model="deepseek-chat", model_override=None,
-                 resource_config=None, student_model=None, agent_id=None):
+    def __init__(
+        self,
+        ai_manager,
+        model="deepseek-chat",
+        model_override=None,
+        resource_config=None,
+        student_model=None,
+        agent_id=None,
+    ):
         self.ai_manager = ai_manager
         self.model = model
         # 模型多样性：允许每个 Agent 使用不同的模型
@@ -735,6 +773,7 @@ class BaseMathAgent:
         self._adaptive_engine = None
         if student_model is not None:
             from mathlab.core.student_model import AdaptiveEngine
+
             self._adaptive_engine = AdaptiveEngine(student_model)
         # 结构化通信协议：Agent ID 和消息总线
         self.agent_id = agent_id or self.__class__.__name__
@@ -769,6 +808,7 @@ class BaseMathAgent:
             return None
 
         from mathlab.core.agent_message import AgentMessage
+
         msg = AgentMessage(
             sender_id=self.agent_id,
             receiver_id=receiver_id,
@@ -782,33 +822,41 @@ class BaseMathAgent:
 
     def _get_effective_model(self):
         """获取当前 Agent 实际使用的模型：优先 model_override，其次 ai_manager.current_model"""
-        return self.model_override or getattr(self.ai_manager, "current_model", None) or self.model  # noqa: E501
+        return (
+            self.model_override
+            or getattr(self.ai_manager, "current_model", None)
+            or self.model
+        )  # noqa: E501
 
     def _llm_generate_code(self, messages):
         # 真正使用时通过 ai_manager.client 调用大模型接口
         try:
             model = self._get_effective_model()
             response = self.ai_manager.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.1
+                model=model, messages=messages, temperature=0.1
             )
-            suggestion = response.choices[0].message.content if response.choices else ""  # noqa: E501
-            suggestion = suggestion.replace(
-                "```python\n",
-                "").replace(
-                "\n```",
-                "").replace(
-                "```",
-                "")
+            suggestion = (
+                response.choices[0].message.content if response.choices else ""
+            )  # noqa: E501
+            suggestion = (
+                suggestion.replace("```python\n", "")
+                .replace("\n```", "")
+                .replace("```", "")
+            )
             return suggestion
         except Exception as e:
             # SUGGESTION 11 修复：使用 logger 替代 print
             logger.error(f"LLM Generate Code Error: {e}")
             return "print('Error generating code')"
 
-    def solve_problem(self, user_prompt: str, on_thought_cb=None,
-                      on_code_cb=None, on_finish_cb=None, on_geom_cb=None):
+    def solve_problem(
+        self,
+        user_prompt: str,
+        on_thought_cb=None,
+        on_code_cb=None,
+        on_finish_cb=None,
+        on_geom_cb=None,
+    ):
         # ============== 前置校验：未配置 API 客户端时直接失败，避免 NoneType 崩溃 ==============
         if getattr(self.ai_manager, "client", None) is None:
             if on_thought_cb:
@@ -840,7 +888,9 @@ class BaseMathAgent:
         if relevant_skills:
             skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"  # noqa: E501
             for s in relevant_skills:
-                skill_context += f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
+                skill_context += (
+                    f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
+                )
             if on_thought_cb:
                 on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
 
@@ -862,8 +912,11 @@ class BaseMathAgent:
         pedagogical_context = ""
         if self.student_model is not None:
             from mathlab.core.pedagogical_engine import PedagogicalPromptBuilder
+
             pedagogical_builder = PedagogicalPromptBuilder(self.student_model)
-            pedagogical_context = pedagogical_builder.build_code_generation_constraint(user_prompt)
+            pedagogical_context = pedagogical_builder.build_code_generation_constraint(
+                user_prompt
+            )
 
         system_prompt = f"""{self.system_prompt}
 {skill_context}
@@ -873,7 +926,7 @@ class BaseMathAgent:
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"任务：{user_prompt}"}
+            {"role": "user", "content": f"任务：{user_prompt}"},
         ]
 
         for step in range(self.max_steps):
@@ -903,25 +956,28 @@ class BaseMathAgent:
 
                 if on_thought_cb:
                     on_thought_cb(
-                        f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}")
+                        f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}"
+                    )
 
                 # ============== 2. 触发后台"自我提炼"机制 ==============
                 threading.Thread(
                     target=self._reflect_and_save_skill,
                     args=(user_prompt, code_content),
-                    daemon=True
+                    daemon=True,
                 ).start()
 
                 # ============== 3. 推理缓存存储 ==============
-                cache_result = {"status": "ok", "code": code_content,
-                                "result": execution_result.get("output", ""),
-                                "geom_commands": geom_commands}
+                cache_result = {
+                    "status": "ok",
+                    "code": code_content,
+                    "result": execution_result.get("output", ""),
+                    "geom_commands": geom_commands,
+                }
                 self._reasoning_cache.put(user_prompt, cache_result)
 
                 # ============== 4. 记录学生互动（自适应学习） ==============
                 if self.student_model and self._adaptive_engine:
-                    self._record_student_interaction(
-                        user_prompt, success=True)
+                    self._record_student_interaction(user_prompt, success=True)
 
                 if on_finish_cb:
                     on_finish_cb(True, code_content)
@@ -930,19 +986,25 @@ class BaseMathAgent:
                 error_msg = execution_result.get("error", "未知错误")
                 if on_thought_cb:
                     on_thought_cb(
-                        f"❌ 代码报错 (第 {step + 1} 次尝试), 正在修正...\n报错内容: {error_msg}")  # noqa: E501
+                        f"❌ 代码报错 (第 {step + 1} 次尝试), 正在修正...\n报错内容: {error_msg}"
+                    )  # noqa: E501
 
                 # 将报错信息加入对话历史，让 AI 修正
-                messages.append({"role": "assistant",
-                                 "content": f"```python\n{code_content}\n```"})
-                messages.append({"role": "user",
-                                 "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。"})  # noqa: E501
+                messages.append(
+                    {"role": "assistant", "content": f"```python\n{code_content}\n```"}
+                )
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。",
+                    }
+                )  # noqa: E501
 
                 # BUG 6 修复：限制历史消息数量，避免上下文无限增长
                 # 保留 system + 初始 user（前2条）+ 最近3轮对话（6条）
                 MAX_HISTORY_MSGS = 8
                 if len(messages) > MAX_HISTORY_MSGS:
-                    messages = messages[:2] + messages[-(MAX_HISTORY_MSGS - 2):]
+                    messages = messages[:2] + messages[-(MAX_HISTORY_MSGS - 2) :]
 
         if on_finish_cb:
             on_finish_cb(False, "超出最大重试次数")
@@ -959,9 +1021,7 @@ class BaseMathAgent:
             interaction_type = self._adaptive_engine.classify_interaction(
                 user_prompt, success
             )
-            knowledge_point = self._adaptive_engine.extract_knowledge_point(
-                user_prompt
-            )
+            knowledge_point = self._adaptive_engine.extract_knowledge_point(user_prompt)
             cognitive_demand = self._adaptive_engine.get_recommended_cognitive_demand()
             self.student_model.record_interaction(
                 interaction_type=interaction_type,
@@ -989,14 +1049,14 @@ class BaseMathAgent:
             response = self.ai_manager.client.chat.completions.create(
                 model=self._get_effective_model(),
                 messages=[{"role": "user", "content": reflection_prompt}],
-                response_format={"type": "json_object"}  # 强制要求返回 JSON
+                response_format={"type": "json_object"},  # 强制要求返回 JSON
             )
             result_json = json.loads(response.choices[0].message.content)
 
             # 存入本地知识库
             self.skill_lib.save_skill(
-                result_json["intent"],
-                result_json["abstract_code"])
+                result_json["intent"], result_json["abstract_code"]
+            )
         except Exception as e:
             # SUGGESTION 11 修复：使用 logger 替代 print
             logger.error(f"技能提炼失败 (后台线程): {e}")
@@ -1011,12 +1071,22 @@ class PlannerAgent(BaseMathAgent):
     3. 汇总结果并给出最终教学总结
     """
 
-    def __init__(self, ai_manager, agent_registry=None, model_override=None,
-                 resource_config=None, parallel_execution=False, max_workers=3,
-                 student_model=None):
-        super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('PlannerAgent'),
-                         student_model=student_model)
+    def __init__(
+        self,
+        ai_manager,
+        agent_registry=None,
+        model_override=None,
+        resource_config=None,
+        parallel_execution=False,
+        max_workers=3,
+        student_model=None,
+    ):
+        super().__init__(
+            ai_manager,
+            model_override=model_override,
+            resource_config=resource_config or ResourceConfig.for_agent("PlannerAgent"),
+            student_model=student_model,
+        )
         self.agent_registry = agent_registry  # 持有全局路由大脑，用于子任务委派
         # 并行执行配置：当 parallel_execution=True 时，独立步骤可并行调度
         self.parallel_execution = parallel_execution
@@ -1026,8 +1096,10 @@ class PlannerAgent(BaseMathAgent):
         self._quality_evaluator = None
         if student_model is not None:
             from mathlab.core.pedagogical_engine import (
-                PedagogicalPromptBuilder, TeachingQualityEvaluator
+                PedagogicalPromptBuilder,
+                TeachingQualityEvaluator,
             )
+
             self._pedagogical_builder = PedagogicalPromptBuilder(student_model)
             self._quality_evaluator = TeachingQualityEvaluator(student_model)
         self.system_prompt = """你是一个【数学教研组长 (PlannerAgent)】。
@@ -1050,7 +1122,9 @@ class PlannerAgent(BaseMathAgent):
         # 注入教学法约束（Bloom/ZPD/UDL/Socratic）
         pedagogical_constraint = ""
         if self._pedagogical_builder:
-            pedagogical_constraint = self._pedagogical_builder.build_decomposition_constraint()
+            pedagogical_constraint = (
+                self._pedagogical_builder.build_decomposition_constraint()
+            )
 
         decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
 
@@ -1091,15 +1165,24 @@ class PlannerAgent(BaseMathAgent):
             return {
                 "topic": user_prompt,
                 "steps": [
-                    {"num": 1, "title": "理解问题与分析已知条件",
-                     "hint_for_teacher": "引导学生识别问题类型和关键数值",
-                     "parallelizable": False},
-                    {"num": 2, "title": "建立数学模型与计算方法",
-                     "hint_for_teacher": "将文字描述转化为方程或几何图形",
-                     "parallelizable": False},
-                    {"num": 3, "title": "执行计算并验证结果",
-                     "hint_for_teacher": "通过数值计算或画图展示答案并检查合理性",
-                     "parallelizable": False},
+                    {
+                        "num": 1,
+                        "title": "理解问题与分析已知条件",
+                        "hint_for_teacher": "引导学生识别问题类型和关键数值",
+                        "parallelizable": False,
+                    },
+                    {
+                        "num": 2,
+                        "title": "建立数学模型与计算方法",
+                        "hint_for_teacher": "将文字描述转化为方程或几何图形",
+                        "parallelizable": False,
+                    },
+                    {
+                        "num": 3,
+                        "title": "执行计算并验证结果",
+                        "hint_for_teacher": "通过数值计算或画图展示答案并检查合理性",
+                        "parallelizable": False,
+                    },
                 ],
             }
 
@@ -1108,8 +1191,20 @@ class PlannerAgent(BaseMathAgent):
         返回 AgentRegistry 中注册的名字（如 'GeometryAgent' 或 'DataVizAgent'）。
         """
         combined = f"{step_title} {hint}".lower()
-        viz_keywords = ["图表", "可视化", "数据", "统计", "echarts", "柱状图",
-                        "折线图", "饼图", "散点图", "3d曲面", "玫瑰图", "热力图"]
+        viz_keywords = [
+            "图表",
+            "可视化",
+            "数据",
+            "统计",
+            "echarts",
+            "柱状图",
+            "折线图",
+            "饼图",
+            "散点图",
+            "3d曲面",
+            "玫瑰图",
+            "热力图",
+        ]
 
         # BUG 7 修复：动态查找已注册的 Agent，而非硬编码名称
         registry = getattr(self, "agent_registry", None)
@@ -1136,8 +1231,14 @@ class PlannerAgent(BaseMathAgent):
 
         return list(registry.agents.keys())[0] if registry.agents else "GeometryAgent"
 
-    def solve_problem(self, user_prompt: str, on_thought_cb=None,
-                      on_code_cb=None, on_finish_cb=None, on_geom_cb=None):
+    def solve_problem(
+        self,
+        user_prompt: str,
+        on_thought_cb=None,
+        on_code_cb=None,
+        on_finish_cb=None,
+        on_geom_cb=None,
+    ):
         """教研组长的核心调度闭环：拆解 → 串行委派 → 汇总。"""
 
         if getattr(self.ai_manager, "client", None) is None:
@@ -1149,11 +1250,13 @@ class PlannerAgent(BaseMathAgent):
 
         # 生成会话 ID，关联本轮对话的所有 Agent 间消息
         import uuid as _uuid
+
         self._conversation_id = str(_uuid.uuid4())[:8]
 
         # 通过消息总线广播教学任务开始
         if self._message_bus:
             from mathlab.core.agent_message import MessageType
+
             self.send_message(
                 receiver_id="broadcast",
                 msg_type=MessageType.NOTIFICATION,
@@ -1189,8 +1292,9 @@ class PlannerAgent(BaseMathAgent):
             if on_thought_cb:
                 on_thought_cb("⚠️ 教学大纲生成失败，回退到通用求解模式。")
             # 回退到基类的纯代码闭环
-            return super().solve_problem(user_prompt, on_thought_cb,
-                                         on_code_cb, on_finish_cb, on_geom_cb)
+            return super().solve_problem(
+                user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb
+            )
 
         # 输出大纲
         if on_thought_cb:
@@ -1232,10 +1336,12 @@ class PlannerAgent(BaseMathAgent):
 
             # 注入教学法约束到子步骤（Bloom 层级行为指导）
             if self._pedagogical_builder:
-                step_constraint = self._pedagogical_builder.build_step_execution_constraint(
-                    step_title=title,
-                    cognitive_level=cognitive_level,
-                    hint=hint,
+                step_constraint = (
+                    self._pedagogical_builder.build_step_execution_constraint(
+                        step_title=title,
+                        cognitive_level=cognitive_level,
+                        hint=hint,
+                    )
                 )
                 sub_prompt += f"\n\n{step_constraint}"
 
@@ -1255,6 +1361,7 @@ class PlannerAgent(BaseMathAgent):
             # 通过消息总线发送任务请求消息
             if self._message_bus:
                 from mathlab.core.agent_message import MessageType
+
                 self.send_message(
                     receiver_id=agent_key,
                     msg_type=MessageType.TASK_REQUEST,
@@ -1267,10 +1374,13 @@ class PlannerAgent(BaseMathAgent):
 
             if sub_info is None:
                 if on_thought_cb:
-                    on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
+                    on_thought_cb(
+                        f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行..."
+                    )
 
                 def _noop_finish_cb(success, content):
                     pass
+
                 result = super(PlannerAgent, self).solve_problem(
                     sub_prompt,
                     on_thought_cb=on_thought_cb,
@@ -1279,8 +1389,12 @@ class PlannerAgent(BaseMathAgent):
                     on_geom_cb=on_geom_cb,
                 )
                 if isinstance(result, dict) and result.get("status") == "ok":
-                    return (num, True, result.get("code", ""),
-                            result.get("geom_commands", []))
+                    return (
+                        num,
+                        True,
+                        result.get("code", ""),
+                        result.get("geom_commands", []),
+                    )
                 return (num, False, "", [])
 
             sub_agent = sub_info["instance"]
@@ -1292,6 +1406,7 @@ class PlannerAgent(BaseMathAgent):
                 def _cb(text):
                     if on_thought_cb:
                         on_thought_cb(f"  [Step {step_num}] {text}")
+
                 return _cb
 
             def make_sub_code_cb():
@@ -1299,6 +1414,7 @@ class PlannerAgent(BaseMathAgent):
                     if on_code_cb:
                         on_code_cb(code)
                     step_result["code"] = code
+
                 return _cb
 
             def make_sub_finish_cb():
@@ -1306,6 +1422,7 @@ class PlannerAgent(BaseMathAgent):
                     step_result["success"] = success
                     if success and content:
                         step_result["code"] = content
+
                 return _cb
 
             def make_sub_geom_cb():
@@ -1313,6 +1430,7 @@ class PlannerAgent(BaseMathAgent):
                     step_result["geom"].extend(cmds)
                     if on_geom_cb:
                         on_geom_cb(cmds)
+
                 return _cb
 
             try:
@@ -1326,8 +1444,7 @@ class PlannerAgent(BaseMathAgent):
                 if isinstance(sub_result, dict) and sub_result.get("status") == "ok":
                     step_result["success"] = True
                     step_result["code"] = sub_result.get("code", "")
-                    step_result["geom"].extend(
-                        sub_result.get("geom_commands", []))
+                    step_result["geom"].extend(sub_result.get("geom_commands", []))
             except Exception as e:
                 if on_thought_cb:
                     on_thought_cb(f"  ❌ 子 Agent「{agent_name}」执行异常: {e}")
@@ -1335,6 +1452,7 @@ class PlannerAgent(BaseMathAgent):
             # 通过消息总线发送任务进度消息
             if self._message_bus:
                 from mathlab.core.agent_message import MessageType
+
                 self.send_message(
                     receiver_id="broadcast",
                     msg_type=MessageType.TASK_PROGRESS,
@@ -1344,13 +1462,19 @@ class PlannerAgent(BaseMathAgent):
                     conversation_id=self._conversation_id,
                 )
 
-            return (num, step_result["success"], step_result["code"],
-                    step_result["geom"])
+            return (
+                num,
+                step_result["success"],
+                step_result["code"],
+                step_result["geom"],
+            )
 
         # 并行执行可并行步骤
         if parallel_steps:
             if on_thought_cb:
-                on_thought_cb(f"🚀 启动并行执行模式：{len(parallel_steps)} 个独立步骤同时调度...")
+                on_thought_cb(
+                    f"🚀 启动并行执行模式：{len(parallel_steps)} 个独立步骤同时调度..."
+                )
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -1369,7 +1493,9 @@ class PlannerAgent(BaseMathAgent):
                             if success:
                                 on_thought_cb(f"  ✅ 第 {num} 步完成 (并行)")
                             else:
-                                on_thought_cb(f"  ⚠️ 第 {num} 步未能产出完整结果 (并行)")
+                                on_thought_cb(
+                                    f"  ⚠️ 第 {num} 步未能产出完整结果 (并行)"
+                                )
                     except Exception as e:
                         if on_thought_cb:
                             on_thought_cb(f"  ❌ 并行步骤异常: {e}")
@@ -1407,15 +1533,22 @@ class PlannerAgent(BaseMathAgent):
 
         if on_finish_cb:
             on_finish_cb(True, final_code)
-        result = {"status": "ok", "code": final_code,
-                  "topic": topic, "steps_executed": len(steps),
-                  "geom_commands": all_geom_commands}
+        result = {
+            "status": "ok",
+            "code": final_code,
+            "topic": topic,
+            "steps_executed": len(steps),
+            "geom_commands": all_geom_commands,
+        }
         if quality_report:
             result["quality_report"] = quality_report
         return result
 
     def _run_quality_evaluation(
-        self, content: str, user_prompt: str, plan: dict,
+        self,
+        content: str,
+        user_prompt: str,
+        plan: dict,
         on_thought_cb=None,
     ) -> dict:
         """执行教学质量评估并生成报告。
@@ -1425,6 +1558,7 @@ class PlannerAgent(BaseMathAgent):
         """
         try:
             from mathlab.core.pedagogical_engine import QualityDimension
+
             reports = self._quality_evaluator.evaluate(
                 content=content,
                 user_prompt=user_prompt,
@@ -1438,9 +1572,7 @@ class PlannerAgent(BaseMathAgent):
                     QualityDimension.CONTEXT_COHERENCE: "连贯性",
                     QualityDimension.PEDAGOGICAL_DESIGN: "教学设计",
                 }
-                on_thought_cb(
-                    f"\n📊 教学质量评估完成（总分: {overall:.0%}）:"
-                )
+                on_thought_cb(f"\n📊 教学质量评估完成（总分: {overall:.0%}）:")
                 for dim, report in reports.items():
                     icon = "✅" if report.passed else "❌"
                     name = dim_names.get(dim, dim.value)
@@ -1453,8 +1585,7 @@ class PlannerAgent(BaseMathAgent):
             return {
                 "overall_score": overall,
                 "dimensions": {
-                    dim.value: report.to_dict()
-                    for dim, report in reports.items()
+                    dim.value: report.to_dict() for dim, report in reports.items()
                 },
             }
         except Exception as e:
@@ -1463,11 +1594,16 @@ class PlannerAgent(BaseMathAgent):
 
 
 class GeometryAgent(BaseMathAgent):
-    def __init__(self, ai_manager, model_override=None, resource_config=None,
-                 student_model=None):
-        super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('GeometryAgent'),
-                         student_model=student_model)
+    def __init__(
+        self, ai_manager, model_override=None, resource_config=None, student_model=None
+    ):
+        super().__init__(
+            ai_manager,
+            model_override=model_override,
+            resource_config=resource_config
+            or ResourceConfig.for_agent("GeometryAgent"),
+            student_model=student_model,
+        )
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
 你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用以下画板 API 在交互几何画板上作图：
 
@@ -1486,11 +1622,15 @@ class GeometryAgent(BaseMathAgent):
 
 
 class DataVizAgent(BaseMathAgent):
-    def __init__(self, ai_manager, model_override=None, resource_config=None,
-                 student_model=None):
-        super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('DataVizAgent'),
-                         student_model=student_model)
+    def __init__(
+        self, ai_manager, model_override=None, resource_config=None, student_model=None
+    ):
+        super().__init__(
+            ai_manager,
+            model_override=model_override,
+            resource_config=resource_config or ResourceConfig.for_agent("DataVizAgent"),
+            student_model=student_model,
+        )
         # 强制将大模型的注意力集中在生成 ECharts 字典上
         self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
 你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。

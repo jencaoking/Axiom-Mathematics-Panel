@@ -3,12 +3,23 @@ import os
 import numpy as np
 
 # 确保能找到 DLL 路径
-dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'MathLab.CSharpEngine', 'bin', 'Release', 'netstandard2.0'))
+dll_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "MathLab.CSharpEngine",
+        "bin",
+        "Release",
+        "netstandard2.0",
+    )
+)
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
+os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
 import clr  # noqa: E402
+
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastComplex
@@ -19,12 +30,15 @@ except Exception as e:
 
 class CsComplexEngine:
     """复平面引擎：连接 C# 算力与 NumPy 色彩渲染"""
+
     def __init__(self):
         if FastComplex is None:
             raise RuntimeError("C# Engine DLL is not loaded.")
         self._engine = FastComplex()
 
-    def generate_mandelbrot_image(self, x_min, x_max, y_min, y_max, width, height, max_iter=256):
+    def generate_mandelbrot_image(
+        self, x_min, x_max, y_min, y_max, width, height, max_iter=256
+    ):
         """
         核心渲染流程：
         1. C# 并行计算出迭代矩阵
@@ -33,8 +47,13 @@ class CsComplexEngine:
         # 1. 呼叫 C# 引擎计算 (吃满 CPU 多核)
         # 返回的是 System.Int32[]
         res_flat = self._engine.GenerateMandelbrot(
-            float(x_min), float(x_max), float(y_min), float(y_max),
-            int(width), int(height), int(max_iter)
+            float(x_min),
+            float(x_max),
+            float(y_min),
+            float(y_max),
+            int(width),
+            int(height),
+            int(max_iter),
         )
 
         # 2. 零成本内存转换 (int数组转换极快)
@@ -50,26 +69,40 @@ class CsComplexEngine:
 
         # 使用平滑着色算法 (基于正弦波)，你可以随后修改这里玩出不同的色彩风格
         # 红色通道
-        image_rgb[mask, 0] = (np.sin(0.1 * iter_matrix[mask]) * 127 + 128).astype(np.uint8)
+        image_rgb[mask, 0] = (np.sin(0.1 * iter_matrix[mask]) * 127 + 128).astype(
+            np.uint8
+        )
         # 绿色通道
-        image_rgb[mask, 1] = (np.sin(0.1 * iter_matrix[mask] + 2.094) * 127 + 128).astype(np.uint8)
+        image_rgb[mask, 1] = (
+            np.sin(0.1 * iter_matrix[mask] + 2.094) * 127 + 128
+        ).astype(np.uint8)
         # 蓝色通道
-        image_rgb[mask, 2] = (np.sin(0.1 * iter_matrix[mask] + 4.188) * 127 + 128).astype(np.uint8)
+        image_rgb[mask, 2] = (
+            np.sin(0.1 * iter_matrix[mask] + 4.188) * 127 + 128
+        ).astype(np.uint8)
 
         # 未逃逸的点 (集合内部) 保持黑色 [0,0,0]
 
         return image_rgb
 
-    def generate_julia_image(self, x_min, x_max, y_min, y_max, width, height, c_real, c_imag, max_iter=256):
+    def generate_julia_image(
+        self, x_min, x_max, y_min, y_max, width, height, c_real, c_imag, max_iter=256
+    ):
         """
         生成 Julia 集合的 RGB 图像矩阵。
         新增参数 c_real, c_imag 代表当前的复数常数 C。
         """
         # 1. 呼叫 C# 极速计算
         res_flat = self._engine.GenerateJulia(
-            float(x_min), float(x_max), float(y_min), float(y_max),
-            int(width), int(height), int(max_iter),
-            float(c_real), float(c_imag)
+            float(x_min),
+            float(x_max),
+            float(y_min),
+            float(y_max),
+            int(width),
+            int(height),
+            int(max_iter),
+            float(c_real),
+            float(c_imag),
         )
 
         # 2. Numpy 零成本内存转换与重塑
@@ -81,13 +114,27 @@ class CsComplexEngine:
         mask = iter_matrix < max_iter
 
         # 换一种色彩风格 (更冷峻的赛博朋克蓝紫配色) 以区分 Mandelbrot
-        image_rgb[mask, 0] = (np.sin(0.05 * iter_matrix[mask] + 3.0) * 127 + 128).astype(np.uint8)  # R
-        image_rgb[mask, 1] = (np.sin(0.05 * iter_matrix[mask] + 3.5) * 127 + 128).astype(np.uint8)  # G
-        image_rgb[mask, 2] = (np.sin(0.05 * iter_matrix[mask] + 4.0) * 127 + 128).astype(np.uint8)  # B
+        image_rgb[mask, 0] = (
+            np.sin(0.05 * iter_matrix[mask] + 3.0) * 127 + 128
+        ).astype(
+            np.uint8
+        )  # R
+        image_rgb[mask, 1] = (
+            np.sin(0.05 * iter_matrix[mask] + 3.5) * 127 + 128
+        ).astype(
+            np.uint8
+        )  # G
+        image_rgb[mask, 2] = (
+            np.sin(0.05 * iter_matrix[mask] + 4.0) * 127 + 128
+        ).astype(
+            np.uint8
+        )  # B
 
         return image_rgb
 
-    def generate_smooth_mandelbrot(self, x_min, x_max, y_min, y_max, width, height, max_iter=256):
+    def generate_smooth_mandelbrot(
+        self, x_min, x_max, y_min, y_max, width, height, max_iter=256
+    ):
         """
         接收 C# 的平滑浮点数据，并渲染出无断层的极致分形图象
         """
@@ -95,8 +142,13 @@ class CsComplexEngine:
         # 1. 呼叫 C# 引擎 (新增的 Smooth 方法)
         # 返回的是 System.Single[] (float[])
         res_flat = self._engine.GenerateMandelbrotSmooth(
-            float(x_min), float(x_max), float(y_min), float(y_max),
-            int(width), int(height), int(max_iter)
+            float(x_min),
+            float(x_max),
+            float(y_min),
+            float(y_max),
+            int(width),
+            int(height),
+            int(max_iter),
         )
 
         # 2. 转换为 Numpy float32 矩阵

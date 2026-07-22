@@ -4,11 +4,21 @@ import clr
 import numpy as np
 
 # 确保能找到 DLL 路径
-dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'MathLab.CSharpEngine', 'bin', 'Release', 'netstandard2.0'))
+dll_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "MathLab.CSharpEngine",
+        "bin",
+        "Release",
+        "netstandard2.0",
+    )
+)
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
+os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
 
 try:
     clr.AddReference("MathLab.CSharpEngine")
@@ -20,6 +30,7 @@ except Exception as e:
 
 class CsFFTEngine:
     """频域分析引擎：C# FFT 算力 + NumPy 数据重塑"""
+
     def __init__(self):
         if FastFFT is None:
             raise RuntimeError("C# Engine DLL is not loaded.")

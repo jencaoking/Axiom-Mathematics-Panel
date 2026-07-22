@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING, Any
 
 try:
     from mathlab.utils.logger import get_logger
+
     logger = get_logger(__name__)
 except ImportError:
     import logging
+
     logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -31,23 +33,35 @@ def _load_sympy():
             return
         import sympy  # noqa: F811
         from sympy import (
-            symbols, Symbol, Eq, solve, simplify, expand, factor,
-            diff, integrate, limit, latex
+            symbols,
+            Symbol,
+            Eq,
+            solve,
+            simplify,
+            expand,
+            factor,
+            diff,
+            integrate,
+            limit,
+            latex,
         )  # noqa: F401
-        _sympy_modules.update({
-            'sympy': sympy,
-            'symbols': symbols,
-            'Symbol': Symbol,
-            'Eq': Eq,
-            'solve': solve,
-            'simplify': simplify,
-            'expand': expand,
-            'factor': factor,
-            'diff': diff,
-            'integrate': integrate,
-            'limit': limit,
-            'latex': latex,
-        })
+
+        _sympy_modules.update(
+            {
+                "sympy": sympy,
+                "symbols": symbols,
+                "Symbol": Symbol,
+                "Eq": Eq,
+                "solve": solve,
+                "simplify": simplify,
+                "expand": expand,
+                "factor": factor,
+                "diff": diff,
+                "integrate": integrate,
+                "limit": limit,
+                "latex": latex,
+            }
+        )
         _sympy_loaded = True
 
 
@@ -63,6 +77,7 @@ def _get_sympy_func(name: str) -> Any:
 def _cached_sympify(expr_str):
     _load_sympy()
     from sympy import sympify
+
     return sympify(expr_str)
 
 
@@ -70,6 +85,7 @@ def _cached_sympify(expr_str):
 def _cached_parse_expr(expr_str):
     _load_sympy()
     from sympy.parsing.sympy_parser import parse_expr, standard_transformations
+
     return parse_expr(expr_str, transformations=standard_transformations)
 
 
@@ -80,8 +96,8 @@ class CASProvider:
 
     def _get_symbol(self, name):
         _load_sympy()
-        sympy = _get_sympy_func('sympy')
-        Symbol = _get_sympy_func('Symbol')
+        sympy = _get_sympy_func("sympy")
+        Symbol = _get_sympy_func("Symbol")
         with self._cache_lock:
             if name in self.symbols_cache:
                 return self.symbols_cache[name]
@@ -94,7 +110,7 @@ class CASProvider:
 
     def parse_expression(self, expr_str):
         _load_sympy()
-        sympy = _get_sympy_func('sympy')
+        sympy = _get_sympy_func("sympy")
         try:
             result = _cached_sympify(expr_str)
             with self._cache_lock:
@@ -110,48 +126,48 @@ class CASProvider:
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('simplify')(expr)
+        result = _get_sympy_func("simplify")(expr)
         return {
             "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
         }
 
     def expand(self, expr_str):
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('expand')(expr)
+        result = _get_sympy_func("expand")(expr)
         return {
             "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
         }
 
     def factor(self, expr_str):
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('factor')(expr)
+        result = _get_sympy_func("factor")(expr)
         return {
             "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
         }
 
-    def solve_equation(self, equation_str, variable='x'):
+    def solve_equation(self, equation_str, variable="x"):
         try:
             x = self._get_symbol(variable)
-            sympy = _get_sympy_func('sympy')
-            Eq = _get_sympy_func('Eq')
-            solve = _get_sympy_func('solve')
-            latex = _get_sympy_func('latex')
+            sympy = _get_sympy_func("sympy")
+            Eq = _get_sympy_func("Eq")
+            solve = _get_sympy_func("solve")
+            latex = _get_sympy_func("latex")
 
             # 使用正则表达式精确匹配单个等号，排除 >=, <=, ==
-            match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
+            match = re.search(r"(?<![<>])=(?![<>=])", equation_str)
             if match:
-                left_str = equation_str[:match.start()]
-                right_str = equation_str[match.end():]
+                left_str = equation_str[: match.start()]
+                right_str = equation_str[match.end() :]
                 left_expr = _cached_sympify(left_str.strip())
                 right_expr = _cached_sympify(right_str.strip())
                 eq = Eq(left_expr, right_expr)
@@ -167,58 +183,58 @@ class CASProvider:
             return {
                 "success": True,
                 "solutions": [latex(s) for s in solutions],
-                "raw_solutions": solutions
+                "raw_solutions": solutions,
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def differentiate(self, expr_str, variable='x'):
+    def differentiate(self, expr_str, variable="x"):
         x = self._get_symbol(variable)
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('diff')(expr, x)
+        result = _get_sympy_func("diff")(expr, x)
         return {
             "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
-        }
-
-    def integrate(self, expr_str, variable='x'):
-        x = self._get_symbol(variable)
-        expr = self.parse_expression(expr_str)
-        if expr is None:
-            return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('integrate')(expr, x)
-        return {
-            "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
-        }
-
-    def definite_integral(self, expr_str, variable='x', lower=0, upper=1):
-        x = self._get_symbol(variable)
-        expr = self.parse_expression(expr_str)
-        if expr is None:
-            return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('integrate')(expr, (x, lower, upper))
-        return {
-            "success": True,
-            "latex": _get_sympy_func('latex')(result),
+            "latex": _get_sympy_func("latex")(result),
             "result": str(result),
-            "numeric": float(result) if result.is_number else None
         }
 
-    def limit(self, expr_str, variable='x', point=0):
+    def integrate(self, expr_str, variable="x"):
         x = self._get_symbol(variable)
         expr = self.parse_expression(expr_str)
         if expr is None:
             return {"success": False, "error": "Invalid expression"}
-        result = _get_sympy_func('limit')(expr, x, point)
+        result = _get_sympy_func("integrate")(expr, x)
         return {
             "success": True,
-            "latex": _get_sympy_func('latex')(result),
-            "result": str(result)
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
+        }
+
+    def definite_integral(self, expr_str, variable="x", lower=0, upper=1):
+        x = self._get_symbol(variable)
+        expr = self.parse_expression(expr_str)
+        if expr is None:
+            return {"success": False, "error": "Invalid expression"}
+        result = _get_sympy_func("integrate")(expr, (x, lower, upper))
+        return {
+            "success": True,
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
+            "numeric": float(result) if result.is_number else None,
+        }
+
+    def limit(self, expr_str, variable="x", point=0):
+        x = self._get_symbol(variable)
+        expr = self.parse_expression(expr_str)
+        if expr is None:
+            return {"success": False, "error": "Invalid expression"}
+        result = _get_sympy_func("limit")(expr, x, point)
+        return {
+            "success": True,
+            "latex": _get_sympy_func("latex")(result),
+            "result": str(result),
         }
 
     def evaluate(self, expr_str):
@@ -229,9 +245,9 @@ class CASProvider:
             result = expr.evalf()
             return {
                 "success": True,
-                "latex": _get_sympy_func('latex')(result),
+                "latex": _get_sympy_func("latex")(result),
                 "result": str(result),
-                "numeric": float(result) if result.is_number else None
+                "numeric": float(result) if result.is_number else None,
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -248,9 +264,9 @@ class CASProvider:
         """求解两个几何对象的交点"""
         _load_sympy()
         try:
-            symbols = _get_sympy_func('symbols')
-            solve = _get_sympy_func('solve')
-            x, y = symbols('x y')
+            symbols = _get_sympy_func("symbols")
+            solve = _get_sympy_func("solve")
+            x, y = symbols("x y")
 
             eq1 = self._object_to_equation(obj1, x, y)
             eq2 = self._object_to_equation(obj2, x, y)
@@ -285,24 +301,24 @@ class CASProvider:
 
     def _object_to_equation(self, obj, x, y):
         """将几何对象转换为 SymPy 方程"""
-        Eq = _get_sympy_func('Eq')
+        Eq = _get_sympy_func("Eq")
         obj_type = obj.type
 
-        if obj_type == 'Line':
+        if obj_type == "Line":
             return Eq(obj.a * x + obj.b * y + obj.c, 0)
-        elif obj_type == 'Segment':
-            x1, y1 = obj.coordinates.get('x1', 0), obj.coordinates.get('y1', 0)
-            x2, y2 = obj.coordinates.get('x2', 0), obj.coordinates.get('y2', 0)
+        elif obj_type == "Segment":
+            x1, y1 = obj.coordinates.get("x1", 0), obj.coordinates.get("y1", 0)
+            x2, y2 = obj.coordinates.get("x2", 0), obj.coordinates.get("y2", 0)
             a = y2 - y1
             b = x1 - x2
             c = x2 * y1 - x1 * y2
             return Eq(a * x + b * y + c, 0)
-        elif obj_type == 'Circle':
-            cx, cy = obj.coordinates.get('cx', 0), obj.coordinates.get('cy', 0)
-            r = obj.coordinates.get('r', 1)
-            return Eq((x - cx)**2 + (y - cy)**2, r**2)
-        elif obj_type == 'Point':
-            px, _ = obj.coordinates.get('x', 0), obj.coordinates.get('y', 0)
+        elif obj_type == "Circle":
+            cx, cy = obj.coordinates.get("cx", 0), obj.coordinates.get("cy", 0)
+            r = obj.coordinates.get("r", 1)
+            return Eq((x - cx) ** 2 + (y - cy) ** 2, r**2)
+        elif obj_type == "Point":
+            px, _ = obj.coordinates.get("x", 0), obj.coordinates.get("y", 0)
             return Eq(x, px)
 
         return None
@@ -311,14 +327,14 @@ class CASProvider:
         """从直线方程中提取两个控制点坐标"""
         _load_sympy()
         try:
-            symbols = _get_sympy_func('symbols')
-            simplify = _get_sympy_func('simplify')
-            x, y = symbols('x y')
+            symbols = _get_sympy_func("symbols")
+            simplify = _get_sympy_func("simplify")
+            x, y = symbols("x y")
 
-            match = re.search(r'(?<![<>])=(?![<>=])', equation_str)
+            match = re.search(r"(?<![<>])=(?![<>=])", equation_str)
             if match:
-                left_str = equation_str[:match.start()]
-                right_str = equation_str[match.end():]
+                left_str = equation_str[: match.start()]
+                right_str = equation_str[match.end() :]
                 left_expr = _cached_parse_expr(left_str.strip())
                 right_expr = _cached_parse_expr(right_str.strip())
                 eq = left_expr - right_expr
@@ -328,12 +344,15 @@ class CASProvider:
             eq = simplify(eq)
 
             coeffs = eq.as_coefficients_dict()
-            coeff_x = float(coeffs.get(x, 0).evalf()) if coeffs.get(
-                x) is not None else 0.0
-            coeff_y = float(coeffs.get(y, 0).evalf()) if coeffs.get(
-                y) is not None else 0.0
-            const = float(coeffs.get(1, 0).evalf()) if coeffs.get(
-                1) is not None else 0.0
+            coeff_x = (
+                float(coeffs.get(x, 0).evalf()) if coeffs.get(x) is not None else 0.0
+            )
+            coeff_y = (
+                float(coeffs.get(y, 0).evalf()) if coeffs.get(y) is not None else 0.0
+            )
+            const = (
+                float(coeffs.get(1, 0).evalf()) if coeffs.get(1) is not None else 0.0
+            )
 
             points = []
 
@@ -358,68 +377,69 @@ class CASProvider:
             text = latex_str
             # 常见 LaTeX 命令替换
             replacements = [
-                (r'\frac{', '('),       # 分式开始
-                (r'}{', ') / ('),       # 分式分隔
-                (r'\sqrt{', 'sqrt('),   # 根号
-                (r'\cdot', '·'),        # 乘法
-                (r'\times', '×'),
-                (r'\div', '÷'),
-                (r'\pm', '±'),
-                (r'\mp', '∓'),
-                (r'\infty', '∞'),
-                (r'\pi', 'π'),
-                (r'\theta', 'θ'),
-                (r'\alpha', 'α'),
-                (r'\beta', 'β'),
-                (r'\gamma', 'γ'),
-                (r'\delta', 'δ'),
-                (r'\lambda', 'λ'),
-                (r'\mu', 'μ'),
-                (r'\sigma', 'σ'),
-                (r'\omega', 'ω'),
-                (r'\Delta', 'Δ'),
-                (r'\Sigma', 'Σ'),
-                (r'\Omega', 'Ω'),
-                (r'\leq', '≤'),
-                (r'\geq', '≥'),
-                (r'\neq', '≠'),
-                (r'\approx', '≈'),
-                (r'\equiv', '≡'),
-                (r'\rightarrow', '→'),
-                (r'\leftarrow', '←'),
-                (r'\Rightarrow', '⇒'),
-                (r'\Leftarrow', '⇐'),
-                (r'\sum', 'Σ'),
-                (r'\int', '∫'),
-                (r'\partial', '∂'),
-                (r'\nabla', '∇'),
-                (r'\forall', '∀'),
-                (r'\exists', '∃'),
-                (r'\in', '∈'),
-                (r'\notin', '∉'),
-                (r'\subset', '⊂'),
-                (r'\supset', '⊃'),
-                (r'\cup', '∪'),
-                (r'\cap', '∩'),
-                (r'\emptyset', '∅'),
-                (r'\overline{', ''),     # 上划线（去掉，保留内容）
-                (r'\mathbf{', ''),       # 粗体（去掉）
-                (r'\text{', ''),         # 文本模式（去掉）
-                (r'\mathrm{', ''),       # 罗马体（去掉）
-                (r'\left(', '('),
-                (r'\right)', ')'),
-                (r'\left[', '['),
-                (r'\right]', ']'),
-                (r'\left|', '|'),
-                (r'\right|', '|'),
+                (r"\frac{", "("),  # 分式开始
+                (r"}{", ") / ("),  # 分式分隔
+                (r"\sqrt{", "sqrt("),  # 根号
+                (r"\cdot", "·"),  # 乘法
+                (r"\times", "×"),
+                (r"\div", "÷"),
+                (r"\pm", "±"),
+                (r"\mp", "∓"),
+                (r"\infty", "∞"),
+                (r"\pi", "π"),
+                (r"\theta", "θ"),
+                (r"\alpha", "α"),
+                (r"\beta", "β"),
+                (r"\gamma", "γ"),
+                (r"\delta", "δ"),
+                (r"\lambda", "λ"),
+                (r"\mu", "μ"),
+                (r"\sigma", "σ"),
+                (r"\omega", "ω"),
+                (r"\Delta", "Δ"),
+                (r"\Sigma", "Σ"),
+                (r"\Omega", "Ω"),
+                (r"\leq", "≤"),
+                (r"\geq", "≥"),
+                (r"\neq", "≠"),
+                (r"\approx", "≈"),
+                (r"\equiv", "≡"),
+                (r"\rightarrow", "→"),
+                (r"\leftarrow", "←"),
+                (r"\Rightarrow", "⇒"),
+                (r"\Leftarrow", "⇐"),
+                (r"\sum", "Σ"),
+                (r"\int", "∫"),
+                (r"\partial", "∂"),
+                (r"\nabla", "∇"),
+                (r"\forall", "∀"),
+                (r"\exists", "∃"),
+                (r"\in", "∈"),
+                (r"\notin", "∉"),
+                (r"\subset", "⊂"),
+                (r"\supset", "⊃"),
+                (r"\cup", "∪"),
+                (r"\cap", "∩"),
+                (r"\emptyset", "∅"),
+                (r"\overline{", ""),  # 上划线（去掉，保留内容）
+                (r"\mathbf{", ""),  # 粗体（去掉）
+                (r"\text{", ""),  # 文本模式（去掉）
+                (r"\mathrm{", ""),  # 罗马体（去掉）
+                (r"\left(", "("),
+                (r"\right)", ")"),
+                (r"\left[", "["),
+                (r"\right]", "]"),
+                (r"\left|", "|"),
+                (r"\right|", "|"),
             ]
             for old, new in replacements:
                 text = text.replace(old, new)
             # 清理多余的右花括号（由 \frac, \sqrt 等产生）
-            text = text.replace('}', '')
+            text = text.replace("}", "")
             # 压缩多余空格
             import re as _re
-            text = _re.sub(r'\s+', ' ', text).strip()
+
+            text = _re.sub(r"\s+", " ", text).strip()
             return {"success": True, "text": text}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -433,17 +453,21 @@ class SmartCalculusSolver:
         """
         _load_sympy()
         from sympy import Symbol, integrate, Integral
-        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
+        from sympy.parsing.sympy_parser import (
+            parse_expr,
+            standard_transformations,
+            implicit_multiplication,
+        )
+
         x = Symbol(var_name)
         try:
             # [安全修复] 使用 parse_expr 替代 sympify，避免代码注入
-            transformations = standard_transformations + \
-                (implicit_multiplication,)
+            transformations = standard_transformations + (implicit_multiplication,)
             expr = parse_expr(
                 expression_str,
                 transformations=transformations,
-                local_dict={
-                    var_name: x})
+                local_dict={var_name: x},
+            )
         except Exception:
             raise ValueError(f"无法解析数学表达式: {expression_str}")
 
@@ -454,8 +478,7 @@ class SmartCalculusSolver:
         # 如果 integral_expr 里不再包含未计算的 Integral 对象，说明求出了解析解
         if not integral_expr.has(Integral):
             exact_val = float(integral_expr.evalf())
-            return {"type": "exact", "value": exact_val,
-                    "method": "SymPy Symbolic"}
+            return {"type": "exact", "value": exact_val, "method": "SymPy Symbolic"}
 
         logger.info("解析解不存在或过于复杂，正在降级到 C# 自适应数值引擎...")
         return SmartCalculusSolver._fallback_to_csharp(expr, x, a, b)
@@ -463,14 +486,17 @@ class SmartCalculusSolver:
     @staticmethod
     def _fallback_to_csharp(expr, symbol, a, b):
         from sympy import lambdify
+
         # 将 SymPy 符号树编译为原生的 Python math 字节码函数 (速度极快)
         # 例如将 sp.sin(x)/x 编译为 lambda x: math.sin(x)/x
-        fast_py_func = lambdify(symbol, expr, modules=['math'])
+        fast_py_func = lambdify(symbol, expr, modules=["math"])
 
         # 将函数扔给 C# 底层跑 Gauss-Kronrod 算法
         # 容差设为 1e-10，在现代 CPU 上 C# 算出结果只需 1~2 毫秒
-        numeric_val = cs_calculus.integrate_adaptive(
-            fast_py_func, a, b, tol=1e-10)
+        numeric_val = cs_calculus.integrate_adaptive(fast_py_func, a, b, tol=1e-10)
 
-        return {"type": "numeric", "value": numeric_val,
-                "method": "C# Math.NET Double-Exponential"}
+        return {
+            "type": "numeric",
+            "value": numeric_val,
+            "method": "C# Math.NET Double-Exponential",
+        }

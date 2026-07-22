@@ -9,6 +9,7 @@
 - 错误处理 (空输入、无效表达式、引擎不可用)
 - i18n 翻译键完整性
 """
+
 import os
 import sys
 import math
@@ -25,8 +26,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Mock 基础设施
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class MockConsole:
     """模拟控制台"""
+
     def __init__(self):
         self.messages = []
 
@@ -36,6 +39,7 @@ class MockConsole:
 
 class MockCommandManager:
     """模拟命令管理器"""
+
     def __init__(self):
         self._commands = {}
 
@@ -51,6 +55,7 @@ class MockCommandManager:
 
 class MockGeometryEngine:
     """模拟几何引擎，只实现插件需要的方法"""
+
     def __init__(self):
         self.objects = {}
         self._signals_blocked = False
@@ -63,15 +68,22 @@ class MockGeometryEngine:
 
     def add_point(self, x=0, y=0, z=0, name=None):
         obj_id = self._generate_id()
-        self.objects[obj_id] = MockGeoObject(obj_id, name or "P", "Point",
-                                              {"x": x, "y": y, "z": z})
+        self.objects[obj_id] = MockGeoObject(
+            obj_id, name or "P", "Point", {"x": x, "y": y, "z": z}
+        )
         self._notify_calls.append(("object_added", obj_id))
         return obj_id
 
-    def add_function_plot(self, expression, x_range=(-10, 10), num_points=500, name=None):
+    def add_function_plot(
+        self, expression, x_range=(-10, 10), num_points=500, name=None
+    ):
         obj_id = self._generate_id()
-        self.objects[obj_id] = MockGeoObject(obj_id, name or "F", "FunctionPlot",
-                                              {"expression": expression, "x_range": x_range})
+        self.objects[obj_id] = MockGeoObject(
+            obj_id,
+            name or "F",
+            "FunctionPlot",
+            {"expression": expression, "x_range": x_range},
+        )
         self._notify_calls.append(("object_added", obj_id))
         return obj_id
 
@@ -114,6 +126,7 @@ class MockGeometryEngine:
 
 class MockGeoObject:
     """模拟几何对象"""
+
     def __init__(self, obj_id, name, obj_type, coordinates=None):
         self.id = obj_id
         self.name = name
@@ -121,12 +134,17 @@ class MockGeoObject:
         self.coordinates = coordinates or {}
 
     def serialize(self):
-        return {"id": self.id, "name": self.name, "type": self.type,
-                "coordinates": self.coordinates}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "coordinates": self.coordinates,
+        }
 
 
 class MockCASProvider:
     """模拟 CAS 符号计算引擎"""
+
     def differentiate(self, expr_str, variable="x"):
         if not expr_str:
             return {"success": False, "error": "Empty expression"}
@@ -142,8 +160,12 @@ class MockCASProvider:
             return {"success": False, "error": "Empty expression"}
         if expr_str.strip() == "x**2":
             val = (upper**3 - lower**3) / 3.0
-            return {"success": True, "result": f"{val}", "latex": str(val),
-                    "numeric": val}
+            return {
+                "success": True,
+                "result": f"{val}",
+                "latex": str(val),
+                "numeric": val,
+            }
         return {"success": True, "result": "1.0", "latex": "1.0", "numeric": 1.0}
 
     def limit(self, expr_str, variable="x", point=0):
@@ -161,6 +183,7 @@ class MockCASProvider:
 
 class MockMainWindow:
     """模拟主窗口"""
+
     def __init__(self):
         self.geometry_engine = MockGeometryEngine()
         self.cas_provider = MockCASProvider()
@@ -174,6 +197,7 @@ class MockMainWindow:
 
 class MockMathLabAPI:
     """模拟 MathLabAPI，提供插件所需接口"""
+
     def __init__(self):
         self._main_window = MockMainWindow()
         self._cmd_manager = MockCommandManager()
@@ -183,6 +207,7 @@ class MockMathLabAPI:
 
     def register_command(self, id, title, action, category="Plugin"):
         from mathlab.core.command_manager import Command
+
         cmd = Command(id, title, action, category)
         self._cmd_manager.register(cmd)
         self._registered_commands.append(id)
@@ -210,6 +235,7 @@ class MockMathLabAPI:
 # Pytest fixture
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 @pytest.fixture
 def mock_api(qapp):
     """qapp fixture from pytest-qt ensures QApplication exists."""
@@ -220,11 +246,13 @@ def mock_api(qapp):
 # Calculus Tools 插件测试
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestCalculusToolsPlugin:
     """测试微积分工具插件"""
 
     def test_plugin_metadata(self):
         from mathlab.plugins.calculus_tools.main import CalculusToolsPlugin
+
         plugin = CalculusToolsPlugin()
         assert plugin.name == "Calculus Tools"
         assert plugin.version == "1.0.0"
@@ -233,6 +261,7 @@ class TestCalculusToolsPlugin:
 
     def test_plugin_activate(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusToolsPlugin
+
         plugin = CalculusToolsPlugin()
         plugin.on_activate(mock_api)
 
@@ -246,6 +275,7 @@ class TestCalculusToolsPlugin:
 
     def test_plugin_deactivate(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusToolsPlugin
+
         plugin = CalculusToolsPlugin()
         plugin.on_activate(mock_api)
         plugin.on_deactivate()
@@ -254,6 +284,7 @@ class TestCalculusToolsPlugin:
 
     def test_compute_derivative(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("x**2")
         widget.combo_mode.setCurrentIndex(0)  # derivative mode
@@ -266,6 +297,7 @@ class TestCalculusToolsPlugin:
 
     def test_compute_integral(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("x**2")
         widget.combo_mode.setCurrentIndex(1)  # integral mode
@@ -278,6 +310,7 @@ class TestCalculusToolsPlugin:
 
     def test_compute_limit(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("sin(x)/x")
         widget.combo_mode.setCurrentIndex(2)  # limit mode
@@ -289,6 +322,7 @@ class TestCalculusToolsPlugin:
 
     def test_empty_expression_error(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("")
         widget._on_compute()
@@ -298,6 +332,7 @@ class TestCalculusToolsPlugin:
 
     def test_plot_derivative(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("x**2")
         widget.combo_mode.setCurrentIndex(0)
@@ -311,6 +346,7 @@ class TestCalculusToolsPlugin:
 
     def test_plot_clear(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusPanelWidget
+
         widget = CalculusPanelWidget(mock_api)
         widget.input_expr.setText("x**2")
         widget.combo_mode.setCurrentIndex(0)
@@ -324,6 +360,7 @@ class TestCalculusToolsPlugin:
 
     def test_cleanup_on_deactivate(self, mock_api):
         from mathlab.plugins.calculus_tools.main import CalculusToolsPlugin
+
         plugin = CalculusToolsPlugin()
         plugin.on_activate(mock_api)
 
@@ -365,11 +402,13 @@ class TestCalculusToolsPlugin:
 # Animation Studio 插件测试
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestAnimationStudioPlugin:
     """测试动画演示插件"""
 
     def test_plugin_metadata(self):
         from mathlab.plugins.animation_studio.main import AnimationStudioPlugin
+
         plugin = AnimationStudioPlugin()
         assert plugin.name == "Animation Studio"
         assert plugin.version == "1.0.0"
@@ -377,6 +416,7 @@ class TestAnimationStudioPlugin:
 
     def test_plugin_activate(self, mock_api):
         from mathlab.plugins.animation_studio.main import AnimationStudioPlugin
+
         plugin = AnimationStudioPlugin()
         plugin.on_activate(mock_api)
 
@@ -390,6 +430,7 @@ class TestAnimationStudioPlugin:
 
     def test_plugin_deactivate(self, mock_api):
         from mathlab.plugins.animation_studio.main import AnimationStudioPlugin
+
         plugin = AnimationStudioPlugin()
         plugin.on_activate(mock_api)
         plugin.on_deactivate()
@@ -398,6 +439,7 @@ class TestAnimationStudioPlugin:
     def test_no_points_error(self, mock_api):
         """没有点时播放应显示错误状态"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         widget.combo_type.setCurrentIndex(0)  # translate
         widget._on_play()
@@ -408,6 +450,7 @@ class TestAnimationStudioPlugin:
     def test_translate_animation(self, mock_api):
         """测试平移动画"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -440,6 +483,7 @@ class TestAnimationStudioPlugin:
     def test_rotate_animation(self, mock_api):
         """测试旋转动画"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -465,6 +509,7 @@ class TestAnimationStudioPlugin:
     def test_scale_animation(self, mock_api):
         """测试缩放动画"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -489,6 +534,7 @@ class TestAnimationStudioPlugin:
     def test_stop_restores_originals(self, mock_api):
         """停止动画应恢复原始位置"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -516,6 +562,7 @@ class TestAnimationStudioPlugin:
     def test_pause_and_resume(self, mock_api):
         """暂停后再播放"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -533,6 +580,7 @@ class TestAnimationStudioPlugin:
     def test_type_change_stops_animation(self, mock_api):
         """切换动画类型时停止当前动画"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -551,6 +599,7 @@ class TestAnimationStudioPlugin:
     def test_cleanup_on_deactivate(self, mock_api):
         """停用时清理定时器和对象"""
         from mathlab.plugins.animation_studio.main import AnimationStudioPlugin
+
         plugin = AnimationStudioPlugin()
         plugin.on_activate(mock_api)
 
@@ -571,6 +620,7 @@ class TestAnimationStudioPlugin:
     def test_ease_in_out(self):
         """测试缓动函数"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         # t=0 -> 0
         assert AnimationPanelWidget._ease_in_out(0.0) == pytest.approx(0.0)
         # t=1 -> 1
@@ -583,6 +633,7 @@ class TestAnimationStudioPlugin:
     def test_param_func_animation(self, mock_api):
         """测试函数参数动画"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         engine = mock_api._main_window.geometry_engine
 
@@ -609,6 +660,7 @@ class TestAnimationStudioPlugin:
     def test_param_func_empty_expr(self, mock_api):
         """函数参数动画空表达式不崩溃"""
         from mathlab.plugins.animation_studio.main import AnimationPanelWidget
+
         widget = AnimationPanelWidget(mock_api)
         widget.combo_type.setCurrentIndex(3)  # param_func
         widget.input_func_expr.setText("")
@@ -623,6 +675,7 @@ class TestAnimationStudioPlugin:
 # i18n 翻译键完整性测试
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestI18nCompleteness:
     """测试新插件的 i18n 翻译键在 zh.json 和 en.json 中都存在"""
 
@@ -630,7 +683,8 @@ class TestI18nCompleteness:
     def zh_translations(self):
         locale_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "locale", "zh.json"
+            "locale",
+            "zh.json",
         )
         with open(locale_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -639,7 +693,8 @@ class TestI18nCompleteness:
     def en_translations(self):
         locale_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "locale", "en.json"
+            "locale",
+            "en.json",
         )
         with open(locale_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -654,11 +709,27 @@ class TestI18nCompleteness:
     def test_calculus_keys_exist(self, zh_translations, en_translations):
         """calculus 命名空间下应有完整翻译键"""
         required_keys = [
-            "mode", "derivative", "definite_integral", "limit", "taylor_series",
-            "function_input", "expression", "parameters", "result",
-            "compute", "plot", "clear", "eval_point", "limit_point",
-            "expand_point", "order", "empty_expr",
-            "cmd_derivative", "cmd_integral", "cmd_limit", "cmd_taylor",
+            "mode",
+            "derivative",
+            "definite_integral",
+            "limit",
+            "taylor_series",
+            "function_input",
+            "expression",
+            "parameters",
+            "result",
+            "compute",
+            "plot",
+            "clear",
+            "eval_point",
+            "limit_point",
+            "expand_point",
+            "order",
+            "empty_expr",
+            "cmd_derivative",
+            "cmd_integral",
+            "cmd_limit",
+            "cmd_taylor",
         ]
         for key in required_keys:
             assert key in zh_translations["calculus"], f"Missing zh key: calculus.{key}"
@@ -667,22 +738,47 @@ class TestI18nCompleteness:
     def test_animation_keys_exist(self, zh_translations, en_translations):
         """animation 命名空间下应有完整翻译键"""
         required_keys = [
-            "type", "translate", "rotate", "scale", "param_func",
-            "parameters", "speed", "controls", "duration",
-            "center_x", "center_y", "angle", "factor",
-            "expression", "param_start", "param_end",
-            "hint", "no_points",
-            "status_ready", "status_playing", "status_paused", "status_complete",
-            "cmd_translate", "cmd_rotate", "cmd_scale", "cmd_param_func", "cmd_stop",
+            "type",
+            "translate",
+            "rotate",
+            "scale",
+            "param_func",
+            "parameters",
+            "speed",
+            "controls",
+            "duration",
+            "center_x",
+            "center_y",
+            "angle",
+            "factor",
+            "expression",
+            "param_start",
+            "param_end",
+            "hint",
+            "no_points",
+            "status_ready",
+            "status_playing",
+            "status_paused",
+            "status_complete",
+            "cmd_translate",
+            "cmd_rotate",
+            "cmd_scale",
+            "cmd_param_func",
+            "cmd_stop",
         ]
         for key in required_keys:
-            assert key in zh_translations["animation"], f"Missing zh key: animation.{key}"
-            assert key in en_translations["animation"], f"Missing en key: animation.{key}"
+            assert (
+                key in zh_translations["animation"]
+            ), f"Missing zh key: animation.{key}"
+            assert (
+                key in en_translations["animation"]
+            ), f"Missing en key: animation.{key}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 插件加载测试
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestPluginLoading:
     """测试插件能被 PluginManager 正确加载"""
@@ -690,18 +786,32 @@ class TestPluginLoading:
     def test_calculus_plugin_importable(self):
         """CalculusToolsPlugin 应可被导入"""
         from mathlab.plugins.calculus_tools.main import CalculusToolsPlugin
-        assert issubclass(CalculusToolsPlugin, __import__('mathlab.core.plugin_base', fromlist=['MathLabPlugin']).MathLabPlugin)
+
+        assert issubclass(
+            CalculusToolsPlugin,
+            __import__(
+                "mathlab.core.plugin_base", fromlist=["MathLabPlugin"]
+            ).MathLabPlugin,
+        )
 
     def test_animation_plugin_importable(self):
         """AnimationStudioPlugin 应可被导入"""
         from mathlab.plugins.animation_studio.main import AnimationStudioPlugin
-        assert issubclass(AnimationStudioPlugin, __import__('mathlab.core.plugin_base', fromlist=['MathLabPlugin']).MathLabPlugin)
+
+        assert issubclass(
+            AnimationStudioPlugin,
+            __import__(
+                "mathlab.core.plugin_base", fromlist=["MathLabPlugin"]
+            ).MathLabPlugin,
+        )
 
     def test_calculus_plugin_has_init_py(self):
         """calculus_tools 目录应有 __init__.py"""
         init_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "plugins", "calculus_tools", "__init__.py"
+            "plugins",
+            "calculus_tools",
+            "__init__.py",
         )
         assert os.path.exists(init_path)
 
@@ -709,6 +819,8 @@ class TestPluginLoading:
         """animation_studio 目录应有 __init__.py"""
         init_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "plugins", "animation_studio", "__init__.py"
+            "plugins",
+            "animation_studio",
+            "__init__.py",
         )
         assert os.path.exists(init_path)

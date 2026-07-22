@@ -9,6 +9,7 @@ class PromptManager:
     """
     统一管理和渲染系统提示词的单例引擎
     """
+
     _instance = None
     _prompts = {}
 
@@ -21,17 +22,20 @@ class PromptManager:
     def _load_prompts(self, config_path):
         """从 yaml 文件加载提示词字典"""
         import sys
+
         if not config_path:
             # 默认去 config 目录下寻找 prompts.yaml
-            if getattr(sys, 'frozen', False):
+            if getattr(sys, "frozen", False):
                 base_dir = sys._MEIPASS
-                config_path = os.path.join(base_dir, 'mathlab', 'config', 'prompts.yaml')
+                config_path = os.path.join(
+                    base_dir, "mathlab", "config", "prompts.yaml"
+                )
             else:
                 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                config_path = os.path.join(base_dir, 'config', 'prompts.yaml')
+                config_path = os.path.join(base_dir, "config", "prompts.yaml")
 
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 self._prompts = yaml.safe_load(f) or {}
             logger.info(f"已成功加载魔法咒语库: {len(self._prompts)} 个场景模板")
         except Exception as e:

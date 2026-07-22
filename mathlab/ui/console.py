@@ -1,6 +1,13 @@
 from PySide6.QtWidgets import (
-    QDockWidget, QPlainTextEdit, QLineEdit, QWidget, QVBoxLayout,
-    QPushButton, QHBoxLayout, QLabel, QTextBrowser
+    QDockWidget,
+    QPlainTextEdit,
+    QLineEdit,
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QHBoxLayout,
+    QLabel,
+    QTextBrowser,
 )
 from PySide6.QtGui import QTextCursor, QFont
 from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
@@ -10,12 +17,13 @@ from mathlab.utils.markdown_service import MarkdownService
 
 from mathlab.core.async_workers import TaskManager
 
+
 class PythonConsole(QDockWidget):
     execute_command = Signal(str)
     stop_execution = Signal()
 
     def __init__(self, parent=None):
-        super().__init__(t('console.title'), parent)
+        super().__init__(t("console.title"), parent)
         self.setAllowedAreas(Qt.BottomDockWidgetArea)
 
         self.python_repl = None
@@ -27,14 +35,12 @@ class PythonConsole(QDockWidget):
         self.layout.setSpacing(0)
 
         # ── Header row: Execute / Stop  ──────  Python 3 | Kernel: Ready ──
-        self.execute_button = QPushButton(t('console.execute'))
-        self.stop_button = QPushButton(t('console.stop'))
+        self.execute_button = QPushButton(t("console.execute"))
+        self.stop_button = QPushButton(t("console.stop"))
         self.stop_button.setEnabled(False)
 
-        self.kernel_status_label = QLabel(t('console.kernel_ready'))
-        self.kernel_status_label.setStyleSheet(
-            "color: #737686; font-size: 12px;"
-        )
+        self.kernel_status_label = QLabel(t("console.kernel_ready"))
+        self.kernel_status_label.setStyleSheet("color: #737686; font-size: 12px;")
         self.kernel_status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self.header_layout = QHBoxLayout()
@@ -50,12 +56,12 @@ class PythonConsole(QDockWidget):
         self.output_area.setOpenLinks(False)
         self.output_area.anchorClicked.connect(self.on_anchor_clicked)
         self.output_area.setReadOnly(True)
-        self.output_area.setFont(QFont('Consolas', 12))
+        self.output_area.setFont(QFont("Consolas", 12))
         self.output_area.setObjectName("console_output")
 
         self.input_line = QLineEdit()
-        self.input_line.setFont(QFont('Consolas', 12))
-        self.input_line.setPlaceholderText(t('console.placeholder'))
+        self.input_line.setFont(QFont("Consolas", 12))
+        self.input_line.setPlaceholderText(t("console.placeholder"))
         self.input_line.setObjectName("console_input")
 
         self.layout.addWidget(self.output_area)
@@ -72,8 +78,8 @@ class PythonConsole(QDockWidget):
 
         self.input_line.installEventFilter(self)
 
-        self.append_output(t('console.welcome') + '\n')
-        self.append_output(t('console.help_hint') + '\n')
+        self.append_output(t("console.welcome") + "\n")
+        self.append_output(t("console.help_hint") + "\n")
         self.append_prompt()
 
     def eventFilter(self, obj, event):
@@ -101,7 +107,7 @@ class PythonConsole(QDockWidget):
         self.output_area.ensureCursorVisible()
 
     def append_prompt(self):
-        self.append_output('>>> ')
+        self.append_output(">>> ")
 
     def append_agent_thought(self, thought_text):
         """渲染 AI 的思考流 (紫色系)，支持 Markdown + LaTeX"""
@@ -117,14 +123,16 @@ class PythonConsole(QDockWidget):
         </div>
         """
         self.output_area.append(html)
-        self.output_area.verticalScrollBar().setValue(self.output_area.verticalScrollBar().maximum())
+        self.output_area.verticalScrollBar().setValue(
+            self.output_area.verticalScrollBar().maximum()
+        )
 
     def append_agent_observation(self, obs_text, is_error=False):
         """渲染本地沙箱的运行反馈 (成功绿 / 报错红)，支持 Markdown"""
         color = "#FF5252" if is_error else "#69F0AE"
         icon = "❌" if is_error else "✅"
         bg_color = "rgba(255, 82, 82, 0.1)" if is_error else "rgba(105, 240, 174, 0.1)"
-        
+
         md_svc = MarkdownService.get_instance()
         rendered = md_svc.render_for_text_browser(
             obs_text,
@@ -137,7 +145,9 @@ class PythonConsole(QDockWidget):
         </div>
         """
         self.output_area.append(html)
-        self.output_area.verticalScrollBar().setValue(self.output_area.verticalScrollBar().maximum())
+        self.output_area.verticalScrollBar().setValue(
+            self.output_area.verticalScrollBar().maximum()
+        )
 
     def on_execute(self):
         command = self.input_line.text().strip()
@@ -147,7 +157,7 @@ class PythonConsole(QDockWidget):
         self.history.append(command)
         self.history_index = len(self.history)
 
-        self.append_output(command + '\n')
+        self.append_output(command + "\n")
         self.input_line.clear()
 
         self.execute_button.setEnabled(False)
@@ -159,22 +169,22 @@ class PythonConsole(QDockWidget):
         # Guard: 如果 stop_button 已禁用，说明没有命令在执行，直接返回
         if not self.stop_button.isEnabled():
             return
-        
+
         self.stop_execution.emit()
-        self.append_output('\n' + t('console.execution_stopped') + '\n')
+        self.append_output("\n" + t("console.execution_stopped") + "\n")
         self.append_prompt()
 
         self.execute_button.setEnabled(True)
         self.stop_button.setEnabled(False)
 
     def display_result(self, result):
-        if result.get('output'):
-            self.append_output(result['output'])
+        if result.get("output"):
+            self.append_output(result["output"])
 
-        if result.get('error'):
-            self.display_system_message(result['error'], level='error')
+        if result.get("error"):
+            self.display_system_message(result["error"], level="error")
 
-        if not result.get('more', False):
+        if not result.get("more", False):
             self.append_prompt()
 
         self.execute_button.setEnabled(True)
@@ -209,18 +219,24 @@ class PythonConsole(QDockWidget):
                 return
 
             if jedi_completions:
-                names = [c['name'] for c in jedi_completions]
-                
+                names = [c["name"] for c in jedi_completions]
+
                 if len(names) == 1:
-                    last_word_start = current_text.rfind(' ', 0, cursor_pos) + 1
+                    last_word_start = current_text.rfind(" ", 0, cursor_pos) + 1
                     prefix = current_text[last_word_start:cursor_pos]
                     completion = names[0]
                     if completion.startswith(prefix):
-                        new_text = current_text[:last_word_start] + completion + current_text[cursor_pos:]
+                        new_text = (
+                            current_text[:last_word_start]
+                            + completion
+                            + current_text[cursor_pos:]
+                        )
                         self.input_line.setText(new_text)
-                        self.input_line.setCursorPosition(last_word_start + len(completion))
+                        self.input_line.setCursorPosition(
+                            last_word_start + len(completion)
+                        )
                 elif len(names) > 1:
-                    self.append_output('\n' + '\n'.join(names) + '\n')
+                    self.append_output("\n" + "\n".join(names) + "\n")
                     self.append_prompt()
                     self.input_line.setText(current_text)
             else:
@@ -230,14 +246,16 @@ class PythonConsole(QDockWidget):
                     completions = self.get_completions(last_word)
 
                     if len(completions) == 1:
-                        self.input_line.setText(current_text[:-len(last_word)] + completions[0])
+                        self.input_line.setText(
+                            current_text[: -len(last_word)] + completions[0]
+                        )
                     elif len(completions) > 1:
-                        self.append_output('\n'.join(completions) + '\n')
+                        self.append_output("\n".join(completions) + "\n")
                         self.append_prompt()
                         self.input_line.setText(current_text)
 
         def on_error(err_msg):
-            self.display_system_message(f"[补全异常] {err_msg}", level='error')
+            self.display_system_message(f"[补全异常] {err_msg}", level="error")
 
         if self.python_repl:
             self.task_manager.submit(
@@ -246,7 +264,7 @@ class PythonConsole(QDockWidget):
                 on_error=on_error,
                 code_str=current_text,
                 line=line,
-                column=column
+                column=column,
             )
         else:
             process_completions([])
@@ -256,9 +274,15 @@ class PythonConsole(QDockWidget):
 
     def get_completions(self, prefix):
         common_commands = [
-            'draw_point', 'draw_segment', 'draw_circle',
-            'clear_canvas', 'solve', 'simplify',
-            'integrate', 'differentiate', 'limit'
+            "draw_point",
+            "draw_segment",
+            "draw_circle",
+            "clear_canvas",
+            "solve",
+            "simplify",
+            "integrate",
+            "differentiate",
+            "limit",
         ]
 
         return [cmd for cmd in common_commands if cmd.startswith(prefix)]
@@ -269,15 +293,15 @@ class PythonConsole(QDockWidget):
         return []
 
     def retranslate_ui(self):
-        self.setWindowTitle(t('console.title'))
-        self.input_line.setPlaceholderText(t('console.placeholder'))
-        self.execute_button.setText(t('console.execute'))
-        self.stop_button.setText(t('console.stop'))
-        self.kernel_status_label.setText(t('console.kernel_ready'))
+        self.setWindowTitle(t("console.title"))
+        self.input_line.setPlaceholderText(t("console.placeholder"))
+        self.execute_button.setText(t("console.execute"))
+        self.stop_button.setText(t("console.stop"))
+        self.kernel_status_label.setText(t("console.kernel_ready"))
 
     def clear(self):
         self.output_area.clear()
-        self.append_output(t('console.welcome') + '\n')
+        self.append_output(t("console.welcome") + "\n")
         self.append_prompt()
 
     # ──────────────────────────────────────────────────────────────
@@ -287,30 +311,34 @@ class PythonConsole(QDockWidget):
     def inject_variable(self, var_name: str, value_expr: str) -> None:
         """向 REPL 静默注入一个变量赋值 (异步改造版)"""
         script = f"{var_name} = {value_expr}"
-        
+
         if self.python_repl is not None:
             # 1. 定义成功后的 UI 更新回调
             def on_success(result):
-                if isinstance(result, dict) and result.get('error'):
+                if isinstance(result, dict) and result.get("error"):
                     self.display_system_message(
-                        f"[注入失败] {var_name}: {result['error']}", level='error'
+                        f"[注入失败] {var_name}: {result['error']}", level="error"
                     )
                 else:
-                    self.display_system_message(f"已异步注入变量: {var_name} = {value_expr}")
+                    self.display_system_message(
+                        f"已异步注入变量: {var_name} = {value_expr}"
+                    )
 
             # 2. 定义失败后的 UI 更新回调
             def on_error(err_msg):
-                self.display_system_message(f"[注入异常] {err_msg}", level='error')
+                self.display_system_message(f"[注入异常] {err_msg}", level="error")
 
             # 3. 将阻塞的 execute 踢给后台线程池！主界面瞬间解放。
             self.task_manager.submit(
                 fn=self.python_repl.execute,
                 on_success=on_success,
                 on_error=on_error,
-                code=script  # 传递给 execute 的参数
+                code=script,  # 传递给 execute 的参数
             )
         else:
-            self.display_system_message(f"已注入变量(仅提示): {var_name} = {value_expr}")
+            self.display_system_message(
+                f"已注入变量(仅提示): {var_name} = {value_expr}"
+            )
 
     def insert_text_at_cursor(self, text: str) -> None:
         """将文本插入到输入框当前光标位置，焦点自动移到输入框。
@@ -322,47 +350,51 @@ class PythonConsole(QDockWidget):
         self.input_line.insert(text)
         self.input_line.setFocus()
 
-    def display_system_message(self, message: str, level: str = 'info') -> None:
+    def display_system_message(self, message: str, level: str = "info") -> None:
         """向终端显示系统信息，支持错误 AI 拦截"""
-        color = {
-            'info': '#475569',
-            'warn': '#f59e0b',
-            'error': '#dc2626'
-        }.get(level, '#475569')
-        
-        if level == 'error':
-            safe_msg = message.replace('<', '&lt;').replace('>', '&gt;')
-            safe_msg = safe_msg.replace('\n', '<br>')
+        color = {"info": "#475569", "warn": "#f59e0b", "error": "#dc2626"}.get(
+            level, "#475569"
+        )
+
+        if level == "error":
+            safe_msg = message.replace("<", "&lt;").replace(">", "&gt;")
+            safe_msg = safe_msg.replace("\n", "<br>")
             html_msg = f'<span style="color: {color};">{safe_msg}</span>'
-            
+
             # 🚨 核心魔法：如果检测到 Python 异常堆栈，自动附加 AI 诊断链接！
             if "Traceback" in message or "Error:" in message or "Exception:" in message:
                 import urllib.parse
+
                 # 将错误信息进行 URL 编码，隐藏在链接中
                 encoded_err = urllib.parse.quote(message)
                 html_msg += f'<br><br><a href="ask_ai:{encoded_err}" style="color: #00A67E; text-decoration: none; font-weight: bold;">[🤖 报错了？点击让 AI 导师帮你分析原因并修复代码]</a><br>'
-                
+
             self.output_area.append(html_msg)
             self.output_area.append("<br>")
         else:
-            safe_msg = message.replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br>')
-            self.output_area.append(f'<span style="color: {color};">{safe_msg}</span><br>')
+            safe_msg = (
+                message.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+            )
+            self.output_area.append(
+                f'<span style="color: {color};">{safe_msg}</span><br>'
+            )
             self.output_area.append("<br>")
 
     def on_anchor_clicked(self, url):
         """处理控制台内的超链接点击事件"""
         if url.scheme() == "ask_ai":
             import urllib.parse
+
             # 1. 解码出错误信息
             error_trace = urllib.parse.unquote(url.path())
-            
+
             # 2. 调出 AI 面板
             main_win = self.window()
-            if hasattr(main_win, 'ai_tools_panel'):
+            if hasattr(main_win, "ai_tools_panel"):
                 ai_panel = main_win.ai_tools_panel
                 ai_panel.show()
                 ai_panel.raise_()
-                
+
                 # 3. 自动帮用户填入 Prompt 并发送
                 prompt = f"我在运行 Python 沙箱代码时遇到了以下报错，请用初学者能听懂的话解释原因，并给出修复后的代码：\n```python\n{error_trace}\n```"
                 ai_panel.chat_input.setText(prompt)

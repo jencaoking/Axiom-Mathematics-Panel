@@ -16,48 +16,50 @@ def _build_general_quadratic_latex(A, B, C, D, E, F, threshold=1e-10):
     用于圆锥曲线（椭圆、双曲线）在发生旋转后展开坐标旋转公式得到的
     通用二次形式。绝对值小于 threshold 的系数视为 0 略去。
     """
+
     def fmt_num(v):
         """将 |v| 格式化为可读字符串，整数省略小数部分。"""
         av = abs(v)
         if abs(av - round(av)) < threshold:
             return str(int(round(av)))
-        return f'{av:.4g}'
+        return f"{av:.4g}"
 
-    coeffs = [(A, 'x^2'), (B, 'xy'), (C, 'y^2'), (D, 'x'), (E, 'y'), (F, '')]
+    coeffs = [(A, "x^2"), (B, "xy"), (C, "y^2"), (D, "x"), (E, "y"), (F, "")]
     items = []
     for c, var in coeffs:
         if abs(c) < threshold:
             continue
         coef_str = fmt_num(c)
-        sign = '+' if c >= 0 else '-'
+        sign = "+" if c >= 0 else "-"
         items.append((sign, coef_str, var))
 
     if not items:
-        return '0 = 0'
+        return "0 = 0"
 
     parts = []
     for i, (sign, coef_str, var) in enumerate(items):
         # 系数为 1 时省略数字
-        if var and coef_str == '1':
+        if var and coef_str == "1":
             content = var
         elif var:
-            content = f'{coef_str}{var}'
+            content = f"{coef_str}{var}"
         else:
             content = coef_str
 
         if i == 0:
-            parts.append(content if sign == '+' else f'-{content}')
+            parts.append(content if sign == "+" else f"-{content}")
         else:
             # 不在前面加空格，由 join(' ') 统一处理分隔
-            parts.append(f'{sign} {content}')
+            parts.append(f"{sign} {content}")
 
-    return ' '.join(parts) + ' = 0'
+    return " ".join(parts) + " = 0"
 
 
 class Ellipse(GeometricObject):
     """椭圆：支持中心点、长轴、短轴定义"""
+
     def __init__(self, obj_id, name, center_id, a=2.0, b=1.0, rotation=0):
-        super().__init__(obj_id, name, 'Ellipse')
+        super().__init__(obj_id, name, "Ellipse")
         self.center_id = center_id
         self.a = a  # 半长轴
         self.b = b  # 半短轴
@@ -73,51 +75,56 @@ class Ellipse(GeometricObject):
     def update_coordinates(self, engine):
         center = engine.objects.get(self.center_id)
         if center:
-            cx = center.coordinates['x']
-            cy = center.coordinates['y']
+            cx = center.coordinates["x"]
+            cy = center.coordinates["y"]
             self.coordinates = {
-                'cx': cx,
-                'cy': cy,
-                'a': self.a,
-                'b': self.b,
-                'rotation': self.rotation,
-                'points': self._generate_ellipse_points(cx, cy, self.a, self.b, self.rotation)
+                "cx": cx,
+                "cy": cy,
+                "a": self.a,
+                "b": self.b,
+                "rotation": self.rotation,
+                "points": self._generate_ellipse_points(
+                    cx, cy, self.a, self.b, self.rotation
+                ),
             }
 
     def to_latex(self):
-        cx = self.coordinates.get('cx', 0)
-        cy = self.coordinates.get('cy', 0)
+        cx = self.coordinates.get("cx", 0)
+        cy = self.coordinates.get("cy", 0)
         if self.rotation == 0:
-            return rf'\frac{{(x-{cx})^2}}{{{self.a}^2}} + \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1'
+            return rf"\frac{{(x-{cx})^2}}{{{self.a}^2}} + \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1"
         # 旋转 θ 后，将标准方程展开为一般二次方程 Ax²+Bxy+Cy²+Dx+Ey+F=0
         # 推导：令 u=x-cx, v=y-cy，则 x'=u·cosθ+v·sinθ, y'=-u·sinθ+v·cosθ
         cos_t = np.cos(self.rotation)
         sin_t = np.sin(self.rotation)
-        a2 = self.a ** 2
-        b2 = self.b ** 2
-        A = cos_t ** 2 / a2 + sin_t ** 2 / b2
+        a2 = self.a**2
+        b2 = self.b**2
+        A = cos_t**2 / a2 + sin_t**2 / b2
         B = 2 * sin_t * cos_t * (1 / a2 - 1 / b2)
-        C = sin_t ** 2 / a2 + cos_t ** 2 / b2
+        C = sin_t**2 / a2 + cos_t**2 / b2
         D = -2 * A * cx - B * cy
         E = -B * cx - 2 * C * cy
-        F = A * cx ** 2 + B * cx * cy + C * cy ** 2 - 1
+        F = A * cx**2 + B * cx * cy + C * cy**2 - 1
         return _build_general_quadratic_latex(A, B, C, D, E, F)
 
     def serialize(self):
         data = super().serialize()
-        data['center_id'] = self.center_id
-        data['a'] = self.a
-        data['b'] = self.b
-        data['rotation'] = self.rotation
-        if 'coordinates' in data and 'points' in data['coordinates']:
-            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
+        data["center_id"] = self.center_id
+        data["a"] = self.a
+        data["b"] = self.b
+        data["rotation"] = self.rotation
+        if "coordinates" in data and "points" in data["coordinates"]:
+            data["coordinates"] = {
+                k: v for k, v in data["coordinates"].items() if k != "points"
+            }
         return data
 
 
 class Hyperbola(GeometricObject):
     """双曲线：支持中心点、实轴、虚轴定义"""
+
     def __init__(self, obj_id, name, center_id, a=1.0, b=1.0, rotation=0):
-        super().__init__(obj_id, name, 'Hyperbola')
+        super().__init__(obj_id, name, "Hyperbola")
         self.center_id = center_id
         self.a = a  # 实半轴
         self.b = b  # 虚半轴
@@ -128,46 +135,49 @@ class Hyperbola(GeometricObject):
         center = engine.objects.get(self.center_id)
         if center:
             self.coordinates = {
-                'cx': center.coordinates['x'],
-                'cy': center.coordinates['y'],
-                'a': self.a,
-                'b': self.b,
-                'rotation': self.rotation
+                "cx": center.coordinates["x"],
+                "cy": center.coordinates["y"],
+                "a": self.a,
+                "b": self.b,
+                "rotation": self.rotation,
             }
 
     def to_latex(self):
-        cx = self.coordinates.get('cx', 0)
-        cy = self.coordinates.get('cy', 0)
+        cx = self.coordinates.get("cx", 0)
+        cy = self.coordinates.get("cy", 0)
         if self.rotation == 0:
-            return rf'\frac{{(x-{cx})^2}}{{{self.a}^2}} - \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1'
+            return rf"\frac{{(x-{cx})^2}}{{{self.a}^2}} - \frac{{(y-{cy})^2}}{{{self.b}^2}} = 1"
         # 旋转 θ 后展开为一般二次方程。注意双曲线 a²/b² 前的符号相反。
         cos_t = np.cos(self.rotation)
         sin_t = np.sin(self.rotation)
-        a2 = self.a ** 2
-        b2 = self.b ** 2
-        A = cos_t ** 2 / a2 - sin_t ** 2 / b2
+        a2 = self.a**2
+        b2 = self.b**2
+        A = cos_t**2 / a2 - sin_t**2 / b2
         B = 2 * sin_t * cos_t * (1 / a2 + 1 / b2)
-        C = sin_t ** 2 / a2 - cos_t ** 2 / b2
+        C = sin_t**2 / a2 - cos_t**2 / b2
         D = -2 * A * cx - B * cy
         E = -B * cx - 2 * C * cy
-        F = A * cx ** 2 + B * cx * cy + C * cy ** 2 - 1
+        F = A * cx**2 + B * cx * cy + C * cy**2 - 1
         return _build_general_quadratic_latex(A, B, C, D, E, F)
 
     def serialize(self):
         data = super().serialize()
-        data['center_id'] = self.center_id
-        data['a'] = self.a
-        data['b'] = self.b
-        data['rotation'] = self.rotation
-        if 'coordinates' in data and 'points' in data['coordinates']:
-            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
+        data["center_id"] = self.center_id
+        data["a"] = self.a
+        data["b"] = self.b
+        data["rotation"] = self.rotation
+        if "coordinates" in data and "points" in data["coordinates"]:
+            data["coordinates"] = {
+                k: v for k, v in data["coordinates"].items() if k != "points"
+            }
         return data
 
 
 class Parabola(GeometricObject):
     """抛物线：支持顶点、焦点或标准方程定义"""
-    def __init__(self, obj_id, name, vertex_id, p=1.0, direction='up'):
-        super().__init__(obj_id, name, 'Parabola')
+
+    def __init__(self, obj_id, name, vertex_id, p=1.0, direction="up"):
+        super().__init__(obj_id, name, "Parabola")
         self.vertex_id = vertex_id
         self.p = p  # 焦距参数
         self.direction = direction  # 'up', 'down', 'left', 'right'
@@ -177,36 +187,51 @@ class Parabola(GeometricObject):
         vertex = engine.objects.get(self.vertex_id)
         if vertex:
             self.coordinates = {
-                'vx': vertex.coordinates['x'],
-                'vy': vertex.coordinates['y'],
-                'p': self.p,
-                'direction': self.direction
+                "vx": vertex.coordinates["x"],
+                "vy": vertex.coordinates["y"],
+                "p": self.p,
+                "direction": self.direction,
             }
 
     def to_latex(self):
-        vx = self.coordinates.get('vx', 0)
-        vy = self.coordinates.get('vy', 0)
-        if self.direction in ['up', 'down']:
-            sign = 1 if self.direction == 'up' else -1
-            return rf'(x-{vx})^2 = {4*self.p*sign}(y-{vy})'
+        vx = self.coordinates.get("vx", 0)
+        vy = self.coordinates.get("vy", 0)
+        if self.direction in ["up", "down"]:
+            sign = 1 if self.direction == "up" else -1
+            return rf"(x-{vx})^2 = {4*self.p*sign}(y-{vy})"
         else:
-            sign = 1 if self.direction == 'right' else -1
-            return rf'(y-{vy})^2 = {4*self.p*sign}(x-{vx})'
+            sign = 1 if self.direction == "right" else -1
+            return rf"(y-{vy})^2 = {4*self.p*sign}(x-{vx})"
 
     def serialize(self):
         data = super().serialize()
-        data['vertex_id'] = self.vertex_id
-        data['p'] = self.p
-        data['direction'] = self.direction
-        if 'coordinates' in data and 'points' in data['coordinates']:
-            data['coordinates'] = {k: v for k, v in data['coordinates'].items() if k != 'points'}
+        data["vertex_id"] = self.vertex_id
+        data["p"] = self.p
+        data["direction"] = self.direction
+        if "coordinates" in data and "points" in data["coordinates"]:
+            data["coordinates"] = {
+                k: v for k, v in data["coordinates"].items() if k != "points"
+            }
         return data
 
 
 class ConicSection(GeometricObject):
     """一般圆锥曲线：通过一般方程 Ax²+Bxy+Cy²+Dx+Ey+F=0 定义"""
-    def __init__(self, obj_id, name, A=1, B=0, C=1, D=0, E=0, F=-1, x_range=(-10, 10), y_range=(-10, 10)):
-        super().__init__(obj_id, name, 'ConicSection')
+
+    def __init__(
+        self,
+        obj_id,
+        name,
+        A=1,
+        B=0,
+        C=1,
+        D=0,
+        E=0,
+        F=-1,
+        x_range=(-10, 10),
+        y_range=(-10, 10),
+    ):
+        super().__init__(obj_id, name, "ConicSection")
         self.A = A
         self.B = B
         self.C = C
@@ -215,7 +240,7 @@ class ConicSection(GeometricObject):
         self.F = F
         self.x_range = x_range
         self.y_range = y_range
-        self.equation_str = f'{A}*x**2 + {B}*x*y + {C}*y**2 + {D}*x + {E}*y + {F}'
+        self.equation_str = f"{A}*x**2 + {B}*x*y + {C}*y**2 + {D}*x + {E}*y + {F}"
         self.points_data = []  # 存储离散点用于绘制
 
     def generate_points(self, num_points=500):
@@ -223,12 +248,19 @@ class ConicSection(GeometricObject):
         try:
             if cs_geometry and cs_geometry.is_available:
                 pts = cs_geometry.generate_conic_points(
-                    self.A, self.B, self.C, self.D, self.E, self.F,
-                    self.x_range, self.y_range, num_points
+                    self.A,
+                    self.B,
+                    self.C,
+                    self.D,
+                    self.E,
+                    self.F,
+                    self.x_range,
+                    self.y_range,
+                    num_points,
                 )
                 if pts is not None:
                     self.points_data = pts
-                    self.coordinates = {'points': pts}
+                    self.coordinates = {"points": pts}
                     return pts
 
             x_vals = np.linspace(self.x_range[0], self.x_range[1], num_points)
@@ -263,56 +295,64 @@ class ConicSection(GeometricObject):
                 # 避免重复点（当 y1 ≈ y2 时）
                 distinct = in_range2 & (np.abs(y2 - y1) > 1e-6)
                 if np.any(distinct):
-                    points += list(zip(x_valid[distinct].tolist(), y2[distinct].tolist()))
+                    points += list(
+                        zip(x_valid[distinct].tolist(), y2[distinct].tolist())
+                    )
 
             self.points_data = points
-            self.coordinates = {'points': points}
+            self.coordinates = {"points": points}
             return points
         except Exception as e:
-            print(f'Error generating conic section points: {e}')
+            print(f"Error generating conic section points: {e}")
             return []
 
     def to_latex(self):
         terms = []
         if self.A != 0:
-            terms.append(f'{self.A}x^2')
+            terms.append(f"{self.A}x^2")
         if self.B != 0:
-            terms.append(f'{self.B}xy')
+            terms.append(f"{self.B}xy")
         if self.C != 0:
-            terms.append(f'{self.C}y^2')
+            terms.append(f"{self.C}y^2")
         if self.D != 0:
-            terms.append(f'{self.D}x')
+            terms.append(f"{self.D}x")
         if self.E != 0:
-            terms.append(f'{self.E}y')
+            terms.append(f"{self.E}y")
         if self.F != 0:
-            terms.append(f'{self.F}')
-        return ' + '.join(terms) + ' = 0' if terms else '0 = 0'
+            terms.append(f"{self.F}")
+        return " + ".join(terms) + " = 0" if terms else "0 = 0"
 
     def serialize(self):
         data = super().serialize()
-        data['A'] = self.A
-        data['B'] = self.B
-        data['C'] = self.C
-        data['D'] = self.D
-        data['E'] = self.E
-        data['F'] = self.F
-        data['x_range'] = self.x_range
-        data['y_range'] = self.y_range
-        data['equation_str'] = self.equation_str
-        data['points_data'] = self.points_data
+        data["A"] = self.A
+        data["B"] = self.B
+        data["C"] = self.C
+        data["D"] = self.D
+        data["E"] = self.E
+        data["F"] = self.F
+        data["x_range"] = self.x_range
+        data["y_range"] = self.y_range
+        data["equation_str"] = self.equation_str
+        data["points_data"] = self.points_data
         return data
 
     @classmethod
     def deserialize(cls, data):
         obj = cls(
-            data['id'], data['name'],
-            data.get('A', 1), data.get('B', 0), data.get('C', 1),
-            data.get('D', 0), data.get('E', 0), data.get('F', -1),
-            data.get('x_range', (-10, 10)), data.get('y_range', (-10, 10))
+            data["id"],
+            data["name"],
+            data.get("A", 1),
+            data.get("B", 0),
+            data.get("C", 1),
+            data.get("D", 0),
+            data.get("E", 0),
+            data.get("F", -1),
+            data.get("x_range", (-10, 10)),
+            data.get("y_range", (-10, 10)),
         )
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.points_data = data.get('points_data', [])
-        obj.equation_str = data.get('equation_str', '')
+        obj.coordinates = data.get("coordinates", {})
+        obj.constraints = data.get("constraints", [])
+        obj.depends_on = data.get("depends_on", [])
+        obj.points_data = data.get("points_data", [])
+        obj.equation_str = data.get("equation_str", "")
         return obj

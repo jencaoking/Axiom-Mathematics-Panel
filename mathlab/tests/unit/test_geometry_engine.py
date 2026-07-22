@@ -5,6 +5,7 @@ object lifecycle, serialization, conic sections, function plots, and
 locus tracking. Merged from the legacy ``test_core.py`` and
 ``test_analytic_geometry.py`` modules.
 """
+
 import numpy as np
 import pytest
 
@@ -23,15 +24,15 @@ class TestGeometryEngine:
 
     @pytest.mark.unit
     def test_add_point(self, engine):
-        point_id = engine.add_point(3.0, 4.0, name='A')
+        point_id = engine.add_point(3.0, 4.0, name="A")
         assert point_id is not None
         assert point_id in engine.objects
 
         point = engine.objects[point_id]
-        assert point.name == 'A'
-        assert point.type == 'Point'
-        assert point.coordinates['x'] == 3.0
-        assert point.coordinates['y'] == 4.0
+        assert point.name == "A"
+        assert point.type == "Point"
+        assert point.coordinates["x"] == 3.0
+        assert point.coordinates["y"] == 4.0
 
     @pytest.mark.unit
     def test_add_segment(self, engine):
@@ -40,7 +41,7 @@ class TestGeometryEngine:
         seg_id = engine.add_segment(p1_id, p2_id)
 
         segment = engine.objects[seg_id]
-        assert segment.type == 'Segment'
+        assert segment.type == "Segment"
         assert segment.point1_id == p1_id
         assert segment.point2_id == p2_id
 
@@ -50,7 +51,7 @@ class TestGeometryEngine:
         circle_id = engine.add_circle(center_id, radius=5.0)
 
         circle = engine.objects[circle_id]
-        assert circle.type == 'Circle'
+        assert circle.type == "Circle"
         assert circle.radius == 5.0
 
     @pytest.mark.unit
@@ -61,7 +62,7 @@ class TestGeometryEngine:
         poly_id = engine.add_polygon([p1, p2, p3])
 
         polygon = engine.objects[poly_id]
-        assert polygon.type == 'Polygon'
+        assert polygon.type == "Polygon"
         assert len(polygon.point_ids) == 3
 
     @pytest.mark.unit
@@ -81,8 +82,8 @@ class TestGeometryEngine:
         engine.update_point(point_id, x=5.0, y=10.0)
 
         point = engine.objects[point_id]
-        assert point.coordinates['x'] == 5.0
-        assert point.coordinates['y'] == 10.0
+        assert point.coordinates["x"] == 5.0
+        assert point.coordinates["y"] == 10.0
 
     @pytest.mark.unit
     def test_get_objects_by_type(self, engine):
@@ -91,19 +92,19 @@ class TestGeometryEngine:
         center_id = engine.add_point(0.0, 0.0)
         engine.add_circle(center_id, radius=2.0)
 
-        points = engine.get_objects_by_type('Point')
+        points = engine.get_objects_by_type("Point")
         assert len(points) == 3
 
     @pytest.mark.unit
     def test_serialize_deserialize(self, engine):
-        p1 = engine.add_point(3.0, 4.0, name='A')
+        p1 = engine.add_point(3.0, 4.0, name="A")
         data = engine.serialize_all()
 
         new_engine = GeometryEngine()
         new_engine.deserialize_all(data)
 
         assert p1 in new_engine.objects
-        assert new_engine.objects[p1].name == 'A'
+        assert new_engine.objects[p1].name == "A"
 
 
 class TestGeometricObject:
@@ -111,50 +112,50 @@ class TestGeometricObject:
 
     @pytest.mark.unit
     def test_point_creation(self):
-        point = Point('p1', 'A', 1.0, 2.0)
-        assert point.name == 'A'
-        assert point.coordinates['x'] == 1.0
-        assert point.coordinates['y'] == 2.0
+        point = Point("p1", "A", 1.0, 2.0)
+        assert point.name == "A"
+        assert point.coordinates["x"] == 1.0
+        assert point.coordinates["y"] == 2.0
 
     @pytest.mark.unit
     def test_segment_creation(self):
-        seg = Segment('s1', 'AB', 'p1', 'p2')
-        assert seg.type == 'Segment'
-        assert seg.point1_id == 'p1'
-        assert seg.point2_id == 'p2'
+        seg = Segment("s1", "AB", "p1", "p2")
+        assert seg.type == "Segment"
+        assert seg.point1_id == "p1"
+        assert seg.point2_id == "p2"
 
     @pytest.mark.unit
     def test_circle_creation(self):
-        circle = Circle('c1', 'C', 'p1', 5.0)
-        assert circle.type == 'Circle'
+        circle = Circle("c1", "C", "p1", 5.0)
+        assert circle.type == "Circle"
         assert circle.radius == 5.0
 
     @pytest.mark.unit
     def test_polygon_creation(self):
-        poly = Polygon('poly1', 'P', ['p1', 'p2', 'p3'])
-        assert poly.type == 'Polygon'
+        poly = Polygon("poly1", "P", ["p1", "p2", "p3"])
+        assert poly.type == "Polygon"
         assert len(poly.point_ids) == 3
 
     @pytest.mark.unit
     def test_serialize(self):
-        point = Point('p1', 'A', 1.0, 2.0)
+        point = Point("p1", "A", 1.0, 2.0)
         data = point.serialize()
-        assert data['id'] == 'p1'
-        assert data['name'] == 'A'
+        assert data["id"] == "p1"
+        assert data["name"] == "A"
 
     @pytest.mark.unit
     def test_deserialize(self):
         data = {
-            'id': 'p1',
-            'name': 'A',
-            'type': 'Point',
-            'coordinates': {'x': 1.0, 'y': 2.0},
-            'constraints': [],
-            'depends_on': []
+            "id": "p1",
+            "name": "A",
+            "type": "Point",
+            "coordinates": {"x": 1.0, "y": 2.0},
+            "constraints": [],
+            "depends_on": [],
         }
         point = GeometricObject.deserialize(data)
-        assert point.name == 'A'
-        assert point.coordinates['x'] == 1.0
+        assert point.name == "A"
+        assert point.coordinates["x"] == 1.0
 
 
 class TestConicSections:
@@ -212,21 +213,27 @@ class TestFunctionPlots:
 
     @pytest.mark.unit
     def test_sine_function(self, engine):
-        func_id = engine.add_function_plot("sin(x)", x_range=(-6.28, 6.28), num_points=300)
+        func_id = engine.add_function_plot(
+            "sin(x)", x_range=(-6.28, 6.28), num_points=300
+        )
         func = engine.get_object(func_id)
         assert func is not None
         assert len(func.points_data) > 0
 
     @pytest.mark.unit
     def test_implicit_plot(self, engine):
-        impl_id = engine.add_implicit_plot("x**2 + y**2 - 1", x_range=(-2, 2), y_range=(-2, 2))
+        impl_id = engine.add_implicit_plot(
+            "x**2 + y**2 - 1", x_range=(-2, 2), y_range=(-2, 2)
+        )
         impl = engine.get_object(impl_id)
         assert impl is not None
         assert len(impl.points_data) > 0
 
     @pytest.mark.unit
     def test_polar_plot(self, engine):
-        polar_id = engine.add_polar_plot("2*cos(theta)", theta_range=(0, 2 * np.pi), num_points=300)
+        polar_id = engine.add_polar_plot(
+            "2*cos(theta)", theta_range=(0, 2 * np.pi), num_points=300
+        )
         polar = engine.get_object(polar_id)
         assert polar is not None
         assert len(polar.points_data) > 0

@@ -7,32 +7,40 @@ Algebra Panel — redesigned with a custom card list:
 """
 
 from PySide6.QtWidgets import (
-    QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QScrollArea, QFrame, QMenu, QSizePolicy,
-    QApplication, QLineEdit
+    QDockWidget,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QScrollArea,
+    QFrame,
+    QMenu,
+    QSizePolicy,
+    QApplication,
+    QLineEdit,
 )
 from PySide6.QtGui import QAction, QFont, QColor, QPainter, QBrush, QPen, QCursor
 from PySide6.QtCore import Signal, Qt, QSize, QPoint
 
 from mathlab.utils.i18n_manager import t
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Colour palette per object type
 # ──────────────────────────────────────────────────────────────────────────────
 
 _TYPE_COLORS: dict[str, str] = {
-    'Point':   '#004ac6',
-    'Segment': '#4b41e1',
-    'Circle':  '#006058',
-    'Polygon': '#9333ea',
+    "Point": "#004ac6",
+    "Segment": "#4b41e1",
+    "Circle": "#006058",
+    "Polygon": "#9333ea",
 }
-_DEFAULT_COLOR = '#737686'
+_DEFAULT_COLOR = "#737686"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Coloured dot widget (painted)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class _ColorDot(QWidget):
     """10×10 filled circle (hollow for Circle type)."""
@@ -63,6 +71,7 @@ class _ColorDot(QWidget):
 # Individual item widget
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class _AlgebraItem(QFrame):
     """
     A single row in the algebra list.
@@ -72,7 +81,7 @@ class _AlgebraItem(QFrame):
                [formula (mono 12px)  ]  or [QLineEdit for editing]
     """
 
-    clicked  = Signal(str)      # obj_id
+    clicked = Signal(str)  # obj_id
     rename_requested = Signal(str)
     delete_requested = Signal(str)
     equation_edited = Signal(str, str)  # obj_id, new_equation
@@ -82,7 +91,7 @@ class _AlgebraItem(QFrame):
         self.obj_id = obj_id
         self._selected = False
         self._editing = False
-        self._obj_type = obj_data.get('type', '')
+        self._obj_type = obj_data.get("type", "")
 
         self.setObjectName("algebra_item")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -90,8 +99,8 @@ class _AlgebraItem(QFrame):
         self.customContextMenuRequested.connect(self._show_context_menu)
 
         # ── dot ──────────────────────────────────────────────────────
-        hex_col  = _TYPE_COLORS.get(self._obj_type, _DEFAULT_COLOR)
-        hollow   = (self._obj_type == 'Circle')
+        hex_col = _TYPE_COLORS.get(self._obj_type, _DEFAULT_COLOR)
+        hollow = self._obj_type == "Circle"
         dot = _ColorDot(hex_col, hollow)
 
         # ── text labels ───────────────────────────────────────────────
@@ -126,8 +135,8 @@ class _AlgebraItem(QFrame):
     # ── data ──────────────────────────────────────────────────────────
 
     def update_data(self, obj_data: dict):
-        self._obj_type = obj_data.get('type', '')
-        self._name_label.setText(obj_data.get('name', ''))
+        self._obj_type = obj_data.get("type", "")
+        self._name_label.setText(obj_data.get("name", ""))
         formula = AlgebraPanel.format_definition(obj_data)
         self._formula_label.setText(formula)
         self._equation_edit.setText(formula)
@@ -141,9 +150,9 @@ class _AlgebraItem(QFrame):
     # ── editing ───────────────────────────────────────────────────────
 
     def start_editing(self):
-        if self._editing or self._obj_type not in ['Line', 'Circle', 'Segment']:
+        if self._editing or self._obj_type not in ["Line", "Circle", "Segment"]:
             return
-        
+
         self._editing = True
         self._formula_label.hide()
         self._equation_edit.show()
@@ -153,7 +162,7 @@ class _AlgebraItem(QFrame):
     def stop_editing(self, commit=True):
         if not self._editing:
             return
-        
+
         self._editing = False
         self._equation_edit.hide()
         self._formula_label.show()
@@ -221,9 +230,9 @@ class _AlgebraItem(QFrame):
 
     def _show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
-        rename_act = QAction(t('algebra_panel.rename'), self)
+        rename_act = QAction(t("algebra_panel.rename"), self)
         rename_act.triggered.connect(lambda: self.rename_requested.emit(self.obj_id))
-        delete_act = QAction(t('algebra_panel.delete'), self)
+        delete_act = QAction(t("algebra_panel.delete"), self)
         delete_act.triggered.connect(lambda: self.delete_requested.emit(self.obj_id))
         menu.addAction(rename_act)
         menu.addAction(delete_act)
@@ -234,15 +243,18 @@ class _AlgebraItem(QFrame):
 # Main panel
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class AlgebraPanel(QDockWidget):
     object_selected = Signal(str)
-    object_renamed  = Signal(str, str)
-    object_deleted  = Signal(str)
+    object_renamed = Signal(str, str)
+    object_deleted = Signal(str)
     equation_changed = Signal(str, str)  # obj_id, new_equation
 
     def __init__(self, parent=None):
-        super().__init__(t('algebra_panel.title'), parent)
-        self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        super().__init__(t("algebra_panel.title"), parent)
+        self.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
         self.setMinimumWidth(200)
 
         self.object_items: dict[str, _AlgebraItem] = {}
@@ -256,7 +268,7 @@ class AlgebraPanel(QDockWidget):
         outer_layout.setSpacing(0)
 
         # ── section title ─────────────────────────────────────────────
-        self._title_label = QLabel(t('algebra_panel.title').upper())
+        self._title_label = QLabel(t("algebra_panel.title").upper())
         self._title_label.setStyleSheet(
             "QLabel {"
             "  font-size: 11px; font-weight: 700;"
@@ -277,14 +289,16 @@ class AlgebraPanel(QDockWidget):
         self._scroll_area = QScrollArea()
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
 
         self._list_widget = QWidget()
         self._list_widget.setObjectName("algebra_list")
         self._list_layout = QVBoxLayout(self._list_widget)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
         self._list_layout.setSpacing(2)
-        self._list_layout.addStretch()   # pushes items to top
+        self._list_layout.addStretch()  # pushes items to top
 
         self._scroll_area.setWidget(self._list_widget)
         outer_layout.addWidget(self._scroll_area)
@@ -296,7 +310,7 @@ class AlgebraPanel(QDockWidget):
     # ──────────────────────────────────────────────────────────────────
 
     def add_object(self, obj_data: dict) -> None:
-        obj_id = obj_data['id']
+        obj_id = obj_data["id"]
         if obj_id in self.object_items:
             self.update_object(obj_data)
             return
@@ -313,7 +327,7 @@ class AlgebraPanel(QDockWidget):
         self.object_items[obj_id] = item
 
     def update_object(self, obj_data: dict) -> None:
-        obj_id = obj_data['id']
+        obj_id = obj_data["id"]
         if obj_id in self.object_items:
             self.object_items[obj_id].update_data(obj_data)
 
@@ -331,8 +345,8 @@ class AlgebraPanel(QDockWidget):
         self._selected_id = None
 
     def retranslate_ui(self) -> None:
-        self.setWindowTitle(t('algebra_panel.title'))
-        self._title_label.setText(t('algebra_panel.title').upper())
+        self.setWindowTitle(t("algebra_panel.title"))
+        self._title_label.setText(t("algebra_panel.title").upper())
 
     # ──────────────────────────────────────────────────────────────────
     # Internal slots
@@ -357,11 +371,15 @@ class AlgebraPanel(QDockWidget):
         update_object() after the rename completes.
         """
         from PySide6.QtWidgets import QInputDialog
+
         if obj_id not in self.object_items:
             return
         current_name = self.object_items[obj_id]._name_label.text()
         new_name, ok = QInputDialog.getText(
-            self, t('algebra_panel.rename'), t('algebra_panel.new_name'), text=current_name
+            self,
+            t("algebra_panel.rename"),
+            t("algebra_panel.new_name"),
+            text=current_name,
         )
         if ok and new_name.strip():
             self.object_renamed.emit(obj_id, new_name.strip())
@@ -375,19 +393,19 @@ class AlgebraPanel(QDockWidget):
 
     @staticmethod
     def format_definition(obj_data: dict) -> str:
-        obj_type = obj_data.get('type', '')
-        coords   = obj_data.get('coordinates', {})
-        name     = obj_data.get('name', '?')
+        obj_type = obj_data.get("type", "")
+        coords = obj_data.get("coordinates", {})
+        name = obj_data.get("name", "?")
 
-        if obj_type == 'Point':
-            x = coords.get('x', 0.0)
-            y = coords.get('y', 0.0)
+        if obj_type == "Point":
+            x = coords.get("x", 0.0)
+            y = coords.get("y", 0.0)
             return f"{name} = ({x:.2f}, {y:.2f})"
 
-        elif obj_type == 'Circle':
-            cx = coords.get('cx', 0.0)
-            cy = coords.get('cy', 0.0)
-            r  = coords.get('r', 1.0)
+        elif obj_type == "Circle":
+            cx = coords.get("cx", 0.0)
+            cy = coords.get("cy", 0.0)
+            r = coords.get("r", 1.0)
             cx_str = f"{abs(cx):.2f}"
             cy_str = f"{abs(cy):.2f}"
             x_eq_sign = "-" if cx >= 0 else "+"
@@ -398,15 +416,15 @@ class AlgebraPanel(QDockWidget):
                 f"(y {y_eq_sign} {cy_str})\u00b2 = {r_sq:.2f}"
             )
 
-        elif obj_type == 'Segment':
-            x1 = coords.get('x1', 0.0)
-            y1 = coords.get('y1', 0.0)
-            x2 = coords.get('x2', 0.0)
-            y2 = coords.get('y2', 0.0)
+        elif obj_type == "Segment":
+            x1 = coords.get("x1", 0.0)
+            y1 = coords.get("y1", 0.0)
+            x2 = coords.get("x2", 0.0)
+            y2 = coords.get("y2", 0.0)
             return f"({x1:.2f}, {y1:.2f}) \u2192 ({x2:.2f}, {y2:.2f})"
 
-        elif obj_type == 'Polygon':
-            pts = obj_data.get('points', [])
+        elif obj_type == "Polygon":
+            pts = obj_data.get("points", [])
             return f"{len(pts)} vertices"
 
         else:

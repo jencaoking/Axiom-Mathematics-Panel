@@ -12,6 +12,7 @@
 - 可扩展：支持自定义消息类型和处理器
 - 可观测：消息历史记录支持调试和审计
 """
+
 import threading
 import time
 import uuid
@@ -27,32 +28,34 @@ logger = get_logger(__name__)
 
 class MessageType(Enum):
     """Agent 间消息类型。"""
+
     # 任务相关
-    TASK_REQUEST = "task_request"          # 请求执行任务
-    TASK_RESULT = "task_result"            # 任务执行结果
-    TASK_PROGRESS = "task_progress"        # 任务进度更新
-    TASK_ERROR = "task_error"              # 任务执行错误
+    TASK_REQUEST = "task_request"  # 请求执行任务
+    TASK_RESULT = "task_result"  # 任务执行结果
+    TASK_PROGRESS = "task_progress"  # 任务进度更新
+    TASK_ERROR = "task_error"  # 任务执行错误
 
     # 查询相关
-    QUERY = "query"                        # 向另一个 Agent 查询信息
-    RESPONSE = "response"                  # 查询响应
+    QUERY = "query"  # 向另一个 Agent 查询信息
+    RESPONSE = "response"  # 查询响应
 
     # 协作相关
     COLLABORATION_REQUEST = "collab_request"  # 请求协作
-    COLLABORATION_ACCEPT = "collab_accept"    # 接受协作
-    COLLABORATION_REJECT = "collab_reject"    # 拒绝协作
+    COLLABORATION_ACCEPT = "collab_accept"  # 接受协作
+    COLLABORATION_REJECT = "collab_reject"  # 拒绝协作
 
     # 通知相关
-    NOTIFICATION = "notification"          # 通用通知
-    BROADCAST = "broadcast"               # 广播消息
+    NOTIFICATION = "notification"  # 通用通知
+    BROADCAST = "broadcast"  # 广播消息
 
     # 状态相关
-    STATUS_UPDATE = "status_update"        # Agent 状态更新
-    HEARTBEAT = "heartbeat"               # 心跳信号
+    STATUS_UPDATE = "status_update"  # Agent 状态更新
+    HEARTBEAT = "heartbeat"  # 心跳信号
 
 
 class MessagePriority(Enum):
     """消息优先级。"""
+
     LOW = 0
     NORMAL = 1
     HIGH = 2
@@ -75,6 +78,7 @@ class AgentMessage:
         reply_to: 回复的消息 ID（如果是回复消息）
         conversation_id: 会话 ID（关联同一轮对话的所有消息）
     """
+
     sender_id: str
     receiver_id: str
     msg_type: MessageType
@@ -93,7 +97,11 @@ class AgentMessage:
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "msg_type": self.msg_type.value,
-            "content": self.content if isinstance(self.content, (str, int, float, dict, list)) else str(self.content),
+            "content": (
+                self.content
+                if isinstance(self.content, (str, int, float, dict, list))
+                else str(self.content)
+            ),
             "metadata": self.metadata,
             "priority": self.priority.value,
             "timestamp": self.timestamp,
@@ -129,7 +137,11 @@ class AgentMessage:
         **extra_metadata,
     ) -> "AgentMessage":
         """快捷创建任务请求消息。"""
-        metadata = {"step_num": step_num, "cognitive_level": cognitive_level, **extra_metadata}
+        metadata = {
+            "step_num": step_num,
+            "cognitive_level": cognitive_level,
+            **extra_metadata,
+        }
         return cls(
             sender_id=sender_id,
             receiver_id=receiver_id,
@@ -211,8 +223,7 @@ class MessageHistory:
         """获取某个会话的所有消息（按时间排序）。"""
         with self._lock:
             return [
-                msg for msg in self._history
-                if msg.conversation_id == conversation_id
+                msg for msg in self._history if msg.conversation_id == conversation_id
             ]
 
     def clear(self):
@@ -368,6 +379,7 @@ class MessageRouter:
 
         为 Agent 创建消息邮箱，并设置消息处理器。
         """
+
         def _handle_message(message: AgentMessage):
             self._dispatch_to_agent(agent_id, agent_instance, message)
 
@@ -392,17 +404,11 @@ class MessageRouter:
         elif message.msg_type == MessageType.QUERY:
             self._handle_query(agent_id, agent_instance, message)
         elif message.msg_type == MessageType.NOTIFICATION:
-            logger.info(
-                f"Agent '{agent_id}' 收到通知: {message.content}"
-            )
+            logger.info(f"Agent '{agent_id}' 收到通知: {message.content}")
         elif message.msg_type == MessageType.STATUS_UPDATE:
-            logger.debug(
-                f"Agent '{agent_id}' 状态更新: {message.content}"
-            )
+            logger.debug(f"Agent '{agent_id}' 状态更新: {message.content}")
         else:
-            logger.debug(
-                f"Agent '{agent_id}' 收到消息 (type={message.msg_type.value})"
-            )
+            logger.debug(f"Agent '{agent_id}' 收到消息 (type={message.msg_type.value})")
 
     def _handle_task_request(
         self,
@@ -411,7 +417,11 @@ class MessageRouter:
         message: AgentMessage,
     ):
         """处理任务请求消息：调用 Agent 的 solve_problem。"""
-        task_prompt = message.content if isinstance(message.content, str) else str(message.content)
+        task_prompt = (
+            message.content
+            if isinstance(message.content, str)
+            else str(message.content)
+        )
 
         # 收集执行结果
         result_container = {

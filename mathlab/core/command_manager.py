@@ -25,11 +25,11 @@ class Command:
         shortcut: str = "",
         description: str = "",
     ):
-        self.id = id                  # 唯一标识，如 "panel.algebra"
-        self.title = title            # 显示名，如 "切换到代数面板"
-        self.action = action          # 无参回调
-        self.category = category      # 分类标签，如 "视图"、"系统"
-        self.shortcut = shortcut      # 仅用于显示，如 "Ctrl+1"
+        self.id = id  # 唯一标识，如 "panel.algebra"
+        self.title = title  # 显示名，如 "切换到代数面板"
+        self.action = action  # 无参回调
+        self.category = category  # 分类标签，如 "视图"、"系统"
+        self.shortcut = shortcut  # 仅用于显示，如 "Ctrl+1"
         self.description = description  # 附加说明，显示在副标题
 
     # ── 模糊匹配打分 ──────────────────────────────────────────────
@@ -93,14 +93,13 @@ class CommandManager:
     # ── 搜索 ─────────────────────────────────────────────────────
     def search(self, query: str, limit: int = 50) -> List[Command]:
         """模糊搜索命令，按相关性降序返回。"""
-        scored = [
-            (cmd.match_score(query), cmd)
-            for cmd in self._commands.values()
-        ]
+        scored = [(cmd.match_score(query), cmd) for cmd in self._commands.values()]
         # 过滤掉不匹配的，按分数降序，再按 category+title 字母序稳定排序
         results = [
-            cmd for score, cmd in
-            sorted(scored, key=lambda x: (-x[0], x[1].category, x[1].title))
+            cmd
+            for score, cmd in sorted(
+                scored, key=lambda x: (-x[0], x[1].category, x[1].title)
+            )
             if score > 0
         ]
         return results[:limit]

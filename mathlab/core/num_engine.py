@@ -1,26 +1,35 @@
 import numpy as np
 import scipy.linalg as la
 import scipy.integrate as integrate
-import scipy.optimize as opt          # 优化模块
-import scipy.signal as sig            # 信号处理模块
-import scipy.stats as stats           # 统计模块
-import scipy.fft as fft               # 傅里叶变换模块
+import scipy.optimize as opt  # 优化模块
+import scipy.signal as sig  # 信号处理模块
+import scipy.stats as stats  # 统计模块
+import scipy.fft as fft  # 傅里叶变换模块
 from typing import Dict, Any, Callable, Union, List, Optional, Tuple
 
 
 # 采用五点中心差分手动实现，支持任意阶导数计算 (通过递归降阶)
 def _finite_diff(func, x, dx, n):
     if n == 1:
-        return (-func(x + 2*dx) + 8*func(x + dx) - 8*func(x - dx) + func(x - 2*dx)) / (12 * dx)
+        return (
+            -func(x + 2 * dx) + 8 * func(x + dx) - 8 * func(x - dx) + func(x - 2 * dx)
+        ) / (12 * dx)
     elif n == 2:
-        return (-func(x + 2*dx) + 16*func(x + dx) - 30*func(x) + 16*func(x - dx) - func(x - 2*dx)) / (12 * dx**2)
+        return (
+            -func(x + 2 * dx)
+            + 16 * func(x + dx)
+            - 30 * func(x)
+            + 16 * func(x - dx)
+            - func(x - 2 * dx)
+        ) / (12 * dx**2)
     else:
         # 递归降阶
-        return (_finite_diff(lambda t: _finite_diff(func, t, dx, n-1), x, dx, 1))
+        return _finite_diff(lambda t: _finite_diff(func, t, dx, n - 1), x, dx, 1)
 
 
 class NumEngineError(Exception):
     """数值计算引擎专属异常"""
+
     pass
 
 
@@ -73,7 +82,9 @@ class NumEngine:
         U, S, Vh = la.svd(mat, full_matrices=True)
         return {"U": U, "S": S, "Vh": Vh}
 
-    def lu_decomposition(self, matrix: Union[list, np.ndarray]) -> Dict[str, np.ndarray]:
+    def lu_decomposition(
+        self, matrix: Union[list, np.ndarray]
+    ) -> Dict[str, np.ndarray]:
         """
         LU 分解 (PA = LU)。
 
@@ -250,7 +261,9 @@ class NumEngine:
         :raises NumEngineError: 优化求解失败时抛出
         """
         try:
-            res = opt.minimize(func, np.asarray(x0, dtype=float), method=method, bounds=bounds)
+            res = opt.minimize(
+                func, np.asarray(x0, dtype=float), method=method, bounds=bounds
+            )
             return {
                 "success": bool(res.success),
                 "x": res.x,
@@ -420,7 +433,9 @@ class NumEngine:
         :returns: 包含 'slope'、'intercept'、'r_value'、'p_value'、'std_err' 的字典
         """
         try:
-            res = stats.linregress(np.asarray(x, dtype=float), np.asarray(y, dtype=float))
+            res = stats.linregress(
+                np.asarray(x, dtype=float), np.asarray(y, dtype=float)
+            )
             return {
                 "slope": float(res.slope),
                 "intercept": float(res.intercept),

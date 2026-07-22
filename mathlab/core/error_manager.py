@@ -4,8 +4,17 @@ import json
 import tempfile
 import traceback
 import logging
-from PySide6.QtWidgets import (QApplication, QDialog, QVBoxLayout, QHBoxLayout,
-                               QLabel, QPushButton, QTextEdit, QStyle, QMessageBox)
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTextEdit,
+    QStyle,
+    QMessageBox,
+)
 from PySide6.QtCore import QTimer, QObject
 
 logger = logging.getLogger(__name__)
@@ -14,20 +23,20 @@ logger = logging.getLogger(__name__)
 ERROR_KB = {
     "MemoryError": {
         "title": "内存资源紧张",
-        "suggestion": "您似乎绘制了过于复杂的解析式或矩阵。建议您关闭部分不需要的图形，或尝试重启软件以释放内存。"
+        "suggestion": "您似乎绘制了过于复杂的解析式或矩阵。建议您关闭部分不需要的图形，或尝试重启软件以释放内存。",
     },
     "PermissionError": {
         "title": "文件权限受限",
-        "suggestion": "MathLab 无法写入或保存到该位置。请检查文件是否被其他程序占用，或者尝试以管理员身份运行。"
+        "suggestion": "MathLab 无法写入或保存到该位置。请检查文件是否被其他程序占用，或者尝试以管理员身份运行。",
     },
     "TimeoutError": {
         "title": "计算超时",
-        "suggestion": "沙箱中的代码或几何计算耗时过长已被强制中止。请检查是否存在死循环，或尝试简化公式。"
+        "suggestion": "沙箱中的代码或几何计算耗时过长已被强制中止。请检查是否存在死循环，或尝试简化公式。",
     },
     "JSONDecodeError": {
         "title": "工程文件读取失败",
-        "suggestion": "该文件可能已损坏。别担心，您可以尝试从工作区的自动保存备份中恢复 (文件菜单 -> 恢复历史工作区)。"
-    }
+        "suggestion": "该文件可能已损坏。别担心，您可以尝试从工作区的自动保存备份中恢复 (文件菜单 -> 恢复历史工作区)。",
+    },
 }
 
 
@@ -42,12 +51,15 @@ def analyze_error(exc_type, exc_value) -> dict:
     # 模糊匹配 (通过扫描异常信息关键字)
     err_msg = str(exc_value).lower()
     if "divide by zero" in err_msg:
-        return {"title": "数学计算异常", "suggestion": "您的公式中触发了除以零的非法操作，请检查分母变量。"}
+        return {
+            "title": "数学计算异常",
+            "suggestion": "您的公式中触发了除以零的非法操作，请检查分母变量。",
+        }
 
     # 默认兜底文案
     return {
         "title": "哎呀，出了点小状况",
-        "suggestion": "MathLab 遇到了一点未知的麻烦。我们已经记录了这个问题，您可以尝试重启软件继续工作。"
+        "suggestion": "MathLab 遇到了一点未知的麻烦。我们已经记录了这个问题，您可以尝试重启软件继续工作。",
     }
 
 
@@ -55,6 +67,7 @@ class CrashReportDialog(QDialog):
     """
     人性化的错误弹窗与报告收集器
     """
+
     def __init__(self, exc_type, exc_value, exc_tb, parent=None):
         super().__init__(parent)
         self.setWindowTitle("MathLab - 提示")
@@ -76,7 +89,7 @@ class CrashReportDialog(QDialog):
         text_layout = QVBoxLayout()
         title_label = QLabel(f"<b>{analysis['title']}</b>")
         title_label.setStyleSheet("font-size: 16px; color: #E74C3C;")
-        desc_label = QLabel(analysis['suggestion'])
+        desc_label = QLabel(analysis["suggestion"])
         desc_label.setWordWrap(True)
 
         text_layout.addWidget(title_label)
@@ -89,7 +102,9 @@ class CrashReportDialog(QDialog):
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
         self.details_text.setText(tb_str)
-        self.details_text.setStyleSheet("font-family: Consolas; font-size: 11px; background: #f4f4f4;")
+        self.details_text.setStyleSheet(
+            "font-family: Consolas; font-size: 11px; background: #f4f4f4;"
+        )
         self.details_text.setVisible(False)
 
         # 3. 操作按钮区
@@ -103,7 +118,9 @@ class CrashReportDialog(QDialog):
         self.copy_btn.clicked.connect(self._copy_to_clipboard)
 
         self.restart_btn = QPushButton("重启软件")
-        self.restart_btn.setStyleSheet("background-color: #3498DB; color: white; padding: 5px 15px;")
+        self.restart_btn.setStyleSheet(
+            "background-color: #3498DB; color: white; padding: 5px 15px;"
+        )
         self.restart_btn.clicked.connect(self.accept)  # 连接重启或关闭
 
         btn_layout.addWidget(self.toggle_btn)
@@ -134,6 +151,7 @@ def global_exception_handler(exc_type, exc_value, exc_tb):
 
     # 2. 判断是否存在 Qt 实例且在主线程
     import threading
+
     app = QApplication.instance()
     if app and threading.current_thread() is threading.main_thread():
         # 显示友好的崩溃弹窗
@@ -155,7 +173,9 @@ class AutoSaver(QObject):
         self.main_window = main_window
 
         # 设定自动保存路径
-        self.autosave_file = os.path.join(tempfile.gettempdir(), "mathlab_autosave.json")
+        self.autosave_file = os.path.join(
+            tempfile.gettempdir(), "mathlab_autosave.json"
+        )
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._perform_autosave)
@@ -164,9 +184,14 @@ class AutoSaver(QObject):
     def _perform_autosave(self):
         """静默执行状态快照"""
         try:
-            if hasattr(self.main_window, 'project_manager') and self.main_window.project_manager:
-                workspace_data = self.main_window.project_manager.serialize_current_state()
-                with open(self.autosave_file, 'w', encoding='utf-8') as f:
+            if (
+                hasattr(self.main_window, "project_manager")
+                and self.main_window.project_manager
+            ):
+                workspace_data = (
+                    self.main_window.project_manager.serialize_current_state()
+                )
+                with open(self.autosave_file, "w", encoding="utf-8") as f:
                     json.dump(workspace_data, f)
         except Exception as e:
             logger.warning(f"自动保存失败: {e}")
@@ -179,19 +204,28 @@ class AutoSaver(QObject):
                 "恢复工作区",
                 "检测到上次 MathLab 意外关闭。是否要恢复未保存的工作区？",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
+                QMessageBox.StandardButton.Yes,
             )
             if reply == QMessageBox.StandardButton.Yes:
                 try:
-                    with open(self.autosave_file, 'r', encoding='utf-8') as f:
+                    with open(self.autosave_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
 
-                    self.main_window.project_manager.objects = data.get('objects', {}).copy()
-                    self.main_window.project_manager.console_history = data.get('console_history', []).copy()
-                    self.main_window.project_manager.settings = data.get('settings', {}).copy()
+                    self.main_window.project_manager.objects = data.get(
+                        "objects", {}
+                    ).copy()
+                    self.main_window.project_manager.console_history = data.get(
+                        "console_history", []
+                    ).copy()
+                    self.main_window.project_manager.settings = data.get(
+                        "settings", {}
+                    ).copy()
 
                     # 在画布上重构所有的对象
-                    for obj_id, obj_data in self.main_window.project_manager.objects.items():
+                    for (
+                        obj_id,
+                        obj_data,
+                    ) in self.main_window.project_manager.objects.items():
                         self.main_window._add_object(obj_data)
                 except Exception as e:
                     logger.warning(f"恢复自动保存失败: {e}")

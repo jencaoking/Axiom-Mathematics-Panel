@@ -2,12 +2,23 @@ import sys
 import os
 import numpy as np
 
-dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'MathLab.CSharpEngine', 'bin', 'Release', 'netstandard2.0'))
+dll_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "MathLab.CSharpEngine",
+        "bin",
+        "Release",
+        "netstandard2.0",
+    )
+)
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
+os.environ.setdefault("PYTHONNET_RUNTIME", "coreclr")
 import clr  # noqa: E402
+
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastCalculus
@@ -20,6 +31,7 @@ from System import Func, Double  # noqa: E402
 
 class CsCalculusEngine:
     """自适应微积分混合引擎"""
+
     def __init__(self):
         if FastCalculus is None:
             raise RuntimeError("C# Engine DLL is not loaded.")
@@ -33,7 +45,9 @@ class CsCalculusEngine:
         cs_delegate = Func[Double, Double](py_func)
 
         # 呼叫 C# 引擎，C# 会在内部的自适应循环中不断回调这个委托
-        return self._engine.IntegrateAdaptive(cs_delegate, float(a), float(b), float(tol))
+        return self._engine.IntegrateAdaptive(
+            cs_delegate, float(a), float(b), float(tol)
+        )
 
     def differentiate(self, py_func, x: float):
         cs_delegate = Func[Double, Double](py_func)
@@ -41,6 +55,7 @@ class CsCalculusEngine:
 
     def integrate_discrete(self, y_array: np.ndarray, dx: float):
         import System
+
         # 打平并转为 C# 一维数组 (复用我们在 NumEngine 里的平铺优化)
         c_y_flat = System.Array[System.Double](y_array.ravel().tolist())
         return self._engine.IntegrateDiscrete(c_y_flat, float(dx))

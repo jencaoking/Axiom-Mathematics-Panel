@@ -14,6 +14,7 @@ class BridgeSignals(QObject):
     使用独立的 QObject 子类持有信号，让 OctaveBridge 本身不必继承 QObject，
     保持纯 Python 的轻量级封装。
     """
+
     # 包含绘图配置的字典：类型、x/y 数据、标题、颜色等
     plot_requested = Signal(dict)
 
@@ -23,6 +24,7 @@ class BridgeSignals(QObject):
 
 class OctaveBridgeError(Exception):
     """Octave 语法桥接器专属异常"""
+
     pass
 
 
@@ -51,9 +53,8 @@ class OctaveBridge:
         # ── 执行上下文 (用户工作区) ──────────────────────────────────────
         # 注意: eval/exec 共享此同一字典，确保赋值后变量对后续表达式可见。
         self.env: Dict[str, Any] = {
-            "__builtins__": {},          # 沙箱：屏蔽内置危险函数
+            "__builtins__": {},  # 沙箱：屏蔽内置危险函数
             "np": np,
-
             # ── 矩阵构建 ──────────────────────────────────────────────
             # MATLAB: zeros(m, n) / ones(m, n) 传入两个独立整数
             # NumPy:  np.zeros((m, n))          期望一个元组形状
@@ -67,7 +68,6 @@ class OctaveBridge:
             "randn": lambda *a: np.random.randn(*a),
             "diag": np.diag,
             "reshape": np.reshape,
-
             # ── 基础运算 ──────────────────────────────────────────────
             "abs": np.abs,
             "sqrt": np.sqrt,
@@ -79,7 +79,6 @@ class OctaveBridge:
             "ceil": np.ceil,
             "round": np.round,
             "mod": np.mod,
-
             # ── 三角函数 ──────────────────────────────────────────────
             "sin": np.sin,
             "cos": np.cos,
@@ -88,14 +87,12 @@ class OctaveBridge:
             "acos": np.arccos,
             "atan": np.arctan,
             "atan2": np.arctan2,
-
             # ── 矩阵属性 ──────────────────────────────────────────────
             "size": lambda x, *a: np.shape(x) if not a else np.shape(x)[a[0] - 1],
             "numel": np.size,
             "length": lambda x: max(np.shape(x)),
             "ndims": np.ndim,
             "find": lambda x: np.where(np.asarray(x).ravel())[0],
-
             # ── 聚合函数 ──────────────────────────────────────────────
             "max": np.max,
             "min": np.min,
@@ -109,7 +106,6 @@ class OctaveBridge:
             "sort": np.sort,
             "fliplr": np.fliplr,
             "flipud": np.flipud,
-
             # ── 常数 ──────────────────────────────────────────────────
             "pi": np.pi,
             "e": np.e,
@@ -119,7 +115,6 @@ class OctaveBridge:
             "nan": np.nan,
             "true": True,
             "false": False,
-
             # ── 高级线性代数 (路由到 NumEngine) ──────────────────────
             "inv": np.linalg.inv,
             "det": np.linalg.det,
@@ -129,22 +124,21 @@ class OctaveBridge:
             "svd": self.engine.svd,
             "lu": self.engine.lu_decomposition,
             "chol": self.engine.cholesky,
-
             # ── 优化 (路由到 NumEngine) ───────────────────────────────
             "fminsearch": lambda f, x0: self.engine.minimize(f, [x0]),
             "fzero": lambda f, x0: self.engine.root_finding(f, x0),
-
             # ── 信号处理 (路由到 NumEngine) ───────────────────────────
             "fft": lambda x: self.engine.fft_transform(x)["spectrum"],
             "ifft": lambda x: self.engine.ifft_transform(x),
             "conv": self.engine.convolve,
-
             # ── 统计回归 (路由到 NumEngine) ───────────────────────────
-            "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)["coefficients"],
+            "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)[
+                "coefficients"
+            ],
             "polyval": np.polyval,
-
-            "__smart_mul__": lambda a, b: (a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b),
-
+            "__smart_mul__": lambda a, b: (
+                (a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b)
+            ),
             # ── ✨ UI 联动：绘图函数（发射 Qt 信号）───────────────────────
             "plot": self._builtin_plot,
             "scatter": self._builtin_scatter,
@@ -167,6 +161,7 @@ class OctaveBridge:
           [1, 2; 3, 4]   → np.array([[1, 2], [3, 4]])
           []             → np.array([])
         """
+
         def replacer(match):
             inner = match.group(1).strip()
             if not inner:
@@ -176,7 +171,9 @@ class OctaveBridge:
             rows = inner.split(";")
             formatted_rows = []
             for row in rows:
-                elements = [e.strip() for e in row.replace(",", " ").split() if e.strip()]
+                elements = [
+                    e.strip() for e in row.replace(",", " ").split() if e.strip()
+                ]
                 formatted_rows.append("[" + ", ".join(elements) + "]")
 
             if not has_semicolon and len(formatted_rows) == 1:
@@ -235,7 +232,13 @@ class OctaveBridge:
             return prefix + key
 
         code = re.sub(r"(^|[^A-Za-z0-9_\]\)])('[^']*')", protect_string, code)
-        code = re.sub(r'("[^"]*")', lambda m: protect_string(re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))), code)
+        code = re.sub(
+            r'("[^"]*")',
+            lambda m: protect_string(
+                re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))
+            ),
+            code,
+        )
 
         # 2. 转置：变量名/右括号/右方括号后紧跟单引号
         code = re.sub(r"([A-Za-z0-9_\]\)]+)'", r"\1.T", code)
@@ -314,33 +317,32 @@ class OctaveBridge:
                 self.generic_visit(node)
                 if isinstance(node.op, ast.MatMult):
                     return ast.Call(
-                        func=ast.Name(id='__smart_mul__', ctx=ast.Load()),
+                        func=ast.Name(id="__smart_mul__", ctx=ast.Load()),
                         args=[node.left, node.right],
-                        keywords=[]
+                        keywords=[],
                     )
                 return node
 
         try:
             # 尝试作为表达式 eval（eval/exec 共享 self.env，变量跨调用可见）
-            tree = ast.parse(python_code, mode='eval')
+            tree = ast.parse(python_code, mode="eval")
             tree = SmartMulTransformer().visit(tree)
             ast.fix_missing_locations(tree)
-            compiled = compile(tree, '<string>', 'eval')
+            compiled = compile(tree, "<string>", "eval")
             result = eval(compiled, self.env, self.env)
             return result
         except SyntaxError:
             # 可能是赋值语句或含有多行的代码块，改用 exec
             try:
-                exec_tree = ast.parse(python_code, mode='exec')
+                exec_tree = ast.parse(python_code, mode="exec")
                 exec_tree = SmartMulTransformer().visit(exec_tree)
                 ast.fix_missing_locations(exec_tree)
-                compiled = compile(exec_tree, '<string>', 'exec')
+                compiled = compile(exec_tree, "<string>", "exec")
                 exec(compiled, self.env, self.env)
                 # 启发式：如果是简单赋值 "VAR = ..."，返回该变量
                 stripped = python_code.strip()
                 if "=" in stripped and not any(
-                    op in stripped.split("=")[0]
-                    for op in ["<", ">", "!", "="]
+                    op in stripped.split("=")[0] for op in ["<", ">", "!", "="]
                 ):
                     var_name = stripped.split("=")[0].strip()
                     if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", var_name):
@@ -363,17 +365,34 @@ class OctaveBridge:
 
     def reset(self) -> None:
         """清空工作区（保留内置函数和常量，仅清除用户变量）"""
-        user_vars = [k for k in self.env if not callable(self.env[k])
-                     and k not in ("pi", "e", "Inf", "inf", "NaN", "nan",
-                                   "true", "false", "np", "__builtins__")]
+        user_vars = [
+            k
+            for k in self.env
+            if not callable(self.env[k])
+            and k
+            not in (
+                "pi",
+                "e",
+                "Inf",
+                "inf",
+                "NaN",
+                "nan",
+                "true",
+                "false",
+                "np",
+                "__builtins__",
+            )
+        ]
         for k in user_vars:
             del self.env[k]
 
     def workspace(self) -> Dict[str, Any]:
         """返回当前工作区中所有用户变量（过滤掉内置函数）"""
         return {
-            k: v for k, v in self.env.items()
-            if not k.startswith("__") and not callable(v)
+            k: v
+            for k, v in self.env.items()
+            if not k.startswith("__")
+            and not callable(v)
             and k not in ("np", "pi", "e", "Inf", "inf", "NaN", "nan", "true", "false")
         }
 
@@ -390,6 +409,7 @@ class OctaveBridge:
     def _to_list(arr) -> list:
         """将任意数值类型展平为 Python list，保留有限精度"""
         import numpy as _np
+
         a = _np.asarray(arr, dtype=float).flatten()
         return [round(float(v), 8) for v in a]
 
@@ -421,15 +441,17 @@ class OctaveBridge:
                 f"plot 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
             )
 
-        return self._emit_plot({
-            "type": "line",
-            "x": x,
-            "y": y,
-            "title": kwargs.get("title", "2D 折线图"),
-            "smooth": True,
-            "color": "#4EC9B0",
-            "area": True,
-        })
+        return self._emit_plot(
+            {
+                "type": "line",
+                "x": x,
+                "y": y,
+                "title": kwargs.get("title", "2D 折线图"),
+                "smooth": True,
+                "color": "#4EC9B0",
+                "area": True,
+            }
+        )
 
     def _builtin_scatter(self, *args, **kwargs) -> str:
         """
@@ -451,14 +473,16 @@ class OctaveBridge:
                 f"scatter 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
             )
 
-        return self._emit_plot({
-            "type": "scatter",
-            "x": x,
-            "y": y,
-            "title": kwargs.get("title", "散点图"),
-            "color": "#C586C0",
-            "area": False,
-        })
+        return self._emit_plot(
+            {
+                "type": "scatter",
+                "x": x,
+                "y": y,
+                "title": kwargs.get("title", "散点图"),
+                "color": "#C586C0",
+                "area": False,
+            }
+        )
 
     def _builtin_bar(self, *args, **kwargs) -> str:
         """
@@ -479,14 +503,16 @@ class OctaveBridge:
                 x = list(args[0])
             y = self._to_list(args[1])
 
-        return self._emit_plot({
-            "type": "bar",
-            "x": x,
-            "y": y,
-            "title": kwargs.get("title", "柱状图"),
-            "color": "#569CD6",
-            "area": False,
-        })
+        return self._emit_plot(
+            {
+                "type": "bar",
+                "x": x,
+                "y": y,
+                "title": kwargs.get("title", "柱状图"),
+                "color": "#569CD6",
+                "area": False,
+            }
+        )
 
     def _builtin_stem(self, *args, **kwargs) -> str:
         """
@@ -503,11 +529,13 @@ class OctaveBridge:
             x = self._to_list(args[0])
             y = self._to_list(args[1])
 
-        return self._emit_plot({
-            "type": "stem",  # 前端将渲染为带 markLine 的散点图
-            "x": x,
-            "y": y,
-            "title": kwargs.get("title", "茎叶图 (Stem Plot)"),
-            "color": "#DCDCAA",
-            "area": False,
-        })
+        return self._emit_plot(
+            {
+                "type": "stem",  # 前端将渲染为带 markLine 的散点图
+                "x": x,
+                "y": y,
+                "title": kwargs.get("title", "茎叶图 (Stem Plot)"),
+                "color": "#DCDCAA",
+                "area": False,
+            }
+        )

@@ -11,6 +11,7 @@ class JupyterIPCServer(QThread):
     接收来自 Jupyter 内核跨进程指令的 UDP 服务器
     改进：扩充接收缓冲、丢弃过期乱序包、细化异常捕获
     """
+
     command_received = Signal(dict)
 
     def __init__(self, port=45678, parent=None):
@@ -24,7 +25,7 @@ class JupyterIPCServer(QThread):
     def run(self):
         """后台线程循环监听端口"""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.bind(('127.0.0.1', self.port))
+            sock.bind(("127.0.0.1", self.port))
 
             # 细节优化 1：扩大 UDP 系统接收缓冲区（如 1MB），防止突发高频指令导致系统底层丢包
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)
@@ -36,7 +37,7 @@ class JupyterIPCServer(QThread):
                 try:
                     # 细节优化 2：适度扩大单词接收容量（从4096到8192），适应大数组变量
                     data, addr = sock.recvfrom(8192)
-                    message = json.loads(data.decode('utf-8'))
+                    message = json.loads(data.decode("utf-8"))
 
                     # 细节优化 3：拦截乱序数据包
                     if message.get("cmd") == "sync_var":

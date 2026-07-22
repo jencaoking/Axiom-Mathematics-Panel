@@ -3,6 +3,7 @@
 从 settings.json 加载配置，支持默认值、嵌套键访问和运行时覆写。
 所有模块应通过 get_config() 获取配置，而非各自硬编码。
 """
+
 import json
 import os
 import threading
@@ -42,7 +43,7 @@ def _find_settings_path() -> str:
     """定位 settings.json 文件路径。"""
     here = os.path.dirname(os.path.abspath(__file__))
     # mathlab/utils/ → mathlab/settings.json
-    return os.path.join(here, '..', 'settings.json')
+    return os.path.join(here, "..", "settings.json")
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -74,7 +75,7 @@ def load_config(force_reload: bool = False) -> Dict[str, Any]:
         config = _DEFAULT_CONFIG.copy()
         if os.path.exists(_config_path):
             try:
-                with open(_config_path, 'r', encoding='utf-8') as f:
+                with open(_config_path, "r", encoding="utf-8") as f:
                     user_config = json.load(f)
                 config = _deep_merge(config, user_config)
                 logger.debug("配置加载完毕: %s", _config_path)
@@ -102,7 +103,7 @@ def get_config(key: str = None, default: Any = None) -> Any:
     if key is None:
         return config
 
-    parts = key.split('.')
+    parts = key.split(".")
     val = config
     for part in parts:
         if isinstance(val, dict) and part in val:
@@ -117,7 +118,7 @@ def set_config(key: str, value: Any) -> None:
     with _config_lock:
         if _config_cache is None:
             load_config()
-        parts = key.split('.')
+        parts = key.split(".")
         target = _config_cache
         for part in parts[:-1]:
             if part not in target or not isinstance(target[part], dict):
@@ -132,7 +133,7 @@ def save_config(config: Dict[str, Any]) -> bool:
     if _config_path is None:
         _config_path = _find_settings_path()
     try:
-        with open(_config_path, 'w', encoding='utf-8') as f:
+        with open(_config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
         with _config_lock:
             global _config_cache

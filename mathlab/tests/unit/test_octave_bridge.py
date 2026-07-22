@@ -16,10 +16,10 @@ import pytest
 
 from mathlab.core.octave_bridge import OctaveBridgeError
 
-
 # ─────────────────────────────────────────────────────────────
 # 矩阵字面量翻译 (Matrix Literal Translation)
 # ─────────────────────────────────────────────────────────────
+
 
 class TestMatrixLiterals:
     @pytest.mark.unit
@@ -67,6 +67,7 @@ class TestMatrixLiterals:
 # ─────────────────────────────────────────────────────────────
 # 运算符翻译 (Operator Translation)
 # ─────────────────────────────────────────────────────────────
+
 
 class TestOperatorTranslation:
     @pytest.mark.unit
@@ -119,6 +120,7 @@ class TestOperatorTranslation:
 # 矩阵运算求值 (Matrix Operations Evaluation)
 # ─────────────────────────────────────────────────────────────
 
+
 class TestMatrixOperations:
     @pytest.mark.unit
     def test_matrix_multiplication(self, bridge):
@@ -170,6 +172,7 @@ class TestMatrixOperations:
 # 状态保持 (Stateful Environment)
 # ─────────────────────────────────────────────────────────────
 
+
 class TestStatefulEnvironment:
     @pytest.mark.unit
     def test_variable_persists_across_calls(self, bridge):
@@ -218,6 +221,7 @@ class TestStatefulEnvironment:
 # ─────────────────────────────────────────────────────────────
 # 内置函数映射 (Built-in Function Mapping)
 # ─────────────────────────────────────────────────────────────
+
 
 class TestBuiltinFunctions:
     @pytest.mark.unit
@@ -286,6 +290,7 @@ class TestBuiltinFunctions:
 # ─────────────────────────────────────────────────────────────
 # 错误处理 (Error Handling)
 # ─────────────────────────────────────────────────────────────
+
 
 class TestErrorHandling:
     @pytest.mark.unit

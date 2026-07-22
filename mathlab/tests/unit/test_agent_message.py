@@ -7,6 +7,7 @@
 4. MessageRouter — 任务请求分派、查询处理、错误处理
 5. 全局单例 — 消息总线路由器获取与重置
 """
+
 import threading
 import time
 import pytest
@@ -103,8 +104,10 @@ class TestAgentMessage:
             sender_id="A", receiver_id="B", task_prompt="任务"
         )
         reply = AgentMessage.create_task_result(
-            sender_id="B", receiver_id="A",
-            success=True, reply_to=original.id,
+            sender_id="B",
+            receiver_id="A",
+            success=True,
+            reply_to=original.id,
         )
         assert reply.reply_to == original.id
 
@@ -119,7 +122,8 @@ class TestMessageBus:
         bus.subscribe("B", lambda msg: received.append(msg))
 
         msg = AgentMessage(
-            sender_id="A", receiver_id="B",
+            sender_id="A",
+            receiver_id="B",
             msg_type=MessageType.NOTIFICATION,
             content="hello",
         )
@@ -140,7 +144,8 @@ class TestMessageBus:
         bus.subscribe("C", lambda msg: received_c.append(msg))
 
         msg = AgentMessage(
-            sender_id="System", receiver_id="broadcast",
+            sender_id="System",
+            receiver_id="broadcast",
             msg_type=MessageType.BROADCAST,
             content="系统更新",
         )
@@ -153,7 +158,8 @@ class TestMessageBus:
     def test_publish_no_subscriber(self):
         bus = MessageBus()
         msg = AgentMessage(
-            sender_id="A", receiver_id="Unknown",
+            sender_id="A",
+            receiver_id="Unknown",
             msg_type=MessageType.NOTIFICATION,
             content="hello",
         )
@@ -170,17 +176,23 @@ class TestMessageBus:
         )
 
         # 发布一条 TASK_REQUEST 消息
-        bus.publish(AgentMessage(
-            sender_id="A", receiver_id="B",
-            msg_type=MessageType.TASK_REQUEST,
-            content="任务",
-        ))
+        bus.publish(
+            AgentMessage(
+                sender_id="A",
+                receiver_id="B",
+                msg_type=MessageType.TASK_REQUEST,
+                content="任务",
+            )
+        )
         # 发布一条 NOTIFICATION 消息（不应被捕获）
-        bus.publish(AgentMessage(
-            sender_id="A", receiver_id="B",
-            msg_type=MessageType.NOTIFICATION,
-            content="通知",
-        ))
+        bus.publish(
+            AgentMessage(
+                sender_id="A",
+                receiver_id="B",
+                msg_type=MessageType.NOTIFICATION,
+                content="通知",
+            )
+        )
 
         assert len(type_messages) == 1
         assert type_messages[0].msg_type == MessageType.TASK_REQUEST
@@ -192,10 +204,13 @@ class TestMessageBus:
         bus.subscribe("B", lambda msg: received.append(msg))
         bus.unsubscribe("B")
 
-        bus.publish(AgentMessage(
-            sender_id="A", receiver_id="B",
-            msg_type=MessageType.NOTIFICATION,
-        ))
+        bus.publish(
+            AgentMessage(
+                sender_id="A",
+                receiver_id="B",
+                msg_type=MessageType.NOTIFICATION,
+            )
+        )
         assert len(received) == 0
 
     def test_handler_exception_doesnt_block_others(self):
@@ -209,10 +224,13 @@ class TestMessageBus:
         bus.subscribe("C", lambda msg: received.append(msg))
 
         # 广播消息，B 的处理器出错但 C 应该仍能收到
-        bus.publish(AgentMessage(
-            sender_id="A", receiver_id="broadcast",
-            msg_type=MessageType.NOTIFICATION,
-        ))
+        bus.publish(
+            AgentMessage(
+                sender_id="A",
+                receiver_id="broadcast",
+                msg_type=MessageType.NOTIFICATION,
+            )
+        )
 
         assert len(received) == 1
 
@@ -230,11 +248,14 @@ class TestMessageBus:
 
         def publisher():
             for i in range(20):
-                bus.publish(AgentMessage(
-                    sender_id="A", receiver_id="B",
-                    msg_type=MessageType.NOTIFICATION,
-                    content=f"msg-{i}",
-                ))
+                bus.publish(
+                    AgentMessage(
+                        sender_id="A",
+                        receiver_id="B",
+                        msg_type=MessageType.NOTIFICATION,
+                        content=f"msg-{i}",
+                    )
+                )
 
         threads = [threading.Thread(target=publisher) for _ in range(5)]
         for t in threads:
@@ -249,10 +270,14 @@ class TestMessageBus:
         bus.subscribe("A", lambda msg: None)
         bus.subscribe("B", lambda msg: None)
 
-        bus.publish(AgentMessage(
-            sender_id="System", receiver_id="A",
-            msg_type=MessageType.NOTIFICATION, content="test",
-        ))
+        bus.publish(
+            AgentMessage(
+                sender_id="System",
+                receiver_id="A",
+                msg_type=MessageType.NOTIFICATION,
+                content="test",
+            )
+        )
 
         stats = bus.get_stats()
         assert stats["total_messages"] == 1
@@ -267,13 +292,19 @@ class TestMessageHistory:
         history = MessageHistory(max_size=100)
 
         for i in range(10):
-            history.record(AgentMessage(
-                sender_id=f"Agent-{i % 3}",
-                receiver_id=f"Receiver-{i % 2}",
-                msg_type=MessageType.NOTIFICATION if i % 2 == 0 else MessageType.TASK_REQUEST,
-                content=f"msg-{i}",
-                conversation_id=f"conv-{i % 2}",
-            ))
+            history.record(
+                AgentMessage(
+                    sender_id=f"Agent-{i % 3}",
+                    receiver_id=f"Receiver-{i % 2}",
+                    msg_type=(
+                        MessageType.NOTIFICATION
+                        if i % 2 == 0
+                        else MessageType.TASK_REQUEST
+                    ),
+                    content=f"msg-{i}",
+                    conversation_id=f"conv-{i % 2}",
+                )
+            )
 
         # 查询全部
         all_msgs = history.query(limit=100)
@@ -295,11 +326,14 @@ class TestMessageHistory:
     def test_max_size_enforced(self):
         history = MessageHistory(max_size=5)
         for i in range(10):
-            history.record(AgentMessage(
-                sender_id="A", receiver_id="B",
-                msg_type=MessageType.NOTIFICATION,
-                content=f"msg-{i}",
-            ))
+            history.record(
+                AgentMessage(
+                    sender_id="A",
+                    receiver_id="B",
+                    msg_type=MessageType.NOTIFICATION,
+                    content=f"msg-{i}",
+                )
+            )
         assert len(history) == 5  # 只保留最近 5 条
 
     def test_get_conversation(self):
@@ -307,19 +341,25 @@ class TestMessageHistory:
         conv_id = "test-conv"
 
         for i in range(5):
-            history.record(AgentMessage(
-                sender_id="A", receiver_id="B",
-                msg_type=MessageType.NOTIFICATION,
-                content=f"msg-{i}",
-                conversation_id=conv_id,
-            ))
+            history.record(
+                AgentMessage(
+                    sender_id="A",
+                    receiver_id="B",
+                    msg_type=MessageType.NOTIFICATION,
+                    content=f"msg-{i}",
+                    conversation_id=conv_id,
+                )
+            )
         # 添加一条不属于此会话的
-        history.record(AgentMessage(
-            sender_id="A", receiver_id="B",
-            msg_type=MessageType.NOTIFICATION,
-            content="other",
-            conversation_id="other-conv",
-        ))
+        history.record(
+            AgentMessage(
+                sender_id="A",
+                receiver_id="B",
+                msg_type=MessageType.NOTIFICATION,
+                content="other",
+                conversation_id="other-conv",
+            )
+        )
 
         conv_msgs = history.get_conversation(conv_id)
         assert len(conv_msgs) == 5
@@ -328,10 +368,13 @@ class TestMessageHistory:
     def test_clear(self):
         history = MessageHistory()
         for i in range(5):
-            history.record(AgentMessage(
-                sender_id="A", receiver_id="B",
-                msg_type=MessageType.NOTIFICATION,
-            ))
+            history.record(
+                AgentMessage(
+                    sender_id="A",
+                    receiver_id="B",
+                    msg_type=MessageType.NOTIFICATION,
+                )
+            )
         assert len(history) == 5
         history.clear()
         assert len(history) == 0
@@ -350,7 +393,9 @@ class TestMessageRouter:
                 self.solved = False
                 self.last_prompt = ""
 
-            def solve_problem(self, prompt, on_finish_cb=None, on_geom_cb=None, **kwargs):
+            def solve_problem(
+                self, prompt, on_finish_cb=None, on_geom_cb=None, **kwargs
+            ):
                 self.solved = True
                 self.last_prompt = prompt
                 if on_finish_cb:
@@ -411,11 +456,13 @@ class TestMessageRouter:
         bus.subscribe("PlannerAgent", lambda msg: errors.append(msg))
         router.register_agent("BadAgent", BadAgent())
 
-        bus.publish(AgentMessage.create_task_request(
-            sender_id="PlannerAgent",
-            receiver_id="BadAgent",
-            task_prompt="任务",
-        ))
+        bus.publish(
+            AgentMessage.create_task_request(
+                sender_id="PlannerAgent",
+                receiver_id="BadAgent",
+                task_prompt="任务",
+            )
+        )
 
         assert len(errors) == 1
         assert errors[0].msg_type == MessageType.TASK_ERROR

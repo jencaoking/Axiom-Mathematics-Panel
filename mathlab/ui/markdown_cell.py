@@ -1,9 +1,18 @@
 import os
-from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QTextEdit, 
-                             QPushButton, QFrame, QLabel, QSpacerItem, QSizePolicy)
+from PySide6.QtWidgets import (
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextEdit,
+    QPushButton,
+    QFrame,
+    QLabel,
+    QSpacerItem,
+    QSizePolicy,
+)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QFont, QKeySequence
 from PySide6.QtCore import Qt, QUrl, Signal
+
 
 class MarkdownTextEdit(QTextEdit):
     def __init__(self, parent_widget, *args, **kwargs):
@@ -16,6 +25,7 @@ class MarkdownTextEdit(QTextEdit):
         else:
             super().keyPressEvent(event)
 
+
 class MarkdownCellWidget(QFrame):
     """
     交互式 Markdown/LaTeX 单元格
@@ -25,6 +35,7 @@ class MarkdownCellWidget(QFrame):
     此单元格需要高质量的 LaTeX 公式渲染，因此使用 JS 引擎。
     纯文本 Markdown 场景请使用 MarkdownService (Python 引擎)。
     """
+
     code_synced = Signal(str)
 
     def __init__(self, cell_id, initial_content="", parent=None):
@@ -42,10 +53,10 @@ class MarkdownCellWidget(QFrame):
         # ── 1. 悬浮工具栏 ──
         self.toolbar_layout = QHBoxLayout()
         self.toolbar_layout.setContentsMargins(10, 0, 10, 0)
-        
+
         self.type_label = QLabel("Markdown 文本")
         self.type_label.setStyleSheet("color: #858585; font-size: 11px;")
-        
+
         self.btn_edit = QPushButton("✎ 编辑")
         self.btn_delete = QPushButton("🗑 删除")
         for btn in [self.btn_edit, self.btn_delete]:
@@ -54,14 +65,16 @@ class MarkdownCellWidget(QFrame):
                 QPushButton:hover { background: #3c3c3c; border-radius: 4px; color: #4EC9B0; }
             """)
             btn.setCursor(Qt.PointingHandCursor)
-            
+
         self.btn_edit.clicked.connect(self.switch_to_edit)
 
         self.toolbar_layout.addWidget(self.type_label)
-        self.toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.toolbar_layout.addSpacerItem(
+            QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        )
         self.toolbar_layout.addWidget(self.btn_edit)
         self.toolbar_layout.addWidget(self.btn_delete)
-        
+
         self.toolbar_container = QFrame()
         self.toolbar_container.setLayout(self.toolbar_layout)
         self.toolbar_container.setFixedHeight(28)
@@ -76,16 +89,22 @@ class MarkdownCellWidget(QFrame):
             QTextEdit:focus { border: 1px solid #007acc; }
         """)
         self.input_editor.textChanged.connect(self._adjust_editor_height)
-        self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
+        self.input_editor.textChanged.connect(
+            lambda: self.code_synced.emit(self.input_editor.toPlainText())
+        )
 
         # ── 3. 预览模式: WebEngine 渲染器 ──
         self.viewer = QWebEngineView()
         self.viewer.setMinimumHeight(60)
-        self.viewer.page().setBackgroundColor(self.palette().color(self.backgroundRole()))
-        
-        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources', 'markdown.html'))
+        self.viewer.page().setBackgroundColor(
+            self.palette().color(self.backgroundRole())
+        )
+
+        html_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "resources", "markdown.html")
+        )
         self.viewer.load(QUrl.fromLocalFile(html_path))
-        self.viewer.hide() # 初始隐藏，等渲染
+        self.viewer.hide()  # 初始隐藏，等渲染
 
         self.main_layout.addWidget(self.toolbar_container)
         self.main_layout.addWidget(self.input_editor)
@@ -103,7 +122,12 @@ class MarkdownCellWidget(QFrame):
         text = self.input_editor.toPlainText()
         # 处理转义符，防止 JS 报错
         # [BUG修复] 补充 ${} 转义，防止模板字符串注入
-        safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${').replace('\n', '\\n')
+        safe_text = (
+            text.replace("\\", "\\\\")
+            .replace("`", "\\`")
+            .replace("${", "\\${")
+            .replace("\n", "\\n")
+        )
         js_code = f"renderMarkdown(`{safe_text}`);"
 
         self.viewer.page().runJavaScript(js_code)
@@ -111,6 +135,7 @@ class MarkdownCellWidget(QFrame):
         # 渲染后动态获取内容高度并调整
         # 使用 QTimer 延迟执行，确保 DOM 已完成更新
         from PySide6.QtCore import QTimer
+
         QTimer.singleShot(100, self._request_view_height)
 
         self.input_editor.hide()
@@ -136,14 +161,14 @@ class MarkdownCellWidget(QFrame):
 
     def _adjust_editor_height(self):
         """根据内容行数动态调整编辑器高度"""
-        line_count = self.input_editor.toPlainText().count('\n') + 1
+        line_count = self.input_editor.toPlainText().count("\n") + 1
         # 每行约 20px，加 padding 30px，限制 60~400px
         height = min(max(line_count * 20 + 30, 60), 400)
         self.input_editor.setFixedHeight(height)
 
     def set_content(self, text):
         self.input_editor.setPlainText(text)
-        
+
     # 悬浮与聚焦逻辑 (同之前的设计)
     def enterEvent(self, event):
         self.toolbar_container.show()
@@ -155,9 +180,13 @@ class MarkdownCellWidget(QFrame):
 
     def set_focused(self, is_focused):
         if is_focused:
-            self.setStyleSheet("MarkdownCellWidget { border-left: 3px solid #007acc; background-color: #252526; }")
+            self.setStyleSheet(
+                "MarkdownCellWidget { border-left: 3px solid #007acc; background-color: #252526; }"
+            )
         else:
-            self.setStyleSheet("MarkdownCellWidget { border-left: 3px solid transparent; background-color: transparent; }")
+            self.setStyleSheet(
+                "MarkdownCellWidget { border-left: 3px solid transparent; background-color: transparent; }"
+            )
 
     def mousePressEvent(self, event):
         self.set_focused(True)

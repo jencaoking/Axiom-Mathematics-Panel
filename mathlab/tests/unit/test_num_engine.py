@@ -13,10 +13,10 @@ import pytest
 
 from mathlab.core.num_engine import NumEngineError
 
-
 # ─────────────────────────────────────────────────────────────
 # 线性代数 — 特征值
 # ─────────────────────────────────────────────────────────────
+
 
 class TestEigenvalues:
     @pytest.mark.unit
@@ -52,6 +52,7 @@ class TestEigenvalues:
 # 线性代数 — SVD
 # ─────────────────────────────────────────────────────────────
 
+
 class TestSVD:
     @pytest.mark.unit
     def test_singular_values_non_negative(self, num_engine):
@@ -84,6 +85,7 @@ class TestSVD:
 # 线性代数 — LU 分解
 # ─────────────────────────────────────────────────────────────
 
+
 class TestLUDecomposition:
     @pytest.mark.unit
     def test_lu_reconstruction(self, num_engine):
@@ -113,13 +115,12 @@ class TestLUDecomposition:
 # 线性代数 — Cholesky 分解
 # ─────────────────────────────────────────────────────────────
 
+
 class TestCholesky:
     @pytest.mark.unit
     def test_cholesky_reconstruction(self, num_engine):
         """L @ L.T 应还原原矩阵"""
-        pos_def_3x3 = [[4, 2, 2],
-                       [2, 3, 1],
-                       [2, 1, 3]]
+        pos_def_3x3 = [[4, 2, 2], [2, 3, 1], [2, 1, 3]]
         result = num_engine.cholesky(pos_def_3x3)
         L = result["L"]
         reconstructed = L @ L.T
@@ -135,6 +136,7 @@ class TestCholesky:
 # ─────────────────────────────────────────────────────────────
 # 线性代数 — 线性方程组求解
 # ─────────────────────────────────────────────────────────────
+
 
 class TestSolveLinearSystem:
     @pytest.mark.unit
@@ -158,6 +160,7 @@ class TestSolveLinearSystem:
 # 线性代数 — 秩与条件数
 # ─────────────────────────────────────────────────────────────
 
+
 class TestRankAndCondition:
     @pytest.mark.unit
     def test_full_rank_matrix(self, num_engine):
@@ -172,12 +175,15 @@ class TestRankAndCondition:
     def test_identity_condition_number(self, num_engine):
         """单位矩阵条件数应为 1"""
         identity_2x2 = [[1, 0], [0, 1]]
-        assert pytest.approx(num_engine.condition_number(identity_2x2), abs=1e-10) == 1.0
+        assert (
+            pytest.approx(num_engine.condition_number(identity_2x2), abs=1e-10) == 1.0
+        )
 
 
 # ─────────────────────────────────────────────────────────────
 # 数值微积分 — 导数
 # ─────────────────────────────────────────────────────────────
+
 
 class TestNumericalDerivative:
     @pytest.mark.unit
@@ -208,6 +214,7 @@ class TestNumericalDerivative:
 # ─────────────────────────────────────────────────────────────
 # 数值微积分 — 定积分
 # ─────────────────────────────────────────────────────────────
+
 
 class TestNumericalIntegral:
     @pytest.mark.unit
@@ -246,6 +253,7 @@ class TestNumericalIntegral:
 # 数值微积分 — 二重积分
 # ─────────────────────────────────────────────────────────────
 
+
 class TestNumericalDoubleIntegral:
     @pytest.mark.unit
     def test_unit_square_area(self, num_engine):
@@ -268,11 +276,12 @@ class TestNumericalDoubleIntegral:
 # 优化模块 — minimize & root_finding & minimize_scalar
 # ─────────────────────────────────────────────────────────────
 
+
 class TestMinimize:
     @pytest.mark.unit
     def test_parabola_minimum(self, num_engine):
         """f(x) = x² + x + 2 的极小值在 x=-0.5, f=-0.25+2=1.75"""
-        result = num_engine.minimize(lambda x: x[0]**2 + x[0] + 2, [0.0])
+        result = num_engine.minimize(lambda x: x[0] ** 2 + x[0] + 2, [0.0])
         assert result["success"] is True
         assert pytest.approx(result["x"][0], abs=1e-4) == -0.5
         assert pytest.approx(result["fun"], abs=1e-4) == 1.75
@@ -280,15 +289,17 @@ class TestMinimize:
     @pytest.mark.unit
     def test_rosenbrock(self, num_engine):
         """Rosenbrock 函数全局最小值在 (1, 1)，值为 0"""
+
         def rosenbrock(x):
-            return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+            return (1 - x[0]) ** 2 + 100 * (x[1] - x[0] ** 2) ** 2
+
         result = num_engine.minimize(rosenbrock, [0.0, 0.0], method="BFGS")
         assert result["success"] is True
         assert pytest.approx(result["x"], abs=1e-3) == [1.0, 1.0]
 
     @pytest.mark.unit
     def test_returns_required_keys(self, num_engine):
-        result = num_engine.minimize(lambda x: x[0]**2, [1.0])
+        result = num_engine.minimize(lambda x: x[0] ** 2, [1.0])
         assert {"success", "x", "fun", "message"} <= result.keys()
 
 
@@ -323,13 +334,14 @@ class TestMinimizeScalar:
     @pytest.mark.unit
     def test_unbounded_minimum(self, num_engine):
         """f(x)=(x-3)² 无界搜索最小值在 x=3"""
-        result = num_engine.minimize_scalar(lambda x: (x - 3)**2)
+        result = num_engine.minimize_scalar(lambda x: (x - 3) ** 2)
         assert pytest.approx(result["x"], abs=1e-5) == 3.0
 
 
 # ─────────────────────────────────────────────────────────────
 # 信号处理模块 — FFT / IFFT / convolve / find_peaks
 # ─────────────────────────────────────────────────────────────
+
 
 class TestFFT:
     @pytest.mark.unit
@@ -348,8 +360,8 @@ class TestFFT:
     @pytest.mark.unit
     def test_pure_sine_dominant_frequency(self, num_engine):
         """纯正弦信号的主频应对应其频率"""
-        sample_rate = 100.0        # 100 Hz
-        freq = 10.0                # 10 Hz 正弦波
+        sample_rate = 100.0  # 100 Hz
+        freq = 10.0  # 10 Hz 正弦波
         t = np.arange(0, 1, 1 / sample_rate)
         signal = np.sin(2 * np.pi * freq * t)
 
@@ -397,6 +409,7 @@ class TestFindPeaks:
 # 统计回归模块 — linear_regression / polynomial_fit / descriptive_stats
 # ─────────────────────────────────────────────────────────────
 
+
 class TestLinearRegression:
     @pytest.mark.unit
     def test_perfect_linear(self, num_engine):
@@ -420,9 +433,9 @@ class TestPolynomialFit:
         y = x**2
         result = num_engine.polynomial_fit(x, y, deg=2)
         coeffs = result["coefficients"]
-        assert pytest.approx(coeffs[0], abs=1e-6) == 1.0   # x² 系数
-        assert pytest.approx(coeffs[1], abs=1e-6) == 0.0   # x  系数
-        assert pytest.approx(coeffs[2], abs=1e-6) == 0.0   # 常数项
+        assert pytest.approx(coeffs[0], abs=1e-6) == 1.0  # x² 系数
+        assert pytest.approx(coeffs[1], abs=1e-6) == 0.0  # x  系数
+        assert pytest.approx(coeffs[2], abs=1e-6) == 0.0  # 常数项
 
     @pytest.mark.unit
     def test_returns_rank(self, num_engine):
@@ -441,6 +454,7 @@ class TestDescriptiveStats:
         - 样本标准差 (ddof=1) = sqrt(32/7) ≈ 2.1381  ← 注意：非总体标准差 2.0
         """
         import math
+
         data = [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
         result = num_engine.descriptive_stats(data)
         assert pytest.approx(result["mean"], abs=1e-10) == 5.0
@@ -450,8 +464,16 @@ class TestDescriptiveStats:
     @pytest.mark.unit
     def test_returns_all_keys(self, num_engine):
         result = num_engine.descriptive_stats([1, 2, 3, 4, 5])
-        expected = {"mean", "median", "std", "variance",
-                    "skewness", "kurtosis", "min", "max"}
+        expected = {
+            "mean",
+            "median",
+            "std",
+            "variance",
+            "skewness",
+            "kurtosis",
+            "min",
+            "max",
+        }
         assert expected <= result.keys()
 
     @pytest.mark.unit

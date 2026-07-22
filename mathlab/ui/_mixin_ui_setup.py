@@ -3,6 +3,7 @@
 将 MainWindow 中与 UI 构建、Dock 面板创建和面板显隐切换
 相关的方法提取到此模块，降低主窗口文件的体积与复杂度。
 """
+
 import os
 
 from PySide6.QtWidgets import QDockWidget, QTabWidget
@@ -36,6 +37,7 @@ logger = get_logger(__name__)
 
 class UISetupMixin:
     """MainWindow Mixin：UI 布局组装与面板切换。"""
+
     def setup_ui(self):
         self.central_tabs = QTabWidget()
         self.central_tabs.setStyleSheet("QTabWidget::pane { border: none; }")
@@ -43,17 +45,22 @@ class UISetupMixin:
         self.central_widget = GeometryCanvas(self)
         self.notebook = NotebookPanel(self)
         self.notebook.ai_explain_requested.connect(self.handle_ai_explain)
-        
+
         try:
             from .geometry_panel import GeometryPanel
+
             self.geogebra_panel = GeometryPanel(self)
-            if hasattr(self.geogebra_panel, 'canvas'):
+            if hasattr(self.geogebra_panel, "canvas"):
                 self.geogebra_panel.canvas.ipc_client = self.ipc_client
         except ImportError:
             self.geogebra_panel = None
 
-        self.central_tabs.addTab(self.notebook, t('notebook.title') or "Interactive Notebook")
-        self.central_tabs.addTab(self.central_widget, t('main_window.geometry_tools') or "Geometry Canvas")
+        self.central_tabs.addTab(
+            self.notebook, t("notebook.title") or "Interactive Notebook"
+        )
+        self.central_tabs.addTab(
+            self.central_widget, t("main_window.geometry_tools") or "Geometry Canvas"
+        )
         if self.geogebra_panel:
             self.central_tabs.addTab(self.geogebra_panel, "Mini GeoGebra")
 
@@ -68,27 +75,27 @@ class UISetupMixin:
         self.jupyter_workspace = None
 
         if JupyterManager is None or JupyterPanel is None:
-            logger.warning("JupyterManager / JupyterPanel 未能导入，Jupyter 标签页已跳过。")
+            logger.warning(
+                "JupyterManager / JupyterPanel 未能导入，Jupyter 标签页已跳过。"
+            )
             return
 
         try:
             self.jupyter_mgr = JupyterManager()
             # 创建面板（此时服务还未就绪，面板显示加载动画）
-            self.jupyter_workspace = JupyterPanel(
-                self.jupyter_mgr.url, self
-            )
-            self.central_tabs.addTab(
-                self.jupyter_workspace, "🌌 Jupyter 工作区"
-            )
+            self.jupyter_workspace = JupyterPanel(self.jupyter_mgr.url, self)
+            self.central_tabs.addTab(self.jupyter_workspace, "🌌 Jupyter 工作区")
 
             # 在后台线程启动服务，就绪后触发页面加载
             import threading
+
             def _start_and_load():
                 success = self.jupyter_mgr.start(
-                    timeout=getattr(self.jupyter_mgr, '_default_timeout', 30)
+                    timeout=getattr(self.jupyter_mgr, "_default_timeout", 30)
                 )
                 # 切回主线程执行 UI 操作（Qt 要求 UI 操作在主线程）
                 from PySide6.QtCore import QMetaObject, Qt
+
                 if success:
                     QMetaObject.invokeMethod(
                         self.jupyter_workspace,
@@ -98,21 +105,25 @@ class UISetupMixin:
                 else:
                     # 启动失败，在主线程中安全地显示错误
                     def _show_error():
-                        if hasattr(self.jupyter_workspace, '_card'):
+                        if hasattr(self.jupyter_workspace, "_card"):
                             self.jupyter_workspace._card.show_error(
                                 f"JupyterLab 服务器启动失败\n"
                                 f"端口：{self.jupyter_mgr.port}\n\n"
                                 f"请确认 jupyterlab 已安装:\n"
                                 f"  pip install jupyterlab"
                             )
+
                     from PySide6.QtCore import QTimer
+
                     QTimer.singleShot(0, _show_error)
 
             t_jupyter = threading.Thread(
                 target=_start_and_load, daemon=True, name="JupyterStartup"
             )
             t_jupyter.start()
-            logger.info("JupyterLab 后台启动线程已派发，端口：%s", self.jupyter_mgr.port)
+            logger.info(
+                "JupyterLab 后台启动线程已派发，端口：%s", self.jupyter_mgr.port
+            )
 
         except Exception as exc:
             logger.warning("Jupyter 初始化失败（不影响其他功能）：%s", exc)
@@ -120,15 +131,15 @@ class UISetupMixin:
     def setup_docks(self):
         self.algebra_panel = AlgebraPanel(self)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.algebra_panel)
-        self.algebra_panel.setWindowTitle(t('algebra_panel.title').upper())
+        self.algebra_panel.setWindowTitle(t("algebra_panel.title").upper())
 
         self.properties_panel = PropertiesPanel(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properties_panel)
-        self.properties_panel.setWindowTitle(t('properties_panel.title').upper())
+        self.properties_panel.setWindowTitle(t("properties_panel.title").upper())
 
         self.console = PythonConsole(self)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.console)
-        self.console.setWindowTitle(t('console.title').upper())
+        self.console.setWindowTitle(t("console.title").upper())
         self.console.set_python_repl(self.python_repl)
 
         # ── 数学控制台（Octave / NumEngine 交互终端）────────────────────────────
@@ -142,17 +153,17 @@ class UISetupMixin:
         # 函数探索器面板
         self.function_explorer = FunctionExplorerPanel(self)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.function_explorer)
-        self.function_explorer.setWindowTitle(t('function_explorer.title').upper())
+        self.function_explorer.setWindowTitle(t("function_explorer.title").upper())
         self.function_explorer.hide()  # 默认隐藏
 
         self.algo_vis_panel = AlgoVisPanel(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.algo_vis_panel)
-        self.algo_vis_panel.setWindowTitle(t('algo_vis.title').upper())
+        self.algo_vis_panel.setWindowTitle(t("algo_vis.title").upper())
         self.algo_vis_panel.hide()
 
         self.ai_tools_panel = AIToolsPanel(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.ai_tools_panel)
-        self.ai_tools_panel.setWindowTitle(t('ai_tools.title').upper())
+        self.ai_tools_panel.setWindowTitle(t("ai_tools.title").upper())
         self.ai_tools_panel.hide()
 
         self.tabifyDockWidget(self.algo_vis_panel, self.ai_tools_panel)
@@ -161,11 +172,11 @@ class UISetupMixin:
         self.cmd_palette = CommandPalette(self.cmd_manager, self)
 
         # Ctrl+Shift+P 唤醒命令面板
-        palette_shortcut = QShortcut(QKeySequence('Ctrl+Shift+P'), self)
+        palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         palette_shortcut.activated.connect(self._show_command_palette)
 
         # Ctrl+P 备用快捷键
-        palette_shortcut2 = QShortcut(QKeySequence('Ctrl+P'), self)
+        palette_shortcut2 = QShortcut(QKeySequence("Ctrl+P"), self)
         palette_shortcut2.activated.connect(self._show_command_palette)
 
         # ── ✨ 信号接线：数学控制台 plot() 命令 → ECharts 渲染 ────────────────
@@ -178,34 +189,35 @@ class UISetupMixin:
     def load_stylesheet(self):
         try:
             from mathlab.utils.theme_manager import get_theme_colors
+
             theme = get_theme_colors()
-            
+
             stylesheet_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), 'ui', 'styles.qss'
+                os.path.dirname(os.path.dirname(__file__)), "ui", "styles.qss"
             )
-            with open(stylesheet_path, 'r', encoding='utf-8') as f:
+            with open(stylesheet_path, "r", encoding="utf-8") as f:
                 qss = f.read()
 
-            if theme['name'] != 'Dark':
-                qss = qss.replace('#13131A', theme['background'])
-                qss = qss.replace('#E0E0E6', theme['foreground'])
-                qss = qss.replace('#1E1E28', theme['panel_bg'])
-                qss = qss.replace('#2A2A35', theme['panel_border'])
-                qss = qss.replace('#181822', theme['console_bg'])
-                qss = qss.replace('#323242', theme['panel_border'])
-                qss = qss.replace('#FFFFFF', theme['console_fg'])
-                qss = qss.replace('#00A67E', theme['accent'])
-                qss = qss.replace('#2A2A38', theme['panel_bg'])
-                qss = qss.replace('#3A3A4A', theme['panel_border'])
-                qss = qss.replace('#353545', theme['panel_border'])
+            if theme["name"] != "Dark":
+                qss = qss.replace("#13131A", theme["background"])
+                qss = qss.replace("#E0E0E6", theme["foreground"])
+                qss = qss.replace("#1E1E28", theme["panel_bg"])
+                qss = qss.replace("#2A2A35", theme["panel_border"])
+                qss = qss.replace("#181822", theme["console_bg"])
+                qss = qss.replace("#323242", theme["panel_border"])
+                qss = qss.replace("#FFFFFF", theme["console_fg"])
+                qss = qss.replace("#00A67E", theme["accent"])
+                qss = qss.replace("#2A2A38", theme["panel_bg"])
+                qss = qss.replace("#3A3A4A", theme["panel_border"])
+                qss = qss.replace("#353545", theme["panel_border"])
 
             self.setStyleSheet(qss)
         except Exception as e:
-            logger.warning('样式表加载失败: %s', e)
+            logger.warning("样式表加载失败: %s", e)
 
     def _refresh_notebook_ui(self) -> None:
         # 暴力清空 UI 然后让其重新为空
-        while self.notebook.scroll_layout.count() > 1: # 结尾有弹簧
+        while self.notebook.scroll_layout.count() > 1:  # 结尾有弹簧
             item = self.notebook.scroll_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
@@ -282,8 +294,7 @@ class UISetupMixin:
         dock.setObjectName(f"dock_dynamic_{panel_name}")
         dock.setWidget(widget)
         self.addDockWidget(Qt.RightDockWidgetArea, dock)
-        if hasattr(self, 'ai_tools_panel'):
+        if hasattr(self, "ai_tools_panel"):
             self.tabifyDockWidget(self.ai_tools_panel, dock)
         dock.show()
         return dock
-

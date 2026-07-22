@@ -2,7 +2,10 @@ import math
 from PySide6.QtCore import Qt, QPointF, QLineF
 from PySide6.QtGui import QPen, QColor, QFont
 from PySide6.QtWidgets import (
-    QGraphicsLineItem, QGraphicsTextItem, QGraphicsScene, QApplication
+    QGraphicsLineItem,
+    QGraphicsTextItem,
+    QGraphicsScene,
+    QApplication,
 )
 
 
@@ -10,6 +13,7 @@ class SmartGuideManager:
     """
     负责在拖拽时渲染临时的智能辅助线（水平/垂直对齐、距离、角度）
     """
+
     def __init__(self, scene: QGraphicsScene):
         self.scene = scene
         self.guide_lines = []
@@ -28,8 +32,10 @@ class SmartGuideManager:
         self.guide_texts.clear()
 
     def draw_guides(
-        self, current_pos: QPointF, other_points: list[QPointF],
-        logical_threshold: float = 0.5
+        self,
+        current_pos: QPointF,
+        other_points: list[QPointF],
+        logical_threshold: float = 0.5,
     ):
         """
         判断是否对齐，并在需要时绘制辅助线与数据

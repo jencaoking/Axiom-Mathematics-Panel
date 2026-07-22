@@ -7,8 +7,9 @@ from mathlab.core.models.base import GeometricObject
 
 class FunctionPlot(GeometricObject):
     """显函数绘图：y = f(x)"""
+
     def __init__(self, obj_id, name, expression, x_range=(-10, 10), num_points=500):
-        super().__init__(obj_id, name, 'FunctionPlot')
+        super().__init__(obj_id, name, "FunctionPlot")
         self.expression = expression
         self.x_range = x_range
         self.num_points = num_points
@@ -18,8 +19,8 @@ class FunctionPlot(GeometricObject):
     def _generate_points(self):
         """生成离散点用于绘制（使用 lambdify 矢量化加速）"""
         try:
-            x_sym = symbols('x')
-            expr = parse_expr(self.expression, local_dict={'x': x_sym})
+            x_sym = symbols("x")
+            expr = parse_expr(self.expression, local_dict={"x": x_sym})
 
             x_vals = np.linspace(self.x_range[0], self.x_range[1], self.num_points)
 
@@ -31,55 +32,66 @@ class FunctionPlot(GeometricObject):
                     y_vals = func(x_vals)
             except Exception:
                 self.points_data = []
-                self.coordinates = {'points': []}
+                self.coordinates = {"points": []}
                 return
 
             # 过滤掉 NaN/Inf
             mask = np.isfinite(y_vals)
-            points = list(zip(x_vals[mask].tolist(), y_vals[mask].astype(float).tolist()))
+            points = list(
+                zip(x_vals[mask].tolist(), y_vals[mask].astype(float).tolist())
+            )
 
             self.points_data = points
-            self.coordinates = {'points': points}
+            self.coordinates = {"points": points}
         except Exception as e:
-            print(f'Error generating function plot points: {e}')
+            print(f"Error generating function plot points: {e}")
             self.points_data = []
 
     def to_latex(self):
-        return rf'y = {self.expression}'
+        return rf"y = {self.expression}"
 
     def serialize(self):
         data = super().serialize()
-        data['expression'] = self.expression
-        data['x_range'] = self.x_range
-        data['num_points'] = self.num_points
-        data['points_data'] = self.points_data
+        data["expression"] = self.expression
+        data["x_range"] = self.x_range
+        data["num_points"] = self.num_points
+        data["points_data"] = self.points_data
         return data
 
     @classmethod
     def deserialize(cls, data):
         # 使用工厂方法模式：绕过 __init__ 中的 _generate_points 调用
         # 但通过 super().__init__ 正确初始化基类，而非手动调用
-        expression = data.get('expression', 'x')
-        x_range = data.get('x_range', (-10, 10))
-        num_points = data.get('num_points', 500)
+        expression = data.get("expression", "x")
+        x_range = data.get("x_range", (-10, 10))
+        num_points = data.get("num_points", 500)
         obj = cls.__new__(cls)
-        GeometricObject.__init__(obj, data['id'], data['name'], 'FunctionPlot')
+        GeometricObject.__init__(obj, data["id"], data["name"], "FunctionPlot")
         obj.expression = expression
         obj.x_range = x_range
         obj.num_points = num_points
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.points_data = data.get('points_data', [])
+        obj.coordinates = data.get("coordinates", {})
+        obj.constraints = data.get("constraints", [])
+        obj.depends_on = data.get("depends_on", [])
+        obj.points_data = data.get("points_data", [])
         obj.symbolic_expr = None
-        obj.is_draft = data.get('is_draft', False)
+        obj.is_draft = data.get("is_draft", False)
         return obj
 
 
 class ImplicitPlot(GeometricObject):
     """隐函数绘图：f(x,y) = 0"""
-    def __init__(self, obj_id, name, expression, x_range=(-10, 10), y_range=(-10, 10), resolution=400):
-        super().__init__(obj_id, name, 'ImplicitPlot')
+
+    def __init__(
+        self,
+        obj_id,
+        name,
+        expression,
+        x_range=(-10, 10),
+        y_range=(-10, 10),
+        resolution=400,
+    ):
+        super().__init__(obj_id, name, "ImplicitPlot")
         self.expression = expression
         self.x_range = x_range
         self.y_range = y_range
@@ -98,8 +110,8 @@ class ImplicitPlot(GeometricObject):
         相比原双重 Python 循环，resolution=400 时约快 80-120 倍。
         """
         try:
-            x_sym, y_sym = symbols('x y')
-            expr = parse_expr(self.expression, local_dict={'x': x_sym, 'y': y_sym})
+            x_sym, y_sym = symbols("x y")
+            expr = parse_expr(self.expression, local_dict={"x": x_sym, "y": y_sym})
 
             # 创建网格
             x_vals = np.linspace(self.x_range[0], self.x_range[1], self.resolution)
@@ -126,11 +138,11 @@ class ImplicitPlot(GeometricObject):
             # 四个角点的切片（左上、右上、右下、左下）
             tl = Z_fin[:-1, :-1]
             tr = Z_fin[:-1, 1:]
-            br = Z_fin[1:,  1:]
-            bl = Z_fin[1:,  :-1]
+            br = Z_fin[1:, 1:]
+            bl = Z_fin[1:, :-1]
 
-            has_neg = ((tl <= 0) | (tr <= 0) | (br <= 0) | (bl <= 0))
-            has_pos = ((tl >= 0) | (tr >= 0) | (br >= 0) | (bl >= 0))
+            has_neg = (tl <= 0) | (tr <= 0) | (br <= 0) | (bl <= 0)
+            has_pos = (tl >= 0) | (tr >= 0) | (br >= 0) | (bl >= 0)
             # 同时包含正值和负值（或有限值过零）的单元才算轮廓穿越
             cell_mask = has_neg & has_pos
 
@@ -164,45 +176,48 @@ class ImplicitPlot(GeometricObject):
             else:
                 points = []
             self.points_data = points
-            self.coordinates = {'points': points}
+            self.coordinates = {"points": points}
         except Exception as e:
-            print(f'Error generating implicit plot points: {e}')
+            print(f"Error generating implicit plot points: {e}")
             self.points_data = []
 
     def to_latex(self):
-        return rf'{self.expression} = 0'
+        return rf"{self.expression} = 0"
 
     def serialize(self):
         data = super().serialize()
-        data['expression'] = self.expression
-        data['x_range'] = self.x_range
-        data['y_range'] = self.y_range
-        data['resolution'] = self.resolution
-        data['points_data'] = self.points_data
+        data["expression"] = self.expression
+        data["x_range"] = self.x_range
+        data["y_range"] = self.y_range
+        data["resolution"] = self.resolution
+        data["points_data"] = self.points_data
         return data
 
     @classmethod
     def deserialize(cls, data):
         # 绕过 __init__ 中的 _generate_points 调用，但完整初始化所有属性
         obj = cls.__new__(cls)
-        GeometricObject.__init__(obj, data['id'], data['name'], 'ImplicitPlot')
-        obj.expression = data.get('expression', 'x**2 + y**2 - 1')
-        obj.x_range = data.get('x_range', (-10, 10))
-        obj.y_range = data.get('y_range', (-10, 10))
-        obj.resolution = data.get('resolution', 400)
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.points_data = data.get('points_data', [])
+        GeometricObject.__init__(obj, data["id"], data["name"], "ImplicitPlot")
+        obj.expression = data.get("expression", "x**2 + y**2 - 1")
+        obj.x_range = data.get("x_range", (-10, 10))
+        obj.y_range = data.get("y_range", (-10, 10))
+        obj.resolution = data.get("resolution", 400)
+        obj.coordinates = data.get("coordinates", {})
+        obj.constraints = data.get("constraints", [])
+        obj.depends_on = data.get("depends_on", [])
+        obj.points_data = data.get("points_data", [])
         obj.symbolic_expr = None
-        obj.is_draft = data.get('is_draft', False)
+        obj.is_draft = data.get("is_draft", False)
         return obj
 
 
 class PolarPlot(GeometricObject):
     """极坐标绘图：r = f(θ)"""
-    def __init__(self, obj_id, name, expression, theta_range=(0, 2*np.pi), num_points=500):
-        super().__init__(obj_id, name, 'PolarPlot')
+
+    def __init__(
+        self, obj_id, name, expression, theta_range=(0, 2 * np.pi), num_points=500
+    ):
+        super().__init__(obj_id, name, "PolarPlot")
         self.expression = expression
         self.theta_range = theta_range
         self.num_points = num_points
@@ -212,10 +227,12 @@ class PolarPlot(GeometricObject):
     def _generate_points(self):
         """将极坐标转换为直角坐标并生成点（使用 lambdify 矢量化加速）"""
         try:
-            theta_sym = symbols('theta')
-            expr = parse_expr(self.expression, local_dict={'theta': theta_sym})
+            theta_sym = symbols("theta")
+            expr = parse_expr(self.expression, local_dict={"theta": theta_sym})
 
-            theta_vals = np.linspace(self.theta_range[0], self.theta_range[1], self.num_points)
+            theta_vals = np.linspace(
+                self.theta_range[0], self.theta_range[1], self.num_points
+            )
 
             try:
                 # 矢量化计算 r 值
@@ -225,7 +242,7 @@ class PolarPlot(GeometricObject):
                     r_vals = func(theta_vals)
             except Exception:
                 self.points_data = []
-                self.coordinates = {'points': []}
+                self.coordinates = {"points": []}
                 return
 
             # 过滤 NaN/Inf 后一次性转换为直角坐标
@@ -237,34 +254,35 @@ class PolarPlot(GeometricObject):
             points = list(zip(x.astype(float).tolist(), y.astype(float).tolist()))
 
             self.points_data = points
-            self.coordinates = {'points': points}
+            self.coordinates = {"points": points}
         except Exception as e:
-            print(f'Error generating polar plot points: {e}')
+            print(f"Error generating polar plot points: {e}")
             self.points_data = []
 
     def to_latex(self):
-        return rf'r = {self.expression}'
+        return rf"r = {self.expression}"
 
     def serialize(self):
         data = super().serialize()
-        data['expression'] = self.expression
-        data['theta_range'] = self.theta_range
-        data['num_points'] = self.num_points
-        data['points_data'] = self.points_data
+        data["expression"] = self.expression
+        data["theta_range"] = self.theta_range
+        data["num_points"] = self.num_points
+        data["points_data"] = self.points_data
         return data
 
     @classmethod
     def deserialize(cls, data):
         import math
+
         obj = cls.__new__(cls)
-        GeometricObject.__init__(obj, data['id'], data['name'], 'PolarPlot')
-        obj.expression = data.get('expression', 'theta')
-        obj.theta_range = tuple(data.get('theta_range', [0, 2*math.pi]))
-        obj.num_points = data.get('num_points', 500)
-        obj.coordinates = data.get('coordinates', {})
-        obj.constraints = data.get('constraints', [])
-        obj.depends_on = data.get('depends_on', [])
-        obj.points_data = data.get('points_data', [])
+        GeometricObject.__init__(obj, data["id"], data["name"], "PolarPlot")
+        obj.expression = data.get("expression", "theta")
+        obj.theta_range = tuple(data.get("theta_range", [0, 2 * math.pi]))
+        obj.num_points = data.get("num_points", 500)
+        obj.coordinates = data.get("coordinates", {})
+        obj.constraints = data.get("constraints", [])
+        obj.depends_on = data.get("depends_on", [])
+        obj.points_data = data.get("points_data", [])
         obj.symbolic_expr = None
-        obj.is_draft = data.get('is_draft', False)
+        obj.is_draft = data.get("is_draft", False)
         return obj
