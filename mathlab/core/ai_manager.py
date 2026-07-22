@@ -293,11 +293,11 @@ class AIManager(QObject):
         if canvas_state and canvas_state != "{}":
             dynamic_system_prompt += f"""\n\n
 【系统自动注入的视觉环境上下文】
-你可以“看到”用户当前的画板状态。以下是画板上所有几何图形的实时 JSON 快照：
+你可以"看到"用户当前的画板状态。以下是画板上所有几何图形的实时 JSON 快照：
 ```json
 {canvas_state}
 ```
-当用户问“这个图怎么解”、“为什么我画的不对”等模糊问题时，请务必参考上述快照数据进行推导和回答。
+当用户问"这个图怎么解"、"为什么我画的不对"等模糊问题时，请务必参考上述快照数据进行推导和回答。
 """
 
         if dynamic_system_prompt:
@@ -618,7 +618,7 @@ class BaseMathAgent:
             return "print('Error generating code')"
 
     def solve_problem(self, user_prompt: str, on_thought_cb=None,
-                      on_code_cb=None, on_finish_cb=None):
+                      on_code_cb=None, on_finish_cb=None, on_geom_cb=None):
         # ============== 前置校验：未配置 API 客户端时直接失败，避免 NoneType 崩溃 ==============
         if getattr(self.ai_manager, "client", None) is None:
             if on_thought_cb:
@@ -670,13 +670,18 @@ class BaseMathAgent:
                 execution_result = {"status": "error", "error": str(e)}
 
             if execution_result.get("status") == "ok":
+                # 提取沙箱中累积的几何绘图命令
+                geom_commands = execution_result.get("geom_commands", [])
+                if geom_commands and on_geom_cb:
+                    on_geom_cb(geom_commands)
+
                 if on_thought_cb:
                     on_thought_cb(
                         f"✅ 沙箱执行成功！输出:\n{
                             execution_result.get(
                                 'output', '')}")
 
-                # ============== 2. 触发后台“自我提炼”机制 ==============
+                # ============== 2. 触发后台"自我提炼"机制 ==============
                 threading.Thread(
                     target=self._reflect_and_save_skill,
                     args=(user_prompt, code_content),
@@ -686,7 +691,8 @@ class BaseMathAgent:
                 if on_finish_cb:
                     on_finish_cb(True, code_content)
                 return {"status": "ok", "code": code_content,
-                        "result": execution_result.get("output", "")}
+                        "result": execution_result.get("output", ""),
+                        "geom_commands": geom_commands}
             else:
                 error_msg = execution_result.get("error", "未知错误")
                 if on_thought_cb:
@@ -706,8 +712,8 @@ class BaseMathAgent:
     def _reflect_and_save_skill(self, original_prompt, raw_code):
         """后台静默运行：让大模型把刚刚跑通的特定业务代码，抽象为通用函数库"""
         reflection_prompt = f"""
-以下代码成功解决了任务：“{original_prompt}”。
-请你将这段代码进行“抽象和提炼”，将其封装成一个或多个通用的 Python 函数，剥离掉与特定题目相关的硬编码数字，并加上中文注释。
+以下代码成功解决了任务："{original_prompt}"。
+请你将这段代码进行"抽象和提炼"，将其封装成一个或多个通用的 Python 函数，剥离掉与特定题目相关的硬编码数字，并加上中文注释。
 
 你必须严格按照以下 JSON 格式返回，不要包含其他任何文本：
 {{
@@ -814,7 +820,7 @@ class PlannerAgent(BaseMathAgent):
         pass
 
     def solve_problem(self, user_prompt: str, on_thought_cb=None,
-                      on_code_cb=None, on_finish_cb=None):
+                      on_code_cb=None, on_finish_cb=None, on_geom_cb=None):
         """教研组长的核心调度闭环：拆解 → 串行委派 → 汇总。"""
 
         if getattr(self.ai_manager, "client", None) is None:
@@ -837,7 +843,7 @@ class PlannerAgent(BaseMathAgent):
                 on_thought_cb("⚠️ 教学大纲生成失败，回退到通用求解模式。")
             # 回退到基类的纯代码闭环
             return super().solve_problem(user_prompt, on_thought_cb,
-                                         on_code_cb, on_finish_cb)
+                                         on_code_cb, on_finish_cb, on_geom_cb)
 
         # 输出大纲
         if on_thought_cb:
@@ -850,6 +856,7 @@ class PlannerAgent(BaseMathAgent):
 
         # ========== 阶段 2: 串行调度子 Agent ==========
         all_codes: list[str] = []
+        all_geom_commands: list = []
         for step in steps:
             num = step.get("num", len(all_codes) + 1)
             title = step.get("title", "处理中...")
@@ -878,9 +885,10 @@ class PlannerAgent(BaseMathAgent):
                     on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
                 # 回退到 Planner 自己求解
                 result = super().solve_problem(
-                    sub_prompt, on_thought_cb, on_code_cb, on_finish_cb)  # type: ignore[arg-type]
+                    sub_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb)  # type: ignore[arg-type]
                 if isinstance(result, dict) and result.get("status") == "ok":
                     all_codes.append(result.get("code", ""))
+                    all_geom_commands.extend(result.get("geom_commands", []))
                 elif isinstance(result, dict) and result.get("status") == "failed":
                     if on_thought_cb:
                         on_thought_cb(f"  ❌ Planner 自行执行失败: {result.get('error')}")
@@ -889,6 +897,7 @@ class PlannerAgent(BaseMathAgent):
             sub_agent = sub_info["instance"]
             sub_success = False
             sub_code = ""
+            sub_geom: list = []
 
             # 收集子 Agent 的输出（前缀标记以示区分）
             def make_sub_thought_cb(step_num):
@@ -913,20 +922,33 @@ class PlannerAgent(BaseMathAgent):
                         sub_code = content
                 return _cb
 
+            def make_sub_geom_cb():
+                def _cb(cmds):
+                    nonlocal sub_geom
+                    sub_geom.extend(cmds)
+                    # 实时上抛给 UI 层，每个子步骤的画图立即呈现
+                    if on_geom_cb:
+                        on_geom_cb(cmds)
+                return _cb
+
             try:
                 sub_result = sub_agent.solve_problem(
                     sub_prompt,
                     on_thought_cb=make_sub_thought_cb(num),
                     on_code_cb=make_sub_code_cb(),
                     on_finish_cb=make_sub_finish_cb(),
+                    on_geom_cb=make_sub_geom_cb(),
                 )
                 if isinstance(sub_result, dict) and sub_result.get("status") == "ok":
                     sub_success = True
                     sub_code = sub_result.get("code", "")
+                    # 从返回值也收集一份（双重保障）
+                    sub_geom.extend(sub_result.get("geom_commands", []))
             except Exception as e:
                 if on_thought_cb:
                     on_thought_cb(f"  ❌ 子 Agent「{agent_name}」执行异常: {e}")
 
+            all_geom_commands.extend(sub_geom)
             if sub_success and sub_code:
                 all_codes.append(sub_code)
                 if on_thought_cb:
@@ -943,14 +965,27 @@ class PlannerAgent(BaseMathAgent):
         if on_finish_cb:
             on_finish_cb(True, final_code)
         return {"status": "ok", "code": final_code,
-                "topic": topic, "steps_executed": len(steps)}
+                "topic": topic, "steps_executed": len(steps),
+                "geom_commands": all_geom_commands}
 
 
 class GeometryAgent(BaseMathAgent):
     def __init__(self, ai_manager):
         super().__init__(ai_manager)
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
-你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用现有的全局几何画板环境绘图。
+你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用以下画板 API 在交互几何画板上作图：
+
+可用的画板 API（坐标均以浮点数传入，无需 import）：
+- draw_point(x, y, name=None)      在 (x,y) 画点，可指定标签
+- draw_segment((x1,y1), (x2,y2))   画线段
+- draw_circle(cx, cy, r)            以 (cx,cy) 为圆心、r 为半径画圆
+- draw_line(x1, y1, x2, y2)        过两点画直线
+- draw_ellipse(cx, cy, rx, ry)     以 (cx,cy) 为中心、rx/ry 为半轴画椭圆（退化为圆近似）
+- draw_polygon([(x1,y1), ...])     画多边形
+- clear_canvas()                    清空画板
+
+别名：add_point / add_segment / add_circle / add_line / add_ellipse / add_polygon 功能同上。
+当画图需求出现时，务必在代码中调用上述 API，它们会将图形同步到用户的交互画板上。
 请通过 Thought, Action, Observation 闭环进行。"""
 
 

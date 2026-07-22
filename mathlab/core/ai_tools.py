@@ -2,6 +2,76 @@
 import json
 from mathlab.core.jupyter_manager import get_jupyter_sandbox
 
+# ============================================================
+#  沙箱画板桥接 (Geometry Canvas Bridge)
+#  在 Jupyter 沙箱中注入下列函数，使 Agent 生成的代码能直接
+#  调用 draw_point / draw_segment / draw_circle 等 API，
+#  在交互几何画板上作图。所有命令收集到 __gbcmds 列表，
+#  执行结束后由 execute_math_task 提取并传回 UI 层执行。
+# ============================================================
+_GEOM_BRIDGE_INJECT = r"""
+# === Injected Geometry Canvas Bridge ===
+__gbcmds = []
+
+def draw_point(x, y, name=None):
+    '''在画板上绘制一个点，返回命令字典。'''
+    cmd = {"action": "add_point", "x": float(x), "y": float(y)}
+    if name is not None:
+        cmd["name"] = str(name)
+    __gbcmds.append(cmd)
+    return cmd
+
+def draw_segment(p1, p2):
+    '''用两点的坐标或 draw_point 返回值绘制线段。'''
+    x1, y1 = _extract_xy(p1)
+    x2, y2 = _extract_xy(p2)
+    cmd = {"action": "add_segment_auto", "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+    __gbcmds.append(cmd)
+    return cmd
+
+def draw_circle(cx, cy, r):
+    '''以 (cx,cy) 为圆心、r 为半径画圆。'''
+    cmd = {"action": "add_circle_auto", "cx": float(cx), "cy": float(cy), "r": float(r)}
+    __gbcmds.append(cmd)
+    return cmd
+
+def draw_line(x1, y1, x2, y2):
+    '''过两点画一条无限直线（区别于线段）。'''
+    cmd = {"action": "add_line_auto", "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2)}
+    __gbcmds.append(cmd)
+    return cmd
+
+def draw_ellipse(cx, cy, rx, ry):
+    '''以 (cx,cy) 为中心, rx/ry 为半轴画椭圆。'''
+    cmd = {"action": "add_ellipse_auto", "cx": float(cx), "cy": float(cy), "rx": float(rx), "ry": float(ry)}
+    __gbcmds.append(cmd)
+    return cmd
+
+def draw_polygon(points):
+    '''用坐标列表 [(x1,y1),(x2,y2),...] 画多边形。'''
+    pts = [(float(p[0]), float(p[1])) for p in points]
+    cmd = {"action": "add_polygon_auto", "coords": pts}
+    __gbcmds.append(cmd)
+    return cmd
+
+def clear_canvas():
+    '''清空当前画板。'''
+    __gbcmds.append({"action": "clear"})
+
+def _extract_xy(pt):
+    if isinstance(pt, dict) and "x" in pt:
+        return float(pt["x"]), float(pt["y"])
+    return float(pt[0]), float(pt[1])
+
+# 与文档 API 保持一致的别名
+add_point = draw_point
+add_segment = draw_segment
+add_circle = draw_circle
+add_line = draw_line
+add_ellipse = draw_ellipse
+add_polygon = draw_polygon
+"""
+
 # 几何画板操控工具的说明书
 GEOMETRY_DRAW_TOOL = {
     "type": "function",
@@ -166,17 +236,37 @@ AVAILABLE_TOOLS = [
 
 def execute_math_task(code_snippet: str):
     """
-    这是一个供 AI Agent 调用的函数工具。
-    Agent 会自动调用此函数来执行 Python 代码，并获取结果。
+    供 AI Agent 调用的沙箱执行入口。
+    自动注入几何画板桥接函数（draw_point/section/circle 等），
+    并把 Agent 代码中累积的绘图命令随返回值一起传出。
     """
-    # 将代码块交给 Jupyter 沙盒执行
-    result = get_jupyter_sandbox().execute_code(code_snippet)
+    # 将画板桥接函数注入到用户代码中
+    wrapped_code = (
+        _GEOM_BRIDGE_INJECT + "\n"
+        + code_snippet + "\n"
+        + "print('__GEOBRIDGE_CMDS__' + repr(__gbcmds))"
+    )
+    result = get_jupyter_sandbox().execute_code(wrapped_code)
 
-    # 将执行结果打包返回给 AI
+    # 从输出中分离绘图命令
+    output_text = result.get("text", "")
+    geom_commands = []
+    _MARKER = "__GEOBRIDGE_CMDS__"
+    if _MARKER in output_text:
+        idx = output_text.index(_MARKER)
+        cmds_str = output_text[idx + len(_MARKER):].strip()
+        output_text = output_text[:idx].rstrip()
+        result["text"] = output_text
+        try:
+            geom_commands = eval(cmds_str)
+        except Exception:
+            pass
+
     tb = result.get("traceback") or []
     error_text = "\n".join(tb) if isinstance(tb, list) else str(tb)
     return json.dumps({
         "status": result.get("status"),
-        "output": result.get("text", ""),
-        "error": error_text if result.get("status") == "error" else None
+        "output": output_text,
+        "error": error_text if result.get("status") == "error" else None,
+        "geom_commands": geom_commands,
     })

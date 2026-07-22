@@ -70,6 +70,9 @@ class AIMixin:
         
         # 结束 -> 善后处理
         self.agent_bridge.task_finished.connect(self._on_agent_task_finished)
+
+        # 几何绘图命令 -> 实时渲染到画板
+        self.agent_bridge.geom_commands_emitted.connect(self._on_geom_commands_received)
         
         # 5. 绑定全局输入框 (OmniBar) 的回车事件
         self.omni_bar.search_submitted.connect(self._trigger_global_ai_task)
@@ -147,6 +150,55 @@ class AIMixin:
         action = action_data.get('action')
         engine = self.geometry_engine if hasattr(self, 'geometry_engine') else None
         
+        # ── 坐标级变体：自动从坐标创建点后再连线/画圆 ──
+        if action == 'add_segment_auto':
+            x1, y1 = action_data.get('x1', 0), action_data.get('y1', 0)
+            x2, y2 = action_data.get('x2', 0), action_data.get('y2', 0)
+            if engine:
+                p1 = engine.add_point(x=x1, y=y1)
+                p2 = engine.add_point(x=x2, y=y2)
+                engine.add_segment(p1, p2)
+            return
+
+        if action == 'add_circle_auto':
+            cx, cy = action_data.get('cx', 0), action_data.get('cy', 0)
+            r = action_data.get('r', 1.0)
+            if engine:
+                center = engine.add_point(x=cx, y=cy)
+                engine.add_circle(center, r)
+            return
+
+        if action == 'add_line_auto':
+            # 无限直线退化为很长的线段
+            x1, y1 = action_data.get('x1', 0), action_data.get('y1', 0)
+            x2, y2 = action_data.get('x2', 0), action_data.get('y2', 0)
+            # 向两端各延伸 10 倍
+            dx, dy = x2 - x1, y2 - y1
+            if engine:
+                p1 = engine.add_point(x=x1 - dx * 10, y=y1 - dy * 10)
+                p2 = engine.add_point(x=x2 + dx * 10, y=y2 + dy * 10)
+                engine.add_segment(p1, p2)
+            return
+
+        if action == 'add_ellipse_auto':
+            # 几何引擎暂不支持椭圆，退化为圆（取平均半轴）
+            cx, cy = action_data.get('cx', 0), action_data.get('cy', 0)
+            rx = abs(action_data.get('rx', 1))
+            ry = abs(action_data.get('ry', 1))
+            r_avg = (rx + ry) / 2.0
+            if engine:
+                center = engine.add_point(x=cx, y=cy)
+                engine.add_circle(center, r_avg)
+            return
+
+        if action == 'add_polygon_auto':
+            coords = action_data.get('coords', [])
+            if len(coords) >= 3 and engine:
+                ids = [engine.add_point(x=float(p[0]), y=float(p[1])) for p in coords]
+                engine.add_polygon(ids)
+            return
+        
+        # ── 原有引用级动作 ──
         if action == 'add_point':
             x = action_data.get('x', 0.0)
             y = action_data.get('y', 0.0)
@@ -225,6 +277,14 @@ class AIMixin:
                     equation_str=expression,
                     variable='x'
                 )
+
+    def _on_geom_commands_received(self, commands):  # noqa: E303
+        """接收沙箱中累积的几何绘图命令，逐个执行到画板。"""
+        for cmd in commands:
+            try:
+                self.execute_ai_action(cmd)
+            except Exception as e:
+                logger.warning(f"执行几何绘图命令失败: {cmd} - {e}")
 
     def on_ai_fit_requested(self, points: list, model_type: str, params: dict = None) -> None:
         if not points:

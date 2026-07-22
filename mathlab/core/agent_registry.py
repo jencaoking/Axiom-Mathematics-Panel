@@ -114,7 +114,8 @@ class AgentRegistry:
 
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
 
-    def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb):
+    def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb,
+                          on_geom_cb=None):
         """
         核心路由逻辑：分类 -> 派发 -> 执行
         """
@@ -174,7 +175,8 @@ class AgentRegistry:
 
             # 4. 真正移交控制权，启动该专家的 ReAct 推理闭环
             expert_agent = self.agents[selected_agent_name]["instance"]
-            expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb, on_finish_cb)
+            expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb,
+                                       on_finish_cb, on_geom_cb)
 
         except Exception as e:
             if on_thought_cb:
