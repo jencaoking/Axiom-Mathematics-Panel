@@ -97,42 +97,7 @@ jobs:
         run: |
           if [ ! -f .pylintrc ]; then
             echo "⚠️ .pylintrc not found, creating default config..."
-            cat > .pylintrc << 'EOF'
-[MASTER]
-init-hook=
-disable=
-    C0114,
-    C0115,
-    C0116,
-    R0801,
-
-[MESSAGES CONTROL]
-disable=
-    W0703,
-    R0903,
-    R0913,
-    R0914,
-    R0915,
-    W0611,
-    W0212,
-
-[REPORTS]
-reports=no
-
-[TYPECHECK]
-ignored-modules=PyQt6,
-                 PyQt6.QtWidgets,
-                 PyQt6.QtGui,
-                 PyQt6.QtCore,
-                 PyQt6.QtCharts,
-                 PyQt6.QtSvg,
-                 numpy,
-                 scipy,
-                 matplotlib,
-
-[FORMAT]
-max-line-length=120
-EOF
+            printf '[MASTER]\ninit-hook=\ndisable=\n    C0114,\n    C0115,\n    C0116,\n    R0801,\n\n[MESSAGES CONTROL]\ndisable=\n    W0703,\n    R0903,\n    R0913,\n    R0914,\n    R0915,\n    W0611,\n    W0212,\n\n[REPORTS]\nreports=no\n\n[TYPECHECK]\nignored-modules=PyQt6,\n                 PyQt6.QtWidgets,\n                 PyQt6.QtGui,\n                 PyQt6.QtCore,\n                 PyQt6.QtCharts,\n                 PyQt6.QtSvg,\n                 numpy,\n                 scipy,\n                 matplotlib,\n\n[FORMAT]\nmax-line-length=120\n' > .pylintrc
           fi
           ls -la .pylintrc
 
