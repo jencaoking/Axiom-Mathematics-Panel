@@ -731,6 +731,221 @@ class BaseMathAgent:
             print(f"技能提炼失败 (后台线程): {e}")
 
 
+class PlannerAgent(BaseMathAgent):
+    """教研组长 —— 多智能体自治系统的顶层调度者。
+
+    职责：
+    1. 将用户的数学问题拆解为 3-5 个由浅入深的教学步骤
+    2. 串行调度 GeometryAgent / DataVizAgent 执行每一步
+    3. 汇总结果并给出最终教学总结
+    """
+
+    def __init__(self, ai_manager, agent_registry=None):
+        super().__init__(ai_manager)
+        self.agent_registry = agent_registry  # 持有全局路由大脑，用于子任务委派
+        self.system_prompt = """你是一个【数学教研组长 (PlannerAgent)】。
+你的核心职责是分析用户的数学问题，将其拆解为 3-5 个由浅入深、循序渐进的教学步骤，
+然后协调解析几何专家和数据可视化专家共同完成教学。
+教学过程中禁止直接给出最终答案——要通过引导式提问让学生自己发现规律。
+你的输出必须是严格的 JSON，不要包含任何其他文本。"""
+
+    def _decompose_problem(self, user_prompt: str) -> dict:
+        """
+        调用 LLM 将用户问题拆解为教学大纲。
+        返回格式: {"topic": "...", "steps": [{"num": 1, "title": "...", "hint_for_teacher": "..."}]}
+        """
+        decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
+
+用户问题：{user_prompt}
+
+你必须严格按照以下 JSON 格式返回，不要包含任何其他文本：
+{{
+    "topic": "本次课题的主题",
+    "steps": [
+        {{"num": 1, "title": "第一步标题", "hint_for_teacher": "给授课老师的提示"}},
+        {{"num": 2, "title": "第二步标题", "hint_for_teacher": "给授课老师的提示"}}
+    ]
+}}
+
+要求：
+1. 步骤从易到难，逐步引导
+2. 每个步骤聚焦一个核心探索点
+3. 不要一次性给最终答案
+4. 如果涉及画图，优先在前几步让几何专家画图"""
+        try:
+            response = self.ai_manager.client.chat.completions.create(
+                model=self.ai_manager.current_model,
+                messages=[{"role": "user", "content": decompose_prompt}],
+                temperature=0.3,
+                timeout=30,
+                response_format={"type": "json_object"},
+            )
+            plan = json.loads(response.choices[0].message.content)
+            return plan
+        except Exception as e:
+            # 降级：返回一个极简大纲
+            return {
+                "topic": user_prompt,
+                "steps": [
+                    {"num": 1, "title": "理解问题与分析已知条件",
+                     "hint_for_teacher": "引导学生识别问题类型和关键数值"},
+                    {"num": 2, "title": "建立数学模型与计算方法",
+                     "hint_for_teacher": "将文字描述转化为方程或几何图形"},
+                    {"num": 3, "title": "执行计算并验证结果",
+                     "hint_for_teacher": "通过数值计算或画图展示答案并检查合理性"},
+                ],
+            }
+
+    def _pick_sub_agent(self, step_title: str, hint: str) -> str:
+        """根据步骤标题和提示文本，推断应该派发给哪个子 Agent。
+        返回 AgentRegistry 中注册的名字（如 'GeometryAgent' 或 'DataVizAgent'）。
+        """
+        combined = f"{step_title} {hint}".lower()
+        viz_keywords = ["图表", "可视化", "数据", "统计", "echarts", "柱状图",
+                        "折线图", "饼图", "散点图", "3d曲面", "玫瑰图", "热力图"]
+        for kw in viz_keywords:
+            if kw in combined:
+                return "DataVizAgent"
+        # 绝大部分数学任务（画图、求解、几何、微积分）由几何专家处理
+        return "GeometryAgent"
+
+    def _step_result_cb(self, success: bool, content: str):
+        """子 Agent 结束回调，只收集结果，不触发 PlannerAgent 的顶级 finish。"""
+        pass
+
+    def solve_problem(self, user_prompt: str, on_thought_cb=None,
+                      on_code_cb=None, on_finish_cb=None):
+        """教研组长的核心调度闭环：拆解 → 串行委派 → 汇总。"""
+
+        if getattr(self.ai_manager, "client", None) is None:
+            if on_thought_cb:
+                on_thought_cb("❌ 未配置 AI API Key，无法启动教研调度。")
+            if on_finish_cb:
+                on_finish_cb(False, "未配置 API Key")
+            return {"status": "failed", "error": "未配置 API Key"}
+
+        # ========== 阶段 1: 拆解教学大纲 ==========
+        if on_thought_cb:
+            on_thought_cb("🧠 教研组长正在分析问题，制定教学大纲...")
+
+        plan = self._decompose_problem(user_prompt)
+        topic = plan.get("topic", user_prompt)
+        steps = plan.get("steps", [])
+
+        if not steps:
+            if on_thought_cb:
+                on_thought_cb("⚠️ 教学大纲生成失败，回退到通用求解模式。")
+            # 回退到基类的纯代码闭环
+            return super().solve_problem(user_prompt, on_thought_cb,
+                                         on_code_cb, on_finish_cb)
+
+        # 输出大纲
+        if on_thought_cb:
+            on_thought_cb(f"📋 课题：{topic}")
+            for s in steps:
+                on_thought_cb(
+                    f"  ├─ 步骤 {s['num']}: {s['title']}"
+                    f"（💡 {s.get('hint_for_teacher', '')}）"
+                )
+
+        # ========== 阶段 2: 串行调度子 Agent ==========
+        all_codes: list[str] = []
+        for step in steps:
+            num = step.get("num", len(all_codes) + 1)
+            title = step.get("title", "处理中...")
+            hint = step.get("hint_for_teacher", "")
+
+            sub_prompt = (
+                f"在教学主题「{topic}」的框架下，完成第 {num} 步：{title}。"
+                f"\n教学提示：{hint}"
+            )
+
+            agent_key = self._pick_sub_agent(title, hint)
+            agent_name = agent_key
+            if hasattr(self, "agent_registry") and self.agent_registry:
+                sub_info = self.agent_registry.agents.get(agent_key)
+            else:
+                sub_info = None
+
+            if on_thought_cb:
+                on_thought_cb(f"\n{'─' * 20}\n📖 第 {num} 步：{title}")
+                on_thought_cb(f"  🎯 调度：{agent_name}")
+                if hint:
+                    on_thought_cb(f"  💡 提示：{hint}")
+
+            if sub_info is None:
+                if on_thought_cb:
+                    on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
+                # 回退到 Planner 自己求解
+                result = super().solve_problem(
+                    sub_prompt, on_thought_cb, on_code_cb, on_finish_cb)  # type: ignore[arg-type]
+                if isinstance(result, dict) and result.get("status") == "ok":
+                    all_codes.append(result.get("code", ""))
+                elif isinstance(result, dict) and result.get("status") == "failed":
+                    if on_thought_cb:
+                        on_thought_cb(f"  ❌ Planner 自行执行失败: {result.get('error')}")
+                continue
+
+            sub_agent = sub_info["instance"]
+            sub_success = False
+            sub_code = ""
+
+            # 收集子 Agent 的输出（前缀标记以示区分）
+            def make_sub_thought_cb(step_num):
+                def _cb(text):
+                    if on_thought_cb:
+                        on_thought_cb(f"  [Step {step_num}] {text}")
+                return _cb
+
+            def make_sub_code_cb():
+                def _cb(code):
+                    if on_code_cb:
+                        on_code_cb(code)
+                    nonlocal sub_code
+                    sub_code = code
+                return _cb
+
+            def make_sub_finish_cb():
+                def _cb(success, content):
+                    nonlocal sub_success, sub_code
+                    sub_success = success
+                    if success and content:
+                        sub_code = content
+                return _cb
+
+            try:
+                sub_result = sub_agent.solve_problem(
+                    sub_prompt,
+                    on_thought_cb=make_sub_thought_cb(num),
+                    on_code_cb=make_sub_code_cb(),
+                    on_finish_cb=make_sub_finish_cb(),
+                )
+                if isinstance(sub_result, dict) and sub_result.get("status") == "ok":
+                    sub_success = True
+                    sub_code = sub_result.get("code", "")
+            except Exception as e:
+                if on_thought_cb:
+                    on_thought_cb(f"  ❌ 子 Agent「{agent_name}」执行异常: {e}")
+
+            if sub_success and sub_code:
+                all_codes.append(sub_code)
+                if on_thought_cb:
+                    on_thought_cb(f"  ✅ 第 {num} 步完成")
+            else:
+                if on_thought_cb:
+                    on_thought_cb(f"  ⚠️ 第 {num} 步未能产出完整结果，继续下一步")
+
+        # ========== 阶段 3: 汇总 ==========
+        final_code = "\n\n# ---- Planner 聚合代码 ----\n" + "\n\n".join(all_codes)
+        if on_thought_cb:
+            on_thought_cb(f"\n{'─' * 20}\n🏁 教研组已完成所有教学步骤！")
+
+        if on_finish_cb:
+            on_finish_cb(True, final_code)
+        return {"status": "ok", "code": final_code,
+                "topic": topic, "steps_executed": len(steps)}
+
+
 class GeometryAgent(BaseMathAgent):
     def __init__(self, ai_manager):
         super().__init__(ai_manager)

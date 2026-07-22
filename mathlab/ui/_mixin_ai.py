@@ -27,13 +27,22 @@ class AIMixin:
     # 🌟 2. 处理来自 Jupyter 的指令 🌟
     def _setup_ai_integration(self):
         from mathlab.core.agent_registry import AgentRegistry
-        from mathlab.core.ai_manager import GeometryAgent, DataVizAgent
+        from mathlab.core.ai_manager import PlannerAgent, GeometryAgent, DataVizAgent
         from mathlab.core.agent_bridge import AgentUIBridge
         
         # 1. 初始化联邦路由大脑
         self.agent_registry = AgentRegistry(self.ai_manager)
         
         # 2. 注册所有领域专家
+        # 教研组长优先注册（顶层调度者，能拆解任务并委派给其他专家）
+        self.agent_registry.register_agent(
+            name="PlannerAgent",
+            description="数学教研组长：将复杂问题拆解为3-5个循序渐进的教学步骤，然后调度解析几何专家和数据可视化专家协同完成教学。适合深层理解、苏格拉底式教学场景。",
+            agent_instance=PlannerAgent(self.ai_manager)
+        )
+        # 注入 registry 引用，让 Planner 可以委派给子 Agent
+        self.agent_registry.agents["PlannerAgent"]["instance"].agent_registry = self.agent_registry
+        
         self.agent_registry.register_agent(
             name="GeometryAgent",
             description="擅长解决平面几何、微积分、代数方程求解，以及二维坐标系中的点线圆绘制任务。",

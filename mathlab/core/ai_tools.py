@@ -110,7 +110,7 @@ AGENT_TRANSFER_TOOL = {
             "properties": {
                 "target_agent": {
                     "type": "string",
-                    "enum": ["general", "geometry", "quiz", "dataviz"],
+                    "enum": ["planner", "general", "geometry", "quiz", "dataviz"],
                     "description": "接手任务的目标专家 ID",
                 },
                 "handover_notes": {

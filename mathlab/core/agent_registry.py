@@ -17,6 +17,18 @@ class AgentInfo:
 
 # 全局专家名片表：id -> AgentInfo
 _AGENT_PROFILES = {
+    "planner": AgentInfo(
+        agent_id="planner",
+        name="教研组长",
+        icon="🎓",
+        system_prompt=(
+            "你是一个【数学教研组长 (PlannerAgent)】。\n"
+            "你的核心职责是分析用户的数学问题，将其拆解为 3-5 个由浅入深、循序渐进的教学步骤，\n"
+            "然后协调解析几何专家和数据可视化专家共同完成教学。\n"
+            "教学过程中禁止直接给出最终答案——要通过引导式提问让学生自己发现规律。"
+        ),
+        tools=AVAILABLE_TOOLS,
+    ),
     "general": AgentInfo(
         agent_id="general",
         name="通用数学助手",
@@ -142,12 +154,14 @@ class AgentRegistry:
             # 清理可能携带的标点符号和空格
             selected_agent_name = selected_agent_name.strip(" '\"\n\t*.,")
 
-            # 3. 容错回退机制
+            # 3. 容错回退机制：优先回退给教研组长（能拆解任何任务），其次 Geometry
             if selected_agent_name not in self.agents:
                 fallback = (
-                    "GeometryAgent"
-                    if "GeometryAgent" in self.agents
-                    else (list(self.agents.keys())[0] if self.agents else None)
+                    "PlannerAgent"
+                    if "PlannerAgent" in self.agents
+                    else ("GeometryAgent"
+                          if "GeometryAgent" in self.agents
+                          else (list(self.agents.keys())[0] if self.agents else None))
                 )
                 if not fallback:
                     raise RuntimeError("系统中没有任何已注册的专家。")
