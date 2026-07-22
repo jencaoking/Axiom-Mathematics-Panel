@@ -247,7 +247,8 @@ jobs:
             -x mathlab/resources,mathlab/logs \
             -f json \
             -o bandit-report.json \
-            -ll
+            -ll \
+            -c .bandit
 
       - name: Upload Bandit report
         if: always()
