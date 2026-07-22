@@ -6,26 +6,26 @@
 
 import os
 
-from PySide6.QtWidgets import QDockWidget, QTabWidget
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtWidgets import QDockWidget, QTabWidget
 
-from .canvas import GeometryCanvas
-from .algebra_panel import AlgebraPanel
-from .console import PythonConsole
-from .properties_panel import PropertiesPanel
-from .algo_vis_panel import AlgoVisPanel
 from .ai_tools_panel import AIToolsPanel
-from .function_explorer_panel import FunctionExplorerPanel
+from .algebra_panel import AlgebraPanel
+from .algo_vis_panel import AlgoVisPanel
 from .animations import fade_in, fade_out
+from .canvas import GeometryCanvas
+from .command_bar import CommandPalette
+from .console import PythonConsole
+from .function_explorer_panel import FunctionExplorerPanel
 from .math_console import MathConsole
 from .notebook_panel import NotebookPanel
-from .command_bar import CommandPalette
+from .properties_panel import PropertiesPanel
 
 # Soft dependencies
 try:
-    from mathlab.ui.jupyter_panel import JupyterPanel
     from mathlab.core.jupyter_manager import JupyterManager
+    from mathlab.ui.jupyter_panel import JupyterPanel
 except ImportError:
     JupyterPanel = None
     JupyterManager = None

@@ -1,5 +1,6 @@
-from PySide6.QtCore import QObject, Signal, QThread
 import traceback
+
+from PySide6.QtCore import QObject, QThread, Signal
 
 
 class AgentTaskWorker(QThread):

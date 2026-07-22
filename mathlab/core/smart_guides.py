@@ -1,11 +1,12 @@
 import math
-from PySide6.QtCore import Qt, QPointF, QLineF
-from PySide6.QtGui import QPen, QColor, QFont
+
+from PySide6.QtCore import QLineF, QPointF, Qt
+from PySide6.QtGui import QColor, QFont, QPen
 from PySide6.QtWidgets import (
-    QGraphicsLineItem,
-    QGraphicsTextItem,
-    QGraphicsScene,
     QApplication,
+    QGraphicsLineItem,
+    QGraphicsScene,
+    QGraphicsTextItem,
 )
 
 

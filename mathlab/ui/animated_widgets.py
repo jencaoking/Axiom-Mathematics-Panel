@@ -1,17 +1,17 @@
 from PySide6.QtCore import (
-    Qt,
-    QPropertyAnimation,
-    QEasingCurve,
-    QSequentialAnimationGroup,
     QAbstractAnimation,
+    QEasingCurve,
+    QPropertyAnimation,
+    QSequentialAnimationGroup,
+    Qt,
 )
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QToolButton,
-    QScrollArea,
     QGraphicsOpacityEffect,
     QLabel,
+    QScrollArea,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 

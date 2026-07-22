@@ -1,6 +1,7 @@
 import warnings
+
 import numpy as np
-from sympy import symbols, parse_expr, lambdify
+from sympy import lambdify, parse_expr, symbols
 
 from mathlab.core.models.base import GeometricObject
 

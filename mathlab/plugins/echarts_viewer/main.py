@@ -1,13 +1,16 @@
 # mathlab/plugins/echarts_viewer/main.py
-import os
 import json
+import os
+
 import numpy as np
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtCore import QUrl
+from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtWebEngineWidgets import QWebEngineView
+
 from mathlab.core.plugin_base import MathLabPlugin
-from .bridge import EChartsBridge
 from mathlab.utils.i18n_manager import t
+
+from .bridge import EChartsBridge
 
 
 class EChartsViewerPlugin(MathLabPlugin):

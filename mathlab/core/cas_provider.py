@@ -1,8 +1,9 @@
-from mathlab.core.cs_calculus_engine import cs_calculus
-import re
 import functools
+import re
 import threading
 from typing import TYPE_CHECKING, Any
+
+from mathlab.core.cs_calculus_engine import cs_calculus
 
 try:
     from mathlab.utils.logger import get_logger
@@ -32,19 +33,19 @@ def _load_sympy():
         if _sympy_loaded:
             return
         import sympy  # noqa: F811
-        from sympy import (
-            symbols,
-            Symbol,
+        from sympy import (  # noqa: F401
             Eq,
-            solve,
-            simplify,
+            Symbol,
+            diff,
             expand,
             factor,
-            diff,
             integrate,
-            limit,
             latex,
-        )  # noqa: F401
+            limit,
+            simplify,
+            solve,
+            symbols,
+        )
 
         _sympy_modules.update(
             {
@@ -446,11 +447,11 @@ class SmartCalculusSolver:
         智能积分求解器：先解析 (Python)，后数值 (C#)
         """
         _load_sympy()
-        from sympy import Symbol, integrate, Integral
+        from sympy import Integral, Symbol, integrate
         from sympy.parsing.sympy_parser import (
+            implicit_multiplication,
             parse_expr,
             standard_transformations,
-            implicit_multiplication,
         )
 
         x = Symbol(var_name)

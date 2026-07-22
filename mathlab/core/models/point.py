@@ -1,4 +1,4 @@
-from sympy import symbols, latex
+from sympy import latex, symbols
 
 from mathlab.core.models.base import GeometricObject
 

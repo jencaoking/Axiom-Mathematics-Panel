@@ -24,31 +24,31 @@ Signals exported to main window
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTabWidget,
-    QWidget,
-    QFormLayout,
-    QComboBox,
-    QPushButton,
-    QFontComboBox,
-    QSpinBox,
-    QDoubleSpinBox,
     QCheckBox,
-    QSlider,
-    QTableWidget,
-    QTableWidgetItem,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFontComboBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
-    QMessageBox,
-    QScrollArea,
-    QFrame,
     QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSlider,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
-from mathlab.utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
-from mathlab.utils.theme_manager import THEMES, set_theme, get_current_theme
+from mathlab.utils.i18n_manager import SUPPORTED_LANGUAGES, get_i18n, t
+from mathlab.utils.theme_manager import THEMES, get_current_theme, set_theme
 
 _TAB_STYLE = """
 QTabWidget::pane {

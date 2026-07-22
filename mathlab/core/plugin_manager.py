@@ -1,10 +1,11 @@
 # mathlab/core/plugin_manager.py
-import os
 import importlib
 import inspect
+import os
 from typing import Dict
-from mathlab.core.plugin_base import MathLabPlugin
+
 from mathlab.core.extension_api import MathLabAPI
+from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

@@ -1,22 +1,23 @@
 from enum import Enum
+
+from PySide6.QtCore import QPointF, Qt, QVariantAnimation
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
-    QGraphicsView,
-    QGraphicsScene,
     QGraphicsEllipseItem,
     QGraphicsLineItem,
+    QGraphicsScene,
+    QGraphicsView,
 )
-from PySide6.QtGui import QPen, QBrush, QColor, QPainter
-from PySide6.QtCore import Qt, QVariantAnimation, QPointF
 
-from mathlab.core.geogebra_engine import (
-    GeometryEngine,
-    GeoEntity,
-    GeoPoint,
-    GeoLine,
-    GeoCircle,
-    GeoIntersection,
-)
 from mathlab.core.animation import CreateAnimation
+from mathlab.core.geogebra_engine import (
+    GeoCircle,
+    GeoEntity,
+    GeoIntersection,
+    GeoLine,
+    GeometryEngine,
+    GeoPoint,
+)
 
 
 class ToolMode(Enum):

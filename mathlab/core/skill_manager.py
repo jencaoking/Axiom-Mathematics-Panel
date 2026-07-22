@@ -1,6 +1,7 @@
-import os
 import json
+import os
 import threading
+
 import numpy as np
 
 try:

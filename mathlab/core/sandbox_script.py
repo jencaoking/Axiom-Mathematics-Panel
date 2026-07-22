@@ -1,8 +1,8 @@
-import sys
+import ast
 import builtins
 import io
 import json
-import ast
+import sys
 
 ALLOWED_MODULES = {
     "math",

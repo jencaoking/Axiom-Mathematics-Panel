@@ -1,21 +1,22 @@
-import sys
-import os
 import json
+import logging
+import os
+import sys
 import tempfile
 import traceback
-import logging
+
+from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QTextEdit,
-    QStyle,
     QMessageBox,
+    QPushButton,
+    QStyle,
+    QTextEdit,
+    QVBoxLayout,
 )
-from PySide6.QtCore import QTimer, QObject
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
 import numpy as np
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
-from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt
-from mathlab.core.cs_complex_engine import cs_complex
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
 from mathlab.core.async_workers import TaskManager
+from mathlab.core.cs_complex_engine import cs_complex
 
 
 class ComplexPanel(QWidget):

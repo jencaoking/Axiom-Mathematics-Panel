@@ -1,6 +1,6 @@
 import io
-from functools import lru_cache
 from collections import OrderedDict
+from functools import lru_cache
 
 try:
     import matplotlib
@@ -13,9 +13,9 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
-from sympy import latex as sympy_latex
 from PySide6.QtCore import QByteArray
 from PySide6.QtSvg import QSvgRenderer
+from sympy import latex as sympy_latex
 
 
 def render_expression(expr):

@@ -1,6 +1,7 @@
 from collections import deque
-from mathlab.utils.logger import get_logger
+
 from mathlab.core.sandbox import SandboxProcess
+from mathlab.utils.logger import get_logger
 
 # jedi 用于代码补全，缺失时降级为无补全（不阻塞启动）
 try:

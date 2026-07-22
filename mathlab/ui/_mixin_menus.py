@@ -6,21 +6,21 @@
 
 import os
 
-from PySide6.QtWidgets import (
-    QMenuBar,
-    QMenu,
-    QToolBar,
-    QPushButton,
-)
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtWidgets import (
+    QMenu,
+    QMenuBar,
+    QPushButton,
+    QToolBar,
+)
 
-from .signal_lab_panel import SignalLabPanel
-from .fractal_gpu_panel import FractalGPUExplorer
-from .command_bar import CommandBar
-
-from mathlab.utils.theme_manager import THEMES, get_current_theme
 from mathlab.utils.i18n_manager import t
+from mathlab.utils.theme_manager import THEMES, get_current_theme
+
+from .command_bar import CommandBar
+from .fractal_gpu_panel import FractalGPUExplorer
+from .signal_lab_panel import SignalLabPanel
 
 
 class MenusMixin:

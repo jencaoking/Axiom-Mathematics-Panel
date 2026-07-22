@@ -1,28 +1,28 @@
+import numpy as np
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-    QScrollArea,
-    QFrame,
-    QTextEdit,
-    QTextBrowser,
-    QDockWidget,
-    QSpacerItem,
-    QSizePolicy,
-    QFileDialog,
-    QMessageBox,
     QComboBox,
+    QDockWidget,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QTextBrowser,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Signal, Qt
 
+from mathlab.core.notebook import CellType, MathLabNotebook
 from mathlab.ui.code_editor import MonacoCodeEditor
-from mathlab.core.notebook import MathLabNotebook, CellType
+from mathlab.ui.markdown_cell import MarkdownCellWidget
 from mathlab.utils.i18n_manager import t
 from mathlab.utils.markdown_service import MarkdownService
-import numpy as np
-from mathlab.ui.markdown_cell import MarkdownCellWidget
 
 
 class VSCodeStyleCellWidget(QFrame):

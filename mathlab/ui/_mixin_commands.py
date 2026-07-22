@@ -8,7 +8,7 @@ import platform
 import subprocess
 
 from mathlab.core.command_manager import Command
-from mathlab.utils.logger import get_logger, LOG_DIR
+from mathlab.utils.logger import LOG_DIR, get_logger
 
 logger = get_logger(__name__)
 

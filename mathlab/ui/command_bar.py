@@ -13,21 +13,21 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QFrame,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QLabel,
-    QFrame,
-    QGraphicsDropShadowEffect,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, Signal, QTimer, QEvent
-from PySide6.QtGui import QColor, QKeySequence, QShortcut, QFont
 
-from mathlab.core.command_manager import CommandManager, Command
+from mathlab.core.command_manager import Command, CommandManager
 
 # ══════════════════════════════════════════════════════════════════
 #  CommandPalette
@@ -402,7 +402,7 @@ class CommandPalette(QWidget):
 #  CommandBar  (向后兼容保留，仅转发 command_entered 信号)
 # ══════════════════════════════════════════════════════════════════
 
-from PySide6.QtWidgets import QLineEdit, QCompleter, QToolBar
+from PySide6.QtWidgets import QCompleter, QLineEdit, QToolBar
 
 
 class CommandBar(QToolBar):

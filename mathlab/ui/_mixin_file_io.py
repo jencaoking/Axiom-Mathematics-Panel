@@ -3,12 +3,12 @@
 将 MainWindow 中与项目文件 I/O 和导出相关的方法提取到此模块。
 """
 
-from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QPainter as QtPainter
 from PySide6.QtSvg import QSvgGenerator
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-from mathlab.utils.latex_renderer import export_canvas_to_latex
 from mathlab.utils.i18n_manager import t
+from mathlab.utils.latex_renderer import export_canvas_to_latex
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

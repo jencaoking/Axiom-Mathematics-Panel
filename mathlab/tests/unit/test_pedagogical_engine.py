@@ -7,18 +7,18 @@
 4. QualityReport — 评估报告序列化
 """
 
-from mathlab.core.student_model import (
-    StudentModel,
-    CognitiveLevel,
-    InteractionType,
-)
 from mathlab.core.pedagogical_engine import (
-    PedagogicalPromptBuilder,
-    TeachingQualityEvaluator,
     PedagogicalConstraint,
-    TeachingPrinciple,
+    PedagogicalPromptBuilder,
     QualityDimension,
     QualityReport,
+    TeachingPrinciple,
+    TeachingQualityEvaluator,
+)
+from mathlab.core.student_model import (
+    CognitiveLevel,
+    InteractionType,
+    StudentModel,
 )
 
 

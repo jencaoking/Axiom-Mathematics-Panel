@@ -2,25 +2,25 @@
 """微积分工具插件 — 提供导数/切线、定积分/面积、极限、泰勒展开的可视化计算。"""
 
 import numpy as np
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
+    QComboBox,
+    QDoubleSpinBox,
     QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QComboBox,
-    QSpinBox,
-    QDoubleSpinBox,
-    QTextEdit,
-    QGroupBox,
     QScrollArea,
+    QSpinBox,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
 
-from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.core.extension_api import MathLabAPI
+from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.utils.i18n_manager import t
 
 
@@ -235,7 +235,7 @@ class CalculusPanelWidget(QWidget):
         x0 = self.spin_deriv_x.value()
         # 数值计算 f'(x₀)
         try:
-            from sympy import symbols, lambdify
+            from sympy import lambdify, symbols
 
             x_sym = symbols("x")
             deriv_expr = result.get("result", "0")
@@ -280,7 +280,7 @@ class CalculusPanelWidget(QWidget):
         x0 = self.spin_taylor_point.value()
         n = self.spin_taylor_order.value()
         try:
-            from sympy import symbols, series
+            from sympy import series, symbols
 
             x_sym = symbols("x")
             expr = cas.parse_expression(expr_str)
@@ -344,7 +344,7 @@ class CalculusPanelWidget(QWidget):
         if not deriv_result.get("success"):
             return
 
-        from sympy import symbols, lambdify
+        from sympy import lambdify, symbols
 
         x_sym = symbols("x")
         f_expr = cas.parse_expression(expr_str)
@@ -388,7 +388,7 @@ class CalculusPanelWidget(QWidget):
         self._plotted_ids.append(func_id)
 
         # 2. 标记积分端点
-        from sympy import symbols, lambdify
+        from sympy import lambdify, symbols
 
         x_sym = symbols("x")
         cas = self._get_cas()
@@ -452,7 +452,7 @@ class CalculusPanelWidget(QWidget):
             return
 
         try:
-            from sympy import symbols, series
+            from sympy import series, symbols
 
             x_sym = symbols("x")
             expr = cas.parse_expression(expr_str)

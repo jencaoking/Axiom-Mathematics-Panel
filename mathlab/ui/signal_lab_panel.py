@@ -3,21 +3,23 @@ Real-time Signal Processing Lab - 实时信号处理实验室
 结合 C# FFT 极速引擎与 Echarts 动态渲染
 """
 
-import os
 import json
+import os
+
 import numpy as np
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QSlider,
-    QLabel,
-    QGroupBox,
-    QSplitter,
-    QCheckBox,
-)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QSlider,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
+
 from mathlab.core.async_workers import TaskManager
 
 # 尝试导入我们的底层引擎

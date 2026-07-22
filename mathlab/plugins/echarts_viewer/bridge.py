@@ -1,7 +1,7 @@
 import json
 import sys
 
-from PySide6.QtCore import QObject, Slot, Signal
+from PySide6.QtCore import QObject, Signal, Slot
 
 
 class EChartsBridge(QObject):

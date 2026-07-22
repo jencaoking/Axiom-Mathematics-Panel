@@ -14,34 +14,34 @@ jupyter_panel.py
 from __future__ import annotations
 
 import socket
-import urllib.request
 import urllib.error
 import urllib.parse
+import urllib.request
 
+from PySide6.QtCore import (
+    Property,
+    QEasingCurve,
+    QPropertyAnimation,
+    Qt,
+    QTimer,
+    QUrl,
+)
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QFrame,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import (
-    Qt,
-    QUrl,
-    QTimer,
-    QPropertyAnimation,
-    QEasingCurve,
-    Property,
-)
-from PySide6.QtGui import QColor
 
 try:
-    from PySide6.QtWebEngineWidgets import QWebEngineView
     from PySide6.QtWebEngineCore import (
-        QWebEngineSettings,
         QWebEnginePage,
+        QWebEngineSettings,
     )
+    from PySide6.QtWebEngineWidgets import QWebEngineView
 
     _WEBENGINE_AVAILABLE = True
 except ImportError:

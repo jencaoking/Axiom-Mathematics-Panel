@@ -1,10 +1,10 @@
+import hashlib
 import json
 import os
 import shutil
-import hashlib
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 # 进程级 MD5 缓存，key = (abspath, file_size, mtime_ns)
 # 避免同一文件未改动时重复读盘计算，减少主线程 I/O 阻塞。

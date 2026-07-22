@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QPointF
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsProxyWidget
+from PySide6.QtCore import QEasingCurve, QPointF, QPropertyAnimation, Qt
 from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QGraphicsProxyWidget, QLabel, QVBoxLayout, QWidget
 
 
 class FloatingBubbleWidget(QWidget):

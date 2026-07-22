@@ -1,7 +1,8 @@
 import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 
 class FractalGPUExplorer(QWidget):

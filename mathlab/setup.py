@@ -1,5 +1,6 @@
-from setuptools import setup, find_packages
 import os
+
+from setuptools import find_packages, setup
 
 # 从统一版本管理模块读取版本号
 version = "3.7.1"

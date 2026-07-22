@@ -1,5 +1,6 @@
 import math
-from PySide6.QtCore import Qt, QPointF
+
+from PySide6.QtCore import QPointF, Qt
 from PySide6.QtWidgets import QApplication
 
 

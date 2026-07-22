@@ -1,48 +1,44 @@
-from mathlab.core.ai_tools import AVAILABLE_TOOLS, validate_tool_call
-from mathlab.ui.quiz_panel import QuizCardWidget
 import re
-from mathlab.core.agent_registry import get_agent
-from mathlab.core.memory_manager import ChatMemoryManager
-from mathlab.core.prompt_manager import prompt_manager
-from mathlab.core.context_assembler import ContextAssembler
+
+from PySide6.QtCore import QObject, Qt, QThread, QThreadPool, Signal
+from PySide6.QtGui import QBrush, QColor, QPen, QTextCursor
 from PySide6.QtWidgets import (
-    QDockWidget,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTabWidget,
-    QPushButton,
     QComboBox,
-    QSpinBox,
-    QLabel,
-    QGraphicsView,
-    QGraphicsScene,
+    QDockWidget,
+    QFrame,
     QGraphicsEllipseItem,
     QGraphicsLineItem,
-    QProgressBar,
-    QPlainTextEdit,
-    QTextBrowser,
+    QGraphicsScene,
+    QGraphicsView,
+    QHBoxLayout,
+    QLabel,
     QLineEdit,
-    QFrame,
     QListWidget,
     QListWidgetItem,
+    QPlainTextEdit,
+    QProgressBar,
+    QPushButton,
+    QSpinBox,
+    QTabWidget,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
-from mathlab.ui.latex_chat_widget import LatexChatWidget
-from mathlab.ui.animated_widgets import SmoothCollapsibleBox, BreathingLabel
 
-from mathlab.ui.code_editor import AutocompleteTextEdit
-from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
-from PySide6.QtCore import Qt, Signal, QThread, QObject
-
-from mathlab.utils.i18n_manager import t
-
-from mathlab.core.ai_manager import AIRequestConfig, AIProvider, AIState
-
-from mathlab.ui.animations import start_breathing_effect, stop_animation
-
-from PySide6.QtCore import QThreadPool
-from mathlab.core.jupyter_manager import get_jupyter_sandbox
+from mathlab.core.agent_registry import get_agent
+from mathlab.core.ai_manager import AIProvider, AIRequestConfig, AIState
+from mathlab.core.ai_tools import AVAILABLE_TOOLS, validate_tool_call
 from mathlab.core.async_workers import TaskWorker
+from mathlab.core.context_assembler import ContextAssembler
+from mathlab.core.jupyter_manager import get_jupyter_sandbox
+from mathlab.core.memory_manager import ChatMemoryManager
+from mathlab.core.prompt_manager import prompt_manager
+from mathlab.ui.animated_widgets import BreathingLabel, SmoothCollapsibleBox
+from mathlab.ui.animations import start_breathing_effect, stop_animation
+from mathlab.ui.code_editor import AutocompleteTextEdit
+from mathlab.ui.latex_chat_widget import LatexChatWidget
+from mathlab.ui.quiz_panel import QuizCardWidget
+from mathlab.utils.i18n_manager import t
 
 try:
     from mathlab.utils.logger import get_logger
@@ -1088,9 +1084,10 @@ class AIToolsPanel(QDockWidget):
         self.token_label.setText(f"⚡ {total} Tokens")
 
     def on_ai_generate_request(self, user_prompt):
+        from PySide6.QtCore import QThreadPool
+
         from mathlab.core.ai_manager import GeometryAgent
         from mathlab.core.async_workers import TaskWorker
-        from PySide6.QtCore import QThreadPool
 
         if not hasattr(self, "ai_agent"):
             main_win = self.window()

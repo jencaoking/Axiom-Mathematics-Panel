@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import uuid
 import math
 import re
-from typing import List, Dict
+import uuid
+from typing import Dict, List
 
 
 class GeoEntity:

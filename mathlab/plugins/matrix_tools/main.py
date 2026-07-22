@@ -1,7 +1,8 @@
 # mathlab/plugins/matrix_tools/main.py
-from mathlab.core.plugin_base import MathLabPlugin
+from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+
 from mathlab.core.extension_api import MathLabAPI
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.utils.i18n_manager import t
 
 

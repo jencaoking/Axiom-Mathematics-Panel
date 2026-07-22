@@ -1,37 +1,37 @@
-from PySide6.QtWidgets import (
-    QGraphicsView,
-    QGraphicsScene,
-    QGraphicsItem,
-    QGraphicsEllipseItem,
-    QGraphicsLineItem,
-    QGraphicsPolygonItem,
-    QGraphicsTextItem,
-    QMenu,
-    QGraphicsSceneMouseEvent,
-)
-from PySide6.QtGui import QPolygonF
-from PySide6.QtGui import (
-    QPen,
-    QBrush,
-    QColor,
-    QFont,
-    QCursor,
-    QPainter,
-    QPainterPath,
-    QWheelEvent,
-)
 from PySide6.QtCore import (
-    Qt,
+    QEasingCurve,
+    QLineF,
     QPointF,
     QRectF,
-    Signal,
+    Qt,
     QTimer,
-    QLineF,
     QVariantAnimation,
-    QEasingCurve,
+    Signal,
 )
-from PySide6.QtSvgWidgets import QGraphicsSvgItem
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QCursor,
+    QFont,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPolygonF,
+    QWheelEvent,
+)
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtSvgWidgets import QGraphicsSvgItem
+from PySide6.QtWidgets import (
+    QGraphicsEllipseItem,
+    QGraphicsItem,
+    QGraphicsLineItem,
+    QGraphicsPolygonItem,
+    QGraphicsScene,
+    QGraphicsSceneMouseEvent,
+    QGraphicsTextItem,
+    QGraphicsView,
+    QMenu,
+)
 
 from mathlab.core.geometry_helpers import MagnetSnapper
 from mathlab.core.smart_guides import SmartGuideManager

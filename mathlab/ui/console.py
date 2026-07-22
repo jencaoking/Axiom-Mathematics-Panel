@@ -1,21 +1,20 @@
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QFont, QTextCursor
 from PySide6.QtWidgets import (
     QDockWidget,
-    QPlainTextEdit,
-    QLineEdit,
-    QWidget,
-    QVBoxLayout,
-    QPushButton,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
     QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtGui import QTextCursor, QFont
-from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
-
-from mathlab.utils.i18n_manager import t
-from mathlab.utils.markdown_service import MarkdownService
 
 from mathlab.core.async_workers import TaskManager
+from mathlab.utils.i18n_manager import t
+from mathlab.utils.markdown_service import MarkdownService
 
 
 class PythonConsole(QDockWidget):

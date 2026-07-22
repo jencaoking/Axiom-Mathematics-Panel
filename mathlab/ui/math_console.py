@@ -7,23 +7,23 @@ import html
 from typing import Any
 
 import numpy as np
-from PySide6.QtCore import Qt, QEvent
-from PySide6.QtGui import QFont, QTextCursor, QKeySequence, QShortcut
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QFont, QKeySequence, QShortcut, QTextCursor
 from PySide6.QtWidgets import (
     QDockWidget,
-    QWidget,
-    QVBoxLayout,
     QHBoxLayout,
-    QTextBrowser,
+    QLabel,
     QLineEdit,
     QPushButton,
-    QLabel,
     QSplitter,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
 )
 
 from mathlab.core.octave_bridge import OctaveBridge, OctaveBridgeError
-from mathlab.utils.i18n_manager import t
 from mathlab.ui.easter_eggs import EasterEggDetector
+from mathlab.utils.i18n_manager import t
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 调色板常量（与项目深色主题保持一致）

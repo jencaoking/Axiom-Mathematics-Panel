@@ -1,17 +1,18 @@
 import os
-from PySide6.QtWidgets import (
-    QVBoxLayout,
-    QHBoxLayout,
-    QTextEdit,
-    QPushButton,
-    QFrame,
-    QLabel,
-    QSpacerItem,
-    QSizePolicy,
-)
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtGui import QFont, QKeySequence
+
 from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QFont, QKeySequence
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QTextEdit,
+    QVBoxLayout,
+)
 
 
 class MarkdownTextEdit(QTextEdit):

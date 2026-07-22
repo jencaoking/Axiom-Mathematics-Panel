@@ -1,14 +1,14 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QLabel,
-    QRadioButton,
-    QPushButton,
     QButtonGroup,
+    QLabel,
     QLineEdit,
     QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
 
 from mathlab.core.ai_manager import DRAW_TOOL_SCHEMA
 

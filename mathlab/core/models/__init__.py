@@ -5,20 +5,20 @@
 """
 
 from mathlab.core.models.base import GeometricObject
-from mathlab.core.models.point import Point, Sphere, Plane3D
-from mathlab.core.models.line import Segment, Line
 from mathlab.core.models.circle import Circle
-from mathlab.core.models.polygon import Polygon
 from mathlab.core.models.conic import (
+    ConicSection,
     Ellipse,
     Hyperbola,
     Parabola,
-    ConicSection,
     _build_general_quadratic_latex,
 )
-from mathlab.core.models.function import FunctionPlot, ImplicitPlot, PolarPlot
-from mathlab.core.models.locus import Locus, Intersection
 from mathlab.core.models.dag import DAG
+from mathlab.core.models.function import FunctionPlot, ImplicitPlot, PolarPlot
+from mathlab.core.models.line import Line, Segment
+from mathlab.core.models.locus import Intersection, Locus
+from mathlab.core.models.point import Plane3D, Point, Sphere
+from mathlab.core.models.polygon import Polygon
 
 __all__ = [
     "GeometricObject",

@@ -10,10 +10,10 @@ import pytest
 
 from mathlab.utils.latex_renderer import (
     export_canvas_to_latex,
-    format_point,
-    format_segment,
     format_circle,
+    format_point,
     format_polygon,
+    format_segment,
 )
 
 

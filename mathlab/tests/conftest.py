@@ -5,9 +5,9 @@ All test tiers (unit, integration, e2e) inherit fixtures defined here.
 """
 
 import os
+import shutil
 import sys
 import tempfile
-import shutil
 from pathlib import Path
 
 import pytest

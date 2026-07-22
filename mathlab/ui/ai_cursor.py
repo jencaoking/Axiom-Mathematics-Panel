@@ -1,15 +1,15 @@
 from PySide6.QtCore import (
-    Qt,
-    QPointF,
     Property,
-    QPropertyAnimation,
     QEasingCurve,
-    Signal,
+    QPointF,
+    QPropertyAnimation,
     QRectF,
+    Qt,
     QTimer,
+    Signal,
 )
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import QGraphicsObject
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush
 
 
 class AICursorItem(QGraphicsObject):

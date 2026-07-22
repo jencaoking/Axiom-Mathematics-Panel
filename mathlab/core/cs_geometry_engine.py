@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # 确保能找到 DLL 路径
 dll_path = os.path.abspath(

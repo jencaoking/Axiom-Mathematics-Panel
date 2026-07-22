@@ -1,22 +1,22 @@
+from PySide6.QtCore import Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
-    QDockWidget,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
     QComboBox,
-    QPushButton,
-    QSpinBox,
-    QLabel,
-    QGraphicsView,
-    QGraphicsScene,
-    QGraphicsRectItem,
+    QDockWidget,
     QGraphicsEllipseItem,
     QGraphicsLineItem,
+    QGraphicsRectItem,
+    QGraphicsScene,
     QGraphicsTextItem,
+    QGraphicsView,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
     QSlider,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtGui import QPen, QBrush, QColor, QFont, QPainter
-from PySide6.QtCore import Qt, Signal, Slot, QTimer
 
 from mathlab.utils.i18n_manager import t
 

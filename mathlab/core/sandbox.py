@@ -1,11 +1,12 @@
+import json
+import os
+import signal
 import subprocess
 import sys
-import os
-import json
 import threading
 import time
-import signal
 from queue import Queue
+
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

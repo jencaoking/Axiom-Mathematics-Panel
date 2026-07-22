@@ -1,34 +1,34 @@
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QMainWindow
-from PySide6.QtGui import QShortcut, QKeySequence
 
-from mathlab.ui.omni_bar import OmniBar
+from mathlab.core.ai_manager import AIManager
+from mathlab.core.algo_animator import AlgoAnimator
+from mathlab.core.async_workers import (
+    AIClusterWorker,
+    AIFitWorker,
+    AIGeneratePointsWorker,
+    AIRecognizeWorker,
+    TaskManager,
+)
+from mathlab.core.cas_provider import CASProvider
+from mathlab.core.command_manager import Command, CommandManager
+from mathlab.core.error_manager import AutoSaver
+from mathlab.core.extension_api import MathLabAPI
 
 # ── 核心引擎导入（统一使用绝对导入） ──────────────────────────────────────
 from mathlab.core.geometry_engine import GeometryEngine
-from mathlab.core.python_repl import PythonREPL
-from mathlab.core.ai_manager import AIManager
-from mathlab.core.cas_provider import CASProvider
-from mathlab.core.algo_animator import AlgoAnimator
-from mathlab.core.async_workers import (
-    TaskManager,
-    AIFitWorker,
-    AIClusterWorker,
-    AIRecognizeWorker,
-    AIGeneratePointsWorker,
-)
-from mathlab.core.command_manager import CommandManager, Command
-from mathlab.core.ipc_server import JupyterIPCServer
 from mathlab.core.ipc_client import JupyterIPCClient
-from mathlab.core.error_manager import AutoSaver
-from mathlab.core.sandbox import SandboxManager
-from mathlab.core.extension_api import MathLabAPI
+from mathlab.core.ipc_server import JupyterIPCServer
 from mathlab.core.plugin_manager import PluginManager
+from mathlab.core.python_repl import PythonREPL
+from mathlab.core.sandbox import SandboxManager
 from mathlab.data.project import ProjectManager
+from mathlab.ui.omni_bar import OmniBar
 
 # ── JupyterLab 嵌入组件（软依赖：WebEngine 不存在时降级为占位面板） ──────────
 try:
-    from mathlab.ui.jupyter_panel import JupyterPanel
     from mathlab.core.jupyter_manager import JupyterManager
+    from mathlab.ui.jupyter_panel import JupyterPanel
 except ImportError:
     JupyterPanel = None
     JupyterManager = None
@@ -38,20 +38,20 @@ try:
 except ImportError:
     PreferencesDialog = None
 
-from mathlab.utils.theme_manager import get_current_theme
-from mathlab.utils.i18n_manager import t, get_i18n
+from mathlab.utils.i18n_manager import get_i18n, t
 from mathlab.utils.logger import get_logger
+from mathlab.utils.theme_manager import get_current_theme
 
 logger = get_logger(__name__)
 
 
-from mathlab.ui._mixin_ui_setup import UISetupMixin
+from mathlab.ui._mixin_ai import AIMixin
+from mathlab.ui._mixin_commands import CommandsMixin
+from mathlab.ui._mixin_dialogs import DialogsMixin
+from mathlab.ui._mixin_file_io import FileIOMixin
 from mathlab.ui._mixin_menus import MenusMixin
 from mathlab.ui._mixin_signals import SignalsMixin
-from mathlab.ui._mixin_commands import CommandsMixin
-from mathlab.ui._mixin_ai import AIMixin
-from mathlab.ui._mixin_file_io import FileIOMixin
-from mathlab.ui._mixin_dialogs import DialogsMixin
+from mathlab.ui._mixin_ui_setup import UISetupMixin
 
 
 class MainWindow(

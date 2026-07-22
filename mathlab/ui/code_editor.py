@@ -1,11 +1,12 @@
-import os
 import json
+import os
 import re
 import threading
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl, QObject, Slot, Signal, Qt
+
+from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 try:
     from mathlab.core.jupyter_manager import get_jupyter_sandbox
@@ -147,7 +148,7 @@ class EditorBackend(QObject):
             js_cmd = f"receiveGhostText({req_id}, {escaped_suggestion});"
 
             # 必须使用 QMetaObject.invokeMethod 或直接抛给主线程运行 JS
-            from PySide6.QtCore import QMetaObject, Qt, Q_ARG
+            from PySide6.QtCore import Q_ARG, QMetaObject, Qt
 
             QMetaObject.invokeMethod(
                 self.parent_widget.web_view.page(),
@@ -159,7 +160,7 @@ class EditorBackend(QObject):
         except Exception as e:
             print(f"Ghost Text Fetch Error: {e}")
             # 如果出错，发送空补全，防止 Monaco 的 Promise 永远挂起
-            from PySide6.QtCore import QMetaObject, Qt, Q_ARG
+            from PySide6.QtCore import Q_ARG, QMetaObject, Qt
 
             js_cmd = f"receiveGhostText({req_id}, '');"
             QMetaObject.invokeMethod(

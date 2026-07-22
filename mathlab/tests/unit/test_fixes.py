@@ -12,14 +12,14 @@
 9. AIFacade: agent_registry 初始化检查
 """
 
+import ast
+import json
 import os
 import sys
-import json
-import ast
-import time
-import threading
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
+import threading
+import time
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -164,6 +164,7 @@ class TestJupyterSandboxFix:
     def test_no_bare_print_in_source(self):
         """验证源代码中没有裸 print 调用。"""
         import inspect
+
         from mathlab.core import jupyter_manager
 
         source = inspect.getsource(jupyter_manager)
@@ -270,6 +271,7 @@ class TestSandboxProcessFix:
     def test_run_code_uses_watchdog_thread(self):
         """验证 run_code 启动独立的看门狗线程。"""
         import inspect
+
         from mathlab.core.sandbox import SandboxProcess
 
         source = inspect.getsource(SandboxProcess.run_code)
@@ -282,6 +284,7 @@ class TestSandboxProcessFix:
     def test_no_duplicate_timeout_check(self):
         """验证主循环中不再有重复的超时检查。"""
         import inspect
+
         from mathlab.core.sandbox import SandboxProcess
 
         source = inspect.getsource(SandboxProcess.run_code)
@@ -307,6 +310,7 @@ class TestAIManagerPathFix:
     def test_reload_config_has_fallback(self):
         """验证 reload_config 有降级方案。"""
         import inspect
+
         from mathlab.core.ai_manager import AIManager
 
         source = inspect.getsource(AIManager.reload_config)
@@ -433,6 +437,7 @@ class TestAgentRegistryTimeoutFix:
     def test_timeout_thread_used(self):
         """验证执行时使用了线程和超时。"""
         import inspect
+
         from mathlab.core.agent_registry import AgentRegistry
 
         source = inspect.getsource(AgentRegistry.route_and_execute)
@@ -475,6 +480,7 @@ class TestAIFacadeFix:
     def test_warning_when_registry_none(self, caplog):
         """验证 agent_registry 为 None 时记录警告。"""
         import logging
+
         from mathlab.core.ai_facade import AIFacade
 
         mock_ai_manager = Mock()
@@ -488,6 +494,7 @@ class TestAIFacadeFix:
     def test_no_warning_when_registry_provided(self, caplog):
         """验证 agent_registry 提供时不记录警告。"""
         import logging
+
         from mathlab.core.ai_facade import AIFacade
 
         mock_ai_manager = Mock()

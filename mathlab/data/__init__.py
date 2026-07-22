@@ -1,5 +1,5 @@
+from .file_manager import FileCategory, FileFormat, FileIndex, FileManager, SearchFilter
 from .project import ProjectManager
-from .file_manager import FileManager, FileCategory, FileFormat, FileIndex, SearchFilter
 
 __all__ = [
     "ProjectManager",

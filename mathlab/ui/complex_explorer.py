@@ -1,9 +1,10 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt
 import numpy as np
-from mathlab.core.cs_complex_engine import cs_complex
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
+
 from mathlab.core.async_workers import TaskManager
+from mathlab.core.cs_complex_engine import cs_complex
 
 
 class FractalExplorer(QWidget):

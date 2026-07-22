@@ -2,24 +2,25 @@
 """动画演示插件 — 几何变换动画、函数参数动画、轨迹追踪动画。"""
 
 import math
+
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
+    QComboBox,
+    QDoubleSpinBox,
     QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QComboBox,
-    QDoubleSpinBox,
-    QGroupBox,
     QScrollArea,
     QSlider,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QTimer
 
-from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.core.extension_api import MathLabAPI
+from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.utils.i18n_manager import t
 
 

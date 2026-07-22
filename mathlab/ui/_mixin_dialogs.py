@@ -5,13 +5,13 @@
 """
 
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QComboBox,
-    QPushButton,
     QMessageBox,
+    QPushButton,
+    QVBoxLayout,
 )
 
 try:
@@ -19,8 +19,8 @@ try:
 except ImportError:
     PreferencesDialog = None
 
-from mathlab.utils.theme_manager import THEMES, set_theme, get_current_theme
-from mathlab.utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+from mathlab.utils.i18n_manager import SUPPORTED_LANGUAGES, get_i18n, t
+from mathlab.utils.theme_manager import THEMES, get_current_theme, set_theme
 
 
 class DialogsMixin:

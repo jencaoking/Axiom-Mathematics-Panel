@@ -1,11 +1,11 @@
 import os
-import sys
 import queue
 import socket
 import subprocess
-import time
+import sys
 import threading
-from typing import Dict, Any, Optional
+import time
+from typing import Any, Dict, Optional
 
 try:
     from jupyter_client import KernelManager
@@ -323,9 +323,9 @@ class JupyterManager:
 
     def _wait_for_ready(self, timeout: int) -> bool:
         """轮询 HTTP 端口，等待 JupyterLab 服务器响应"""
-        import urllib.request
         import urllib.error
         import urllib.parse
+        import urllib.request
 
         deadline = time.time() + timeout
         check_url = f"http://127.0.0.1:{self.port}/api/status"

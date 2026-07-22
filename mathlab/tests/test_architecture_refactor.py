@@ -9,6 +9,7 @@
 
 import os
 import sys
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -312,21 +313,21 @@ class TestModelsBackwardCompat:
     def test_import_from_geometry_engine(self):
         """从 geometry_engine 导入所有类应正常工作。"""
         from mathlab.core.geometry_engine import (  # noqa: F401
-            Point,
-            Segment,
-            Circle,
-            Polygon,
-            Ellipse,
-            Hyperbola,
-            Parabola,
-            ConicSection,
-            FunctionPlot,
-            ImplicitPlot,
-            PolarPlot,
-            Locus,
-            Intersection,
             DAG,
+            Circle,
+            ConicSection,
+            Ellipse,
+            FunctionPlot,
             GeometricObject,
+            Hyperbola,
+            ImplicitPlot,
+            Intersection,
+            Locus,
+            Parabola,
+            Point,
+            PolarPlot,
+            Polygon,
+            Segment,
         )
 
         assert Point is not None

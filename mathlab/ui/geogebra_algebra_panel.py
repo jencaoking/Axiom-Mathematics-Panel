@@ -1,13 +1,13 @@
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
-    QScrollArea,
     QLabel,
     QLineEdit,
-    QFrame,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, Signal
 
 
 class AlgebraItemWidget(QFrame):

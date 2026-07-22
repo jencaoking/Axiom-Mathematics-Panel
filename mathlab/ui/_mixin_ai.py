@@ -4,15 +4,15 @@
 以及后台 AI Worker (拟合/聚类/识别/生成) 相关的方法提取到此模块。
 """
 
-from mathlab.core.prompt_manager import prompt_manager
-from mathlab.core.async_workers import (
-    TaskManager,
-    AIFitWorker,
-    AIClusterWorker,
-    AIRecognizeWorker,
-    AIGeneratePointsWorker,
-)
 from mathlab.core.ai_facade import AIFacade, AITaskType
+from mathlab.core.async_workers import (
+    AIClusterWorker,
+    AIFitWorker,
+    AIGeneratePointsWorker,
+    AIRecognizeWorker,
+    TaskManager,
+)
+from mathlab.core.prompt_manager import prompt_manager
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -23,16 +23,17 @@ class AIMixin:
 
     # 🌟 2. 处理来自 Jupyter 的指令 🌟
     def _setup_ai_integration(self):
+        import os
+
+        from mathlab.core.agent_bridge import AgentUIBridge
         from mathlab.core.agent_registry import AgentRegistry
         from mathlab.core.ai_manager import (
-            PlannerAgent,
-            GeometryAgent,
             DataVizAgent,
+            GeometryAgent,
+            PlannerAgent,
             ResourceConfig,
         )
-        from mathlab.core.agent_bridge import AgentUIBridge
         from mathlab.core.student_model import StudentModelManager
-        import os
 
         # 0. 初始化学生认知模型管理器（自适应学习核心）
         self.student_model_manager = StudentModelManager()
@@ -130,8 +131,8 @@ class AIMixin:
             }
         }
         """
-        import os
         import json
+        import os
 
         try:
             package_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -196,6 +197,7 @@ class AIMixin:
         # 光标小幅抖动，模拟正在打字
         if hasattr(self, "ai_cursor"):
             import random
+
             from PySide6.QtCore import QPointF
 
             curr_pos = self.ai_cursor.cursorPos

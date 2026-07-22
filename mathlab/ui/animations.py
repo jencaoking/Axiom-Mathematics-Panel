@@ -1,10 +1,10 @@
 from PySide6.QtCore import (
-    QPropertyAnimation,
     QEasingCurve,
-    QSequentialAnimationGroup,
     QObject,
+    QPropertyAnimation,
+    QSequentialAnimationGroup,
 )
-from PySide6.QtWidgets import QWidget, QGraphicsOpacityEffect
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QWidget
 
 
 class AnimationManager:

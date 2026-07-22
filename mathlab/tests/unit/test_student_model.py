@@ -10,12 +10,12 @@
 import os
 
 from mathlab.core.student_model import (
-    StudentModel,
     AdaptiveEngine,
-    StudentModelManager,
     CognitiveLevel,
-    LearningStyle,
     InteractionType,
+    LearningStyle,
+    StudentModel,
+    StudentModelManager,
 )
 
 

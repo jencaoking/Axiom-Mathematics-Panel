@@ -8,13 +8,13 @@ midpoint, parse_coordinates, generate_id, and format_number.
 import pytest
 
 from mathlab.utils.helpers import (
-    lerp,
     clamp,
     distance,
+    format_number,
+    generate_id,
+    lerp,
     midpoint,
     parse_coordinates,
-    generate_id,
-    format_number,
 )
 
 

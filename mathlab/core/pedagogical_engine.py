@@ -17,13 +17,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from mathlab.utils.logger import get_logger
 from mathlab.core.student_model import (
+    AdaptiveEngine,
     CognitiveLevel,
     LearningStyle,
     StudentModel,
-    AdaptiveEngine,
 )
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -10,15 +10,16 @@
 
 import threading
 import time
+
 import pytest
 
 from mathlab.core.agent_message import (
     AgentMessage,
     MessageBus,
     MessageHistory,
+    MessagePriority,
     MessageRouter,
     MessageType,
-    MessagePriority,
     get_message_bus,
     get_message_router,
     reset_message_bus,

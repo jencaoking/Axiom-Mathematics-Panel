@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 import clr
 import numpy as np
 

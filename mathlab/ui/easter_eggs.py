@@ -1,7 +1,8 @@
 import math
 import re
-from PySide6.QtCore import Qt, QTimer, QRectF, QVariantAnimation, QEasingCurve
-from PySide6.QtGui import QPainter, QColor, QPen
+
+from PySide6.QtCore import QEasingCurve, QRectF, Qt, QTimer, QVariantAnimation
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
 

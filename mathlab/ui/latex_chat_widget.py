@@ -1,7 +1,8 @@
 import json
 import os
-from PySide6.QtWebEngineWidgets import QWebEngineView
+
 from PySide6.QtCore import QUrl
+from PySide6.QtWebEngineWidgets import QWebEngineView
 
 
 class LatexChatWidget(QWebEngineView):

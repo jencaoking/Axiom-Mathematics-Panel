@@ -8,8 +8,8 @@
 智能路由：根据内容自动选择最佳引擎
 """
 
-import re
 import io
+import re
 from enum import Enum
 from functools import lru_cache
 from typing import List, Tuple
@@ -294,8 +294,8 @@ class MarkdownService:
         display: bool,
     ) -> str:
         """将 LaTeX 渲染为 PNG 并注册到 QTextDocument，返回 <img> 标签"""
-        from PySide6.QtGui import QImage, QTextDocument
         from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QImage, QTextDocument
 
         png_data = self._generate_latex_png(latex_str)
         if not png_data:

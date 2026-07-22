@@ -5,22 +5,22 @@ Properties Panel — redesigned with three collapsible sections:
   • Definition  (read-only formula display)
 """
 
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDockWidget,
-    QWidget,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QSlider,
-    QCheckBox,
-    QTextEdit,
-    QFrame,
-    QSizePolicy,
     QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QColor, QPainter, QBrush, QPen, QFont
 
 from mathlab.utils.i18n_manager import t
 

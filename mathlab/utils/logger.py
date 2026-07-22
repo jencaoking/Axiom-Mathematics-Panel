@@ -11,11 +11,11 @@
     logger.error("Something went wrong", exc_info=True)
 """
 
+import logging
 import os
 import sys
-import logging
-from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 # ── 日志目录：打包模式写到 exe 同级目录，开发模式写到 mathlab/logs/ ──────
 if getattr(sys, "frozen", False):

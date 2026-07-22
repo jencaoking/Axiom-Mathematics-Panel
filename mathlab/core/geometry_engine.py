@@ -1,35 +1,34 @@
 import uuid
-import numpy as np
 from collections import defaultdict
-from sympy import symbols, Eq, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs
+
+import numpy as np
+from PySide6.QtCore import QObject, Signal
+from sympy import Abs, Eq, cos, exp, log, parse_expr, pi, sin, sqrt, symbols, tan
 from sympy.parsing.sympy_parser import standard_transformations
 
-from PySide6.QtCore import QObject, Signal
-
+# 星号导入用于向后兼容（外部代码可能使用 `from geometry_engine import *`）
 # 重新导出所有几何模型类（已拆分到 mathlab.core.models 子包），保持向后兼容
 # 现有的 `from mathlab.core.geometry_engine import XXX` 无需修改
+from mathlab.core.models import *  # noqa: F401, F403
 from mathlab.core.models import (
     DAG,
+    Circle,
+    ConicSection,
+    Ellipse,
+    FunctionPlot,
     GeometricObject,
-    Point,
-    Sphere,
-    Locus,
+    Hyperbola,
+    ImplicitPlot,
     Intersection,
     Line,
-    Segment,
-    FunctionPlot,
-    ImplicitPlot,
-    PolarPlot,
-    Ellipse,
-    Hyperbola,
+    Locus,
     Parabola,
-    ConicSection,
-    Circle,
+    Point,
+    PolarPlot,
     Polygon,
+    Segment,
+    Sphere,
 )
-
-# 星号导入用于向后兼容（外部代码可能使用 `from geometry_engine import *`）
-from mathlab.core.models import *  # noqa: F401, F403
 
 # 扩大异常捕获范围，防止 RuntimeError 等非 ImportError 导致整个模块崩溃
 try:
@@ -470,8 +469,8 @@ class GeometryEngine(QObject):
         return [obj for obj in self.objects.values() if obj.type == obj_type]
 
     def solve_constraints(self):
-        from scipy.optimize import least_squares
         import numpy as np
+        from scipy.optimize import least_squares
 
         variables = []
         var_to_idx = {}

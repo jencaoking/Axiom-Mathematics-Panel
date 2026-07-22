@@ -1,15 +1,15 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QButtonGroup,
     QHBoxLayout,
     QPushButton,
-    QButtonGroup,
     QSplitter,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
 
-from mathlab.ui.geogebra_canvas import GeoGebraCanvas, ToolMode
 from mathlab.ui.geogebra_algebra_panel import GeoGebraAlgebraPanel
+from mathlab.ui.geogebra_canvas import GeoGebraCanvas, ToolMode
 
 
 class GeometryPanel(QWidget):

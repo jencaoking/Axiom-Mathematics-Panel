@@ -1,6 +1,6 @@
-import sys
 import os
 import platform
+import sys
 import traceback
 
 # PyInstaller打包后路径处理
@@ -44,7 +44,7 @@ def _write_crash_log(exc_type, exc_value, exc_tb):
 # ── 第一步：最早期初始化全局日志系统 ──────────────────────────────────────────
 # 必须在任何其他 mathlab 模块导入之前完成，确保所有初始化过程都被记录
 try:
-    from mathlab.utils.logger import setup_logger, get_logger
+    from mathlab.utils.logger import get_logger, setup_logger
 
     setup_logger()
     logger = get_logger(__name__)
@@ -59,9 +59,9 @@ from mathlab.core.error_manager import install_error_handler  # noqa: E402
 install_error_handler()
 # ─────────────────────────────────────────────────────────────────────────────
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
-from PySide6.QtGui import QIcon, QFont  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
+from PySide6.QtGui import QFont, QIcon  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from mathlab.ui.main_window import MainWindow  # noqa: E402
 from mathlab.utils.version import __version__  # noqa: E402

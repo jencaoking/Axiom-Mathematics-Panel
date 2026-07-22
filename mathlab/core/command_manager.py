@@ -8,6 +8,7 @@ MainWindow 负责向 CommandManager 注册具体行为。
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional
+
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

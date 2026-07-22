@@ -1,5 +1,5 @@
-import random
 import heapq
+import random
 from collections import deque
 
 from mathlab.utils.i18n_manager import t

@@ -1,7 +1,7 @@
 import re
-import numpy as np
 from typing import Any, Dict, Optional
 
+import numpy as np
 from PySide6.QtCore import QObject, Signal
 
 from mathlab.core.num_engine import NumEngine

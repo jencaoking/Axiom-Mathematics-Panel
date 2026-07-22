@@ -6,21 +6,21 @@ Algebra Panel — redesigned with a custom card list:
   • Right-click context menu: Rename / Delete
 """
 
+from PySide6.QtCore import QPoint, QSize, Qt, Signal
+from PySide6.QtGui import QAction, QBrush, QColor, QCursor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
+    QApplication,
     QDockWidget,
-    QWidget,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
-    QScrollArea,
-    QFrame,
-    QMenu,
-    QSizePolicy,
-    QApplication,
     QLineEdit,
+    QMenu,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtGui import QAction, QFont, QColor, QPainter, QBrush, QPen, QCursor
-from PySide6.QtCore import Signal, Qt, QSize, QPoint
 
 from mathlab.utils.i18n_manager import t
 

@@ -1,20 +1,23 @@
+import importlib.util
 import threading
 from typing import Optional
-from mathlab.core.skill_manager import SkillLibrary
-from mathlab.core.ai_tools import execute_math_task
+
 import numpy as np
-import importlib.util
+
+from mathlab.core.ai_tools import execute_math_task
+from mathlab.core.skill_manager import SkillLibrary
 
 if importlib.util.find_spec("sklearn") is not None:
     SKLEARN_AVAILABLE = True
 else:
     SKLEARN_AVAILABLE = False
-import os
 import json
+import os
 from enum import Enum
 
 try:
-    from PyQt5.QtCore import QObject, QThread, pyqtSignal as Signal
+    from PyQt5.QtCore import QObject, QThread
+    from PyQt5.QtCore import pyqtSignal as Signal
 
     QT_AVAILABLE = True
 except ImportError:
@@ -27,15 +30,15 @@ except ImportError:
         QObject, QThread, Signal = object, object, object
 
 try:
-    from openai import OpenAI, AuthenticationError, APIConnectionError
+    from openai import APIConnectionError, AuthenticationError, OpenAI
 
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception  # type: ignore  # noqa: E501
 
-from mathlab.utils.logger import get_logger
 from mathlab.core.memory_manager import ChatMemoryManager
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

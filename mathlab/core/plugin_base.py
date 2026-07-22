@@ -1,5 +1,6 @@
 # mathlab/core/plugin_base.py
 from abc import ABC, abstractmethod
+
 from mathlab.core.extension_api import MathLabAPI
 
 

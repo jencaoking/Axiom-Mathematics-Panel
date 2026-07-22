@@ -10,10 +10,11 @@
 - i18n 翻译键完整性
 """
 
+import json
+import math
 import os
 import sys
-import math
-import json
+
 import pytest
 
 # Headless Qt

@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 import numpy as np
 
 dll_path = os.path.abspath(
@@ -26,7 +27,7 @@ except Exception as e:
     print(f"Failed to load C# Calculus Engine: {e}")
     FastCalculus = None
 
-from System import Func, Double  # noqa: E402
+from System import Double, Func  # noqa: E402
 
 
 class CsCalculusEngine:

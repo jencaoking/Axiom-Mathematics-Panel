@@ -1,6 +1,8 @@
 import json
 import socket
+
 from PySide6.QtCore import QThread, Signal
+
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

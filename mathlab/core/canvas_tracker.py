@@ -1,6 +1,8 @@
 import json
 import math
-from PySide6.QtCore import QObject, Signal, QTimer
+
+from PySide6.QtCore import QObject, QTimer, Signal
+
 from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)

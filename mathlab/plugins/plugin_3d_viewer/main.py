@@ -1,13 +1,16 @@
 # mathlab/plugins/plugin_3d_viewer/main.py
-import os
 import json
-from PySide6.QtWebEngineWidgets import QWebEngineView
+import os
+
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtCore import QUrl, QTimer
-from mathlab.core.plugin_base import MathLabPlugin
-from .bridge import ThreeJSBridge
-from mathlab.utils.i18n_manager import t
+from PySide6.QtWebEngineWidgets import QWebEngineView
+
 from mathlab.core.cs_mesh_engine import cs_mesh_3d
+from mathlab.core.plugin_base import MathLabPlugin
+from mathlab.utils.i18n_manager import t
+
+from .bridge import ThreeJSBridge
 
 
 class ThreeJSViewerPlugin(MathLabPlugin):

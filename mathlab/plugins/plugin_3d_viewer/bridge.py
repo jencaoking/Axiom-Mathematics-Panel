@@ -1,5 +1,5 @@
 # mathlab/plugins/plugin_3d_viewer/bridge.py
-from PySide6.QtCore import QObject, Slot, Signal
+from PySide6.QtCore import QObject, Signal, Slot
 
 
 class ThreeJSBridge(QObject):

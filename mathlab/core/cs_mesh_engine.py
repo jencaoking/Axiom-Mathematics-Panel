@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 import clr
 
 dll_path = os.path.abspath(
