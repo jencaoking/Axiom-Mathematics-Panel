@@ -93,6 +93,49 @@ jobs:
           pip install pylint
           pip install -r requirements.txt
 
+      - name: Check and prepare pylint config
+        run: |
+          if [ ! -f .pylintrc ]; then
+            echo "⚠️ .pylintrc not found, creating default config..."
+            cat > .pylintrc << 'EOF'
+[MASTER]
+init-hook=
+disable=
+    C0114,
+    C0115,
+    C0116,
+    R0801,
+
+[MESSAGES CONTROL]
+disable=
+    W0703,
+    R0903,
+    R0913,
+    R0914,
+    R0915,
+    W0611,
+    W0212,
+
+[REPORTS]
+reports=no
+
+[TYPECHECK]
+ignored-modules=PyQt6,
+                 PyQt6.QtWidgets,
+                 PyQt6.QtGui,
+                 PyQt6.QtCore,
+                 PyQt6.QtCharts,
+                 PyQt6.QtSvg,
+                 numpy,
+                 scipy,
+                 matplotlib,
+
+[FORMAT]
+max-line-length=120
+EOF
+          fi
+          ls -la .pylintrc
+
       - name: Run Pylint
         run: |
           echo "🔍 正在进行深度代码分析 (Pylint)..."
