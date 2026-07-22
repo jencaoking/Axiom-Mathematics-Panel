@@ -19,8 +19,10 @@ class DAG:
         stack = [src]
         while stack:
             n = stack.pop()
-            if n == dst: return True
-            if n in visited: continue
+            if n == dst:
+                return True
+            if n in visited:
+                continue
             visited.add(n)
             stack.extend(self.graph.get(n, []))
         return False
@@ -41,6 +43,7 @@ class DAG:
         visited = set()
         visiting = set()
         result = []
+
         def dfs(n):
             if n in visited:
                 return

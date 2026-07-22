@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/python-3.10+-brightgreen.svg" alt="Python">
   <img src="https://img.shields.io/badge/PySide6-6.5+-red.svg" alt="PySide6">
   <img src="https://img.shields.io/badge/version-3.8.0-orange.svg" alt="Version">
-  <img src="https://img.shields.io/badge/tests-94%20passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-126%20passed-brightgreen.svg" alt="Tests">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
 </p>
 
@@ -70,7 +70,7 @@ MathLab 3.8 完成了六大核心维度的跃迁，打造了"自动驾驶级别"
 | 🔌 **Jupyter 集成** | 内嵌 JupyterLab | Python 与 Qt 双向变量同步                         |
 | ⚡ **C# 加速内核**     | pythonnet 桥接  | 几何采样 / FFT / 复数 / 数值积分加速                   |
 | 🛡️ **安全沙箱**      | subprocess 隔离 | 超时与内存限制保护                                  |
-| 🧩 **插件系统**       | 可扩展 API       | 内置 3D Viewer、ECharts、矩阵工具                  |
+| 🧩 **插件系统**       | 可扩展 API       | 内置 3D Viewer、ECharts、矩阵工具、微积分工具、动画演示     |
 | 🎓 **自适应学习**      | 认知建模          | Bloom/ZPD/UDL 个性化教学                        |
 | 📚 **教学法引擎**      | 三维度评估         | 教学质量可控、教育原则约束                              |
 | 🔄 **结构化通信**      | 标准协议          | Agent 间可靠消息传递                              |
@@ -368,7 +368,8 @@ markers = [
 | `student_model.py`      | 36 项     | 92% |
 | `pedagogical_engine.py` | 32 项     | 97% |
 | `agent_message.py`      | 26 项     | 90% |
-| **总计**                  | **94 项** | —   |
+| `plugins/calculus_tools` + `plugins/animation_studio` | 32 项 | 88% / 62% |
+| **总计**                  | **126 项** | —   |
 
 ***
 
@@ -611,11 +612,44 @@ MathLab 支持插件扩展，内置以下插件：
 
 ### 内置插件
 
-| 插件                 | 功能                         |
-| :----------------- | :------------------------- |
-| **3D Viewer**      | 参数曲面、隐函数曲面、向量场可视化、交互式旋转/缩放 |
-| **ECharts Viewer** | 柱状图、折线图、饼图、散点图、热力图、实时数据更新  |
-| **Matrix Tools**   | 矩阵可视化、特征值/特征向量、SVD 分解、矩阵运算 |
+| 插件                     | 功能                                                            |
+| :--------------------- | :---------------------------------------------------------- |
+| **3D Viewer**          | 参数曲面、隐函数曲面、向量场可视化、交互式旋转/缩放                                  |
+| **ECharts Viewer**     | 柱状图、折线图、饼图、散点图、热力图、实时数据更新                                   |
+| **Matrix Tools**       | 矩阵可视化、特征值/特征向量、SVD 分解、矩阵运算                                  |
+| **Calculus Tools**     | 导数与切线、定积分（带阴影区域）、极限、泰勒展开；计算结果可一键绘制到几何画板                     |
+| **Animation Studio**   | 平移/旋转/缩放几何变换动画、函数参数动画（如 `sin(a*x)` 中 `a` 连续变化）、缓动函数、播放控制     |
+
+### P0 插件功能详解
+
+#### Calculus Tools（微积分工具）
+
+基于 `CASProvider`（SymPy 封装）+ `GeometryEngine` 的可视化微积分面板：
+
+- **导数与切线**：求 `f'(x)` 符号表达式，并在指定 `x₀` 处绘制切线 `FunctionPlot`
+- **定积分**：计算 `∫ₐᵇ f(x)dx` 精确值，阴影区域通过多边形对象可视化
+- **极限**：支持 `x → x₀` 与 `x → ±∞`，自动检测左右极限
+- **泰勒展开**：在 `x₀` 处展开到 `n` 阶，将逼近多项式绘制为函数曲线
+
+设计要点：
+- `_plotted_ids` 追踪所有生成的几何对象，`cleanup()` 时统一清理
+- 所有 CAS 调用通过 `try/except` 包装，错误信息回显到状态栏
+- 通过 `getattr(self.api, "_main_window")` 防御式访问 `geometry_engine` 与 `cas_provider`
+
+#### Animation Studio（动画演示）
+
+基于 `QTimer` + `_anim_state` 状态机的动画引擎：
+
+- **平移（Translate）**：所有选中点按 `Δx, Δy` 平移
+- **旋转（Rotate）**：以 `(cx, cy)` 为中心、`θ°` 为角度旋转
+- **缩放（Scale）**：以 `(cx, cy)` 为中心、`k` 为因子缩放
+- **函数参数动画（Param Func）**：表达式 `f(a, x)` 中的参数 `a` 在 `[a_start, a_end]` 区间连续变化，实时刷新 `FunctionPlot`
+
+设计要点：
+- 缓动函数 `_ease_in_out(t) = 0.5 * (1 - cos(πt))` 实现平滑加减速
+- `block_signals(True)` 批量更新点位置后手动 `_notify()` 触发画布刷新
+- 停止/暂停时通过 `_restore_originals()` 恢复点原始坐标
+- `_start_param_func` 返回 `True/False`，`_on_play` 检查返回值避免无效状态切换
 
 ### 开发自定义插件
 
@@ -749,7 +783,7 @@ python -m nuitka --standalone --enable-plugin=pyside6 mathlab/main.py
 | **3.0** | -     | Agentic UI、NL2Draw 自然语言作图、视觉错题本              |
 | **3.5** | -     | 多智能体架构、思执分离大纲双轨制、纠错重试环                       |
 | **3.7** | -     | C# 加速内核、函数探索器、复数面板、信号实验、GPU 分形、Skill Library |
-| **3.8** | -     | 🌟 自适应学习引擎（Bloom/ZPD/UDL）、教学法引导引擎、结构化通信协议    |
+| **3.8** | -     | 🌟 自适应学习引擎（Bloom/ZPD/UDL）、教学法引导引擎、结构化通信协议、Calculus Tools 与 Animation Studio 插件 |
 
 ### 未来规划
 

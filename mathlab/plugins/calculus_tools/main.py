@@ -159,8 +159,11 @@ class CalculusPanelWidget(QWidget):
     # 模式切换 — 动态重建参数区
     # ──────────────────────────────────────────────────────────────
     def _clear_param_layout(self):
-        while self.param_layout.rowCount() > 0:
-            self.param_layout.removeRow(0)
+        """清空参数布局但不删除控件本身 (removeRow 会删除控件 C++ 对象)"""
+        while self.param_layout.count() > 0:
+            item = self.param_layout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
 
     def _on_mode_changed(self, index: int):
         self._clear_param_layout()

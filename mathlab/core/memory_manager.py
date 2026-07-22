@@ -2,6 +2,7 @@ from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class ChatMemoryManager:
     """
     滑动窗口记忆管理器：防止多轮对话撑爆 Token 限制并节省 API 费用

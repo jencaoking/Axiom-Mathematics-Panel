@@ -6,10 +6,12 @@ from typing import List, Dict, Any, Optional
 # 引入我们的计算引擎作为"内核 (Kernel)"
 from mathlab.core.octave_bridge import OctaveBridge
 
+
 class CellType(Enum):
     CODE = "code"           # Octave/Python 代码
     MARKDOWN = "markdown"   # 富文本与 LaTeX 公式
     # 计划中的其他类型：MATH, GEO, PLOT, SLIDER 等可以在后续扩展
+
 
 class NotebookCell:
     """
@@ -22,7 +24,7 @@ class NotebookCell:
         self.content = content
         self.language = language
         self.outputs: List[Dict[str, Any]] = []  # 存储执行结果
-        self.execution_count: Optional[int] = None # 记录执行序号，如 In [1]
+        self.execution_count: Optional[int] = None  # 记录执行序号，如 In [1]
 
     def clear_output(self):
         """清空该单元格的输出"""
@@ -51,15 +53,15 @@ class NotebookCell:
                 if result is not None:
                     # 成功执行并有返回值
                     self.outputs.append({
-                        "type": "result", 
-                        "data": result, 
+                        "type": "result",
+                        "data": result,
                         "status": "success"
                     })
             except Exception as e:
                 # 捕获语法错误或计算异常
                 self.outputs.append({
-                    "type": "error", 
-                    "data": str(e), 
+                    "type": "error",
+                    "data": str(e),
                     "status": "failed"
                 })
 
@@ -119,9 +121,9 @@ class MathLabNotebook:
     def execute_all(self) -> None:
         """从上到下顺序执行所有单元格"""
         # 可以先重置内核状态，保证每次全部运行的结果一致
-        self.kernel = OctaveBridge() 
+        self.kernel = OctaveBridge()
         self._execution_counter = 0
-        
+
         for cell in self.cells:
             self._execution_counter += 1
             cell.execute(self.kernel, self._execution_counter)
@@ -139,10 +141,10 @@ class MathLabNotebook:
         """从文件加载"""
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         self.cells = []
         self._execution_counter = 0
-        self.kernel = OctaveBridge() # 重置内核
-        
+        self.kernel = OctaveBridge()  # 重置内核
+
         for cell_data in data.get("cells", []):
             self.cells.append(NotebookCell.from_dict(cell_data))

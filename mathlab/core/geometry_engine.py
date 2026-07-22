@@ -9,7 +9,7 @@ from PySide6.QtCore import QObject, Signal
 # 重新导出所有几何模型类（已拆分到 mathlab.core.models 子包），保持向后兼容
 # 现有的 `from mathlab.core.geometry_engine import XXX` 无需修改
 from mathlab.core.models import (
-    DAG, GeometricObject, Point, Sphere, Plane3D, Locus, Intersection,
+    DAG, GeometricObject, Point, Sphere, Locus, Intersection,
     Line, Segment, FunctionPlot, ImplicitPlot, PolarPlot, Ellipse,
     Hyperbola, Parabola, ConicSection, Circle, Polygon
 )

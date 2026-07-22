@@ -7,6 +7,7 @@ from mathlab.utils.logger import get_logger
 # 引入项目中已有的 logger
 logger = get_logger(__name__)
 
+
 class JupyterIPCClient:
     """
     负责将 Qt 画布的数据单向发送给 Jupyter 内核
@@ -26,15 +27,15 @@ class JupyterIPCClient:
         with self._seq_lock:
             self._seq_counter += 1
             seq = self._seq_counter
-        
+
         payload = {
-            "cmd": "sync_var", 
-            "name": name, 
+            "cmd": "sync_var",
+            "name": name,
             "val": value,
             "seq": seq,  # 注入序列号
             "timestamp": time.time()   # 可选：注入时间戳供服务器做延迟分析
         }
-        
+
         try:
             # 尽可能序列化紧凑的 json 减少 UDP 包体积
             data = json.dumps(payload, separators=(',', ':')).encode('utf-8')

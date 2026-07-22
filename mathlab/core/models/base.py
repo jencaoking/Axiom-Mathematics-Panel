@@ -52,15 +52,15 @@ class GeometricObject:
         elif obj_type == 'Ellipse':
             coords = data.get('coordinates', {})
             obj = Ellipse(data['id'], data['name'], data.get('center_id', ''),
-                         coords.get('a', 2.0), coords.get('b', 1.0), coords.get('rotation', 0))
+                          coords.get('a', 2.0), coords.get('b', 1.0), coords.get('rotation', 0))
         elif obj_type == 'Hyperbola':
             coords = data.get('coordinates', {})
             obj = Hyperbola(data['id'], data['name'], data.get('center_id', ''),
-                           coords.get('a', 1.0), coords.get('b', 1.0), coords.get('rotation', 0))
+                            coords.get('a', 1.0), coords.get('b', 1.0), coords.get('rotation', 0))
         elif obj_type == 'Parabola':
             coords = data.get('coordinates', {})
             obj = Parabola(data['id'], data['name'], data.get('vertex_id', ''),
-                          coords.get('p', 1.0), coords.get('direction', 'up'))
+                           coords.get('p', 1.0), coords.get('direction', 'up'))
         elif obj_type == 'ConicSection':
             obj = ConicSection.deserialize(data)
         elif obj_type == 'FunctionPlot':
@@ -85,8 +85,8 @@ class GeometricObject:
             obj = Circle(data['id'], data['name'], data.get('center_id', ''), coords.get('r', 1.0))
         elif obj_type == 'Intersection':
             obj = Intersection(data['id'], data['name'],
-                              data.get('obj1_id', ''), data.get('obj2_id', ''),
-                              data.get('index', 0))
+                               data.get('obj1_id', ''), data.get('obj2_id', ''),
+                               data.get('index', 0))
         elif obj_type == 'Plane3D':
             coords = data.get('coordinates', {})
             obj = Plane3D(data['id'], data['name'],

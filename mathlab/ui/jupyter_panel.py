@@ -16,6 +16,7 @@ from __future__ import annotations
 import socket
 import urllib.request
 import urllib.error
+import urllib.parse
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
@@ -308,6 +309,12 @@ class JupyterPanel(QWidget):
 
         # 检查 2: HTTP 是否可访问
         api_url = f"http://127.0.0.1:{port}/api/status"
+        
+        # 安全检查：验证 URL 协议和主机
+        parsed_url = urllib.parse.urlparse(api_url)
+        if parsed_url.scheme not in ('http', 'https') or parsed_url.hostname not in ('localhost', '127.0.0.1'):
+            return f"不允许的 URL 访问: {api_url}"
+        
         try:
             req = urllib.request.Request(api_url)
             with urllib.request.urlopen(req, timeout=3) as resp:

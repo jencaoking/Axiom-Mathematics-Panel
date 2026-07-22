@@ -25,6 +25,7 @@ from mathlab.core.sandbox_security import is_code_safe
 #  JupyterSandbox — 进程级隔离的代码执行沙箱
 # ============================================================
 
+
 class JupyterSandbox:
     """
     进程级隔离的 Jupyter 执行沙盒
@@ -80,7 +81,7 @@ class JupyterSandbox:
         self._check_memory()
 
         # 3. 发送给后台 Jupyter 内核执行
-        msg_id = self.kc.execute(code)
+        self.kc.execute(code)
 
         output_text = []
         output_images = []
@@ -310,9 +311,16 @@ class JupyterManager:
         """轮询 HTTP 端口，等待 JupyterLab 服务器响应"""
         import urllib.request
         import urllib.error
+        import urllib.parse
 
         deadline = time.time() + timeout
         check_url = f"http://127.0.0.1:{self.port}/api/status"
+
+        # 安全检查：验证 URL 协议和主机
+        parsed_url = urllib.parse.urlparse(check_url)
+        if parsed_url.scheme not in ('http', 'https') or parsed_url.hostname not in ('localhost', '127.0.0.1'):
+            logger.error("不允许的 URL 访问: %s", check_url)
+            return False
 
         while time.time() < deadline:
             # 检查进程是否已退出

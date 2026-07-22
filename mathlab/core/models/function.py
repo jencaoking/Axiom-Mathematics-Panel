@@ -169,7 +169,6 @@ class ImplicitPlot(GeometricObject):
             print(f'Error generating implicit plot points: {e}')
             self.points_data = []
 
-
     def to_latex(self):
         return rf'{self.expression} = 0'
 
