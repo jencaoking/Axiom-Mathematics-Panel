@@ -4,7 +4,7 @@ from typing import Optional
 
 import numpy as np
 
-from mathlab.core.ai_tools import execute_math_task, GEOMETRY_DRAW_TOOL
+from mathlab.core.ai_tools import GEOMETRY_DRAW_TOOL, execute_math_task
 from mathlab.core.skill_manager import SkillLibrary
 
 if importlib.util.find_spec("sklearn") is not None:
