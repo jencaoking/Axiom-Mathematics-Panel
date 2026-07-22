@@ -595,55 +595,12 @@ class BaseMathAgent:
         self.skill_lib = SkillLibrary()  # 实例化本地技能库
         self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"  # noqa: E501
 
-
-class GeometryAgent(BaseMathAgent):
-    def __init__(self, ai_manager):
-        super().__init__(ai_manager)
-        self.system_prompt = """你是一个【2D 解析几何与代数专家】。
-你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用现有的全局几何画板环境绘图。
-请通过 Thought, Action, Observation 闭环进行。"""
-
-
-class DataVizAgent(BaseMathAgent):
-    def __init__(self, ai_manager):
-        super().__init__(ai_manager)
-        # 强制将大模型的注意力集中在生成 ECharts 字典上
-        self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
-你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。
-
-【系统环境与限制】
-1. 宿主环境已经集成了 Apache ECharts 5.5（支持 gl/3D）。
-2. 你绝对不能使用 matplotlib, seaborn 或 plotly！
-3. 你必须且只能使用环境内置的渲染桥接器：`mathlab.plugins.echarts_viewer.bridge`。
-
-【代码模板标准】
-你的 Action 代码必须严格遵循以下结构：
-```python
-import numpy as np
-from mathlab.plugins.echarts_viewer.bridge import render_chart
-
-# 1. 在这里进行数据计算（如生成随机数、计算3D曲面矩阵等）
-# ...
-
-# 2. 严格按照 ECharts Option 标准构建字典
-options = {
-    "backgroundColor": "transparent", # 保持背景透明以适配主线深色主题
-    "tooltip": {"trigger": "item"},
-    "series": [
-        # 你的数据系列
-    ]
-}
-
-# 3. 发送给前端渲染
-render_chart(options)
-```
-请通过 Thought 和 Action 闭环来完成任务。要求图表配色具有 Cyberpunk 或暗黑科技感（如深紫、荧光蓝）。"""
-
     def _llm_generate_code(self, messages):
         # 真正使用时通过 ai_manager.client 调用大模型接口
         try:
+            model = getattr(self.ai_manager, "current_model", None) or self.model  # noqa: E501
             response = self.ai_manager.client.chat.completions.create(
-                model=self.model,
+                model=model,
                 messages=messages,
                 temperature=0.1
             )
@@ -662,6 +619,14 @@ render_chart(options)
 
     def solve_problem(self, user_prompt: str, on_thought_cb=None,
                       on_code_cb=None, on_finish_cb=None):
+        # ============== 前置校验：未配置 API 客户端时直接失败，避免 NoneType 崩溃 ==============
+        if getattr(self.ai_manager, "client", None) is None:
+            if on_thought_cb:
+                on_thought_cb("❌ 未配置 AI API Key，无法启动推理闭环。")
+            if on_finish_cb:
+                on_finish_cb(False, "未配置 API Key")
+            return {"status": "failed", "error": "未配置 API Key"}
+
         # ============== 1. RAG 检索阶段 ==============
         if on_thought_cb:
             on_thought_cb("🔍 正在检索本地技能库记忆...")
@@ -764,3 +729,47 @@ render_chart(options)
                 result_json["abstract_code"])
         except Exception as e:
             print(f"技能提炼失败 (后台线程): {e}")
+
+
+class GeometryAgent(BaseMathAgent):
+    def __init__(self, ai_manager):
+        super().__init__(ai_manager)
+        self.system_prompt = """你是一个【2D 解析几何与代数专家】。
+你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用现有的全局几何画板环境绘图。
+请通过 Thought, Action, Observation 闭环进行。"""
+
+
+class DataVizAgent(BaseMathAgent):
+    def __init__(self, ai_manager):
+        super().__init__(ai_manager)
+        # 强制将大模型的注意力集中在生成 ECharts 字典上
+        self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
+你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。
+
+【系统环境与限制】
+1. 宿主环境已经集成了 Apache ECharts 5.5（支持 gl/3D）。
+2. 你绝对不能使用 matplotlib, seaborn 或 plotly！
+3. 你必须且只能使用环境内置的渲染桥接器：`mathlab.plugins.echarts_viewer.bridge`。
+
+【代码模板标准】
+你的 Action 代码必须严格遵循以下结构：
+```python
+import numpy as np
+from mathlab.plugins.echarts_viewer.bridge import render_chart
+
+# 1. 在这里进行数据计算（如生成随机数、计算3D曲面矩阵等）
+# ...
+
+# 2. 严格按照 ECharts Option 标准构建字典
+options = {
+    "backgroundColor": "transparent", # 保持背景透明以适配主线深色主题
+    "tooltip": {"trigger": "item"},
+    "series": [
+        # 你的数据系列
+    ]
+}
+
+# 3. 发送给前端渲染
+render_chart(options)
+```
+请通过 Thought 和 Action 闭环来完成任务。要求图表配色具有 Cyberpunk 或暗黑科技感（如深紫、荧光蓝）。"""
