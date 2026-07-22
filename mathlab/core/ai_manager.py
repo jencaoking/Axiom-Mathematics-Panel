@@ -29,7 +29,7 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-    OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception  # noqa: E501
+    OpenAI, AuthenticationError, APIConnectionError = object, Exception, Exception  # type: ignore  # noqa: E501
 
 from mathlab.utils.logger import get_logger
 from mathlab.core.memory_manager import ChatMemoryManager

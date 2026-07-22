@@ -83,18 +83,18 @@ class JupyterSandbox:
         # 3. 发送给后台 Jupyter 内核执行
         self.kc.execute(code)
 
-        output_text = []
-        output_images = []
-        error_traceback = []
+        output_text: list = []
+        output_images: list = []
+        error_traceback: list = []
         status = "ok"
 
         # 4. 阻塞等待并捕获输出 (具备超时熔断机制)
         try:
             while True:
                 # 从 iopub 频道获取执行结果
-                msg = self.kc.get_iopub_msg(timeout=timeout)
+                msg: dict = self.kc.get_iopub_msg(timeout=timeout)  # type: ignore
                 msg_type = msg['header']['msg_type']
-                content = msg['content']
+                content: dict = msg['content']
 
                 if msg_type == 'stream':
                     # 捕获 print() 输出
@@ -162,7 +162,7 @@ class JupyterSandbox:
         if not self._psutil_available or self._psutil is None:
             return None
         try:
-            pid = self.km.kernel.pid
+            pid = self.km.kernel.pid  # type: ignore
             if pid is None:
                 return None
             proc = self._psutil.Process(pid)
@@ -288,7 +288,7 @@ class JupyterManager:
                     stderr=subprocess.STDOUT,
                     env=env,
                     # Windows 下隐藏控制台窗口
-                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0,
+                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0) if sys.platform == 'win32' else 0,
                 )
             except FileNotFoundError:
                 logger.error("无法找到 jupyter 命令，请确认 jupyterlab 已安装。")
@@ -337,7 +337,7 @@ class JupyterManager:
 
             try:
                 req = urllib.request.Request(check_url)
-                with urllib.request.urlopen(req, timeout=2) as resp:
+                with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310 - 已验证仅访问本地地址
                     if resp.status == 200:
                         return True
             except (urllib.error.URLError, ConnectionError, OSError):

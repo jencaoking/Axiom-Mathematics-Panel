@@ -11,7 +11,6 @@
 - UDL (Universal Design for Learning): 多元表达、多元参与、多元表达方式
 - Socratic Method: 苏格拉底式提问引导，禁止直接给答案
 """
-import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum

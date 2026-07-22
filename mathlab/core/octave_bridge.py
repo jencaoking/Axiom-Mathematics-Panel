@@ -16,7 +16,7 @@ class BridgeSignals(QObject):
     """
     # 包含绘图配置的字典：类型、x/y 数据、标题、颜色等
     plot_requested = Signal(dict)
-    
+
     # 滑块请求信号
     slider_requested = Signal(dict)
 
@@ -58,13 +58,13 @@ class OctaveBridge:
             # MATLAB: zeros(m, n) / ones(m, n) 传入两个独立整数
             # NumPy:  np.zeros((m, n))          期望一个元组形状
             # 用 lambda 包装兼容两种调用约定
-            "zeros":    lambda *a: np.zeros(a[0] if len(a) == 1 else a),
-            "ones":     lambda *a: np.ones(a[0] if len(a) == 1 else a),
+            "zeros": lambda *a: np.zeros(a[0] if len(a) == 1 else a),
+            "ones": lambda *a: np.ones(a[0] if len(a) == 1 else a),
             "eye":      np.eye,
             "linspace": np.linspace,
             "arange":   np.arange,
-            "rand":     lambda *a: np.random.rand(*a),
-            "randn":    lambda *a: np.random.randn(*a),
+            "rand": lambda *a: np.random.rand(*a),
+            "randn": lambda *a: np.random.randn(*a),
             "diag":     np.diag,
             "reshape":  np.reshape,
 
@@ -90,11 +90,11 @@ class OctaveBridge:
             "atan2":  np.arctan2,
 
             # ── 矩阵属性 ──────────────────────────────────────────────
-            "size":   lambda x, *a: np.shape(x) if not a else np.shape(x)[a[0] - 1],
+            "size": lambda x, *a: np.shape(x) if not a else np.shape(x)[a[0] - 1],
             "numel":  np.size,
             "length": lambda x: max(np.shape(x)),
             "ndims":  np.ndim,
-            "find":   lambda x: np.where(np.asarray(x).ravel())[0],
+            "find": lambda x: np.where(np.asarray(x).ravel())[0],
 
             # ── 聚合函数 ──────────────────────────────────────────────
             "max":    np.max,
@@ -132,10 +132,10 @@ class OctaveBridge:
 
             # ── 优化 (路由到 NumEngine) ───────────────────────────────
             "fminsearch": lambda f, x0: self.engine.minimize(f, [x0]),
-            "fzero":      lambda f, x0: self.engine.root_finding(f, x0),
+            "fzero": lambda f, x0: self.engine.root_finding(f, x0),
 
             # ── 信号处理 (路由到 NumEngine) ───────────────────────────
-            "fft":  lambda x: self.engine.fft_transform(x)["spectrum"],
+            "fft": lambda x: self.engine.fft_transform(x)["spectrum"],
             "ifft": lambda x: self.engine.ifft_transform(x),
             "conv": self.engine.convolve,
 
@@ -225,7 +225,7 @@ class OctaveBridge:
         # 1. 保护字符串字面量，防止转置正则误伤
         protected_strs: Dict[str, str] = {}
         str_counter = [0]
-        
+
         def protect_string(m):
             prefix = m.group(1)
             string_literal = m.group(2)
@@ -233,7 +233,7 @@ class OctaveBridge:
             protected_strs[key] = string_literal
             str_counter[0] += 1
             return prefix + key
-            
+
         code = re.sub(r"(^|[^A-Za-z0-9_\]\)])('[^']*')", protect_string, code)
         code = re.sub(r'("[^"]*")', lambda m: protect_string(re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))), code)
 
@@ -308,6 +308,7 @@ class OctaveBridge:
         python_code = self.translate(code)
 
         import ast
+
         class SmartMulTransformer(ast.NodeTransformer):
             def visit_BinOp(self, node):
                 self.generic_visit(node)
@@ -330,10 +331,10 @@ class OctaveBridge:
         except SyntaxError:
             # 可能是赋值语句或含有多行的代码块，改用 exec
             try:
-                tree = ast.parse(python_code, mode='exec')
-                tree = SmartMulTransformer().visit(tree)
-                ast.fix_missing_locations(tree)
-                compiled = compile(tree, '<string>', 'exec')
+                exec_tree = ast.parse(python_code, mode='exec')
+                exec_tree = SmartMulTransformer().visit(exec_tree)
+                ast.fix_missing_locations(exec_tree)
+                compiled = compile(exec_tree, '<string>', 'exec')
                 exec(compiled, self.env, self.env)
                 # 启发式：如果是简单赋值 "VAR = ..."，返回该变量
                 stripped = python_code.strip()

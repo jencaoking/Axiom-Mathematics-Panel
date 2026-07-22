@@ -4,6 +4,7 @@ from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class PromptManager:
     """
     统一管理和渲染系统提示词的单例引擎
@@ -28,7 +29,7 @@ class PromptManager:
             else:
                 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 config_path = os.path.join(base_dir, 'config', 'prompts.yaml')
-            
+
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 self._prompts = yaml.safe_load(f) or {}
@@ -49,12 +50,13 @@ class PromptManager:
         template = self._prompts.get(scenario, {}).get("user_template", "")
         if not template:
             return ""
-        
+
         try:
             return template.format(**kwargs)
         except KeyError as e:
             logger.error(f"构建 Prompt 缺失必要参数 {e} (场景: {scenario})")
             return template
+
 
 # 全局单例实例，供其他模块直接导入使用
 prompt_manager = PromptManager()

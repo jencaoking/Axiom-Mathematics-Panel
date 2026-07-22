@@ -9,6 +9,7 @@ from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class PluginManager:
     def __init__(self, api_context: MathLabAPI, plugin_dir: str = None):
         self.api = api_context
@@ -20,24 +21,24 @@ class PluginManager:
             self.plugin_dir = plugin_dir
         self.active_plugins: Dict[str, MathLabPlugin] = {}
         self.plugin_apis: Dict[str, MathLabAPI] = {}
-        
+
         # 确保插件目录存在
         if not os.path.exists(self.plugin_dir):
             os.makedirs(self.plugin_dir)
             # 创建 __init__.py 使其成为包
-            with open(os.path.join(self.plugin_dir, "__init__.py"), "w") as f:
+            with open(os.path.join(self.plugin_dir, "__init__.py"), "w") as _:
                 pass
 
     def load_all_plugins(self):
         """扫描插件目录并加载所有符合规范的插件"""
         plugin_base_module = "mathlab.plugins"
-        
+
         if not os.path.exists(self.plugin_dir):
             return
 
         for item in os.listdir(self.plugin_dir):
             item_path = os.path.join(self.plugin_dir, item)
-            
+
             # 我们假设每个插件是一个独立的文件夹，且内部有一个 main.py
             if os.path.isdir(item_path) and not item.startswith("__") and not item.startswith("."):
                 main_py_path = os.path.join(item_path, "main.py")
@@ -45,12 +46,12 @@ class PluginManager:
                     try:
                         module_name = f"{plugin_base_module}.{item}.main"
                         module = importlib.import_module(module_name)
-                        
+
                         # 在模块中寻找继承自 MathLabPlugin 的类
                         for name, obj in inspect.getmembers(module, inspect.isclass):
                             if issubclass(obj, MathLabPlugin) and obj is not MathLabPlugin:
                                 self._activate_plugin(obj())
-                                
+
                     except Exception as e:
                         logger.error("插件 [%s] 加载失败: %s", item, e, exc_info=True)
 
@@ -81,7 +82,7 @@ class PluginManager:
                 logger.info("插件 [%s] 已停用。", plugin_name)
             except Exception as e:
                 logger.error("停用插件 [%s] 时出错: %s", plugin_name, e, exc_info=True)
-            
+
             # 清理该插件分配的 API 注册的命令/UI 面板
             if plugin_name in self.plugin_apis:
                 try:
@@ -89,5 +90,5 @@ class PluginManager:
                 except Exception as e:
                     logger.error("清理插件 [%s] API 时出错: %s", plugin_name, e, exc_info=True)
                 del self.plugin_apis[plugin_name]
-                
+
         self.active_plugins.clear()

@@ -1,6 +1,11 @@
 import numpy as np
 import scipy.linalg as la
 import scipy.integrate as integrate
+import scipy.optimize as opt          # 优化模块
+import scipy.signal as sig            # 信号处理模块
+import scipy.stats as stats           # 统计模块
+import scipy.fft as fft               # 傅里叶变换模块
+from typing import Dict, Any, Callable, Union, List, Optional, Tuple
 
 
 # 采用五点中心差分手动实现，支持任意阶导数计算 (通过递归降阶)
@@ -12,13 +17,6 @@ def _finite_diff(func, x, dx, n):
     else:
         # 递归降阶
         return (_finite_diff(lambda t: _finite_diff(func, t, dx, n-1), x, dx, 1))
-
-
-import scipy.optimize as opt          # 优化模块
-import scipy.signal as sig            # 信号处理模块
-import scipy.stats as stats           # 统计模块
-import scipy.fft as fft              # 傅里叶变换模块
-from typing import Dict, Any, Callable, Union, List, Optional, Tuple
 
 
 class NumEngineError(Exception):

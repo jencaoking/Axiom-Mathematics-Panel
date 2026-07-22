@@ -125,7 +125,7 @@ class SharedSvgRendererCache:
     """
     复用 QSvgRenderer 实例，大幅降低画布放大缩小时的显存开销
     """
-    _cache = OrderedDict()
+    _cache: OrderedDict[str, QSvgRenderer] = OrderedDict()
     _MAX_CACHE_SIZE = 128
 
     @classmethod

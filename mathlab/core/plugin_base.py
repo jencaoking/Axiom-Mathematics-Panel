@@ -2,9 +2,10 @@
 from abc import ABC, abstractmethod
 from mathlab.core.extension_api import MathLabAPI
 
+
 class MathLabPlugin(ABC):
     """所有 MathLab 插件的抽象基类"""
-    
+
     name = "Unnamed Plugin"
     version = "1.0.0"
     author = "Unknown"

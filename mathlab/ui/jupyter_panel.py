@@ -317,7 +317,7 @@ class JupyterPanel(QWidget):
         
         try:
             req = urllib.request.Request(api_url)
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 - 已验证仅访问本地地址
                 if resp.status == 200:
                     return (
                         f"服务器 HTTP 正常，但页面加载失败\n"
