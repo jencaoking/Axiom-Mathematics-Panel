@@ -25,6 +25,12 @@ _DEFAULT_CONFIG: Dict[str, Any] = {
         "timeout": 30,
         "memory_limit_mb": 256,
     },
+    "jupyter": {
+        "port_start": 8888,
+        "port_end": 8999,
+        "start_timeout": 30,
+        "memory_limit_mb": 512,
+    },
 }
 
 _config_cache: Optional[Dict[str, Any]] = None

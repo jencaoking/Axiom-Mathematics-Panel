@@ -218,7 +218,7 @@ class MainWindow(
         """在窗口关闭时卸载所有插件，释放资源"""
         if hasattr(self, 'autosaver'):
             self.autosaver.clean_up()
-            
+
         if hasattr(self, 'plugin_manager'):
             try:
                 self.plugin_manager.unload_all()
@@ -231,15 +231,23 @@ class MainWindow(
                 worker.wait(1000)
             except Exception:
                 pass
-                
+
         if hasattr(self, 'ipc_server') and self.ipc_server is not None:
             self.ipc_server.stop()
-            
+
         # 🛑 优雅关闭 JupyterLab 后台进程
         if hasattr(self, 'jupyter_mgr') and self.jupyter_mgr is not None:
             try:
                 self.jupyter_mgr.stop()
             except Exception as e:
                 logger.warning("关闭 JupyterLab 后台时出错：%s", e)
+
+        # 🛑 关闭 JupyterSandbox 内核进程，防止资源泄漏
+        try:
+            from mathlab.core.jupyter_manager import shutdown_jupyter_sandbox
+            shutdown_jupyter_sandbox()
+        except Exception as e:
+            logger.warning("关闭 JupyterSandbox 时出错：%s", e)
+
         super().closeEvent(event)
 

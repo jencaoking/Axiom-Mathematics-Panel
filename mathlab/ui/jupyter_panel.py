@@ -13,6 +13,10 @@ jupyter_panel.py
 
 from __future__ import annotations
 
+import socket
+import urllib.request
+import urllib.error
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QFrame,
@@ -226,23 +230,23 @@ class JupyterPanel(QWidget):
             magic_css = """
             /* 1. 隐藏顶部菜单栏 (File, Edit, View...) */
             #jp-TopPanel { display: none !important; }
-            
+
             /* 2. 隐藏左侧文件浏览器和侧边栏 */
             #jp-left-stack, .jp-SideBar { display: none !important; }
-            
+
             /* 3. 隐藏底部状态栏 */
             #jp-bottom-panel { display: none !important; }
-            
+
             /* 4. 统一全局背景色，完美匹配 Qt 的 #1e1e1e */
-            body, .jp-LabShell, .jp-NotebookPanel { 
-                background-color: #1e1e1e !important; 
+            body, .jp-LabShell, .jp-NotebookPanel {
+                background-color: #1e1e1e !important;
             }
-            
+
             /* 5. 调整 Notebook 内部的间距，让它看起来更像原生文本框 */
             .jp-Cell { padding-left: 10px !important; padding-right: 10px !important; }
             .jp-Toolbar { display: none !important; } /* 隐藏 Notebook 自己的小工具栏 */
             """
-            
+
             # 将 CSS 包装成一段 JavaScript 执行
             js_code = f"""
             var style = document.createElement('style');
@@ -250,10 +254,10 @@ class JupyterPanel(QWidget):
             style.innerHTML = `{magic_css}`;
             document.head.appendChild(style);
             """
-            
+
             # 在 Web 引擎中静默执行
             self._browser.page().runJavaScript(js_code)
-            
+
             self._card.show_success_hint()
             # 淡入 browser，淡出 card
             self._card.hide()
@@ -265,9 +269,63 @@ class JupyterPanel(QWidget):
                 self._card.hide()
                 self._browser.show()
             else:
-                self._card.show_error(
-                    f"页面响应异常\n目标：{self.jupyter_url}"
-                )
+                # 执行诊断，提供详细的错误信息
+                diag_msg = self._diagnose_failure()
+                self._card.show_error(diag_msg)
+
+    def _diagnose_failure(self) -> str:
+        """诊断加载失败的原因，返回详细的错误描述"""
+        # 解析端口号
+        port = None
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(self.jupyter_url)
+            port = parsed.port
+        except Exception:
+            pass
+
+        if port is None:
+            return f"无法解析目标 URL\n目标：{self.jupyter_url}"
+
+        # 检查 1: 端口是否在监听
+        port_open = False
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(2)
+                port_open = (s.connect_ex(('127.0.0.1', port)) == 0)
+        except Exception:
+            pass
+
+        if not port_open:
+            return (
+                f"端口 {port} 未监听，JupyterLab 服务器可能未成功启动\n"
+                f"目标：{self.jupyter_url}\n\n"
+                f"建议：\n"
+                f"  1. 检查 jupyterlab 是否已安装 (pip install jupyterlab)\n"
+                f"  2. 查看日志是否有启动错误\n"
+                f"  3. 点击重新加载按钮重试"
+            )
+
+        # 检查 2: HTTP 是否可访问
+        api_url = f"http://127.0.0.1:{port}/api/status"
+        try:
+            req = urllib.request.Request(api_url)
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    return (
+                        f"服务器 HTTP 正常，但页面加载失败\n"
+                        f"目标：{self.jupyter_url}\n"
+                        f"这可能是 WebEngine 兼容性问题"
+                    )
+        except urllib.error.HTTPError as e:
+            return (
+                f"服务器返回 HTTP {e.code}\n"
+                f"目标：{self.jupyter_url}"
+            )
+        except Exception:
+            pass
+
+        return f"页面响应异常\n目标：{self.jupyter_url}"
 
     def _reload(self) -> None:
         """重试加载"""

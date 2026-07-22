@@ -11,4 +11,6 @@ psutil>=5.9
 # ── JupyterLab 嵌入（环境探路 Step-1）────────────────────────────────────
 # PySide6-WebEngine 已内置于 PySide6>=6.5 的 Addons 包中，无需单独安装
 jupyterlab>=4.0
+jupyter_client>=8.0
+ipykernel>=6.0
 requests>=2.31

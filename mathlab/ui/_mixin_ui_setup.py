@@ -84,14 +84,29 @@ class UISetupMixin:
             # 在后台线程启动服务，就绪后触发页面加载
             import threading
             def _start_and_load():
-                self.jupyter_mgr.start(timeout=30)
-                # 切回主线程加载页面（Qt 要求 UI 操作在主线程）
-                from PySide6.QtCore import QMetaObject, Qt
-                QMetaObject.invokeMethod(
-                    self.jupyter_workspace,
-                    "load_workspace",
-                    Qt.ConnectionType.QueuedConnection,
+                success = self.jupyter_mgr.start(
+                    timeout=getattr(self.jupyter_mgr, '_default_timeout', 30)
                 )
+                # 切回主线程执行 UI 操作（Qt 要求 UI 操作在主线程）
+                from PySide6.QtCore import QMetaObject, Qt
+                if success:
+                    QMetaObject.invokeMethod(
+                        self.jupyter_workspace,
+                        "load_workspace",
+                        Qt.ConnectionType.QueuedConnection,
+                    )
+                else:
+                    # 启动失败，在主线程中安全地显示错误
+                    def _show_error():
+                        if hasattr(self.jupyter_workspace, '_card'):
+                            self.jupyter_workspace._card.show_error(
+                                f"JupyterLab 服务器启动失败\n"
+                                f"端口：{self.jupyter_mgr.port}\n\n"
+                                f"请确认 jupyterlab 已安装:\n"
+                                f"  pip install jupyterlab"
+                            )
+                    from PySide6.QtCore import QTimer
+                    QTimer.singleShot(0, _show_error)
 
             t_jupyter = threading.Thread(
                 target=_start_and_load, daemon=True, name="JupyterStartup"

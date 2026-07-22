@@ -1,6 +1,11 @@
+import os
+import sys
 import queue
+import socket
+import subprocess
+import time
 import threading
-from typing import Dict, Any, List
+from typing import Dict, Any, Optional
 
 try:
     from jupyter_client import KernelManager
@@ -16,12 +21,23 @@ except ImportError:
 
 from mathlab.core.sandbox_security import is_code_safe
 
+# ============================================================
+#  JupyterSandbox — 进程级隔离的代码执行沙箱
+# ============================================================
+
 class JupyterSandbox:
     """
     进程级隔离的 Jupyter 执行沙盒
-    支持状态保持、超时中断、以及富文本/图像输出捕获
+    支持状态保持、超时中断、富文本/图像输出捕获、内存监控
     """
+
+    # 默认内存上限（MB），超过时自动重启内核
+    _MEMORY_LIMIT_MB = 512
+
     def __init__(self) -> None:
+        if KernelManager is None:
+            raise ImportError("jupyter_client 未安装，无法启动 JupyterSandbox。")
+
         self.km = KernelManager(kernel_name='python3')
         self.km.start_kernel()
         self.kc = self.km.client()
@@ -34,6 +50,23 @@ class JupyterSandbox:
         except RuntimeError:
             logger.warning("Jupyter 内核启动超时。")
 
+        # 初始化内存监控
+        try:
+            from mathlab.utils.config_manager import get_config
+            jupyter_cfg = get_config('jupyter', {})
+            self._memory_limit_mb = jupyter_cfg.get('memory_limit_mb', self._MEMORY_LIMIT_MB)
+        except Exception:
+            self._memory_limit_mb = self._MEMORY_LIMIT_MB
+
+        self._psutil_available = False
+        try:
+            import psutil
+            self._psutil_available = True
+            self._psutil = psutil
+        except ImportError:
+            self._psutil = None
+            logger.debug("psutil 未安装，内存监控功能已降级。")
+
     def execute_code(self, code: str, timeout: int = 5) -> Dict[str, Any]:
         """
         同步执行代码并收集所有输出
@@ -43,15 +76,18 @@ class JupyterSandbox:
         if not safe:
             return {"status": "error", "traceback": [msg], "text": "", "images": []}
 
-        # 2. 发送给后台 Jupyter 内核执行
+        # 2. 执行前检查内存占用
+        self._check_memory()
+
+        # 3. 发送给后台 Jupyter 内核执行
         msg_id = self.kc.execute(code)
-        
+
         output_text = []
         output_images = []
         error_traceback = []
         status = "ok"
 
-        # 3. 阻塞等待并捕获输出 (具备超时熔断机制)
+        # 4. 阻塞等待并捕获输出 (具备超时熔断机制)
         try:
             while True:
                 # 从 iopub 频道获取执行结果
@@ -62,23 +98,23 @@ class JupyterSandbox:
                 if msg_type == 'stream':
                     # 捕获 print() 输出
                     output_text.append(content['text'])
-                
+
                 elif msg_type == 'execute_result' or msg_type == 'display_data':
                     # 捕获表达式结果或图片 (例如 matplotlib 输出)
                     if 'text/plain' in content['data']:
                         output_text.append(content['data']['text/plain'])
                     if 'image/png' in content['data']:
-                        output_images.append(content['data']['image/png']) # 这是一个 Base64 字符串
-                
+                        output_images.append(content['data']['image/png'])
+
                 elif msg_type == 'error':
                     # 捕获代码报错信息
                     status = "error"
                     error_traceback.extend(content['traceback'])
-                
+
                 elif msg_type == 'status' and content['execution_state'] == 'idle':
                     # 内核执行完毕并回到空闲状态
                     break
-                    
+
         except queue.Empty:
             status = "timeout"
             error_traceback.append(f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。")
@@ -88,7 +124,7 @@ class JupyterSandbox:
         return {
             "status": status,
             "text": "".join(output_text),
-            "images": output_images, # 可以直接传给 QPixmap 加载
+            "images": output_images,
             "traceback": error_traceback
         }
 
@@ -107,14 +143,260 @@ class JupyterSandbox:
         self.kc.wait_for_ready(timeout=10)
 
     def shutdown(self) -> None:
-        self.kc.stop_channels()
-        self.km.shutdown_kernel(now=True)
+        """关闭内核并释放所有资源"""
+        try:
+            if hasattr(self, 'kc') and self.kc:
+                self.kc.stop_channels()
+        except Exception:
+            logger.warning("关闭内核通道时出现异常", exc_info=True)
+        try:
+            if hasattr(self, 'km') and self.km:
+                self.km.shutdown_kernel(now=True)
+        except Exception:
+            logger.warning("关闭内核时出现异常", exc_info=True)
+        logger.info("Jupyter 内核已关闭。")
 
-# 全局单例沙盒引擎
-_jupyter_sandbox_instance = None
+    def get_memory_usage_mb(self) -> Optional[float]:
+        """获取当前内核进程的内存占用（MB），psutil 不可用时返回 None"""
+        if not self._psutil_available or self._psutil is None:
+            return None
+        try:
+            pid = self.km.kernel.pid
+            if pid is None:
+                return None
+            proc = self._psutil.Process(pid)
+            # 包含子进程的内存
+            mem = proc.memory_info().rss
+            for child in proc.children(recursive=True):
+                try:
+                    mem += child.memory_info().rss
+                except (self._psutil.NoSuchProcess, self._psutil.AccessDenied):
+                    pass
+            return mem / (1024 * 1024)
+        except Exception:
+            return None
 
-def get_jupyter_sandbox():
+    def _check_memory(self) -> None:
+        """执行前检查内存，超限时自动重启内核"""
+        mem_mb = self.get_memory_usage_mb()
+        if mem_mb is not None and mem_mb > self._memory_limit_mb:
+            logger.warning(
+                "内核内存占用 %.1f MB 超过限制 %d MB，自动重启内核。",
+                mem_mb, self._memory_limit_mb
+            )
+            self.restart_kernel()
+
+
+# ============================================================
+#  JupyterManager — JupyterLab 服务器进程管理器
+# ============================================================
+
+def _find_free_port(start: int = 8888, end: int = 8999) -> int:
+    """在指定范围内寻找可用端口"""
+    for port in range(start, end + 1):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', port))
+                return port
+        except OSError:
+            continue
+    # 兜底：让 OS 分配
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('127.0.0.1', 0))
+        return s.getsockname()[1]
+
+
+class JupyterManager:
+    """
+    JupyterLab 服务器进程管理器
+
+    负责在后台启动/停止 JupyterLab 服务器子进程，
+    并提供 URL 供 QWebEngineView 加载。
+
+    用法::
+
+        mgr = JupyterManager()
+        mgr.start(timeout=30)
+        url = mgr.url
+        ...
+        mgr.stop()
+    """
+
+    def __init__(self) -> None:
+        # 从配置中读取端口范围和超时
+        try:
+            from mathlab.utils.config_manager import get_config
+            jupyter_cfg = get_config('jupyter', {})
+            port_start = jupyter_cfg.get('port_start', 8888)
+            port_end = jupyter_cfg.get('port_end', 8999)
+            self._default_timeout = jupyter_cfg.get('start_timeout', 30)
+        except Exception:
+            port_start, port_end = 8888, 8999
+            self._default_timeout = 30
+
+        self.port: int = _find_free_port(port_start, port_end)
+        self._process: Optional[subprocess.Popen] = None
+        self._token: str = "mathlab-embedded"
+        self._url: str = ""
+        self._lock = threading.Lock()
+
+    @property
+    def url(self) -> str:
+        """返回 JupyterLab 的完整访问 URL"""
+        if self._url:
+            return self._url
+        return f"http://127.0.0.1:{self.port}/lab?token={self._token}"
+
+    def start(self, timeout: int = 30) -> bool:
+        """
+        在后台启动 JupyterLab 服务器子进程。
+
+        Args:
+            timeout: 等待服务器就绪的最大秒数。
+
+        Returns:
+            True 表示服务器已就绪，False 表示启动失败。
+        """
+        with self._lock:
+            if self._process is not None and self._process.poll() is None:
+                logger.info("JupyterLab 服务器已在运行中。")
+                return True
+
+            # 构造启动命令
+            cmd = [
+                sys.executable,
+                "-m", "jupyter", "lab",
+                "--no-browser",
+                "--port", str(self.port),
+                "--ServerApp.token", self._token,
+                "--ServerApp.password", "",
+                "--ServerApp.allow_origin", "*",
+                "--ServerApp.disable_check_xsrf", "True",
+            ]
+
+            # PyInstaller 打包环境下的特殊处理
+            env = os.environ.copy()
+            if getattr(sys, 'frozen', False):
+                env["PYINSTALLER_FROZEN"] = "1"
+
+            try:
+                logger.info("正在启动 JupyterLab 服务器 (端口 %s)...", self.port)
+                self._process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    env=env,
+                    # Windows 下隐藏控制台窗口
+                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0,
+                )
+            except FileNotFoundError:
+                logger.error("无法找到 jupyter 命令，请确认 jupyterlab 已安装。")
+                return False
+            except Exception as e:
+                logger.error("启动 JupyterLab 失败: %s", e)
+                return False
+
+            # 等待服务器就绪
+            if self._wait_for_ready(timeout):
+                self._url = f"http://127.0.0.1:{self.port}/lab?token={self._token}"
+                logger.info("JupyterLab 服务器已就绪: %s", self._url)
+                return True
+            else:
+                logger.error("JupyterLab 服务器启动超时。")
+                self.stop()
+                return False
+
+    def _wait_for_ready(self, timeout: int) -> bool:
+        """轮询 HTTP 端口，等待 JupyterLab 服务器响应"""
+        import urllib.request
+        import urllib.error
+
+        deadline = time.time() + timeout
+        check_url = f"http://127.0.0.1:{self.port}/api/status"
+
+        while time.time() < deadline:
+            # 检查进程是否已退出
+            if self._process is not None and self._process.poll() is not None:
+                logger.error("JupyterLab 进程意外退出，退出码: %s", self._process.poll())
+                # 读取错误输出
+                try:
+                    output = self._process.stdout.read(4096)
+                    if output:
+                        logger.error("JupyterLab 输出: %s", output.decode('utf-8', errors='replace'))
+                except Exception:
+                    pass
+                return False
+
+            try:
+                req = urllib.request.Request(check_url)
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                    if resp.status == 200:
+                        return True
+            except (urllib.error.URLError, ConnectionError, OSError):
+                pass
+            except Exception:
+                pass
+
+            time.sleep(0.5)
+
+        return False
+
+    def stop(self) -> None:
+        """停止 JupyterLab 服务器子进程"""
+        with self._lock:
+            if self._process is None:
+                return
+
+            try:
+                # 优先发送 SIGTERM 优雅关闭
+                self._process.terminate()
+                try:
+                    self._process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # 强制杀死
+                    self._process.kill()
+                    self._process.wait(timeout=3)
+                logger.info("JupyterLab 服务器已停止。")
+            except Exception as e:
+                logger.warning("停止 JupyterLab 服务器时出错: %s", e)
+            finally:
+                self._process = None
+                self._url = ""
+
+    def is_running(self) -> bool:
+        """检查服务器进程是否仍在运行"""
+        return self._process is not None and self._process.poll() is None
+
+
+# ============================================================
+#  全局单例管理
+# ============================================================
+
+_jupyter_sandbox_instance: Optional[JupyterSandbox] = None
+_sandbox_lock = threading.Lock()
+
+
+def get_jupyter_sandbox() -> JupyterSandbox:
+    """获取全局唯一的 JupyterSandbox 实例（懒加载）"""
     global _jupyter_sandbox_instance
     if _jupyter_sandbox_instance is None:
-        _jupyter_sandbox_instance = JupyterSandbox()
+        with _sandbox_lock:
+            if _jupyter_sandbox_instance is None:
+                _jupyter_sandbox_instance = JupyterSandbox()
     return _jupyter_sandbox_instance
+
+
+def shutdown_jupyter_sandbox() -> None:
+    """关闭全局 JupyterSandbox 实例，释放内核进程资源。
+
+    应在应用退出时调用，防止内核进程泄漏。
+    """
+    global _jupyter_sandbox_instance
+    if _jupyter_sandbox_instance is not None:
+        with _sandbox_lock:
+            if _jupyter_sandbox_instance is not None:
+                try:
+                    _jupyter_sandbox_instance.shutdown()
+                except Exception as e:
+                    logger.warning("关闭 JupyterSandbox 时出错: %s", e)
+                _jupyter_sandbox_instance = None
