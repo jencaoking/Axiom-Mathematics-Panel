@@ -6,6 +6,7 @@ from PySide6.QtGui import QTextCursor, QFont
 from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
 
 from mathlab.utils.i18n_manager import t
+from mathlab.utils.markdown_service import MarkdownService
 
 from mathlab.core.async_workers import TaskManager
 
@@ -103,26 +104,36 @@ class PythonConsole(QDockWidget):
         self.append_output('>>> ')
 
     def append_agent_thought(self, thought_text):
-        """渲染 AI 的思考流 (紫色系)"""
+        """渲染 AI 的思考流 (紫色系)，支持 Markdown + LaTeX"""
+        md_svc = MarkdownService.get_instance()
+        rendered = md_svc.render_for_text_browser(
+            thought_text,
+            document=self.output_area.document(),
+        )
         html = f"""
         <div style='margin: 4px 0; font-family: "Consolas", monospace; font-size: 13px;'>
             <span style='color: #B388FF; font-weight: bold;'>🧠 [Agent 思考]</span>
-            <span style='color: #E0E0E0;'> {thought_text}</span>
+            <span style='color: #E0E0E0;'> {rendered}</span>
         </div>
         """
         self.output_area.append(html)
         self.output_area.verticalScrollBar().setValue(self.output_area.verticalScrollBar().maximum())
 
     def append_agent_observation(self, obs_text, is_error=False):
-        """渲染本地沙箱的运行反馈 (成功绿 / 报错红)"""
+        """渲染本地沙箱的运行反馈 (成功绿 / 报错红)，支持 Markdown"""
         color = "#FF5252" if is_error else "#69F0AE"
         icon = "❌" if is_error else "✅"
         bg_color = "rgba(255, 82, 82, 0.1)" if is_error else "rgba(105, 240, 174, 0.1)"
         
+        md_svc = MarkdownService.get_instance()
+        rendered = md_svc.render_for_text_browser(
+            obs_text,
+            document=self.output_area.document(),
+        )
         html = f"""
         <div style='margin: 4px 0; padding: 6px; background-color: {bg_color}; border-left: 3px solid {color}; font-family: "Consolas", monospace; font-size: 13px;'>
             <span style='color: {color}; font-weight: bold;'>{icon} [沙箱反馈]</span><br>
-            <span style='color: #CCCCCC;'>{obs_text}</span>
+            <span style='color: #CCCCCC;'>{rendered}</span>
         </div>
         """
         self.output_area.append(html)

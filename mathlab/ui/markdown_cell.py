@@ -20,6 +20,10 @@ class MarkdownCellWidget(QFrame):
     """
     交互式 Markdown/LaTeX 单元格
     支持双击/点击工具栏切换编辑，Shift+Enter 渲染。
+
+    渲染引擎：WebEngine (marked.js + KaTeX)
+    此单元格需要高质量的 LaTeX 公式渲染，因此使用 JS 引擎。
+    纯文本 Markdown 场景请使用 MarkdownService (Python 引擎)。
     """
     code_synced = Signal(str)
 
@@ -66,16 +70,17 @@ class MarkdownCellWidget(QFrame):
         # ── 2. 编辑模式: 纯文本输入框 ──
         self.input_editor = MarkdownTextEdit(self)
         self.input_editor.setFont(QFont("Consolas", 12))
-        self.input_editor.setFixedHeight(120)
+        self.input_editor.setMinimumHeight(60)
         self.input_editor.setStyleSheet("""
             QTextEdit { background-color: #1e1e1e; color: #d4d4d4; border: 1px dashed #3c3c3c; border-radius: 4px; padding: 8px; }
             QTextEdit:focus { border: 1px solid #007acc; }
         """)
+        self.input_editor.textChanged.connect(self._adjust_editor_height)
         self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
-        
+
         # ── 3. 预览模式: WebEngine 渲染器 ──
         self.viewer = QWebEngineView()
-        self.viewer.setFixedHeight(120) # 简易实现，实际开发中可以通过注入 JS 动态获取内容高度并 setFixedHeight
+        self.viewer.setMinimumHeight(60)
         self.viewer.page().setBackgroundColor(self.palette().color(self.backgroundRole()))
         
         html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources', 'markdown.html'))
@@ -100,12 +105,41 @@ class MarkdownCellWidget(QFrame):
         # [BUG修复] 补充 ${} 转义，防止模板字符串注入
         safe_text = text.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${').replace('\n', '\\n')
         js_code = f"renderMarkdown(`{safe_text}`);"
-        
+
         self.viewer.page().runJavaScript(js_code)
-        
+
+        # 渲染后动态获取内容高度并调整
+        # 使用 QTimer 延迟执行，确保 DOM 已完成更新
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._request_view_height)
+
         self.input_editor.hide()
         self.viewer.show()
         self.btn_edit.show()
+
+    def _request_view_height(self):
+        """通过 JS 获取渲染后的内容高度"""
+        js_code = (
+            "Math.max("
+            "document.body.scrollHeight, "
+            "document.documentElement.scrollHeight, "
+            "document.getElementById('content').scrollHeight"
+            ")"
+        )
+        self.viewer.page().runJavaScript(js_code, self._on_height_received)
+
+    def _on_height_received(self, height):
+        """根据 JS 返回的高度动态调整 viewer"""
+        if height and height > 0:
+            # 限制在 60~600px 之间
+            self.viewer.setFixedHeight(min(max(int(height) + 20, 60), 600))
+
+    def _adjust_editor_height(self):
+        """根据内容行数动态调整编辑器高度"""
+        line_count = self.input_editor.toPlainText().count('\n') + 1
+        # 每行约 20px，加 padding 30px，限制 60~400px
+        height = min(max(line_count * 20 + 30, 60), 400)
+        self.input_editor.setFixedHeight(height)
 
     def set_content(self, text):
         self.input_editor.setPlainText(text)

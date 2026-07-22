@@ -1,6 +1,10 @@
 import threading
 from mathlab.core.skill_manager import SkillLibrary
-from mathlab.core.ai_tools import execute_math_task
+from mathlab.core.ai_tools import (
+    execute_math_task,
+    GEOMETRY_DRAW_TOOL as DRAW_TOOL_SCHEMA,
+    QUIZ_GENERATOR_SCHEMA,
+)
 import numpy as np
 import importlib.util
 
@@ -35,40 +39,9 @@ from mathlab.core.memory_manager import ChatMemoryManager
 
 logger = get_logger(__name__)
 
-QUIZ_GENERATOR_SCHEMA = {
-    'type': 'function', 'function': {
-        'name': 'generate_math_quiz', 'description': '根据当前的知识点或用户的画布状态，生成一道针对性的数学测试题。', 'parameters': {  # noqa: E501
-            'type': 'object', 'properties': {
-                'knowledge_point': {
-                    'type': 'string', 'description': "本题考查的核心知识点，如 '勾股定理' 或 '导数极值'"}, 'question_text': {  # noqa: E501
-                        'type': 'string', 'description': '题目正文，支持 LaTeX 公式（用 $$ 包裹）'}, 'question_type': {  # noqa: E501
-                            'type': 'string', 'enum': [
-                                'multiple_choice', 'fill_in_blank'], 'description': '题目类型：选择题 或 填空题'}, 'options': {  # noqa: E501
-                                    'type': 'array', 'items': {
-                                        'type': 'string'}, 'description': '如果是选择题，提供4个选项数组；如果是填空题，此项传空数组'}, 'correct_answer': {  # noqa: E501
-                                            'type': 'string', 'description': "标准答案（如 'A' 或具体的计算数值）"}, 'explanation': {  # noqa: E501
-                                                'type': 'string', 'description': '详细的解题思路和步骤'}}, 'required': [  # noqa: E501
-                                                    'knowledge_point', 'question_text', 'question_type', 'correct_answer', 'explanation']}}}  # noqa: E501
-
-DRAW_TOOL_SCHEMA = {
-    'type': 'function', 'function': {
-        'name': 'execute_geometry_draw', 'description': '当用户要求画图时，调用此函数在画布上绘制几何图形。', 'parameters': {  # noqa: E501
-            'type': 'object', 'properties': {
-                'commands': {
-                    'type': 'array', 'description': '绘图指令数组', 'items': {
-                        'type': 'object', 'properties': {
-                            'cmd': {
-                                'type': 'string', 'enum': [
-                                    'add_point', 'add_circle', 'add_polygon', 'add_segment']}, 'x': {  # noqa: E501
-                                        'type': 'number'}, 'y': {
-                                            'type': 'number'}, 'name': {
-                                                'type': 'string'}, 'radius': {
-                                                    'type': 'number'}, 'points': {  # noqa: E501
-                                                        'type': 'array', 'items': {  # noqa: E501
-                                                            'type': 'string'}}, 'center': {  # noqa: E501
-                                                                'type': 'string'}, 'p1': {  # noqa: E501
-                                                                    'type': 'string'}, 'p2': {  # noqa: E501
-                                                                        'type': 'string'}}, 'required': ['cmd']}}}, 'required': ['commands']}}}  # noqa: E501
+# 工具 Schema 统一从 ai_tools.py 导入（消除重复定义）
+# DRAW_TOOL_SCHEMA = GEOMETRY_DRAW_TOOL (alias，见文件头部 import)
+# QUIZ_GENERATOR_SCHEMA 直接从 ai_tools.py 导入
 
 # Torch availability check
 try:

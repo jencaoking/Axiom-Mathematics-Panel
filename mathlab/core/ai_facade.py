@@ -150,9 +150,9 @@ class AIFacade:
         on_chunk, on_tool, on_state_change, on_finish, on_error,
     ):
         """范式 A：通过 AIEngineWorker + Function Calling 处理简单工具调用。"""
-        from mathlab.core.ai_manager import DRAW_TOOL_SCHEMA, QUIZ_GENERATOR_SCHEMA
+        from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
-        tools = [DRAW_TOOL_SCHEMA, QUIZ_GENERATOR_SCHEMA]
+        tools = AVAILABLE_TOOLS
         system_prompt = "你是 MathLab 数学助手。根据用户请求调用合适的工具函数。"
 
         self.ai_manager.ask(

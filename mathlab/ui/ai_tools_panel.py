@@ -1,11 +1,10 @@
-from mathlab.core.ai_tools import AVAILABLE_TOOLS
+from mathlab.core.ai_tools import AVAILABLE_TOOLS, validate_tool_call
 from mathlab.ui.quiz_panel import QuizCardWidget
 import re
 from mathlab.core.agent_registry import get_agent
 from mathlab.core.memory_manager import ChatMemoryManager
 from mathlab.core.prompt_manager import prompt_manager
 from mathlab.core.context_assembler import ContextAssembler
-import markdown
 from PySide6.QtWidgets import (
     QDockWidget, QWidget, QVBoxLayout, QHBoxLayout,
     QTabWidget, QPushButton, QComboBox, QSpinBox,
@@ -31,6 +30,12 @@ from PySide6.QtCore import QThreadPool
 from mathlab.core.jupyter_manager import get_jupyter_sandbox
 from mathlab.core.async_workers import TaskWorker
 
+try:
+    from mathlab.utils.logger import get_logger
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
 
 
 
@@ -756,7 +761,7 @@ class AIToolsPanel(QDockWidget):
                     tools=get_agent(self.current_agent_id).tools,
                     on_tool=lambda name, new_args: self._execute_with_reflection(name, new_args, retry_count + 1),
                     on_finish=self._on_nested_request_finished,
-                    on_error=lambda err: print(f"静默修复网络异常: {err}")
+                    on_error=lambda err: logger.error("静默修复网络异常: %s", err)
                 )
 
     def _handle_agent_handoff(self, args_dict: dict):
@@ -804,10 +809,25 @@ class AIToolsPanel(QDockWidget):
                 )
             
         except Exception as e:
-            print(f"Agent 接力失败: {e}")
+            logger.error("Agent 接力失败: %s", e)
 
     def on_tool_call_received(self, tool_name, args_dict):
         main_window = self.window()
+
+        # === 工具参数校验 ===
+        is_valid, error_msg = validate_tool_call(tool_name, args_dict)
+        if not is_valid:
+            logger.warning("工具参数校验失败: tool=%s, error=%s", tool_name, error_msg)
+            self.chat_display.add_message(
+                "ai", f"⚠️ **[参数校验失败]** 工具 `{tool_name}` 的参数无效：\n\n> {error_msg}"
+            )
+            return
+
+        # === 审计日志 ===
+        import time
+        _start_time = time.time()
+        logger.info("工具调用开始: tool=%s, args_keys=%s", tool_name, list(args_dict.keys()) if isinstance(args_dict, dict) else "N/A")
+
         if tool_name == "submit_teaching_plan":
             try:
                 self.active_plan_steps = args_dict.get("steps", [])
@@ -829,7 +849,7 @@ class AIToolsPanel(QDockWidget):
                 self.plan_box.expand_silently()
                 
             except Exception as e:
-                print(f"解析大纲 JSON 失败: {e}")
+                logger.error("解析大纲 JSON 失败: %s", e)
         elif tool_name == "transfer_to_agent":
             self._handle_agent_handoff(args_dict)
         elif tool_name == "generate_math_quiz":
@@ -837,7 +857,7 @@ class AIToolsPanel(QDockWidget):
                 quiz_card = QuizCardWidget(args_dict, main_window.ai_manager)
                 self.card_layout.addWidget(quiz_card)
             except Exception as e:
-                print(f"生成测验卡片失败: {e}")
+                logger.error("生成测验卡片失败: %s", e)
         elif tool_name == "execute_geometry_draw":
             self._execute_with_reflection(tool_name, args_dict, retry_count=0)
         elif tool_name == "speak_at_location":
@@ -857,7 +877,7 @@ class AIToolsPanel(QDockWidget):
                         magic_html = f"<div style='color: #8E44AD; margin-left: 10px;'><i>📍 已在 {target_name} 旁生成讲解气泡</i></div><br>"
                         self.chat_display.append(magic_html)
             except Exception as e:
-                print(f"生成空间气泡失败: {e}")
+                logger.error("生成空间气泡失败: %s", e)
         elif tool_name == "highlight_geometry_elements":
             try:
                 element_names = args_dict.get("element_names", [])
@@ -868,7 +888,11 @@ class AIToolsPanel(QDockWidget):
                     magic_html = f"<div style='background-color: #FEF9E7; color: #D35400; padding: 8px; border-radius: 4px; border-left: 4px solid #F39C12;'><i>🔦 激光笔已激活：正在引导关注 {', '.join(element_names)} </i></div><br>"
                     self.chat_display.append(magic_html)
             except Exception as e:
-                print(f"高亮指令执行失败: {e}")
+                logger.error("高亮指令执行失败: %s", e)
+
+        # === 审计日志：记录完成 ===
+        _elapsed = time.time() - _start_time
+        logger.info("工具调用完成: tool=%s, 耗时=%.3fs", tool_name, _elapsed)
 
     def _render_draft_review_card(self):
         card_widget = QWidget()

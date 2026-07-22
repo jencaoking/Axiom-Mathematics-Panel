@@ -6,6 +6,7 @@ from PySide6.QtCore import Signal, Qt
 from mathlab.ui.code_editor import MonacoCodeEditor
 from mathlab.core.notebook import MathLabNotebook, CellType
 from mathlab.utils.i18n_manager import t
+from mathlab.utils.markdown_service import MarkdownService
 import numpy as np
 from mathlab.ui.markdown_cell import MarkdownCellWidget
 
@@ -418,12 +419,15 @@ class NotebookPanel(QWidget):
     def _render_cell_output(self, cell_id: str):
         backend_cell = next((c for c in self.backend.cells if c.id == cell_id), None)
         ui_cell = self.ui_cells.get(cell_id)
-        
+
         if not backend_cell or not ui_cell: return
 
         if not backend_cell.outputs:
             ui_cell.output_browser.hide()
             return
+
+        # 获取 MarkdownService 单例
+        md_svc = MarkdownService.get_instance()
 
         html_output = ""
         for out in backend_cell.outputs:
@@ -432,7 +436,11 @@ class NotebookPanel(QWidget):
             elif out["type"] == "result":
                 html_output += self._format_data_to_html(out["data"])
             elif out["type"] == "markdown":
-                html_output += f"<div style='color: #d4d4d4;'>{out['data']}</div>"
+                # 使用混合架构渲染：Python 引擎处理 Markdown + LaTeX→PNG
+                html_output += md_svc.render_for_text_browser(
+                    out["data"],
+                    document=ui_cell.output_browser.document(),
+                )
 
         exec_count = backend_cell.execution_count or "*"
         prefix = f"<div style='color: #569cd6; font-size: 10px; margin-bottom: 4px;'>Out [{exec_count}]:</div>"

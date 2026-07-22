@@ -246,6 +246,170 @@ AVAILABLE_TOOLS = [
 ]
 
 
+# ============================================================
+#  工具参数校验层 (Tool Parameter Validation)
+#  在工具执行前验证参数类型和边界，防止无效输入导致崩溃
+# ============================================================
+
+_VALID_CMD_TYPES = {"add_point", "add_circle", "add_polygon", "add_segment"}
+_VALID_HIGHLIGHT_COLORS = {"red", "blue", "green", "orange"}
+_VALID_QUIZ_TYPES = {"multiple_choice", "fill_in_blank"}
+_VALID_AGENT_IDS = {"planner", "general", "geometry", "quiz", "dataviz"}
+
+_MAX_COMMANDS = 200
+_MAX_ELEMENT_NAMES = 50
+_MAX_QUIZ_OPTIONS = 6
+_MAX_TEACHING_STEPS = 10
+
+
+def validate_tool_call(tool_name: str, args_dict: dict):
+    """校验工具调用参数的类型和边界。
+
+    Args:
+        tool_name: 工具函数名称。
+        args_dict: AI 返回的参数字典。
+
+    Returns:
+        (is_valid, error_msg) 元组。校验通过时 error_msg 为空字符串。
+    """
+    if not isinstance(args_dict, dict):
+        return False, f"参数必须是字典类型，收到 {type(args_dict).__name__}"
+
+    if tool_name == "execute_geometry_draw":
+        return _validate_geometry_draw(args_dict)
+    elif tool_name == "highlight_geometry_elements":
+        return _validate_highlight(args_dict)
+    elif tool_name == "generate_math_quiz":
+        return _validate_quiz(args_dict)
+    elif tool_name == "transfer_to_agent":
+        return _validate_transfer(args_dict)
+    elif tool_name == "submit_teaching_plan":
+        return _validate_teaching_plan(args_dict)
+    elif tool_name == "speak_at_location":
+        return _validate_speak(args_dict)
+    else:
+        # 未知工具不阻断，仅记录警告
+        logger.warning(f"未知工具名称: {tool_name}，跳过校验")
+        return True, ""
+
+
+def _validate_geometry_draw(args: dict):
+    commands = args.get("commands")
+    if not isinstance(commands, list):
+        return False, "execute_geometry_draw: 'commands' 必须是数组"
+    if not commands and "cmd" in args:
+        commands = [args]
+    if not commands:
+        return False, "execute_geometry_draw: 'commands' 不能为空"
+    if len(commands) > _MAX_COMMANDS:
+        return False, f"execute_geometry_draw: 命令数量超限 ({len(commands)} > {_MAX_COMMANDS})"
+
+    for i, cmd in enumerate(commands):
+        if not isinstance(cmd, dict):
+            return False, f"execute_geometry_draw: 第 {i+1} 条命令必须是对象"
+        cmd_type = cmd.get("cmd")
+        if cmd_type not in _VALID_CMD_TYPES:
+            return False, f"execute_geometry_draw: 第 {i+1} 条命令的 cmd='{cmd_type}' 无效，允许值: {_VALID_CMD_TYPES}"
+
+        if cmd_type == "add_point":
+            if not _is_number(cmd.get("x")) or not _is_number(cmd.get("y")):
+                return False, f"execute_geometry_draw: 第 {i+1} 条 add_point 缺少有效的 x/y 坐标"
+        elif cmd_type == "add_circle":
+            if not cmd.get("center") or not _is_number(cmd.get("radius")):
+                return False, f"execute_geometry_draw: 第 {i+1} 条 add_circle 缺少 center 或 radius"
+            if float(cmd["radius"]) <= 0:
+                return False, f"execute_geometry_draw: 第 {i+1} 条 add_circle 的 radius 必须为正数"
+        elif cmd_type == "add_polygon":
+            pts = cmd.get("points")
+            if not isinstance(pts, list) or len(pts) < 3:
+                return False, f"execute_geometry_draw: 第 {i+1} 条 add_polygon 的 points 至少需要 3 个顶点"
+        elif cmd_type == "add_segment":
+            if not cmd.get("p1") or not cmd.get("p2"):
+                return False, f"execute_geometry_draw: 第 {i+1} 条 add_segment 缺少 p1 或 p2"
+
+    return True, ""
+
+
+def _validate_highlight(args: dict):
+    element_names = args.get("element_names")
+    if not isinstance(element_names, list) or not element_names:
+        return False, "highlight_geometry_elements: 'element_names' 必须是非空数组"
+    if len(element_names) > _MAX_ELEMENT_NAMES:
+        return False, f"highlight_geometry_elements: 元素数量超限 ({len(element_names)} > {_MAX_ELEMENT_NAMES})"
+    color = args.get("color", "orange")
+    if color not in _VALID_HIGHLIGHT_COLORS:
+        return False, f"highlight_geometry_elements: color='{color}' 无效，允许值: {_VALID_HIGHLIGHT_COLORS}"
+    return True, ""
+
+
+def _validate_quiz(args: dict):
+    required = ["knowledge_point", "question_text", "question_type", "correct_answer", "explanation"]
+    for field in required:
+        val = args.get(field)
+        if not val or not isinstance(val, str):
+            return False, f"generate_math_quiz: 缺少必填字段 '{field}' 或类型非字符串"
+
+    qt = args.get("question_type")
+    if qt not in _VALID_QUIZ_TYPES:
+        return False, f"generate_math_quiz: question_type='{qt}' 无效，允许值: {_VALID_QUIZ_TYPES}"
+
+    options = args.get("options", [])
+    if not isinstance(options, list):
+        return False, "generate_math_quiz: 'options' 必须是数组"
+    if qt == "multiple_choice" and len(options) > _MAX_QUIZ_OPTIONS:
+        return False, f"generate_math_quiz: 选项数量超限 ({len(options)} > {_MAX_QUIZ_OPTIONS})"
+
+    return True, ""
+
+
+def _validate_transfer(args: dict):
+    target = args.get("target_agent")
+    if not target or not isinstance(target, str):
+        return False, "transfer_to_agent: 'target_agent' 必须是非空字符串"
+    if target not in _VALID_AGENT_IDS:
+        return False, f"transfer_to_agent: target_agent='{target}' 无效，允许值: {_VALID_AGENT_IDS}"
+    notes = args.get("handover_notes")
+    if not notes or not isinstance(notes, str):
+        return False, "transfer_to_agent: 'handover_notes' 必须是非空字符串"
+    return True, ""
+
+
+def _validate_teaching_plan(args: dict):
+    topic = args.get("topic")
+    if not topic or not isinstance(topic, str):
+        return False, "submit_teaching_plan: 'topic' 必须是非空字符串"
+    steps = args.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return False, "submit_teaching_plan: 'steps' 必须是非空数组"
+    if len(steps) > _MAX_TEACHING_STEPS:
+        return False, f"submit_teaching_plan: 步骤数量超限 ({len(steps)} > {_MAX_TEACHING_STEPS})"
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict):
+            return False, f"submit_teaching_plan: 第 {i+1} 步必须是对象"
+        if not isinstance(step.get("num"), int) or step["num"] < 1:
+            return False, f"submit_teaching_plan: 第 {i+1} 步的 num 必须是正整数"
+        if not step.get("title") or not isinstance(step["title"], str):
+            return False, f"submit_teaching_plan: 第 {i+1} 步缺少 title"
+    return True, ""
+
+
+def _validate_speak(args: dict):
+    target = args.get("target_element")
+    if not target or not isinstance(target, str):
+        return False, "speak_at_location: 'target_element' 必须是非空字符串"
+    text = args.get("text")
+    if not text or not isinstance(text, str):
+        return False, "speak_at_location: 'text' 必须是非空字符串"
+    if len(text) > 200:
+        return False, f"speak_at_location: 'text' 过长 ({len(text)} > 200 字符)"
+    return True, ""
+
+
+def _is_number(val) -> bool:
+    """检查值是否为 int/float（排除 bool）。"""
+    return isinstance(val, (int, float)) and not isinstance(val, bool)
+
+
 def execute_math_task(code_snippet: str):
     """
     供 AI Agent 调用的沙箱执行入口。
