@@ -2,7 +2,7 @@ from mathlab.core.cs_calculus_engine import cs_calculus
 import re
 import functools
 import threading
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Any
 
 try:
     from mathlab.utils.logger import get_logger
@@ -29,12 +29,11 @@ def _load_sympy():
     with _sympy_lock:
         if _sympy_loaded:
             return
-        import sympy
+        import sympy  # noqa: F811
         from sympy import (
             symbols, Symbol, Eq, solve, simplify, expand, factor,
-            diff, integrate, limit, latex, sin, cos, tan, log, exp,
-            sqrt, pi, Rational, Function, Derivative, Integral, sympify
-        )
+            diff, integrate, limit, latex
+        )  # noqa: F401
         _sympy_modules.update({
             'sympy': sympy,
             'symbols': symbols,
@@ -251,7 +250,6 @@ class CASProvider:
         try:
             symbols = _get_sympy_func('symbols')
             solve = _get_sympy_func('solve')
-            Eq = _get_sympy_func('Eq')
             x, y = symbols('x y')
 
             eq1 = self._object_to_equation(obj1, x, y)
@@ -434,7 +432,7 @@ class SmartCalculusSolver:
         智能积分求解器：先解析 (Python)，后数值 (C#)
         """
         _load_sympy()
-        from sympy import Symbol, integrate, Integral, lambdify
+        from sympy import Symbol, integrate, Integral
         from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication
         x = Symbol(var_name)
         try:

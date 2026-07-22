@@ -127,9 +127,7 @@ class TaskManager(QObject):
 
         self.thread_pool.start(worker)
         logger.debug(
-            f"已提交任务 [{
-                fn.__name__}] 至线程池，当前活动线程: {
-                self.thread_pool.activeThreadCount()}")
+            f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}")
 
     def _check_pending(self, group_id):
         if group_id is None:

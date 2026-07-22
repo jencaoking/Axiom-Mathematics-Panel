@@ -678,9 +678,7 @@ class BaseMathAgent:
 
                 if on_thought_cb:
                     on_thought_cb(
-                        f"✅ 沙箱执行成功！输出:\n{
-                            execution_result.get(
-                                'output', '')}")
+                        f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}")
 
                 # ============== 2. 触发后台"自我提炼"机制 ==============
                 threading.Thread(

@@ -1,6 +1,7 @@
 import re
 from mathlab.core.prompt_manager import PromptManager
 
+
 class ContextAssembler:
     """
     动态上下文组装引擎：按需注入背景知识，保持大模型注意力极度专注
@@ -23,13 +24,13 @@ class ContextAssembler:
         # 绝不盲目注入。只有当画板不是空的，且用户提及相关词汇时才注入。
         canvas_json = canvas_tracker.current_state_json if canvas_tracker else "{}"
         is_canvas_empty = canvas_json in ["{}", '{"points": {}, "lines": [], "circles": [], "polygons": []}']
-        
+
         if not is_canvas_empty:
             # 宽泛的几何匹配词
             if re.search(r'(图|这|怎么画|面积|点|线|圆|三角形|角度|距离|相交)', user_text):
                 snippet = self.snippets.get("canvas_state", "").replace("{canvas_json}", canvas_json)
                 addons.append(snippet)
-                
+
                 # 规则 3：如果有高级的本地启发式结果（Insights），一并注入
                 insights = getattr(canvas_tracker, 'current_insights', "")
                 if insights:

@@ -6,9 +6,8 @@ dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '
 if dll_path not in sys.path:
     sys.path.append(dll_path)
 
-import os
 os.environ.setdefault('PYTHONNET_RUNTIME', 'coreclr')
-import clr
+import clr  # noqa: E402
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastCalculus
@@ -16,8 +15,8 @@ except Exception as e:
     print(f"Failed to load C# Calculus Engine: {e}")
     FastCalculus = None
 
-# 导入 .NET 的 Func 泛型委托和 Double 类型
-from System import Func, Double
+from System import Func, Double  # noqa: E402
+
 
 class CsCalculusEngine:
     """自适应微积分混合引擎"""
@@ -32,7 +31,7 @@ class CsCalculusEngine:
         """
         # 【魔法发生地】：将 Python 函数包裹为 C# 的 Func<double, double> 委托
         cs_delegate = Func[Double, Double](py_func)
-        
+
         # 呼叫 C# 引擎，C# 会在内部的自适应循环中不断回调这个委托
         return self._engine.IntegrateAdaptive(cs_delegate, float(a), float(b), float(tol))
 
@@ -45,5 +44,6 @@ class CsCalculusEngine:
         # 打平并转为 C# 一维数组 (复用我们在 NumEngine 里的平铺优化)
         c_y_flat = System.Array[System.Double](y_array.ravel().tolist())
         return self._engine.IntegrateDiscrete(c_y_flat, float(dx))
+
 
 cs_calculus = CsCalculusEngine()
