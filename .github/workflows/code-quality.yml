@@ -183,12 +183,7 @@ EOF
       - name: Run MyPy
         run: |
           echo "🔍 正在进行类型检查 (MyPy)..."
-          mypy mathlab/ \
-            --ignore-missing-imports \
-            --no-strict-optional \
-            --warn-unused-ignores \
-            --warn-redundant-casts \
-            --exclude 'mathlab/resources/'
+          mypy mathlab/ --config-file mypy.ini
 
   # ────────────────────────────────────────────────────────────────────────
   # Job 4: 导入完整性检查 (项目特有)
