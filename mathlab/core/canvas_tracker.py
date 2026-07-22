@@ -101,7 +101,80 @@ class CanvasShadowTracker(QObject):
         比如：是否共线、是否有垂直、等边等
         """
         insights = []
-        # 此处省略具体的数学计算代码
-        # 伪代码：如果检测到三点距离相等 -> insights.append("Point A, B, C form an equilateral
-        # triangle")
+        points = state.get("points", {})
+
+        # 将点字典转为 (name, x, y) 列表
+        pt_list = [(name, data["x"], data["y"]) for name, data in points.items()]
+        if len(pt_list) < 2:
+            return insights
+
+        # ── 1. 检测三点共线 ──
+        if len(pt_list) >= 3:
+            from itertools import combinations
+            for a, b, c in combinations(pt_list, 3):
+                # 用叉积判定共线：|x_ab * y_ac - y_ab * x_ac| < epsilon
+                x_ab = b[1] - a[1]
+                y_ab = b[2] - a[2]
+                x_ac = c[1] - a[1]
+                y_ac = c[2] - a[2]
+                cross = abs(x_ab * y_ac - y_ab * x_ac)
+                if cross < 0.01:
+                    insights.append(f"Points {a[0]}, {b[0]}, {c[0]} are collinear")
+
+        # ── 2. 检测两条线段垂直 ──
+        lines = state.get("lines", [])
+        if len(lines) >= 2:
+            from itertools import combinations as comb2
+            # 从 lines 中提取每条线段的坐标信息（需要从 state 中补全端点坐标）
+            # 由于 lines 列表只有 name/type/length，需要回到 points 中查找
+            # 简化方案：检测点对之间的向量是否垂直
+            if len(pt_list) >= 4:
+                for a, b, c, d in comb2(pt_list, 4):
+                    # 向量 AB · CD = 0 → 垂直
+                    v1x, v1y = b[1] - a[1], b[2] - a[2]
+                    v2x, v2y = d[1] - c[1], d[2] - c[2]
+                    dot = v1x * v2x + v1y * v2y
+                    len1 = math.hypot(v1x, v1y)
+                    len2 = math.hypot(v2x, v2y)
+                    if len1 > 0.01 and len2 > 0.01 and abs(dot) < 0.01:
+                        insights.append(f"Segment {a[0]}{b[0]} is perpendicular to {c[0]}{d[0]}")
+
+        # ── 3. 检测等边三角形 ──
+        if len(pt_list) >= 3:
+            from itertools import combinations
+            for a, b, c in combinations(pt_list, 3):
+                d_ab = math.hypot(b[1] - a[1], b[2] - a[2])
+                d_bc = math.hypot(c[1] - b[1], c[2] - b[2])
+                d_ca = math.hypot(a[1] - c[1], a[2] - c[2])
+                if d_ab > 0.01 and abs(d_ab - d_bc) < 0.05 and abs(d_bc - d_ca) < 0.05:
+                    insights.append(f"Points {a[0]}, {b[0]}, {c[0]} form an equilateral triangle")
+
+        # ── 4. 检测直角三角形（勾股定理） ──
+        if len(pt_list) >= 3:
+            from itertools import combinations
+            for a, b, c in combinations(pt_list, 3):
+                d_ab = math.hypot(b[1] - a[1], b[2] - a[2])
+                d_bc = math.hypot(c[1] - b[1], c[2] - b[2])
+                d_ca = math.hypot(a[1] - c[1], a[2] - c[2])
+                # 排序三条边
+                sides = sorted([d_ab, d_bc, d_ca])
+                if sides[0] > 0.01:
+                    # 检查 a² + b² ≈ c²
+                    if abs(sides[0]**2 + sides[1]**2 - sides[2]**2) < 0.1:
+                        insights.append(f"Points {a[0]}, {b[0]}, {c[0]} form a right triangle")
+
+        # ── 5. 检测等距点对 ──
+        if len(pt_list) >= 2:
+            from itertools import combinations
+            for a, b in combinations(pt_list, 2):
+                dist = math.hypot(b[1] - a[1], b[2] - a[2])
+                # 检查是否有其他点对距离相同
+                for c, d in combinations(pt_list, 2):
+                    if (a, b) == (c, d) or (a, b) == (d, c):
+                        continue
+                    dist2 = math.hypot(d[1] - c[1], d[2] - c[2])
+                    if abs(dist - dist2) < 0.05:
+                        insights.append(f"Distance {a[0]}-{b[0]} equals {c[0]}-{d[0]}")
+                        break  # 每个点对只报告一次
+
         return insights

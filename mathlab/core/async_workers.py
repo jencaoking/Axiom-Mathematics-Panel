@@ -154,26 +154,87 @@ class TaskManager(QObject):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# AI 专用 Worker 占位类 (Stub)
-# 待 AI 模块完整实现后，替换以下 stub 为真正的业务逻辑类。
-# main_window.py 需要导入这些名字；这里先提供空实现防止 ImportError。
+# AI 专用 Worker 类
+# 将 AIManager 中的同步 ML 方法包装为异步 QRunnable，防止 UI 阻塞
 # ──────────────────────────────────────────────────────────────────────────────
 
 class AIFitWorker(TaskWorker):
-    """散点拟合 AI Worker（占位，待实现）"""
-    pass
+    """散点拟合 AI Worker：支持线性和多项式回归"""
+
+    def __init__(self, ai_manager, points, fit_type='linear', degree=2):
+        self._ai_manager = ai_manager
+        self._points = points
+        self._fit_type = fit_type
+        self._degree = degree
+
+        # 根据 fit_type 选择对应的函数
+        if fit_type == 'polynomial':
+            fn = ai_manager.fit_polynomial_regression
+            super().__init__(fn, points, degree)
+        else:
+            fn = ai_manager.fit_linear_regression
+            super().__init__(fn, points)
+
+        self.signals = WorkerSignals()
+        self.setAutoDelete(True)
+
+    def run(self):
+        try:
+            if self._fit_type == 'polynomial':
+                result = self._ai_manager.fit_polynomial_regression(self._points, self._degree)
+            else:
+                result = self._ai_manager.fit_linear_regression(self._points)
+            self.signals.finished.emit(result)
+        except Exception as e:
+            err_msg = traceback.format_exc()
+            logger.exception(f"AIFitWorker 执行异常:\n{err_msg}")
+            self.signals.error.emit(str(e))
 
 
 class AIClusterWorker(TaskWorker):
-    """聚类分析 AI Worker（占位，待实现）"""
-    pass
+    """聚类分析 AI Worker：支持 KMeans 和 DBSCAN"""
+
+    def __init__(self, ai_manager, points, algorithm='kmeans', **kwargs):
+        self._ai_manager = ai_manager
+        self._points = points
+        self._algorithm = algorithm
+        self._kwargs = kwargs
+
+        super().__init__(self._execute)
+        self.signals = WorkerSignals()
+        self.setAutoDelete(True)
+
+    def _execute(self):
+        if self._algorithm == 'dbscan':
+            eps = self._kwargs.get('eps', 0.5)
+            min_samples = self._kwargs.get('min_samples', 5)
+            return self._ai_manager.cluster_dbscan(self._points, eps, min_samples)
+        else:
+            n_clusters = self._kwargs.get('n_clusters', 3)
+            return self._ai_manager.cluster_kmeans(self._points, n_clusters)
 
 
 class AIRecognizeWorker(TaskWorker):
-    """手写识别 AI Worker（占位，待实现）"""
-    pass
+    """手写数字识别 AI Worker：调用 ONNX 模型进行推理"""
+
+    def __init__(self, ai_manager, image_data):
+        self._ai_manager = ai_manager
+        self._image_data = image_data
+
+        super().__init__(ai_manager.recognize_digit, image_data)
+        self.signals = WorkerSignals()
+        self.setAutoDelete(True)
 
 
 class AIGeneratePointsWorker(TaskWorker):
-    """AI 生成数据点 Worker（占位，待实现）"""
-    pass
+    """AI 生成随机数据点 Worker"""
+
+    def __init__(self, ai_manager, n=10, x_range=(0, 100), y_range=(0, 100)):
+        self._ai_manager = ai_manager
+        self._n = n
+        self._x_range = x_range
+        self._y_range = y_range
+
+        super().__init__(ai_manager.generate_random_points, n, x_range, y_range)
+        self.signals = WorkerSignals()
+        self.setAutoDelete(True)

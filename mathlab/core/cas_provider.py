@@ -51,26 +51,29 @@ def _cached_parse_expr(expr_str):
 class CASProvider:
     def __init__(self):
         self.symbols_cache = {}
+        self._cache_lock = threading.Lock()
 
     def _get_symbol(self, name):
         _load_sympy()
-        if name in self.symbols_cache:
+        with self._cache_lock:
+            if name in self.symbols_cache:
+                return self.symbols_cache[name]
+
+            if hasattr(sympy, name):
+                return getattr(sympy, name)
+
+            self.symbols_cache[name] = Symbol(name)
             return self.symbols_cache[name]
-
-        if hasattr(sympy, name):
-            return getattr(sympy, name)
-
-        self.symbols_cache[name] = Symbol(name)
-        return self.symbols_cache[name]
 
     def parse_expression(self, expr_str):
         _load_sympy()
         try:
             result = _cached_sympify(expr_str)
-            for symbol in result.free_symbols:
-                sym_name = str(symbol)
-                if not hasattr(sympy, sym_name):
-                    self.symbols_cache[sym_name] = symbol
+            with self._cache_lock:
+                for symbol in result.free_symbols:
+                    sym_name = str(symbol)
+                    if not hasattr(sympy, sym_name):
+                        self.symbols_cache[sym_name] = symbol
             return result
         except Exception:
             return None
@@ -313,10 +316,76 @@ class CASProvider:
             return []
 
     def latex_to_text(self, latex_str):
+        """将 LaTeX 公式转换为可读的纯文本表示"""
         try:
-            return {"success": True, "text": latex_str}
-        except BaseException:
-            return {"success": False, "error": "Failed to convert"}
+            text = latex_str
+            # 常见 LaTeX 命令替换
+            replacements = [
+                (r'\frac{', '('),       # 分式开始
+                (r'}{', ') / ('),       # 分式分隔
+                (r'\sqrt{', 'sqrt('),   # 根号
+                (r'\cdot', '·'),        # 乘法
+                (r'\times', '×'),
+                (r'\div', '÷'),
+                (r'\pm', '±'),
+                (r'\mp', '∓'),
+                (r'\infty', '∞'),
+                (r'\pi', 'π'),
+                (r'\theta', 'θ'),
+                (r'\alpha', 'α'),
+                (r'\beta', 'β'),
+                (r'\gamma', 'γ'),
+                (r'\delta', 'δ'),
+                (r'\lambda', 'λ'),
+                (r'\mu', 'μ'),
+                (r'\sigma', 'σ'),
+                (r'\omega', 'ω'),
+                (r'\Delta', 'Δ'),
+                (r'\Sigma', 'Σ'),
+                (r'\Omega', 'Ω'),
+                (r'\leq', '≤'),
+                (r'\geq', '≥'),
+                (r'\neq', '≠'),
+                (r'\approx', '≈'),
+                (r'\equiv', '≡'),
+                (r'\rightarrow', '→'),
+                (r'\leftarrow', '←'),
+                (r'\Rightarrow', '⇒'),
+                (r'\Leftarrow', '⇐'),
+                (r'\sum', 'Σ'),
+                (r'\int', '∫'),
+                (r'\partial', '∂'),
+                (r'\nabla', '∇'),
+                (r'\forall', '∀'),
+                (r'\exists', '∃'),
+                (r'\in', '∈'),
+                (r'\notin', '∉'),
+                (r'\subset', '⊂'),
+                (r'\supset', '⊃'),
+                (r'\cup', '∪'),
+                (r'\cap', '∩'),
+                (r'\emptyset', '∅'),
+                (r'\overline{', ''),     # 上划线（去掉，保留内容）
+                (r'\mathbf{', ''),       # 粗体（去掉）
+                (r'\text{', ''),         # 文本模式（去掉）
+                (r'\mathrm{', ''),       # 罗马体（去掉）
+                (r'\left(', '('),
+                (r'\right)', ')'),
+                (r'\left[', '['),
+                (r'\right]', ']'),
+                (r'\left|', '|'),
+                (r'\right|', '|'),
+            ]
+            for old, new in replacements:
+                text = text.replace(old, new)
+            # 清理多余的右花括号（由 \frac, \sqrt 等产生）
+            text = text.replace('}', '')
+            # 压缩多余空格
+            import re as _re
+            text = _re.sub(r'\s+', ' ', text).strip()
+            return {"success": True, "text": text}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 
 class SmartCalculusSolver:

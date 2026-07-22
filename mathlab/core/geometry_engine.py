@@ -899,15 +899,22 @@ class FunctionPlot(GeometricObject):
     
     @classmethod
     def deserialize(cls, data):
+        # 使用工厂方法模式：绕过 __init__ 中的 _generate_points 调用
+        # 但通过 super().__init__ 正确初始化基类，而非手动调用
+        expression = data.get('expression', 'x')
+        x_range = data.get('x_range', (-10, 10))
+        num_points = data.get('num_points', 500)
         obj = cls.__new__(cls)
         GeometricObject.__init__(obj, data['id'], data['name'], 'FunctionPlot')
-        obj.expression = data.get('expression', 'x')
-        obj.x_range = data.get('x_range', (-10, 10))
-        obj.num_points = data.get('num_points', 500)
+        obj.expression = expression
+        obj.x_range = x_range
+        obj.num_points = num_points
         obj.coordinates = data.get('coordinates', {})
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
         obj.points_data = data.get('points_data', [])
+        obj.symbolic_expr = None
+        obj.is_draft = data.get('is_draft', False)
         return obj
 
 class ImplicitPlot(GeometricObject):
@@ -974,16 +981,29 @@ class ImplicitPlot(GeometricObject):
 
             # 用 np.where 把单元行列号扩展回角点坐标
             ci, cj = np.where(cell_mask)  # 满足条件的单元 (i, j)
-            point_set = set()  # 用 set 去重，避免相邻单元重复添加同一角点
+            # 全矢量化收集角点：避免 Python for 循环
+            all_xs = []
+            all_ys = []
             for di, dj in ((0, 0), (0, 1), (1, 1), (1, 0)):
                 pi, pj = ci + di, cj + dj
                 valid = np.isfinite(Z[pi, pj]) & (np.abs(Z[pi, pj]) < near_zero_tol)
-                xs = X[pi[valid], pj[valid]]
-                ys = Y[pi[valid], pj[valid]]
-                for x, y in zip(xs.tolist(), ys.tolist()):
-                    point_set.add((x, y))
+                all_xs.append(X[pi[valid], pj[valid]])
+                all_ys.append(Y[pi[valid], pj[valid]])
 
-            points = list(point_set)
+            # 一次性拼接去重
+            if all_xs:
+                xs_cat = np.concatenate(all_xs)
+                ys_cat = np.concatenate(all_ys)
+                # 使用结构化数组实现矢量化去重：(x, y) 作为复合键
+                combined = np.column_stack((xs_cat, ys_cat))
+                # round 到 6 位小数后去重，避免浮点误差导致的重复
+                rounded = np.round(combined, 6)
+                unique_indices = np.unique(rounded, axis=0, return_index=True)[1]
+                points = combined[unique_indices].tolist()
+                # 转为 list of tuple
+                points = [tuple(p) for p in points]
+            else:
+                points = []
             self.points_data = points
             self.coordinates = {'points': points}
         except Exception as e:
@@ -1005,6 +1025,7 @@ class ImplicitPlot(GeometricObject):
     
     @classmethod
     def deserialize(cls, data):
+        # 绕过 __init__ 中的 _generate_points 调用，但完整初始化所有属性
         obj = cls.__new__(cls)
         GeometricObject.__init__(obj, data['id'], data['name'], 'ImplicitPlot')
         obj.expression = data.get('expression', 'x**2 + y**2 - 1')
@@ -1015,6 +1036,8 @@ class ImplicitPlot(GeometricObject):
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
         obj.points_data = data.get('points_data', [])
+        obj.symbolic_expr = None
+        obj.is_draft = data.get('is_draft', False)
         return obj
 
 class PolarPlot(GeometricObject):
@@ -1083,6 +1106,8 @@ class PolarPlot(GeometricObject):
         obj.constraints = data.get('constraints', [])
         obj.depends_on = data.get('depends_on', [])
         obj.points_data = data.get('points_data', [])
+        obj.symbolic_expr = None
+        obj.is_draft = data.get('is_draft', False)
         return obj
 
 class Locus(GeometricObject):
@@ -1550,12 +1575,20 @@ class GeometryEngine:
         all_dependents = self.dependencies.get_dependents(obj_id)
         for dep_id in reversed(all_dependents):
             if dep_id in self.objects:
-                self._name_set.discard(self.objects[dep_id].name)
+                dep_obj = self.objects[dep_id]
+                self._name_set.discard(dep_obj.name)
+                # 同步递减计数器，保持名称状态一致
+                if hasattr(dep_obj, 'type') and dep_obj.type in self.name_counter:
+                    self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
                 self.dependencies.remove_node(dep_id)
                 self._notify('object_removed', dep_id)
                 del self.objects[dep_id]
 
-        self._name_set.discard(self.objects[obj_id].name)
+        obj = self.objects[obj_id]
+        self._name_set.discard(obj.name)
+        # 同步递减计数器
+        if hasattr(obj, 'type') and obj.type in self.name_counter:
+            self.name_counter[obj.type] = max(0, self.name_counter[obj.type] - 1)
         self.dependencies.remove_node(obj_id)
         self._notify('object_removed', obj_id)
         del self.objects[obj_id]
