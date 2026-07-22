@@ -40,7 +40,7 @@ class CsGeometryEngine:
         """
         if point_count == 0:
             return []
-            
+
         points = []
         for i in range(point_count):
             idx = i * 2
@@ -52,7 +52,7 @@ class CsGeometryEngine:
             return None
         # clr 会将返回的数组和 out 参数封装成元组: (double[] buffer, int pointCount)
         res_buffer, count = self._engine.SolveLineLineFast(
-            float(a1), float(b1), float(c1), 
+            float(a1), float(b1), float(c1),
             float(a2), float(b2), float(c2)
         )
         return self._flat_array_to_points_fast(res_buffer, count)
@@ -61,7 +61,7 @@ class CsGeometryEngine:
         if not self.is_available:
             return None
         res_buffer, count = self._engine.SolveLineCircleFast(
-            float(a), float(b), float(c), 
+            float(a), float(b), float(c),
             float(cx), float(cy), float(r)
         )
         return self._flat_array_to_points_fast(res_buffer, count)
@@ -70,7 +70,7 @@ class CsGeometryEngine:
         if not self.is_available:
             return None
         res_buffer, count = self._engine.SolveCircleCircleFast(
-            float(cx1), float(cy1), float(r1), 
+            float(cx1), float(cy1), float(r1),
             float(cx2), float(cy2), float(r2)
         )
         return self._flat_array_to_points_fast(res_buffer, count)
@@ -89,6 +89,7 @@ class CsGeometryEngine:
         for i in range(0, len(res), 2):
             points.append((float(res[i]), float(res[i+1])))
         return points
+
 
 # 全局单例
 cs_geometry = CsGeometryEngine()

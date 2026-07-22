@@ -45,7 +45,6 @@ class TaskManager(QObject):
     全局异步任务调度中心 (单例模式)
     """
     _instance = None
-    import threading
     _lock = threading.Lock()
 
     def __new__(cls):
@@ -58,7 +57,6 @@ class TaskManager(QObject):
     def _init_pool(self):
         self.thread_pool = QThreadPool.globalInstance()
         # 获取系统 CPU 核心数，保留一个核心给主 UI 线程，防止机器整体卡顿
-        import multiprocessing
         max_threads = max(1, multiprocessing.cpu_count() - 1)
         self.thread_pool.setMaxThreadCount(max_threads)
         # 用于防抖与任务覆盖：跟踪各组是否有任务运行及挂起的最新请求

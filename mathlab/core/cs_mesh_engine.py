@@ -1,18 +1,17 @@
 import sys
 import os
-import numpy as np
+import clr
 
 dll_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'MathLab.CSharpEngine', 'bin', 'Release', 'netstandard2.0'))
 if dll_path not in sys.path:
     sys.path.append(dll_path)
-
-import clr
 try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastMesh3D
 except Exception as e:
     print(f"Failed to load C# 3D Mesh Engine: {e}")
     FastMesh3D = None
+
 
 class CsMeshEngine:
     """3D 空间曲面网格计算引擎"""
@@ -32,9 +31,10 @@ class CsMeshEngine:
             int(x_seg), int(y_seg),
             float(time_val), float(freq)
         )
-        
+
         # 极速将非托管的 C# float[] 转换为 python 基础的 list (WebGL 传输所需)
         return list(res_flat)
+
 
 # 全局单例
 cs_mesh_3d = CsMeshEngine()

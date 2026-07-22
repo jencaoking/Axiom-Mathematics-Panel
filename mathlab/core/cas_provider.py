@@ -12,7 +12,7 @@ except ImportError:
     logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    import sympy  # noqa: F401
+    import sympy as _sympy  # noqa: F401
 
 _sympy_lock = threading.Lock()
 _sympy_loaded = False

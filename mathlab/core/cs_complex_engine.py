@@ -91,7 +91,6 @@ class CsComplexEngine:
         """
         接收 C# 的平滑浮点数据，并渲染出无断层的极致分形图象
         """
-        import System
 
         # 1. 呼叫 C# 引擎 (新增的 Smooth 方法)
         # 返回的是 System.Single[] (float[])
@@ -130,6 +129,7 @@ class CsComplexEngine:
         # 内部(逃逸失败的点)保持纯黑
 
         return image_rgb
+
 
 # 全局单例
 cs_complex = CsComplexEngine()
