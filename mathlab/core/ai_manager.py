@@ -614,7 +614,8 @@ class BaseMathAgent:
                 "")
             return suggestion
         except Exception as e:
-            print(f"LLM Generate Code Error: {e}")
+            # SUGGESTION 11 修复：使用 logger 替代 print
+            logger.error(f"LLM Generate Code Error: {e}")
             return "print('Error generating code')"
 
     def solve_problem(self, user_prompt: str, on_thought_cb=None,
@@ -705,6 +706,12 @@ class BaseMathAgent:
                 messages.append({"role": "user",
                                  "content": f"执行失败，报错如下：\n{error_msg}\n请修正代码。"})  # noqa: E501
 
+                # BUG 6 修复：限制历史消息数量，避免上下文无限增长
+                # 保留 system + 初始 user（前2条）+ 最近3轮对话（6条）
+                MAX_HISTORY_MSGS = 8
+                if len(messages) > MAX_HISTORY_MSGS:
+                    messages = messages[:2] + messages[-(MAX_HISTORY_MSGS - 2):]
+
         if on_finish_cb:
             on_finish_cb(False, "超出最大重试次数")
         return {"status": "failed", "error": "超出最大重试次数"}
@@ -734,7 +741,8 @@ class BaseMathAgent:
                 result_json["intent"],
                 result_json["abstract_code"])
         except Exception as e:
-            print(f"技能提炼失败 (后台线程): {e}")
+            # SUGGESTION 11 修复：使用 logger 替代 print
+            logger.error(f"技能提炼失败 (后台线程): {e}")
 
 
 class PlannerAgent(BaseMathAgent):
@@ -809,15 +817,31 @@ class PlannerAgent(BaseMathAgent):
         combined = f"{step_title} {hint}".lower()
         viz_keywords = ["图表", "可视化", "数据", "统计", "echarts", "柱状图",
                         "折线图", "饼图", "散点图", "3d曲面", "玫瑰图", "热力图"]
-        for kw in viz_keywords:
-            if kw in combined:
-                return "DataVizAgent"
-        # 绝大部分数学任务（画图、求解、几何、微积分）由几何专家处理
-        return "GeometryAgent"
 
-    def _step_result_cb(self, success: bool, content: str):
-        """子 Agent 结束回调，只收集结果，不触发 PlannerAgent 的顶级 finish。"""
-        pass
+        # BUG 7 修复：动态查找已注册的 Agent，而非硬编码名称
+        registry = getattr(self, "agent_registry", None)
+        if not registry or not registry.agents:
+            return "GeometryAgent"
+
+        # 优先查找 DataViz 相关专家
+        for name, info in registry.agents.items():
+            desc = info.get("description", "").lower()
+            if any(kw in desc for kw in ["可视化", "图表", "echarts"]):
+                if any(kw in combined for kw in viz_keywords):
+                    return name
+
+        # 默认查找几何专家
+        for name, info in registry.agents.items():
+            desc = info.get("description", "").lower()
+            if any(kw in desc for kw in ["几何", "geometry"]):
+                return name
+
+        # 回退到第一个注册的 Agent（排除自身 PlannerAgent）
+        for name in registry.agents:
+            if name != "PlannerAgent":
+                return name
+
+        return list(registry.agents.keys())[0] if registry.agents else "GeometryAgent"
 
     def solve_problem(self, user_prompt: str, on_thought_cb=None,
                       on_code_cb=None, on_finish_cb=None, on_geom_cb=None):
@@ -883,9 +907,11 @@ class PlannerAgent(BaseMathAgent):
             if sub_info is None:
                 if on_thought_cb:
                     on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
-                # 回退到 Planner 自己求解
+                # BUG 3 修复：使用空回调忽略基类的 finish，由 Planner 统一处理
+                def _noop_finish_cb(success, content):
+                    pass
                 result = super().solve_problem(
-                    sub_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb)  # type: ignore[arg-type]
+                    sub_prompt, on_thought_cb, on_code_cb, _noop_finish_cb, on_geom_cb)  # type: ignore[arg-type]
                 if isinstance(result, dict) and result.get("status") == "ok":
                     all_codes.append(result.get("code", ""))
                     all_geom_commands.extend(result.get("geom_commands", []))
@@ -977,11 +1003,11 @@ class GeometryAgent(BaseMathAgent):
 
 可用的画板 API（坐标均以浮点数传入，无需 import）：
 - draw_point(x, y, name=None)      在 (x,y) 画点，可指定标签
-- draw_segment((x1,y1), (x2,y2))   画线段
+- draw_segment(p1, p2)             画线段（p1/p2 可以是坐标元组如 (x1,y1) 或 draw_point 返回的字典）
 - draw_circle(cx, cy, r)            以 (cx,cy) 为圆心、r 为半径画圆
 - draw_line(x1, y1, x2, y2)        过两点画直线
 - draw_ellipse(cx, cy, rx, ry)     以 (cx,cy) 为中心、rx/ry 为半轴画椭圆（退化为圆近似）
-- draw_polygon([(x1,y1), ...])     画多边形
+- draw_polygon([(x1,y1), ...])     画多边形，参数为坐标元组的列表
 - clear_canvas()                    清空画板
 
 别名：add_point / add_segment / add_circle / add_line / add_ellipse / add_polygon 功能同上。

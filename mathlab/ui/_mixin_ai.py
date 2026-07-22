@@ -35,20 +35,19 @@ class AIMixin:
         
         # 2. 注册所有领域专家
         # 教研组长优先注册（顶层调度者，能拆解任务并委派给其他专家）
+        # BUG 1 修复：直接在构造函数中传递 agent_registry 参数
         self.agent_registry.register_agent(
             name="PlannerAgent",
             description="数学教研组长：将复杂问题拆解为3-5个循序渐进的教学步骤，然后调度解析几何专家和数据可视化专家协同完成教学。适合深层理解、苏格拉底式教学场景。",
-            agent_instance=PlannerAgent(self.ai_manager)
+            agent_instance=PlannerAgent(self.ai_manager, agent_registry=self.agent_registry)
         )
-        # 注入 registry 引用，让 Planner 可以委派给子 Agent
-        self.agent_registry.agents["PlannerAgent"]["instance"].agent_registry = self.agent_registry
-        
+
         self.agent_registry.register_agent(
             name="GeometryAgent",
             description="擅长解决平面几何、微积分、代数方程求解，以及二维坐标系中的点线圆绘制任务。",
             agent_instance=GeometryAgent(self.ai_manager)
         )
-        
+
         self.agent_registry.register_agent(
             name="DataVizAgent",
             description="擅长处理统计数据可视化、柱状图、折线图、南丁格尔玫瑰图、3D曲面图等 ECharts 图表渲染任务。",

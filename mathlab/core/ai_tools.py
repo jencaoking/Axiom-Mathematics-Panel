@@ -1,6 +1,14 @@
 # filepath: mathlab/core/ai_tools.py
+import ast
 import json
 from mathlab.core.jupyter_manager import get_jupyter_sandbox
+
+try:
+    from mathlab.utils.logger import get_logger
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
 
 # ============================================================
 #  沙箱画板桥接 (Geometry Canvas Bridge)
@@ -258,9 +266,11 @@ def execute_math_task(code_snippet: str):
         output_text = output_text[:idx].rstrip()
         result["text"] = output_text
         try:
-            geom_commands = eval(cmds_str)
-        except Exception:
-            pass
+            # BUG 4 修复：使用 ast.literal_eval 替代 eval，只允许字面量解析
+            geom_commands = ast.literal_eval(cmds_str)
+        except (ValueError, SyntaxError) as e:
+            # SUGGESTION 14：添加错误日志
+            logger.warning(f"解析几何命令失败: {cmds_str[:200]} - {e}")
 
     tb = result.get("traceback") or []
     error_text = "\n".join(tb) if isinstance(tb, list) else str(tb)

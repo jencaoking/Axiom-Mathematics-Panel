@@ -44,8 +44,13 @@ class AgentUIBridge(QObject):
 
     def run_task_in_background(self, user_prompt):
         """将任务抛入后台线程执行，并通过回调发射信号"""
-        if self._current_worker is not None and self._current_worker.isRunning():
-            return  # 防止重入，丢弃并发请求
+        # BUG 5 修复：先清理已完成的 worker，再检查运行状态
+        if self._current_worker is not None:
+            if self._current_worker.isRunning():
+                return  # 防止重入，丢弃并发请求
+            # 清理已完成的 worker 引用，避免内存泄漏
+            self._current_worker.deleteLater()
+            self._current_worker = None
 
         def _thought_cb(text):
             # 将终端打印转化为 UI 信号

@@ -129,12 +129,13 @@ class AgentRegistry:
         # 1. 构建动态的路由 Prompt，列出所有可用专家
         agent_descriptions = "\n".join([f"- {name}: {info['description']}" for name, info in self.agents.items()])
 
-        router_prompt = f"""你是一个高级任务调度路由大脑。
-请分析用户的需求：“{user_prompt}”。
+        # BUG 10 修复：使用三引号嵌套避免用户输入中的引号破坏格式
+        router_prompt = f'''你是一个高级任务调度路由大脑。
+请分析用户的需求：{user_prompt}
 根据以下可用的专家 Agent，决定将任务派发给谁最合适：
 {agent_descriptions}
 
-规则：你必须且只能返回专家的名字，不要输出任何多余的字符或标点。"""
+规则：你必须且只能返回专家的名字，不要输出任何多余的字符或标点。'''
 
         if on_thought_cb:
             on_thought_cb("🧠 路由大脑正在分析意图，寻找最合适的专家...")
