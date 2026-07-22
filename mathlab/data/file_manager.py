@@ -4,7 +4,7 @@ import shutil
 import hashlib
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 
 # 进程级 MD5 缓存，key = (abspath, file_size, mtime_ns)
 # 避免同一文件未改动时重复读盘计算，减少主线程 I/O 阻塞。
@@ -12,12 +12,14 @@ from typing import List, Dict, Optional, Any
 _CHECKSUM_CACHE: Dict[tuple, str] = {}
 _CHECKSUM_CACHE_MAX = 512
 
+
 class FileCategory(Enum):
     GEOMETRY = 'geometry'
     ALGEBRA = 'algebra'
     ALGORITHM = 'algorithm'
     AI_PROJECT = 'ai_project'
     UNTITLED = 'untitled'
+
 
 class FileFormat(Enum):
     MATHLAB = ('mathlab', 'MathLab Project')
@@ -32,6 +34,7 @@ class FileFormat(Enum):
         self._value_ = extension
         self.extension = extension
         self.description = description
+
 
 class SearchFilter:
     def __init__(self):
@@ -73,6 +76,7 @@ class SearchFilter:
                 return False
 
         return True
+
 
 class FileMetadata:
     def __init__(self, file_path: str):
@@ -123,6 +127,7 @@ class FileMetadata:
             return result
         except (OSError, IOError):
             return ''
+
 
 class FileIndex:
     def __init__(self, index_path: Optional[str] = None):
@@ -235,6 +240,7 @@ class FileIndex:
             stats['total_size'] += entry.get('size', 0)
 
         return stats
+
 
 class FileManager:
     def __init__(self, base_directory: Optional[str] = None):
@@ -423,4 +429,4 @@ class FileManager:
             f"Object Types: {', '.join(entry.get('object_types', []))}",
             f"Tags: {', '.join(entry.get('tags', []))}"
         ]
-        return '\n'.join(lines) 
+        return '\n'.join(lines)

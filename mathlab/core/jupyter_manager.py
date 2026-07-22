@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 try:
     from jupyter_client import KernelManager
 except ImportError:
-    KernelManager = None
+    KernelManager = None  # type: ignore
 
 try:
     from mathlab.utils.logger import get_logger
@@ -92,9 +92,9 @@ class JupyterSandbox:
         try:
             while True:
                 # 从 iopub 频道获取执行结果
-                msg: dict = self.kc.get_iopub_msg(timeout=timeout)  # type: ignore
+                msg = self.kc.get_iopub_msg(timeout=timeout)  # type: ignore
                 msg_type = msg['header']['msg_type']
-                content: dict = msg['content']
+                content = msg['content']
 
                 if msg_type == 'stream':
                     # 捕获 print() 输出

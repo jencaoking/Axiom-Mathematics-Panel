@@ -6,11 +6,11 @@ import traceback
 # PyInstaller打包后路径处理
 if getattr(sys, 'frozen', False):
     # exe运行模式
-    application_path = sys._MEIPASS
+    application_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
     _CRASH_LOG_DIR = os.path.dirname(sys.executable)
-    
+
     # 修复 QtWebEngineProcess 找不到 PySide6 内部 DLL 的系统错误弹窗
-    pyside_dir = os.path.join(sys._MEIPASS, 'PySide6')
+    pyside_dir = os.path.join(getattr(sys, '_MEIPASS', ''), 'PySide6')
     os.environ['PATH'] = pyside_dir + os.pathsep + os.environ.get('PATH', '')
     os.environ['QTWEBENGINEPROCESS_PATH'] = os.path.join(pyside_dir, 'QtWebEngineProcess.exe')
 else:
@@ -30,7 +30,7 @@ def _write_crash_log(exc_type, exc_value, exc_tb):
     with open(crash_file, "a", encoding="utf-8") as f:
         f.write(f"\n[{datetime.now()}]\n")
         f.write("=" * 60 + "\n")
-        f.write(f"MathLab 启动崩溃报告\n")
+        f.write("MathLab 启动崩溃报告\n")
         f.write(f"Python: {sys.version}\n")
         f.write(f"Platform: {sys.platform}\n")
         f.write(f"Executable: {sys.executable}\n")
@@ -52,16 +52,16 @@ except Exception:
     _write_crash_log(*sys.exc_info())
     sys.exit(1)
 
-from mathlab.core.error_manager import install_error_handler
+from mathlab.core.error_manager import install_error_handler  # noqa: E402
 install_error_handler()
 # ─────────────────────────────────────────────────────────────────────────────
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QIcon, QFont
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtGui import QIcon, QFont  # noqa: E402
+from PySide6.QtCore import Qt  # noqa: E402
 
-from mathlab.ui.main_window import MainWindow
-from mathlab.utils.version import __version__
+from mathlab.ui.main_window import MainWindow  # noqa: E402
+from mathlab.utils.version import __version__  # noqa: E402
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
         # 事件监听注册和插件系统启动，消除双重初始化反模式
         window = MainWindow()
         window.show()
-        
+
         # ── 关闭 PyInstaller Splash Screen ──
         try:
             import pyi_splash
@@ -134,7 +134,6 @@ if __name__ == '__main__':
 
     if multiprocessing.current_process().name != 'MainProcess':
         sys.exit(0)  # 避免子进程进 GUI
-
 
     # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
     if len(sys.argv) >= 2:

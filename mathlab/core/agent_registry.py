@@ -248,8 +248,8 @@ class AgentRegistry:
         Returns:
             (loaded_names, failed_names) 已加载和加载失败的 Agent 名称列表
         """
-        loaded = []
-        failed = []
+        loaded: list[str] = []
+        failed: list[str] = []
 
         if not os.path.isdir(dir_path):
             logger.warning(f"Agent 配置目录不存在: {dir_path}")
