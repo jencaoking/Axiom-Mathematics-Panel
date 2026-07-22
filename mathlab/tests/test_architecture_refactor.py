@@ -8,8 +8,6 @@
 """
 import os
 import sys
-import json
-import tempfile
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -189,6 +187,7 @@ class TestAIFacade:
     def facade(self):
         from mathlab.core.ai_facade import AIFacade
         # 使用 mock 对象避免真实 AI 初始化
+
         class MockAIManager:
             def ask(self, **kwargs):
                 pass
@@ -211,7 +210,6 @@ class TestAIFacade:
     ])
     def test_classify_intent(self, facade, prompt, expected):
         """测试意图分类正确性。"""
-        from mathlab.core.ai_facade import AITaskType
         result = facade.classify_intent(prompt)
         assert result.value == expected
 
@@ -220,7 +218,6 @@ class TestAIFacade:
         from mathlab.core.ai_facade import AITaskType
         called = {}
 
-        original = facade._run_function_calling
         facade._run_function_calling = lambda *args, **kwargs: called.update({'fc': True})
         facade._run_agent_loop = lambda *args, **kwargs: called.update({'agent': True})
 
@@ -295,7 +292,7 @@ class TestModelsBackwardCompat:
 
     def test_import_from_geometry_engine(self):
         """从 geometry_engine 导入所有类应正常工作。"""
-        from mathlab.core.geometry_engine import (
+        from mathlab.core.geometry_engine import (  # noqa: F401
             Point, Segment, Circle, Polygon, Ellipse, Hyperbola,
             Parabola, ConicSection, FunctionPlot, ImplicitPlot,
             PolarPlot, Locus, Intersection, DAG, GeometricObject
