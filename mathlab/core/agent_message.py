@@ -18,7 +18,7 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Deque
+from typing import Any, Callable, Dict, List, Optional, Deque, cast
 
 from mathlab.utils.logger import get_logger
 
@@ -439,9 +439,9 @@ class MessageRouter:
             result_msg = AgentMessage.create_task_result(
                 sender_id=agent_id,
                 receiver_id=message.sender_id,
-                success=result_container["success"],
-                code=result_container["code"],
-                geom_commands=result_container["geom_commands"],
+                success=cast(bool, result_container["success"]),
+                code=cast(str, result_container["code"]),
+                geom_commands=cast(list, result_container["geom_commands"]),
                 reply_to=message.id,
                 conversation_id=message.conversation_id,
             )

@@ -4,6 +4,7 @@ import math
 import re
 from typing import List, Dict
 
+
 class GeoEntity:
     def __init__(self, name: str, parents: List['GeoEntity'] = None):
         self.id = str(uuid.uuid4())
@@ -11,24 +12,25 @@ class GeoEntity:
         self.parents = parents or []
         self.children = []
         self.is_visible = True
-        
+
     def get_algebra_string(self) -> str:
         return "Undefined"
-        
+
     def update_from_string(self, expr: str) -> bool:
         return False
 
     def add_child(self, child: 'GeoEntity'):
         if child not in self.children:
             self.children.append(child)
-            
+
     def compute(self):
         pass
-        
+
     def notify_update(self):
         self.compute()
         for child in self.children:
             child.notify_update()
+
 
 class GeoPoint(GeoEntity):
     def __init__(self, name: str, x: float = 0, y: float = 0, parents=None):
@@ -36,7 +38,7 @@ class GeoPoint(GeoEntity):
         self.x = x
         self.y = y
         self.color = "#4cc9f0" if not parents else "#f72585"
-        
+
     def set_coords(self, x: float, y: float):
         if not self.parents:
             self.x = x
@@ -49,7 +51,7 @@ class GeoPoint(GeoEntity):
     def update_from_string(self, expr: str) -> bool:
         if self.parents:
             return False
-            
+
         match = re.search(r'\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)', expr)
         if match:
             new_x, new_y = float(match.group(1)), float(match.group(2))
@@ -57,13 +59,14 @@ class GeoPoint(GeoEntity):
             return True
         return False
 
+
 class GeoLine(GeoEntity):
     def __init__(self, name: str, p1: GeoPoint, p2: GeoPoint):
         super().__init__(name, parents=[p1, p2])
         p1.add_child(self)
         p2.add_child(self)
         self.color = "#4361ee"
-        
+
     def compute(self):
         pass
 
@@ -72,15 +75,16 @@ class GeoLine(GeoEntity):
         x2, y2 = self.parents[1].x, self.parents[1].y
         dx = x2 - x1
         dy = y2 - y1
-        
+
         if abs(dx) < 1e-6:
             return f"x = {x1:.2f}"
-            
+
         k = dy / dx
         b = y1 - k * x1
-        
+
         sign = "+" if b >= 0 else "-"
         return f"y = {k:.2f}x {sign} {abs(b):.2f}"
+
 
 class GeoCircle(GeoEntity):
     """由圆心和圆上一点定义的圆"""
@@ -90,7 +94,7 @@ class GeoCircle(GeoEntity):
         center.add_child(self)
         radius_point.add_child(self)
         self.color = "#d4d4d4"
-        
+
         self.center_x = 0.0
         self.center_y = 0.0
         self.r = 0.0
@@ -101,35 +105,37 @@ class GeoCircle(GeoEntity):
         self.center_x, self.center_y = c.x, c.y
         self.r = math.hypot(rp.x - c.x, rp.y - c.y)
 
+
 def solve_line_circle(line: GeoLine, circle: GeoCircle, root_index: int):
     p1, p2 = line.parents
     c = circle.parents[0]
-    
+
     dx = p2.x - p1.x
     dy = p2.y - p1.y
-    
+
     fx = p1.x - circle.center_x
     fy = p1.y - circle.center_y
-    
+
     a = dx*dx + dy*dy
     b = 2 * (fx*dx + fy*dy)
     c_eq = fx*fx + fy*fy - circle.r*circle.r
-    
+
     if a == 0:
         return None, False
 
     delta = b*b - 4*a*c_eq
-    
+
     if delta < 0:
         return None, False
-        
+
     sign = 1 if root_index == 0 else -1
     t = (-b + sign * math.sqrt(delta)) / (2 * a)
-    
+
     intersect_x = p1.x + t * dx
     intersect_y = p1.y + t * dy
-    
+
     return (intersect_x, intersect_y), True
+
 
 def solve_line_line(l1: GeoLine, l2: GeoLine):
     x1, y1 = l1.parents[0].x, l1.parents[0].y
@@ -146,6 +152,7 @@ def solve_line_line(l1: GeoLine, l2: GeoLine):
     py = y1 + t * (y2 - y1)
     return (px, py), True
 
+
 class GeoIntersection(GeoPoint):
     def __init__(self, name: str, shape1: GeoEntity, shape2: GeoEntity, root_index: int = 0):
         super().__init__(name, parents=[shape1, shape2])
@@ -157,17 +164,17 @@ class GeoIntersection(GeoPoint):
 
     def compute(self):
         s1, s2 = self.parents
-        
+
         result = None
         is_valid = False
-        
+
         if isinstance(s1, GeoLine) and isinstance(s2, GeoCircle):
             result, is_valid = solve_line_circle(s1, s2, self.root_index)
         elif isinstance(s1, GeoCircle) and isinstance(s2, GeoLine):
             result, is_valid = solve_line_circle(s2, s1, self.root_index)
         elif isinstance(s1, GeoLine) and isinstance(s2, GeoLine):
             result, is_valid = solve_line_line(s1, s2)
-            
+
         if is_valid and result:
             self.x, self.y = result
             self.is_visible = True
@@ -183,12 +190,12 @@ class GeoIntersection(GeoPoint):
 class GeometryEngine:
     def __init__(self):
         self.entities: Dict[str, GeoEntity] = {}
-        
+
     def add_free_point(self, name: str, x: float, y: float):
         pt = GeoPoint(name, x, y)
         self.entities[pt.id] = pt
         return pt
-        
+
     def add_segment(self, name: str, p1: GeoPoint, p2: GeoPoint):
         line = GeoLine(name, p1, p2)
         self.entities[line.id] = line

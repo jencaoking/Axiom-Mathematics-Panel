@@ -1,6 +1,7 @@
 # mathlab/core/extension_api.py
 import logging
 
+
 class MathLabAPI:
     """提供给插件的安全接口集合"""
     def __init__(self, main_window, cmd_manager, console):

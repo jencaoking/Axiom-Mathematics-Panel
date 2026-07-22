@@ -334,7 +334,7 @@ class TeachingQualityEvaluator:
         content: str,
         user_prompt: str,
         plan: Optional[dict] = None,
-    ) -> Dict[str, QualityReport]:
+    ) -> Dict["QualityDimension", QualityReport]:
         """全面评估教学内容质量。
 
         Args:
