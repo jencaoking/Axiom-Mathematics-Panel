@@ -1,5 +1,7 @@
 import logging
 import threading
+import json
+import os
 from mathlab.core.ai_tools import AVAILABLE_TOOLS
 
 logger = logging.getLogger(__name__)
@@ -115,6 +117,154 @@ class AgentRegistry:
             )
 
         logger.info(f"🔌 [Agent Registry] 已注册专家: {name}")
+
+    def unregister_agent(self, name):
+        """运行时卸载一个已注册的专家 Agent"""
+        if name not in self.agents:
+            logger.warning(f"⚠️ 专家 {name} 未注册，无法卸载")
+            return False
+
+        # 尝试清理 agent 实例的资源
+        instance = self.agents[name].get("instance")
+        if instance and hasattr(instance, "cleanup"):
+            try:
+                instance.cleanup()
+            except Exception as e:
+                logger.warning(f"清理 Agent {name} 资源时出错: {e}")
+
+        del self.agents[name]
+        # 从静态名片表中移除（仅限动态添加的）
+        if name.lower() in _AGENT_PROFILES and _AGENT_PROFILES[name.lower()].id not in (
+                "planner", "general", "geometry", "quiz", "dataviz"):
+            del _AGENT_PROFILES[name.lower()]
+
+        logger.info(f"🔌 [Agent Registry] 已卸载专家: {name}")
+        return True
+
+    def load_agent_from_config(self, config: dict):
+        """从配置字典动态创建并注册一个新专家 Agent，无需重启应用。
+
+        配置格式：
+        {
+            "name": "CustomAgent",
+            "description": "专家能力描述",
+            "system_prompt": "你是...",
+            "model_override": "gpt-4o",          # 可选，指定使用的模型
+            "icon": "🔬",                         # 可选，UI 图标
+            "display_name": "自定义专家",           # 可选，UI 显示名
+            "max_memory_mb": 256,                 # 可选，资源限制
+            "max_time_seconds": 60,               # 可选
+            "max_cpu_percent": 80,                # 可选
+            "max_steps": 5                        # 可选，ReAct 最大重试次数
+        }
+        """
+        from mathlab.core.ai_manager import BaseMathAgent, ResourceConfig
+
+        name = config.get("name", "")
+        if not name:
+            raise ValueError("Agent 配置必须包含 'name' 字段")
+
+        if name in self.agents:
+            logger.warning(f"⚠️ 专家 {name} 已存在，将被覆盖")
+
+        description = config.get("description", "自定义专家")
+        system_prompt = config.get("system_prompt",
+                                   "你是一个数学科研助手。请通过 Thought, Action, Observation 闭环解决问题。")
+        model_override = config.get("model_override")
+
+        # 构建资源限制配置
+        resource_config = ResourceConfig(
+            max_memory_mb=config.get("max_memory_mb", 512),
+            max_time_seconds=config.get("max_time_seconds", 60),
+            max_cpu_percent=config.get("max_cpu_percent", 80),
+            max_steps=config.get("max_steps", 5),
+        )
+
+        # 动态创建 Agent 实例（基于 BaseMathAgent）
+        agent = BaseMathAgent(
+            self.ai_manager,
+            model_override=model_override,
+            resource_config=resource_config,
+        )
+        agent.system_prompt = system_prompt
+
+        # 注册到路由系统
+        self.register_agent(
+            name=name,
+            description=description,
+            agent_instance=agent,
+        )
+
+        # 自动创建 UI 名片
+        profile_key = name.lower()
+        _AGENT_PROFILES[profile_key] = AgentInfo(
+            agent_id=profile_key,
+            name=config.get("display_name", name),
+            icon=config.get("icon", "🤖"),
+            system_prompt=system_prompt,
+            tools=AVAILABLE_TOOLS,
+        )
+
+        logger.info(f"🔌 [Agent Registry] 动态加载专家成功: {name}")
+        return name
+
+    def load_agent_from_file(self, config_path: str):
+        """从 JSON 配置文件热加载一个新专家 Agent。
+
+        文件格式同 load_agent_from_config 的 config 字典。
+        """
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Agent 配置文件不存在: {config_path}")
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        return self.load_agent_from_config(config)
+
+    def load_agents_from_directory(self, dir_path: str):
+        """从目录批量热加载所有 JSON 格式的 Agent 配置文件。
+
+        Args:
+            dir_path: 包含 *.json Agent 配置文件的目录路径
+
+        Returns:
+            (loaded_names, failed_names) 已加载和加载失败的 Agent 名称列表
+        """
+        loaded = []
+        failed = []
+
+        if not os.path.isdir(dir_path):
+            logger.warning(f"Agent 配置目录不存在: {dir_path}")
+            return loaded, failed
+
+        for filename in os.listdir(dir_path):
+            if not filename.endswith('.json'):
+                continue
+            filepath = os.path.join(dir_path, filename)
+            try:
+                name = self.load_agent_from_file(filepath)
+                loaded.append(name)
+            except Exception as e:
+                logger.error(f"加载 Agent 配置失败 ({filename}): {e}")
+                failed.append(filename)
+
+        logger.info(f"🔌 批量热加载完成: 成功 {len(loaded)} 个, 失败 {len(failed)} 个")
+        return loaded, failed
+
+    def list_registered_agents(self):
+        """返回所有已注册专家的详细信息，供 UI 展示"""
+        result = []
+        for name, info in self.agents.items():
+            instance = info["instance"]
+            model = getattr(instance, "_get_effective_model",
+                            lambda: getattr(instance, "model", "unknown"))()
+            result.append({
+                "name": name,
+                "description": info["description"],
+                "model": model,
+                "resource_config": getattr(instance, "resource_config", None),
+            })
+        return result
 
     def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb,
                           on_geom_cb=None):

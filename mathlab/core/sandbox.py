@@ -18,16 +18,34 @@ except ImportError:
     psutil = None
 
 class SandboxProcess:
-    def __init__(self):
+    def __init__(self, max_memory_mb=512, max_time_seconds=60, max_cpu_percent=80):
         self.process = None
         self.running = False
         self.output_queue = Queue()
         self.error_queue = Queue()
         self.result_queue = Queue()
-        self.max_memory_mb = 512        # 严格限制 512MB 内存
-        self.max_time_seconds = 60      # 严格限制 60秒 执行时间
+        self.max_memory_mb = max_memory_mb        # 严格限制内存 (MB)
+        self.max_time_seconds = max_time_seconds   # 严格限制执行时间 (秒)
+        self.max_cpu_percent = max_cpu_percent     # 严格限制 CPU 占比 (%)
         self._watchdog_triggered = False
         self._watchdog_error_msg = ""
+
+    def configure(self, max_memory_mb=None, max_time_seconds=None,
+                  max_cpu_percent=None):
+        """运行时动态调整资源限制"""
+        if max_memory_mb is not None:
+            self.max_memory_mb = max_memory_mb
+        if max_time_seconds is not None:
+            self.max_time_seconds = max_time_seconds
+        if max_cpu_percent is not None:
+            self.max_cpu_percent = max_cpu_percent
+
+    def configure_from(self, resource_config):
+        """从 ResourceConfig 对象批量配置资源限制"""
+        if resource_config:
+            self.max_memory_mb = resource_config.max_memory_mb
+            self.max_time_seconds = resource_config.max_time_seconds
+            self.max_cpu_percent = resource_config.max_cpu_percent
     
     def _read_output(self, pipe, queue):
         try:
@@ -41,39 +59,60 @@ class SandboxProcess:
 
     def _monitor_watchdog(self, timeout):
         """
-        核心看门狗线程：主动轮询子进程的 CPU 时间与物理内存开销
+        核心看门狗线程：主动轮询子进程的 CPU 时间、CPU 占比与物理内存开销
         一旦超过阈值，立刻从外部施加硬核毁灭（SIGKILL / taskkill），彻底解决任何死循环
         """
         start_time = time.time()
         while self.running and self.process and self.process.poll() is None:
             current_time = time.time()
             elapsed_time = current_time - start_time
-            
+
             # 1. 检查时间超时（防止任何级别的 CPU 死循环）
             if elapsed_time > timeout:
                 self._watchdog_triggered = True
                 self._watchdog_error_msg = f"Execution timed out after {timeout} seconds."
                 self.terminate()
                 break
-            
-            # 2. 检查内存占用（防止旨在撑爆内存的死循环）
+
+            # 2. 检查内存占用和 CPU 占比（防止旨在撑爆内存或 CPU 的死循环）
             if psutil:
                 try:
-                    # 获取该子进程及其所有派生子进程的总内存
                     parent = psutil.Process(self.process.pid)
                     total_memory = parent.memory_info().rss
+                    total_cpu_percent = parent.cpu_percent(interval=None)
+
                     for child in parent.children(recursive=True):
                         total_memory += child.memory_info().rss
-                    
+                        total_cpu_percent += child.cpu_percent(interval=None)
+
                     total_memory_mb = total_memory / (1024 * 1024)
+
+                    # 内存超限检查
                     if total_memory_mb > self.max_memory_mb:
                         self._watchdog_triggered = True
-                        self._watchdog_error_msg = f"Memory limit exceeded: Used {total_memory_mb:.1f}MB / Max {self.max_memory_mb}MB."
+                        self._watchdog_error_msg = (
+                            f"Memory limit exceeded: Used {total_memory_mb:.1f}MB "
+                            f"/ Max {self.max_memory_mb}MB.")
                         self.terminate()
                         break
+
+                    # CPU 占比超限检查（持续高于阈值才触发，避免瞬时尖峰误杀）
+                    if total_cpu_percent > self.max_cpu_percent:
+                        # 二次采样确认：等待 0.2 秒后再次检查
+                        time.sleep(0.2)
+                        recheck_cpu = parent.cpu_percent(interval=None)
+                        for child in parent.children(recursive=True):
+                            recheck_cpu += child.cpu_percent(interval=None)
+                        if recheck_cpu > self.max_cpu_percent:
+                            self._watchdog_triggered = True
+                            self._watchdog_error_msg = (
+                                f"CPU limit exceeded: Used {recheck_cpu:.1f}% "
+                                f"/ Max {self.max_cpu_percent}%.")
+                            self.terminate()
+                            break
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
-            
+
             time.sleep(0.1)  # 高频轮询，兼顾性能
     
     def _start_process(self):
@@ -188,11 +227,15 @@ class SandboxManager:
     def __init__(self):
         self.sandboxes = {}
         self.sandbox_counter = 0
-    
-    def create_sandbox(self):
+
+    def create_sandbox(self, resource_config=None):
+        """创建沙箱实例，可选传入 ResourceConfig 配置资源限制"""
         sandbox_id = f'sandbox_{self.sandbox_counter}'
         self.sandbox_counter += 1
-        self.sandboxes[sandbox_id] = SandboxProcess()
+        sandbox = SandboxProcess()
+        if resource_config:
+            sandbox.configure_from(resource_config)
+        self.sandboxes[sandbox_id] = sandbox
         return sandbox_id
     
     def run_in_sandbox(self, sandbox_id, code, timeout=None):

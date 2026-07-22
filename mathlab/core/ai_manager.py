@@ -587,18 +587,189 @@ class AIManager(QObject):
         return result
 
 
+class ReasoningCache:
+    """推理结果缓存：对相似问题复用历史推理结果，避免重复计算。
+
+    使用 prompt 归一化 + TF-IDF 相似度匹配，当命中阈值时直接返回缓存结果。
+    """
+
+    def __init__(self, cache_path=None, similarity_threshold=0.85):
+        self._cache_path = cache_path or os.path.join(
+            os.path.dirname(__file__), '..', 'data', 'reasoning_cache.json')
+        self._similarity_threshold = similarity_threshold
+        self._cache = []
+        self._lock = threading.Lock()
+        self._vectorizer = None
+        self._tfidf_matrix = None
+        self._load()
+
+    def _load(self):
+        if os.path.exists(self._cache_path):
+            try:
+                with open(self._cache_path, 'r', encoding='utf-8') as f:
+                    self._cache = json.load(f)
+            except Exception as e:
+                logger.error(f"加载推理缓存失败: {e}")
+                self._cache = []
+
+    def _save(self):
+        os.makedirs(os.path.dirname(self._cache_path), exist_ok=True)
+        with open(self._cache_path, 'w', encoding='utf-8') as f:
+            json.dump(self._cache, f, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _normalize_prompt(prompt):
+        """归一化 prompt：去除多余空白、统一大小写"""
+        return ' '.join(prompt.lower().split())
+
+    def get(self, user_prompt):
+        """检索缓存，返回匹配的结果或 None"""
+        with self._lock:
+            if not self._cache:
+                return None
+
+            normalized = self._normalize_prompt(user_prompt)
+
+            # 快速精确匹配
+            for entry in self._cache:
+                if self._normalize_prompt(entry['prompt']) == normalized:
+                    logger.info(f"📦 推理缓存精确命中: {user_prompt[:40]}...")
+                    return entry['result']
+
+            # TF-IDF 相似度匹配
+            if SKLEARN_AVAILABLE and len(self._cache) > 1:
+                try:
+                    from sklearn.feature_extraction.text import TfidfVectorizer
+                    from sklearn.metrics.pairwise import cosine_similarity as _cos_sim
+
+                    corpus = [self._normalize_prompt(e['prompt']) for e in self._cache]
+                    if self._vectorizer is None:
+                        self._vectorizer = TfidfVectorizer()
+                        self._tfidf_matrix = self._vectorizer.fit_transform(corpus)
+
+                    query_vec = self._vectorizer.transform([normalized])
+                    sims = _cos_sim(query_vec, self._tfidf_matrix)[0]
+                    best_idx = int(np.argmax(sims))
+
+                    if sims[best_idx] >= self._similarity_threshold:
+                        logger.info(
+                            f"📦 推理缓存相似命中 (sim={sims[best_idx]:.3f}): "
+                            f"{user_prompt[:40]}...")
+                        return self._cache[best_idx]['result']
+                except Exception as e:
+                    logger.error(f"缓存相似度检索失败: {e}")
+
+            return None
+
+    def put(self, user_prompt, result, ttl_keys=None):
+        """存入缓存结果。ttl_keys 为可选的失效标记键列表。"""
+        with self._lock:
+            normalized = self._normalize_prompt(user_prompt)
+            # 去重：已存在相似 prompt 则覆盖
+            for i, entry in enumerate(self._cache):
+                if self._normalize_prompt(entry['prompt']) == normalized:
+                    self._cache[i] = {
+                        'prompt': user_prompt,
+                        'result': result,
+                        'ttl_keys': ttl_keys or [],
+                    }
+                    self._save()
+                    self._invalidate_cache()
+                    return
+
+            self._cache.append({
+                'prompt': user_prompt,
+                'result': result,
+                'ttl_keys': ttl_keys or [],
+            })
+            self._save()
+            self._invalidate_cache()
+            logger.info(f"📦 推理结果已缓存: {user_prompt[:40]}...")
+
+    def _invalidate_cache(self):
+        self._vectorizer = None
+        self._tfidf_matrix = None
+
+    def invalidate_all(self):
+        """清空全部缓存"""
+        with self._lock:
+            self._cache = []
+            self._invalidate_cache()
+            self._save()
+            logger.info("📦 推理缓存已全部清空")
+
+
+class ResourceConfig:
+    """Agent 执行资源限制配置：防止恶意代码耗尽 CPU/内存。
+
+    Attributes:
+        max_memory_mb: 沙箱最大内存上限 (MB)
+        max_time_seconds: 单次执行最大耗时 (秒)
+        max_cpu_percent: 单次执行最大 CPU 占比 (%)
+        max_steps: ReAct 循环最大重试次数
+    """
+
+    DEFAULT = None  # 类级默认实例，延迟初始化
+
+    def __init__(self, max_memory_mb=512, max_time_seconds=60,
+                 max_cpu_percent=80, max_steps=5):
+        self.max_memory_mb = max_memory_mb
+        self.max_time_seconds = max_time_seconds
+        self.max_cpu_percent = max_cpu_percent
+        self.max_steps = max_steps
+
+    def to_dict(self):
+        return {
+            'max_memory_mb': self.max_memory_mb,
+            'max_time_seconds': self.max_time_seconds,
+            'max_cpu_percent': self.max_cpu_percent,
+            'max_steps': self.max_steps,
+        }
+
+    @classmethod
+    def get_default(cls):
+        if cls.DEFAULT is None:
+            cls.DEFAULT = cls()
+        return cls.DEFAULT
+
+    @classmethod
+    def for_agent(cls, agent_name):
+        """根据 Agent 名称返回预设的资源限制"""
+        presets = {
+            'PlannerAgent': cls(max_memory_mb=512, max_time_seconds=120,
+                                max_cpu_percent=80, max_steps=5),
+            'GeometryAgent': cls(max_memory_mb=256, max_time_seconds=60,
+                                 max_cpu_percent=70, max_steps=5),
+            'DataVizAgent': cls(max_memory_mb=512, max_time_seconds=90,
+                                max_cpu_percent=80, max_steps=5),
+        }
+        return presets.get(agent_name, cls.get_default())
+
+
 class BaseMathAgent:
-    def __init__(self, ai_manager, model="deepseek-chat"):
+    def __init__(self, ai_manager, model="deepseek-chat", model_override=None,
+                 resource_config=None):
         self.ai_manager = ai_manager
         self.model = model
+        # 模型多样性：允许每个 Agent 使用不同的模型
+        self.model_override = model_override  # 如 "gpt-4o", "deepseek-reasoner"
         self.max_steps = 5
         self.skill_lib = SkillLibrary()  # 实例化本地技能库
+        # 推理缓存：相似问题复用历史结果
+        self._reasoning_cache = ReasoningCache()
+        # 资源限制配置
+        self.resource_config = resource_config or ResourceConfig.get_default()
+        self.max_steps = self.resource_config.max_steps
         self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"  # noqa: E501
+
+    def _get_effective_model(self):
+        """获取当前 Agent 实际使用的模型：优先 model_override，其次 ai_manager.current_model"""
+        return self.model_override or getattr(self.ai_manager, "current_model", None) or self.model  # noqa: E501
 
     def _llm_generate_code(self, messages):
         # 真正使用时通过 ai_manager.client 调用大模型接口
         try:
-            model = getattr(self.ai_manager, "current_model", None) or self.model  # noqa: E501
+            model = self._get_effective_model()
             response = self.ai_manager.client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -627,6 +798,20 @@ class BaseMathAgent:
             if on_finish_cb:
                 on_finish_cb(False, "未配置 API Key")
             return {"status": "failed", "error": "未配置 API Key"}
+
+        # ============== 0. 推理缓存检索阶段 ==============
+        cached = self._reasoning_cache.get(user_prompt)
+        if cached is not None:
+            if on_thought_cb:
+                on_thought_cb("📦 推理缓存命中！直接复用历史结果，跳过 LLM 调用。")
+            if on_code_cb:
+                on_code_cb(cached.get("code", ""))
+            geom_cmds = cached.get("geom_commands", [])
+            if geom_cmds and on_geom_cb:
+                on_geom_cb(geom_cmds)
+            if on_finish_cb:
+                on_finish_cb(True, cached.get("code", ""))
+            return cached
 
         # ============== 1. RAG 检索阶段 ==============
         if on_thought_cb:
@@ -687,11 +872,15 @@ class BaseMathAgent:
                     daemon=True
                 ).start()
 
+                # ============== 3. 推理缓存存储 ==============
+                cache_result = {"status": "ok", "code": code_content,
+                                "result": execution_result.get("output", ""),
+                                "geom_commands": geom_commands}
+                self._reasoning_cache.put(user_prompt, cache_result)
+
                 if on_finish_cb:
                     on_finish_cb(True, code_content)
-                return {"status": "ok", "code": code_content,
-                        "result": execution_result.get("output", ""),
-                        "geom_commands": geom_commands}
+                return cache_result
             else:
                 error_msg = execution_result.get("error", "未知错误")
                 if on_thought_cb:
@@ -728,7 +917,7 @@ class BaseMathAgent:
 """
         try:
             response = self.ai_manager.client.chat.completions.create(
-                model=self.ai_manager.current_model,
+                model=self._get_effective_model(),
                 messages=[{"role": "user", "content": reflection_prompt}],
                 response_format={"type": "json_object"}  # 强制要求返回 JSON
             )
@@ -748,13 +937,18 @@ class PlannerAgent(BaseMathAgent):
 
     职责：
     1. 将用户的数学问题拆解为 3-5 个由浅入深的教学步骤
-    2. 串行调度 GeometryAgent / DataVizAgent 执行每一步
+    2. 调度 GeometryAgent / DataVizAgent 执行每一步（支持串行/并行模式）
     3. 汇总结果并给出最终教学总结
     """
 
-    def __init__(self, ai_manager, agent_registry=None):
-        super().__init__(ai_manager)
+    def __init__(self, ai_manager, agent_registry=None, model_override=None,
+                 resource_config=None, parallel_execution=False, max_workers=3):
+        super().__init__(ai_manager, model_override=model_override,
+                         resource_config=resource_config or ResourceConfig.for_agent('PlannerAgent'))
         self.agent_registry = agent_registry  # 持有全局路由大脑，用于子任务委派
+        # 并行执行配置：当 parallel_execution=True 时，独立步骤可并行调度
+        self.parallel_execution = parallel_execution
+        self.max_workers = max_workers  # ThreadPoolExecutor 最大并发数
         self.system_prompt = """你是一个【数学教研组长 (PlannerAgent)】。
 你的核心职责是分析用户的数学问题，将其拆解为 3-5 个由浅入深、循序渐进的教学步骤，
 然后协调解析几何专家和数据可视化专家共同完成教学。
@@ -764,7 +958,8 @@ class PlannerAgent(BaseMathAgent):
     def _decompose_problem(self, user_prompt: str) -> dict:
         """
         调用 LLM 将用户问题拆解为教学大纲。
-        返回格式: {"topic": "...", "steps": [{"num": 1, "title": "...", "hint_for_teacher": "..."}]}
+        返回格式: {"topic": "...", "steps": [{"num": 1, "title": "...", "hint_for_teacher": "...", "parallelizable": false}]}
+        parallelizable=true 表示该步骤可与其他可并行步骤同时执行。
         """
         decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
 
@@ -774,8 +969,8 @@ class PlannerAgent(BaseMathAgent):
 {{
     "topic": "本次课题的主题",
     "steps": [
-        {{"num": 1, "title": "第一步标题", "hint_for_teacher": "给授课老师的提示"}},
-        {{"num": 2, "title": "第二步标题", "hint_for_teacher": "给授课老师的提示"}}
+        {{"num": 1, "title": "第一步标题", "hint_for_teacher": "给授课老师的提示", "parallelizable": false}},
+        {{"num": 2, "title": "第二步标题", "hint_for_teacher": "给授课老师的提示", "parallelizable": false}}
     ]
 }}
 
@@ -783,10 +978,11 @@ class PlannerAgent(BaseMathAgent):
 1. 步骤从易到难，逐步引导
 2. 每个步骤聚焦一个核心探索点
 3. 不要一次性给最终答案
-4. 如果涉及画图，优先在前几步让几何专家画图"""
+4. 如果涉及画图，优先在前几步让几何专家画图
+5. parallelizable 设为 true 仅当该步骤不依赖任何前序步骤的输出结果（如独立画图、独立计算）"""
         try:
             response = self.ai_manager.client.chat.completions.create(
-                model=self.ai_manager.current_model,
+                model=self._get_effective_model(),
                 messages=[{"role": "user", "content": decompose_prompt}],
                 temperature=0.3,
                 timeout=30,
@@ -800,11 +996,14 @@ class PlannerAgent(BaseMathAgent):
                 "topic": user_prompt,
                 "steps": [
                     {"num": 1, "title": "理解问题与分析已知条件",
-                     "hint_for_teacher": "引导学生识别问题类型和关键数值"},
+                     "hint_for_teacher": "引导学生识别问题类型和关键数值",
+                     "parallelizable": False},
                     {"num": 2, "title": "建立数学模型与计算方法",
-                     "hint_for_teacher": "将文字描述转化为方程或几何图形"},
+                     "hint_for_teacher": "将文字描述转化为方程或几何图形",
+                     "parallelizable": False},
                     {"num": 3, "title": "执行计算并验证结果",
-                     "hint_for_teacher": "通过数值计算或画图展示答案并检查合理性"},
+                     "hint_for_teacher": "通过数值计算或画图展示答案并检查合理性",
+                     "parallelizable": False},
                 ],
             }
 
@@ -876,11 +1075,26 @@ class PlannerAgent(BaseMathAgent):
                     f"（💡 {s.get('hint_for_teacher', '')}）"
                 )
 
-        # ========== 阶段 2: 串行调度子 Agent ==========
+        # ========== 阶段 2: 调度子 Agent（支持串行/并行模式）==========
         all_codes: list[str] = []
         all_geom_commands: list = []
-        for step in steps:
-            num = step.get("num", len(all_codes) + 1)
+
+        # 将步骤分为可并行组和串行组
+        parallel_steps = []
+        serial_steps = []
+        if self.parallel_execution:
+            for step in steps:
+                if step.get("parallelizable", False):
+                    parallel_steps.append(step)
+                else:
+                    serial_steps.append(step)
+        else:
+            serial_steps = steps
+
+        # 执行单个子步骤的通用函数（可在线程池中调用）
+        def _execute_single_step(step):
+            """执行单个教学步骤，返回 (num, success, code, geom_commands)"""
+            num = step.get("num", 0)
             title = step.get("title", "处理中...")
             hint = step.get("hint_for_teacher", "")
 
@@ -905,25 +1119,25 @@ class PlannerAgent(BaseMathAgent):
             if sub_info is None:
                 if on_thought_cb:
                     on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
-                # BUG 3 修复：使用空回调忽略基类的 finish，由 Planner 统一处理
                 def _noop_finish_cb(success, content):
                     pass
-                result = super().solve_problem(
-                    sub_prompt, on_thought_cb, on_code_cb, _noop_finish_cb, on_geom_cb)  # type: ignore[arg-type]
+                result = super(PlannerAgent, self).solve_problem(
+                    sub_prompt,
+                    on_thought_cb=on_thought_cb,
+                    on_code_cb=on_code_cb,
+                    on_finish_cb=_noop_finish_cb,
+                    on_geom_cb=on_geom_cb,
+                )
                 if isinstance(result, dict) and result.get("status") == "ok":
-                    all_codes.append(result.get("code", ""))
-                    all_geom_commands.extend(result.get("geom_commands", []))
-                elif isinstance(result, dict) and result.get("status") == "failed":
-                    if on_thought_cb:
-                        on_thought_cb(f"  ❌ Planner 自行执行失败: {result.get('error')}")
-                continue
+                    return (num, True, result.get("code", ""),
+                            result.get("geom_commands", []))
+                return (num, False, "", [])
 
             sub_agent = sub_info["instance"]
-            sub_success = False
-            sub_code = ""
-            sub_geom: list = []
 
             # 收集子 Agent 的输出（前缀标记以示区分）
+            step_result = {"success": False, "code": "", "geom": []}
+
             def make_sub_thought_cb(step_num):
                 def _cb(text):
                     if on_thought_cb:
@@ -934,23 +1148,19 @@ class PlannerAgent(BaseMathAgent):
                 def _cb(code):
                     if on_code_cb:
                         on_code_cb(code)
-                    nonlocal sub_code
-                    sub_code = code
+                    step_result["code"] = code
                 return _cb
 
             def make_sub_finish_cb():
                 def _cb(success, content):
-                    nonlocal sub_success, sub_code
-                    sub_success = success
+                    step_result["success"] = success
                     if success and content:
-                        sub_code = content
+                        step_result["code"] = content
                 return _cb
 
             def make_sub_geom_cb():
                 def _cb(cmds):
-                    nonlocal sub_geom
-                    sub_geom.extend(cmds)
-                    # 实时上抛给 UI 层，每个子步骤的画图立即呈现
+                    step_result["geom"].extend(cmds)
                     if on_geom_cb:
                         on_geom_cb(cmds)
                 return _cb
@@ -964,17 +1174,57 @@ class PlannerAgent(BaseMathAgent):
                     on_geom_cb=make_sub_geom_cb(),
                 )
                 if isinstance(sub_result, dict) and sub_result.get("status") == "ok":
-                    sub_success = True
-                    sub_code = sub_result.get("code", "")
-                    # 从返回值也收集一份（双重保障）
-                    sub_geom.extend(sub_result.get("geom_commands", []))
+                    step_result["success"] = True
+                    step_result["code"] = sub_result.get("code", "")
+                    step_result["geom"].extend(
+                        sub_result.get("geom_commands", []))
             except Exception as e:
                 if on_thought_cb:
                     on_thought_cb(f"  ❌ 子 Agent「{agent_name}」执行异常: {e}")
 
-            all_geom_commands.extend(sub_geom)
-            if sub_success and sub_code:
-                all_codes.append(sub_code)
+            return (num, step_result["success"], step_result["code"],
+                    step_result["geom"])
+
+        # 并行执行可并行步骤
+        if parallel_steps:
+            if on_thought_cb:
+                on_thought_cb(f"🚀 启动并行执行模式：{len(parallel_steps)} 个独立步骤同时调度...")
+
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                future_to_step = {
+                    executor.submit(_execute_single_step, step): step
+                    for step in parallel_steps
+                }
+                parallel_results = {}
+                for future in as_completed(future_to_step):
+                    step = future_to_step[future]
+                    try:
+                        num, success, code, geom_cmds = future.result()
+                        parallel_results[num] = (success, code, geom_cmds)
+                        if on_thought_cb:
+                            if success:
+                                on_thought_cb(f"  ✅ 第 {num} 步完成 (并行)")
+                            else:
+                                on_thought_cb(f"  ⚠️ 第 {num} 步未能产出完整结果 (并行)")
+                    except Exception as e:
+                        if on_thought_cb:
+                            on_thought_cb(f"  ❌ 并行步骤异常: {e}")
+
+            # 按 step num 排序收集结果
+            for num in sorted(parallel_results.keys()):
+                success, code, geom_cmds = parallel_results[num]
+                all_geom_commands.extend(geom_cmds)
+                if success and code:
+                    all_codes.append(code)
+
+        # 串行执行依赖步骤
+        for step in serial_steps:
+            num, success, code, geom_cmds = _execute_single_step(step)
+            all_geom_commands.extend(geom_cmds)
+            if success and code:
+                all_codes.append(code)
                 if on_thought_cb:
                     on_thought_cb(f"  ✅ 第 {num} 步完成")
             else:
@@ -994,8 +1244,9 @@ class PlannerAgent(BaseMathAgent):
 
 
 class GeometryAgent(BaseMathAgent):
-    def __init__(self, ai_manager):
-        super().__init__(ai_manager)
+    def __init__(self, ai_manager, model_override=None, resource_config=None):
+        super().__init__(ai_manager, model_override=model_override,
+                         resource_config=resource_config or ResourceConfig.for_agent('GeometryAgent'))
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
 你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用以下画板 API 在交互几何画板上作图：
 
@@ -1014,8 +1265,9 @@ class GeometryAgent(BaseMathAgent):
 
 
 class DataVizAgent(BaseMathAgent):
-    def __init__(self, ai_manager):
-        super().__init__(ai_manager)
+    def __init__(self, ai_manager, model_override=None, resource_config=None):
+        super().__init__(ai_manager, model_override=model_override,
+                         resource_config=resource_config or ResourceConfig.for_agent('DataVizAgent'))
         # 强制将大模型的注意力集中在生成 ECharts 字典上
         self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
 你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。

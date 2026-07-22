@@ -20,32 +20,55 @@ class AIMixin:
     # 🌟 2. 处理来自 Jupyter 的指令 🌟
     def _setup_ai_integration(self):
         from mathlab.core.agent_registry import AgentRegistry
-        from mathlab.core.ai_manager import PlannerAgent, GeometryAgent, DataVizAgent
+        from mathlab.core.ai_manager import PlannerAgent, GeometryAgent, DataVizAgent, ResourceConfig
         from mathlab.core.agent_bridge import AgentUIBridge
-        
+        import os
+
         # 1. 初始化联邦路由大脑
         self.agent_registry = AgentRegistry(self.ai_manager)
-        
-        # 2. 注册所有领域专家
-        # 教研组长优先注册（顶层调度者，能拆解任务并委派给其他专家）
-        # BUG 1 修复：直接在构造函数中传递 agent_registry 参数
+
+        # 2. 注册所有领域专家（支持模型多样性和资源限制）
+        # 教研组长：启用并行执行，使用默认模型
         self.agent_registry.register_agent(
             name="PlannerAgent",
             description="数学教研组长：将复杂问题拆解为3-5个循序渐进的教学步骤，然后调度解析几何专家和数据可视化专家协同完成教学。适合深层理解、苏格拉底式教学场景。",
-            agent_instance=PlannerAgent(self.ai_manager, agent_registry=self.agent_registry)
+            agent_instance=PlannerAgent(
+                self.ai_manager,
+                agent_registry=self.agent_registry,
+                model_override=self._get_agent_model_override("PlannerAgent"),
+                parallel_execution=True,
+                max_workers=3,
+            )
         )
 
+        # 几何专家：可指定专用模型
         self.agent_registry.register_agent(
             name="GeometryAgent",
             description="擅长解决平面几何、微积分、代数方程求解，以及二维坐标系中的点线圆绘制任务。",
-            agent_instance=GeometryAgent(self.ai_manager)
+            agent_instance=GeometryAgent(
+                self.ai_manager,
+                model_override=self._get_agent_model_override("GeometryAgent"),
+            )
         )
 
+        # 数据可视化专家：可指定专用模型
         self.agent_registry.register_agent(
             name="DataVizAgent",
             description="擅长处理统计数据可视化、柱状图、折线图、南丁格尔玫瑰图、3D曲面图等 ECharts 图表渲染任务。",
-            agent_instance=DataVizAgent(self.ai_manager)
+            agent_instance=DataVizAgent(
+                self.ai_manager,
+                model_override=self._get_agent_model_override("DataVizAgent"),
+            )
         )
+
+        # 3. 从配置目录热加载自定义专家 Agent
+        agents_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'data', 'agents')
+        if os.path.isdir(agents_dir):
+            loaded, failed = self.agent_registry.load_agents_from_directory(agents_dir)
+            if loaded:
+                logger.info(f"已热加载 {len(loaded)} 个自定义专家: {loaded}")
         
         # 3. UI 桥梁现在不再绑定单一 Agent，而是绑定整个 Registry 路由器
         self.agent_bridge = AgentUIBridge(self.agent_registry, self)
@@ -56,21 +79,46 @@ class AIMixin:
         # 5. 信号与槽的严密绑定 (跨线程安全)
         # 思考 -> 打印到终端
         self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
-        
+
         # 观察 -> 打印到终端
         self.agent_bridge.observation_emitted.connect(self.console.append_agent_observation)
-        
+
         # 代码 -> 注入 Monaco 编辑器
         self.agent_bridge.code_generated.connect(self._stream_code_to_editor)
-        
+
         # 结束 -> 善后处理
         self.agent_bridge.task_finished.connect(self._on_agent_task_finished)
 
         # 几何绘图命令 -> 实时渲染到画板
         self.agent_bridge.geom_commands_emitted.connect(self._on_geom_commands_received)
-        
-        # 5. 绑定全局输入框 (OmniBar) 的回车事件
+
+        # 6. 绑定全局输入框 (OmniBar) 的回车事件
         self.omni_bar.search_submitted.connect(self._trigger_global_ai_task)
+
+    def _get_agent_model_override(self, agent_name):
+        """从 settings.json 读取 Agent 专用模型配置，实现模型多样性。
+
+        配置格式示例 (settings.json):
+        {
+            "agent_models": {
+                "PlannerAgent": "deepseek-reasoner",
+                "GeometryAgent": "gpt-4o",
+                "DataVizAgent": "deepseek-chat"
+            }
+        }
+        """
+        import os
+        import json
+
+        try:
+            package_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            settings_path = os.path.join(package_dir, 'settings.json')
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+            agent_models = settings.get("agent_models", {})
+            return agent_models.get(agent_name)
+        except Exception:
+            return None
 
     def _setup_echarts_integration(self):
         # 绑定刚刚解析出的信号

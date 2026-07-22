@@ -1,0 +1,12 @@
+[
+  {
+    "prompt": "求三角形面积",
+    "result": {
+      "status": "ok",
+      "code": "print(1)",
+      "result": "0.5",
+      "geom_commands": []
+    },
+    "ttl_keys": []
+  }
+]
