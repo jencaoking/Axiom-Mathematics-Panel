@@ -108,7 +108,7 @@ class FileMetadata:
             if cached is not None:
                 return cached
 
-            md5 = hashlib.md5()
+            md5 = hashlib.md5(usedforsecurity=False)
             with open(self.file_path, 'rb') as f:
                 while chunk := f.read(65536):
                     md5.update(chunk)

@@ -1,14 +1,20 @@
 import uuid
-import warnings
 import numpy as np
 from collections import defaultdict
-from sympy import symbols, Eq, solve, latex, sympify, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs, Symbol, nsolve, lambdify
+from sympy import symbols, Eq, parse_expr, sqrt, sin, cos, tan, pi, exp, log, Abs
 from sympy.parsing.sympy_parser import standard_transformations
 
 from PySide6.QtCore import QObject, Signal
 
 # 重新导出所有几何模型类（已拆分到 mathlab.core.models 子包），保持向后兼容
 # 现有的 `from mathlab.core.geometry_engine import XXX` 无需修改
+from mathlab.core.models import (
+    DAG, GeometricObject, Point, Sphere, Plane3D, Locus, Intersection,
+    Line, Segment, FunctionPlot, ImplicitPlot, PolarPlot, Ellipse,
+    Hyperbola, Parabola, ConicSection, Circle, Polygon
+)
+
+# 星号导入用于向后兼容（外部代码可能使用 `from geometry_engine import *`）
 from mathlab.core.models import *  # noqa: F401, F403
 
 # 扩大异常捕获范围，防止 RuntimeError 等非 ImportError 导致整个模块崩溃
@@ -445,11 +451,11 @@ class GeometryEngine(QObject):
             safe_id = point.id.replace('-', '_')
             x_sym = symbols(f'x_{safe_id}')
             y_sym = symbols(f'y_{safe_id}')
-            z_sym = symbols(f'z_{safe_id}') # 1. 注册 z_sym
+            z_sym = symbols(f'z_{safe_id}')  # 1. 注册 z_sym
 
             var_to_idx[(point.id, 'x')] = len(variables)
             var_to_idx[(point.id, 'y')] = len(variables) + 1
-            var_to_idx[(point.id, 'z')] = len(variables) + 2 # 2. 索引映射
+            var_to_idx[(point.id, 'z')] = len(variables) + 2  # 2. 索引映射
             variables.extend([x_sym, y_sym, z_sym])
 
         for obj in self.objects.values():
@@ -472,7 +478,7 @@ class GeometryEngine(QObject):
                             safe_id = point.id.replace('-', '_')
                             allowed_symbols[f'x_{safe_id}'] = symbols(f'x_{safe_id}')
                             allowed_symbols[f'y_{safe_id}'] = symbols(f'y_{safe_id}')
-                            allowed_symbols[f'z_{safe_id}'] = symbols(f'z_{safe_id}') # 3. 允许用户输入含 z 的约束方程
+                            allowed_symbols[f'z_{safe_id}'] = symbols(f'z_{safe_id}')  # 3. 允许用户输入含 z 的约束方程
                         eq = parse_expr(constraint, local_dict=allowed_symbols, transformations=standard_transformations)
                         equations.append(eq)
                     except Exception:
@@ -510,7 +516,7 @@ class GeometryEngine(QObject):
         for point in points:
             initial_guess.append(point.coordinates.get('x', 0.0))
             initial_guess.append(point.coordinates.get('y', 0.0))
-            initial_guess.append(point.coordinates.get('z', 0.0)) # 4. 初始猜测值
+            initial_guess.append(point.coordinates.get('z', 0.0))  # 4. 初始猜测值
 
         try:
             # 自动选择 least_squares 算法：

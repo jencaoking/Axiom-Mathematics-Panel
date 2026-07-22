@@ -108,7 +108,6 @@ class GeoCircle(GeoEntity):
 
 def solve_line_circle(line: GeoLine, circle: GeoCircle, root_index: int):
     p1, p2 = line.parents
-    c = circle.parents[0]
 
     dx = p2.x - p1.x
     dy = p2.y - p1.y
