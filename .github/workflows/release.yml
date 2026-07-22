@@ -63,7 +63,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           cache: true
-          cache-dependency-path: MathLab.CSharpEngine/packages.lock.json
+          cache-dependency-path: MathLab.CSharpEngine
 
       - name: Build MathLab C# Engine
         run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release
