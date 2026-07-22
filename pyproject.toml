@@ -27,7 +27,6 @@ source = ["mathlab"]
 omit = [
     "mathlab/resources/*",
     "mathlab/tests/*",
-    "mathlab/scratch_rewrite.py",
 ]
 
 [tool.coverage.report]
