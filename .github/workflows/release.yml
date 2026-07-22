@@ -20,7 +20,7 @@ concurrency:
 
 env:
   DOTNET_VERSION: '8.0.x'
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
   PYTHON_VERSION: '3.11'
 
 jobs:
@@ -63,6 +63,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           cache: true
+          cache-dependency-path: MathLab.CSharpEngine/packages.lock.json
 
       - name: Build MathLab C# Engine
         run: dotnet build MathLab.CSharpEngine/MathLab.CSharpEngine.csproj -c Release

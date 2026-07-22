@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "OGfl6XlJcLY=",
+  "dgSpecHash": "WvFh2hyUgK8=",
   "success": true,
   "projectFilePath": "J:\\PROJECT\\Python project\\Axiom Mathematics Panel\\MathLab.CSharpEngine\\MathLab.CSharpEngine.csproj",
   "expectedPackageFiles": [
-    "J:\\CODE\\nuget_packages\\mathnet.numerics\\5.0.0\\mathnet.numerics.5.0.0.nupkg.sha512",
-    "J:\\CODE\\nuget_packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
-    "J:\\CODE\\nuget_packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+    "C:\\Users\\66393\\.nuget\\packages\\mathnet.numerics\\5.0.0\\mathnet.numerics.5.0.0.nupkg.sha512",
+    "C:\\Users\\66393\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\66393\\.nuget\\packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
   ],
   "logs": []
 }

@@ -16,7 +16,7 @@ on:
         description: 'Node.js 版本'
         type: string
         required: false
-        default: '20'
+        default: '24'
       dotnet-version:
         description: '.NET SDK 版本'
         type: string

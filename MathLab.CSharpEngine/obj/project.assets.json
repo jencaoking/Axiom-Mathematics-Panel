@@ -216,7 +216,7 @@
     ]
   },
   "packageFolders": {
-    "J:\\CODE\\nuget_packages": {}
+    "C:\\Users\\66393\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -224,7 +224,7 @@
       "projectUniqueName": "J:\\PROJECT\\Python project\\Axiom Mathematics Panel\\MathLab.CSharpEngine\\MathLab.CSharpEngine.csproj",
       "projectName": "MathLab.CSharpEngine",
       "projectPath": "J:\\PROJECT\\Python project\\Axiom Mathematics Panel\\MathLab.CSharpEngine\\MathLab.CSharpEngine.csproj",
-      "packagesPath": "J:\\CODE\\nuget_packages",
+      "packagesPath": "C:\\Users\\66393\\.nuget\\packages\\",
       "outputPath": "J:\\PROJECT\\Python project\\Axiom Mathematics Panel\\MathLab.CSharpEngine\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
@@ -246,6 +246,9 @@
         "warnAsError": [
           "NU1605"
         ]
+      },
+      "restoreLockProperties": {
+        "restorePackagesWithLockFile": "true"
       },
       "restoreAuditProperties": {
         "enableAudit": "true",
