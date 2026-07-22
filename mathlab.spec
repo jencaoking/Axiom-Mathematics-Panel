@@ -40,6 +40,11 @@ hidden_imports = [
     'markdown.extensions.tables',
     'markdown.extensions.toc',
     'mathlab.core.sandbox_script',
+    # JupyterLab 相关依赖（PyInstaller 静态分析可能遗漏）
+    'jupyterlab',
+    'jupyterlab.labapp',
+    'jupyter_core',
+    'ipykernel_launcher',
 ]
 
 a = Analysis(

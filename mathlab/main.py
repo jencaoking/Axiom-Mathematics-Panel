@@ -142,6 +142,14 @@ if __name__ == "__main__":
 
     # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
     if len(sys.argv) >= 2:
+        # 拦截 JupyterLab 的启动 (-m jupyter)
+        if sys.argv[1] == "-m" and len(sys.argv) >= 3 and sys.argv[2] == "jupyter":
+            # 调整 sys.argv 为 jupyter 期望的格式
+            sys.argv = ["jupyter"] + sys.argv[3:]
+            from jupyterlab.labapp import main
+
+            main()
+            sys.exit(0)
         # 拦截 Jupyter kernel 的启动 (-m ipykernel_launcher)
         if sys.argv[1] == "-m" and len(sys.argv) >= 3 and sys.argv[2] == "ipykernel_launcher":
             from ipykernel import kernelapp

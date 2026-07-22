@@ -271,6 +271,8 @@ class JupyterManager:
                 return True
 
             # 构造启动命令
+            # 在 PyInstaller 打包环境下，sys.executable 指向 exe 本身，
+            # 但 main.py 中有拦截逻辑，会正确处理 -m jupyter 调用
             cmd = [
                 sys.executable,
                 "-m",
