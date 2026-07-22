@@ -4,7 +4,7 @@ from typing import Optional
 
 import numpy as np
 
-from mathlab.core.ai_tools import execute_math_task
+from mathlab.core.ai_tools import execute_math_task, GEOMETRY_DRAW_TOOL
 from mathlab.core.skill_manager import SkillLibrary
 
 if importlib.util.find_spec("sklearn") is not None:
@@ -43,8 +43,7 @@ from mathlab.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # 工具 Schema 统一从 ai_tools.py 导入（消除重复定义）
-# DRAW_TOOL_SCHEMA = GEOMETRY_DRAW_TOOL (alias，见文件头部 import)
-# QUIZ_GENERATOR_SCHEMA 直接从 ai_tools.py 导入
+DRAW_TOOL_SCHEMA = GEOMETRY_DRAW_TOOL  # 别名，供 quiz_panel 等模块使用
 
 # Torch availability check
 try:
