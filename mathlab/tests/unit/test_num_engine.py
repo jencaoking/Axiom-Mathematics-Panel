@@ -11,7 +11,7 @@ of a local fixture definition. All test functions are marked with
 import numpy as np
 import pytest
 
-from mathlab.core.num_engine import NumEngine, NumEngineError
+from mathlab.core.num_engine import NumEngineError
 
 
 # ─────────────────────────────────────────────────────────────
@@ -118,8 +118,8 @@ class TestCholesky:
     def test_cholesky_reconstruction(self, num_engine):
         """L @ L.T 应还原原矩阵"""
         pos_def_3x3 = [[4, 2, 2],
-                        [2, 3, 1],
-                        [2, 1, 3]]
+                       [2, 3, 1],
+                       [2, 1, 3]]
         result = num_engine.cholesky(pos_def_3x3)
         L = result["L"]
         reconstructed = L @ L.T
@@ -275,12 +275,13 @@ class TestMinimize:
         result = num_engine.minimize(lambda x: x[0]**2 + x[0] + 2, [0.0])
         assert result["success"] is True
         assert pytest.approx(result["x"][0], abs=1e-4) == -0.5
-        assert pytest.approx(result["fun"],  abs=1e-4) == 1.75
+        assert pytest.approx(result["fun"], abs=1e-4) == 1.75
 
     @pytest.mark.unit
     def test_rosenbrock(self, num_engine):
         """Rosenbrock 函数全局最小值在 (1, 1)，值为 0"""
-        rosenbrock = lambda x: (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
+        def rosenbrock(x):
+            return (1 - x[0])**2 + 100 * (x[1] - x[0]**2)**2
         result = num_engine.minimize(rosenbrock, [0.0, 0.0], method="BFGS")
         assert result["success"] is True
         assert pytest.approx(result["x"], abs=1e-3) == [1.0, 1.0]
@@ -316,7 +317,7 @@ class TestMinimizeScalar:
     def test_bounded_minimum(self, num_engine):
         """f(x)=x² 在 [-1, 2] 内最小值为 0"""
         result = num_engine.minimize_scalar(lambda x: x**2, bounds=(-1.0, 2.0))
-        assert pytest.approx(result["x"],   abs=1e-6) == 0.0
+        assert pytest.approx(result["x"], abs=1e-6) == 0.0
         assert pytest.approx(result["fun"], abs=1e-12) == 0.0
 
     @pytest.mark.unit
@@ -401,9 +402,9 @@ class TestLinearRegression:
     def test_perfect_linear(self, num_engine):
         """完美线性关系 y=2x 应有 slope=2, intercept=0, r=1"""
         result = num_engine.linear_regression([1, 2, 3, 4], [2, 4, 6, 8])
-        assert pytest.approx(result["slope"],     abs=1e-10) == 2.0
+        assert pytest.approx(result["slope"], abs=1e-10) == 2.0
         assert pytest.approx(result["intercept"], abs=1e-10) == 0.0
-        assert pytest.approx(result["r_value"],   abs=1e-10) == 1.0
+        assert pytest.approx(result["r_value"], abs=1e-10) == 1.0
 
     @pytest.mark.unit
     def test_returns_all_keys(self, num_engine):
@@ -433,19 +434,18 @@ class TestDescriptiveStats:
     @pytest.mark.unit
     def test_known_values(self, num_engine):
         """对已知数据验证均值、中位数和标准差
-        
+
         数据: [2, 4, 4, 4, 5, 5, 7, 9]
-        - 均值   = 5.0
+        - 均值 = 5.0
         - 中位数 = (4+5)/2 = 4.5
         - 样本标准差 (ddof=1) = sqrt(32/7) ≈ 2.1381  ← 注意：非总体标准差 2.0
         """
         import math
         data = [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
         result = num_engine.descriptive_stats(data)
-        assert pytest.approx(result["mean"],   abs=1e-10) == 5.0
+        assert pytest.approx(result["mean"], abs=1e-10) == 5.0
         assert pytest.approx(result["median"], abs=1e-10) == 4.5
-        assert pytest.approx(result["std"],    rel=1e-8)  == math.sqrt(32 / 7)
-
+        assert pytest.approx(result["std"], rel=1e-8) == math.sqrt(32 / 7)
 
     @pytest.mark.unit
     def test_returns_all_keys(self, num_engine):

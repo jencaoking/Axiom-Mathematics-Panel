@@ -14,7 +14,7 @@ import math
 import numpy as np
 import pytest
 
-from mathlab.core.octave_bridge import OctaveBridge, OctaveBridgeError
+from mathlab.core.octave_bridge import OctaveBridgeError
 
 
 # ─────────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ from mathlab.core.plugin_base import MathLabPlugin
 from .bridge import ThreeJSBridge
 from mathlab.utils.i18n_manager import t
 from mathlab.core.cs_mesh_engine import cs_mesh_3d
-from mathlab.utils.i18n_manager import t
+
 
 class ThreeJSViewerPlugin(MathLabPlugin):
     name = "3D Geometry Viewer"
@@ -19,18 +19,18 @@ class ThreeJSViewerPlugin(MathLabPlugin):
     def on_activate(self, api):
         self.api = api
         self.web_view = QWebEngineView()
-        
+
         self.channel = QWebChannel()
         self.bridge = ThreeJSBridge(api)
         self.channel.registerObject("py_bridge", self.bridge)
         self.web_view.page().setWebChannel(self.channel)
-        
+
         html_path = os.path.join(os.path.dirname(__file__), "web", "index.html")
         self.web_view.load(QUrl.fromLocalFile(html_path))
-        
+
         # 核心：将 3D 面板挂载到主窗口
         self.dock = api.add_sidebar_panel(t("plugins.3d_viewer"), self.web_view)
-        
+
         # 核心：监听底层几何引擎的拓扑变化！
         if hasattr(self.api, 'geometry_engine'):
             self.api.geometry_engine.add_listener(self.on_geometry_event)
@@ -39,18 +39,18 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         # 高性能 3D 动态波纹驱动 (C# + WebGL)
         # =================================================================
         self.time_elapsed = 0.0
-        
+
         # 每秒刷新 60 次的超高清定时器
         self.render_timer = QTimer()
         self.render_timer.timeout.connect(self._render_frame)
-        self.render_timer.start(16) # ~60 FPS
+        self.render_timer.start(16)  # ~60 FPS
 
     def _render_frame(self):
         self.time_elapsed += 0.05
-        
+
         if not hasattr(cs_mesh_3d, '_engine') or cs_mesh_3d._engine is None:
             return
-            
+
         # 1. 呼叫 C# 暴力计算 150x150 密度的波纹曲面网格点 (共产生 405,000 个浮点数)
         # 这在纯 Python 下要跑死，但 C# 只需要 1ms！
         flat_vertices = cs_mesh_3d.get_ripple_mesh_data(
@@ -58,7 +58,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
             x_seg=150, y_seg=150,
             time_val=self.time_elapsed, freq=1.5
         )
-        
+
         # 2. 将数据作为参数直接打入 WebGL 页面中执行
         # 利用 QWebEngineView 的 runJavaScript 瞬间传过跨界通道
         js_cmd = f"updateSurfaceGeometry({flat_vertices});"
@@ -69,7 +69,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         # 如果是 JS 本身发起的拖拽更新，则不要再推回去（防止无限踢皮球）
         if hasattr(self, 'bridge') and getattr(self.bridge, '_is_syncing_from_js', False):
             return
-            
+
         # 无论发生什么事件，直接把整棵依赖树的所有坐标打包发给前端
         self.sync_scene()
 
@@ -77,14 +77,14 @@ class ThreeJSViewerPlugin(MathLabPlugin):
         """序列化当前 GeometryEngine 中的所有对象，推送到 JS"""
         if not hasattr(self.api, 'geometry_engine'):
             return
-            
+
         objects = self.api.geometry_engine.get_all_objects()
         payload = [obj.serialize() for obj in objects]
-        
+
         # 将 JSON 转为字符串并转义，防止 JS 解析报错
         json_str = json.dumps(payload).replace("\\", "\\\\").replace("'", "\\'")
         js_code = f"if (window.updateScene) window.updateScene('{json_str}');"
-        
+
         self.web_view.page().runJavaScript(js_code)
 
     def on_deactivate(self):

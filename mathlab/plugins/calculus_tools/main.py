@@ -6,10 +6,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QSpinBox,
     QDoubleSpinBox, QTextEdit, QGroupBox, QScrollArea,
-    QFrame, QMessageBox,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 
 from mathlab.core.plugin_base import MathLabPlugin
 from mathlab.core.extension_api import MathLabAPI

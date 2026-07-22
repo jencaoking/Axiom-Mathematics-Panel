@@ -6,10 +6,7 @@
 3. StudentModelManager — 持久化存储、加载、重置
 4. 序列化/反序列化一致性
 """
-import json
 import os
-import tempfile
-import pytest
 
 from mathlab.core.student_model import (
     StudentModel,

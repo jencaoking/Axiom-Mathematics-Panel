@@ -43,7 +43,7 @@ class ThreeJSBridge(QObject):
                 self.api.geometry_engine.block_signals(True)
                 self.api.geometry_engine.update_point(obj_id, x=x, y=y, z=z)
                 self.api.geometry_engine.block_signals(False)
-                
+
                 # 拖拽结束后，让引擎通知所有监听者刷新 (包括代数面板和 2D 画布)
                 # 因为引擎的 update_point 内部会自动触发下游物体的更新
                 updated_obj = self.api.geometry_engine.get_object(obj_id)

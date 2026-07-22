@@ -6,10 +6,8 @@
 3. PedagogicalConstraint — 约束验证规则
 4. QualityReport — 评估报告序列化
 """
-import pytest
-
 from mathlab.core.student_model import (
-    StudentModel, CognitiveLevel, LearningStyle, InteractionType,
+    StudentModel, CognitiveLevel, InteractionType,
 )
 from mathlab.core.pedagogical_engine import (
     PedagogicalPromptBuilder,
@@ -170,7 +168,7 @@ class TestTeachingQualityEvaluator:
         # 教学要点：导数是函数在某点的瞬时变化率
         def derivative(f, x, h=1e-5):
             return (f(x + h) - f(x)) / h
-        
+
         print("导数计算结果:", derivative(lambda x: x**2, 3))
         ```
         接下来，你觉得导数在物理中有什么应用？
@@ -221,7 +219,7 @@ class TestTeachingQualityEvaluator:
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
         assert not pedagogy_report.passed
         assert any("苏格拉底" in issue or "答案" in issue
-                      for issue in pedagogy_report.issues)
+                   for issue in pedagogy_report.issues)
 
     def test_evaluate_missing_question_ending(self):
         evaluator = TeachingQualityEvaluator()
@@ -255,7 +253,7 @@ class TestTeachingQualityEvaluator:
 
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
         assert any("表达方式" in issue or "UDL" in issue
-                      for issue in pedagogy_report.issues)
+                   for issue in pedagogy_report.issues)
 
     def test_evaluate_coherence_with_good_plan(self):
         evaluator = TeachingQualityEvaluator()
@@ -291,7 +289,7 @@ class TestTeachingQualityEvaluator:
         coherence_report = reports[QualityDimension.CONTEXT_COHERENCE]
         assert not coherence_report.passed
         assert any("梯度" in issue or "跨度" in issue
-                      for issue in coherence_report.issues)
+                   for issue in coherence_report.issues)
 
     def test_evaluate_coherence_excessive_level_span(self):
         evaluator = TeachingQualityEvaluator()
