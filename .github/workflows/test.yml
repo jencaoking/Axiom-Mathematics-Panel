@@ -93,15 +93,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-qt
+          pip install pytest pytest-qt pytest-cov
 
-      - name: Run tests (Windows / macOS)
+      - name: Run unit tests (Windows / macOS)
         if: runner.os != 'Linux'
-        run: pytest -v --tb=long
+        run: pytest mathlab/tests/unit/ -v --tb=long -m "not slow" --junitxml=test-results/unit-results.xml --cov=mathlab --cov-report=xml --cov-report=term-missing --cov-branch
 
-      - name: Run tests (Linux)
+      - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pytest -v --tb=long
+        run: xvfb-run --auto-servernum pytest mathlab/tests/unit/ -v --tb=long -m "not slow" --junitxml=test-results/unit-results.xml --cov=mathlab --cov-report=xml --cov-report=term-missing --cov-branch
+
+      - name: Run integration tests (Windows / macOS)
+        if: runner.os != 'Linux'
+        run: pytest mathlab/tests/integration/ -v --tb=long -m "not slow" --junitxml=test-results/integration-results.xml --cov=mathlab --cov-append --cov-report=xml --cov-report=term-missing
+
+      - name: Run integration tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pytest mathlab/tests/integration/ -v --tb=long -m "not slow" --junitxml=test-results/integration-results.xml --cov=mathlab --cov-append --cov-report=xml --cov-report=term-missing
+
+      - name: Run e2e tests (Windows / macOS)
+        if: runner.os != 'Linux'
+        run: pytest mathlab/tests/e2e/ -v --tb=long --junitxml=test-results/e2e-results.xml --cov=mathlab --cov-append --cov-report=xml --cov-report=term-missing
+
+      - name: Run e2e tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pytest mathlab/tests/e2e/ -v --tb=long --junitxml=test-results/e2e-results.xml --cov=mathlab --cov-append --cov-report=xml --cov-report=term-missing
 
       - name: Upload test results on failure
         if: failure()
@@ -109,6 +125,15 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
           path: |
-            .pytest_cache/
             test-results/
           retention-days: 7
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: coverage-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            test-results/coverage.xml
+            .coverage
+          retention-days: 14

@@ -99,8 +99,8 @@ jobs:
           pylint mathlab/ \
             --rcfile=.pylintrc \
             --disable=R,C \
-            --exit-zero \
-            --output-format=parseable > pylint-report.txt || true
+            --fail-under=5.0 \
+            --output-format=parseable > pylint-report.txt
 
       - name: Upload Pylint report
         if: always()
@@ -146,8 +146,7 @@ jobs:
             --warn-unused-ignores \
             --warn-redundant-casts \
             --disallow-untyped-defs=False \
-            --exclude 'mathlab/resources/' \
-            || true
+            --exclude 'mathlab/resources/'
 
   # ────────────────────────────────────────────────────────────────────────
   # Job 4: 导入完整性检查 (项目特有)
@@ -249,8 +248,7 @@ jobs:
             -x mathlab/resources,mathlab/logs \
             -f json \
             -o bandit-report.json \
-            -ll \
-            || true
+            -ll
 
       - name: Upload Bandit report
         if: always()
@@ -290,8 +288,7 @@ jobs:
           safety check \
             --file=requirements.txt \
             --output=json \
-            --save-json=safety-report.json \
-            || true
+            --save-json=safety-report.json
 
       - name: Upload Safety report
         if: always()

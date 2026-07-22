@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="16.049" timestamp="2026-07-22T16:26:43.074952+08:00" hostname="jencao"><testcase classname="" name="mathlab.tests.e2e.test_function_explorer" time="0.000"><error message="collection failure">ImportError while importing test module 'J:\PROJECT\Python project\Axiom Mathematics Panel\mathlab\tests\e2e\test_function_explorer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+J:\CODE\PYTHON314.6\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+mathlab\tests\e2e\test_function_explorer.py:11: in &lt;module&gt;
+    from mathlab.ui.function_explorer_panel import FunctionExplorerPanel
+mathlab\ui\__init__.py:1: in &lt;module&gt;
+    from .main_window import MainWindow
+mathlab\ui\main_window.py:43: in &lt;module&gt;
+    from mathlab.ui._mixin_ui_setup import UISetupMixin
+mathlab\ui\_mixin_ui_setup.py:17: in &lt;module&gt;
+    from .ai_tools_panel import AIToolsPanel
+mathlab\ui\ai_tools_panel.py:8: in &lt;module&gt;
+    import markdown
+E   ModuleNotFoundError: No module named 'markdown'</error></testcase></testsuite></testsuites>
