@@ -17,6 +17,7 @@ try:
 except ImportError:
     psutil = None
 
+
 class SandboxProcess:
     def __init__(self, max_memory_mb=512, max_time_seconds=60, max_cpu_percent=80):
         self.process = None
@@ -46,7 +47,7 @@ class SandboxProcess:
             self.max_memory_mb = resource_config.max_memory_mb
             self.max_time_seconds = resource_config.max_time_seconds
             self.max_cpu_percent = resource_config.max_cpu_percent
-    
+
     def _read_output(self, pipe, queue):
         try:
             while True:
@@ -114,7 +115,7 @@ class SandboxProcess:
                     pass
 
             time.sleep(0.1)  # 高频轮询，兼顾性能
-    
+
     def _start_process(self):
         sandbox_script_path = os.path.join(os.path.dirname(__file__), 'sandbox_script.py')
         env = os.environ.copy()
@@ -123,14 +124,14 @@ class SandboxProcess:
         safe_paths = [p for p in sys.path if p and os.path.isabs(p)]
         extra_paths = sep.join(safe_paths)
         env['PYTHONPATH'] = f"{env.get('PYTHONPATH', '')}{sep}{extra_paths}".strip(sep)
-        
+
         creation_flags = 0
         preexec_fn = None
         if sys.platform == 'win32':
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             preexec_fn = getattr(os, 'setsid', None)
-            
+
         self.process = subprocess.Popen(
             [sys.executable, sandbox_script_path],
             stdin=subprocess.PIPE,
@@ -188,7 +189,6 @@ class SandboxProcess:
 
         return {'success': False, 'output': '', 'error': 'Sandbox process died unexpectedly', 'result': None}
 
-    
     def terminate(self):
         """
         毁灭级终止：不论是多级进程树、C层死循环，全部连根拔起
@@ -197,8 +197,10 @@ class SandboxProcess:
             try:
                 if sys.platform == 'win32':
                     # Windows下使用 /T 杀死进程树，/F 强制杀死
-                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.process.pid)], 
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.call(
+                        ['taskkill', '/F', '/T', '/PID', str(self.process.pid)],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
                 else:
                     # Unix下通过向进程组 ID（负的 PID）发送 SIGKILL，全组连带子进程瞬间清除
                     try:
@@ -219,9 +221,10 @@ class SandboxProcess:
             finally:
                 self.running = False
                 self.process = None
-    
+
     def is_running(self):
         return self.running
+
 
 class SandboxManager:
     def __init__(self):
@@ -237,23 +240,23 @@ class SandboxManager:
             sandbox.configure_from(resource_config)
         self.sandboxes[sandbox_id] = sandbox
         return sandbox_id
-    
+
     def run_in_sandbox(self, sandbox_id, code, timeout=None):
         if sandbox_id not in self.sandboxes:
             return {'success': False, 'error': 'Sandbox not found'}
-        
+
         sandbox = self.sandboxes[sandbox_id]
         return sandbox.run_code(code, timeout)
-    
+
     def terminate_sandbox(self, sandbox_id):
         if sandbox_id in self.sandboxes:
             self.sandboxes[sandbox_id].terminate()
-    
+
     def destroy_sandbox(self, sandbox_id):
         if sandbox_id in self.sandboxes:
             self.terminate_sandbox(sandbox_id)
             del self.sandboxes[sandbox_id]
-    
+
     def get_sandbox_status(self, sandbox_id):
         if sandbox_id not in self.sandboxes:
             return None

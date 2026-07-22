@@ -1,5 +1,6 @@
 from collections import deque
 from mathlab.utils.logger import get_logger
+from mathlab.core.sandbox import SandboxProcess
 
 # jedi 用于代码补全，缺失时降级为无补全（不阻塞启动）
 try:
@@ -9,7 +10,6 @@ except ImportError:
 
 logger = get_logger(__name__)
 
-from mathlab.core.sandbox import SandboxProcess
 
 class PythonREPL:
     def __init__(self, namespace=None, session_mode=True):
@@ -23,11 +23,11 @@ class PythonREPL:
         self._sandbox = SandboxProcess()  # 单例沙箱实例
         self._session_mode = session_mode  # 会话模式开关
         self.namespace = namespace or {}
-    
+
     def update_namespace(self, vars_dict):
         """更新本地命名空间（用于向 REPL 环境中注入函数/变量）"""
         self.namespace.update(vars_dict)
-        
+
     def get_namespace(self):
         """获取当前本地命名空间"""
         return self.namespace
@@ -37,18 +37,18 @@ class PythonREPL:
         在独立沙箱中执行代码，确保主程序永不卡死
         """
         self.running = True
-        
+
         try:
             if code_str.strip():
                 self.history.append(code_str)
-                
+
             # 如果禁用了会话模式，强制重启沙箱进程
             if not self._session_mode:
                 self._sandbox.terminate()
-            
+
             # 委托给沙箱进程执行
             sandbox_result = self._sandbox.run_code(code_str, timeout=timeout)
-            
+
             return {
                 'success': sandbox_result['success'],
                 'output': sandbox_result['output'],
@@ -57,13 +57,13 @@ class PythonREPL:
             }
         finally:
             self.running = False
-    
+
     def complete(self, text):
         """
         简单的内置函数补全（沙箱模式下无法访问运行时命名空间）
         """
         matches = []
-        
+
         # 仅补全 Python 内置函数
         builtin_names = [
             'abs', 'all', 'any', 'bool', 'callable', 'chr', 'complex', 'dict',
@@ -73,13 +73,13 @@ class PythonREPL:
             'round', 'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'type',
             'zip', 'print', 'input', 'open', 'file', 'True', 'False', 'None'
         ]
-        
+
         for name in builtin_names:
             if name.startswith(text):
                 matches.append(name)
-        
+
         return matches
-    
+
     def get_completions(self, code_str: str, line: int, column: int) -> list:
         """
         获取代码补全建议
@@ -101,12 +101,12 @@ class PythonREPL:
         except Exception as e:
             logger.debug("Jedi 代码补全异常: %s", e)
             return []
-    
+
     def stop(self):
         """停止当前执行的沙箱进程"""
         self.running = False
         self._sandbox.terminate()
-    
+
     def set_session_mode(self, enabled=True):
         """
         动态切换会话模式
@@ -116,17 +116,17 @@ class PythonREPL:
         if not enabled:
             # 禁用时重启沙箱进程以清空状态
             self._sandbox.terminate()
-            
+
     def clear_session(self):
         """清空会话上下文"""
         self._sandbox.terminate()
         self.history.clear()
-    
+
     def get_session_context_length(self):
         return len(self.history)
-    
+
     def get_history(self):
         return list(self.history)
-    
+
     def clear_history(self):
         self.history.clear()

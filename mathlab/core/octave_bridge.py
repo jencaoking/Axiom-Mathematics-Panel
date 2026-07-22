@@ -60,74 +60,74 @@ class OctaveBridge:
             # 用 lambda 包装兼容两种调用约定
             "zeros": lambda *a: np.zeros(a[0] if len(a) == 1 else a),
             "ones": lambda *a: np.ones(a[0] if len(a) == 1 else a),
-            "eye":      np.eye,
+            "eye": np.eye,
             "linspace": np.linspace,
-            "arange":   np.arange,
+            "arange": np.arange,
             "rand": lambda *a: np.random.rand(*a),
             "randn": lambda *a: np.random.randn(*a),
-            "diag":     np.diag,
-            "reshape":  np.reshape,
+            "diag": np.diag,
+            "reshape": np.reshape,
 
             # ── 基础运算 ──────────────────────────────────────────────
-            "abs":    np.abs,
-            "sqrt":   np.sqrt,
-            "exp":    np.exp,
-            "log":    np.log,
-            "log2":   np.log2,
-            "log10":  np.log10,
-            "floor":  np.floor,
-            "ceil":   np.ceil,
-            "round":  np.round,
-            "mod":    np.mod,
+            "abs": np.abs,
+            "sqrt": np.sqrt,
+            "exp": np.exp,
+            "log": np.log,
+            "log2": np.log2,
+            "log10": np.log10,
+            "floor": np.floor,
+            "ceil": np.ceil,
+            "round": np.round,
+            "mod": np.mod,
 
             # ── 三角函数 ──────────────────────────────────────────────
-            "sin":    np.sin,
-            "cos":    np.cos,
-            "tan":    np.tan,
-            "asin":   np.arcsin,
-            "acos":   np.arccos,
-            "atan":   np.arctan,
-            "atan2":  np.arctan2,
+            "sin": np.sin,
+            "cos": np.cos,
+            "tan": np.tan,
+            "asin": np.arcsin,
+            "acos": np.arccos,
+            "atan": np.arctan,
+            "atan2": np.arctan2,
 
             # ── 矩阵属性 ──────────────────────────────────────────────
             "size": lambda x, *a: np.shape(x) if not a else np.shape(x)[a[0] - 1],
-            "numel":  np.size,
+            "numel": np.size,
             "length": lambda x: max(np.shape(x)),
-            "ndims":  np.ndim,
+            "ndims": np.ndim,
             "find": lambda x: np.where(np.asarray(x).ravel())[0],
 
             # ── 聚合函数 ──────────────────────────────────────────────
-            "max":    np.max,
-            "min":    np.min,
-            "sum":    np.sum,
-            "prod":   np.prod,
+            "max": np.max,
+            "min": np.min,
+            "sum": np.sum,
+            "prod": np.prod,
             "cumsum": np.cumsum,
-            "mean":   np.mean,
-            "std":    np.std,
-            "var":    np.var,
-            "norm":   np.linalg.norm,
-            "sort":   np.sort,
+            "mean": np.mean,
+            "std": np.std,
+            "var": np.var,
+            "norm": np.linalg.norm,
+            "sort": np.sort,
             "fliplr": np.fliplr,
             "flipud": np.flipud,
 
             # ── 常数 ──────────────────────────────────────────────────
             "pi": np.pi,
-            "e":  np.e,
+            "e": np.e,
             "Inf": np.inf,
             "inf": np.inf,
             "NaN": np.nan,
             "nan": np.nan,
-            "true":  True,
+            "true": True,
             "false": False,
 
             # ── 高级线性代数 (路由到 NumEngine) ──────────────────────
-            "inv":  np.linalg.inv,
-            "det":  np.linalg.det,
+            "inv": np.linalg.inv,
+            "det": np.linalg.det,
             "rank": self.engine.matrix_rank,
             "cond": self.engine.condition_number,
-            "eig":  self.engine.eigenvalues,
-            "svd":  self.engine.svd,
-            "lu":   self.engine.lu_decomposition,
+            "eig": self.engine.eigenvalues,
+            "svd": self.engine.svd,
+            "lu": self.engine.lu_decomposition,
             "chol": self.engine.cholesky,
 
             # ── 优化 (路由到 NumEngine) ───────────────────────────────
@@ -146,10 +146,10 @@ class OctaveBridge:
             "__smart_mul__": lambda a, b: (a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b),
 
             # ── ✨ UI 联动：绘图函数（发射 Qt 信号）───────────────────────
-            "plot":    self._builtin_plot,
+            "plot": self._builtin_plot,
             "scatter": self._builtin_scatter,
-            "bar":     self._builtin_bar,
-            "stem":    self._builtin_stem,
+            "bar": self._builtin_bar,
+            "stem": self._builtin_stem,
         }
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -422,13 +422,13 @@ class OctaveBridge:
             )
 
         return self._emit_plot({
-            "type":  "line",
-            "x":     x,
-            "y":     y,
+            "type": "line",
+            "x": x,
+            "y": y,
             "title": kwargs.get("title", "2D 折线图"),
             "smooth": True,
             "color": "#4EC9B0",
-            "area":  True,
+            "area": True,
         })
 
     def _builtin_scatter(self, *args, **kwargs) -> str:
@@ -452,12 +452,12 @@ class OctaveBridge:
             )
 
         return self._emit_plot({
-            "type":  "scatter",
-            "x":     x,
-            "y":     y,
+            "type": "scatter",
+            "x": x,
+            "y": y,
             "title": kwargs.get("title", "散点图"),
             "color": "#C586C0",
-            "area":  False,
+            "area": False,
         })
 
     def _builtin_bar(self, *args, **kwargs) -> str:
@@ -480,12 +480,12 @@ class OctaveBridge:
             y = self._to_list(args[1])
 
         return self._emit_plot({
-            "type":  "bar",
-            "x":     x,
-            "y":     y,
+            "type": "bar",
+            "x": x,
+            "y": y,
             "title": kwargs.get("title", "柱状图"),
             "color": "#569CD6",
-            "area":  False,
+            "area": False,
         })
 
     def _builtin_stem(self, *args, **kwargs) -> str:
@@ -504,11 +504,10 @@ class OctaveBridge:
             y = self._to_list(args[1])
 
         return self._emit_plot({
-            "type":  "stem",      # 前端将渲染为带 markLine 的散点图
-            "x":     x,
-            "y":     y,
+            "type": "stem",  # 前端将渲染为带 markLine 的散点图
+            "x": x,
+            "y": y,
             "title": kwargs.get("title", "茎叶图 (Stem Plot)"),
             "color": "#DCDCAA",
-            "area":  False,
+            "area": False,
         })
-

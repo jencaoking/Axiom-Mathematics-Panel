@@ -78,10 +78,12 @@ def restricted_import(name, *args, **kwargs):
         raise ImportError(f"Module '{name}' is not allowed")
     return __import__(name, *args, **kwargs)
 
+
 def forbidden_func(name):
     def wrapper(*args, **kwargs):
         raise RuntimeError(f"Function '{name}' is not allowed in sandbox")
     return wrapper
+
 
 # Initialize safe environment
 safe_builtins_dict = {name: getattr(builtins, name) for name in ALLOWED_BUILTINS}
@@ -94,6 +96,7 @@ safe_globals = {
     '__name__': '__main__',
 }
 
+
 def execute_code(code):
     # [安全修复] 在执行前先进行 AST 安全扫描，拦截恶意代码
     is_safe, safety_error = _scan_code_safety(code)
@@ -101,6 +104,7 @@ def execute_code(code):
         return {'success': False, 'output': '', 'error': safety_error}
 
     output_buffer = io.StringIO()
+
     def safe_print(*args, **kwargs):
         kwargs.setdefault('file', output_buffer)
         builtins.print(*args, **kwargs)
@@ -135,6 +139,7 @@ def execute_code(code):
         output = output_buffer.getvalue()
         return {'success': False, 'output': output, 'error': str(e)}
 
+
 def main():
     while True:
         line = sys.stdin.readline()
@@ -150,6 +155,7 @@ def main():
         except BaseException as e:
             sys.stdout.write(json.dumps({'success': False, 'output': '', 'error': str(e)}) + '\n')
             sys.stdout.flush()
+
 
 if __name__ == '__main__':
     main()

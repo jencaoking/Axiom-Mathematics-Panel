@@ -1,8 +1,10 @@
 import ast
-from typing import Tuple, List, Set
+from typing import Tuple, List
+
 
 class SecurityException(Exception):
     pass
+
 
 class CodeSecurityScanner(ast.NodeVisitor):
     """
@@ -65,6 +67,7 @@ class CodeSecurityScanner(ast.NodeVisitor):
         if node.attr in self.BANNED_ATTRIBUTES:
             self.errors.append(f"安全拦截: 禁止访问危险属性 '{node.attr}'")
         self.generic_visit(node)
+
 
 def is_code_safe(code_string: str) -> Tuple[bool, str]:
     """
