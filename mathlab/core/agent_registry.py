@@ -93,8 +93,9 @@ def list_agents():
 
 
 class AgentRegistry:
-    def __init__(self, ai_manager):
+    def __init__(self, ai_manager, student_model=None):
         self.ai_manager = ai_manager
+        self.student_model = student_model  # 学生认知模型（自适应学习）
         self.agents = {}  # 存放所有已注册的专家 Agent
         self._execution_timeout = 300  # [修复] 整体执行超时时间（秒）
 
@@ -180,11 +181,12 @@ class AgentRegistry:
             max_steps=config.get("max_steps", 5),
         )
 
-        # 动态创建 Agent 实例（基于 BaseMathAgent）
+        # 动态创建 Agent 实例（基于 BaseMathAgent），注入学生模型
         agent = BaseMathAgent(
             self.ai_manager,
             model_override=model_override,
             resource_config=resource_config,
+            student_model=self.student_model,
         )
         agent.system_prompt = system_prompt
 

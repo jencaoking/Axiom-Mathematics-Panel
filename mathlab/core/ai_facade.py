@@ -51,9 +51,10 @@ class AIFacade:
         '解释代码', '说明代码', 'draw', 'plot', 'render',
     })
 
-    def __init__(self, ai_manager, agent_registry=None):
+    def __init__(self, ai_manager, agent_registry=None, student_model=None):
         self.ai_manager = ai_manager
         self.agent_registry = agent_registry
+        self.student_model = student_model
         # [修复] 初始化时检查 agent_registry，提前发现问题
         if agent_registry is None:
             logger.warning("AIFacade 初始化时 agent_registry 为 None，复杂推理任务将不可用")
@@ -109,6 +110,9 @@ class AIFacade:
         task_type = self.classify_intent(user_prompt)
         logger.info("AI 路由: prompt='%s...' → %s", user_prompt[:30], task_type.value)
 
+        # 记录学生互动（自适应学习：即使是简单工具调用也记录）
+        self._record_student_interaction(user_prompt)
+
         if task_type == AITaskType.SIMPLE_TOOL_CALL:
             self._run_function_calling(
                 user_prompt, canvas_state,
@@ -121,6 +125,23 @@ class AIFacade:
             )
 
         return task_type
+
+    def _record_student_interaction(self, user_prompt: str):
+        """记录学生互动到认知模型（自适应学习）。"""
+        if not self.student_model:
+            return
+        try:
+            from mathlab.core.student_model import AdaptiveEngine, InteractionType
+            engine = AdaptiveEngine(self.student_model)
+            interaction_type = engine.classify_interaction(user_prompt)
+            knowledge_point = engine.extract_knowledge_point(user_prompt)
+            self.student_model.record_interaction(
+                interaction_type=interaction_type,
+                knowledge_point=knowledge_point,
+                prompt_text=user_prompt,
+            )
+        except Exception as e:
+            logger.error(f"记录学生互动失败: {e}")
 
     def _run_function_calling(
         self,

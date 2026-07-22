@@ -748,7 +748,7 @@ class ResourceConfig:
 
 class BaseMathAgent:
     def __init__(self, ai_manager, model="deepseek-chat", model_override=None,
-                 resource_config=None):
+                 resource_config=None, student_model=None):
         self.ai_manager = ai_manager
         self.model = model
         # 模型多样性：允许每个 Agent 使用不同的模型
@@ -760,6 +760,12 @@ class BaseMathAgent:
         # 资源限制配置
         self.resource_config = resource_config or ResourceConfig.get_default()
         self.max_steps = self.resource_config.max_steps
+        # 学生认知模型：支持自适应教学
+        self.student_model = student_model
+        self._adaptive_engine = None
+        if student_model is not None:
+            from mathlab.core.student_model import AdaptiveEngine
+            self._adaptive_engine = AdaptiveEngine(student_model)
         self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"  # noqa: E501
 
     def _get_effective_model(self):
@@ -827,8 +833,22 @@ class BaseMathAgent:
                 on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
 
         # 将 RAG 内容动态注入到 System Prompt
+        # 注入自适应教学策略（如果学生模型可用）
+        adaptive_context = ""
+        if self._adaptive_engine:
+            adaptive_context = self._adaptive_engine.build_adaptive_prompt(user_prompt)
+            if on_thought_cb:
+                profile = self.student_model.get_profile_summary()
+                on_thought_cb(
+                    f"🎓 已加载学生认知画像："
+                    f"认知层级={profile['cognitive_level']}，"
+                    f"偏好={profile['learning_style']}，"
+                    f"掌握度={profile['avg_mastery']}"
+                )
+
         system_prompt = f"""{self.system_prompt}
 {skill_context}
+{adaptive_context}
 不要输出多余的 Markdown，必须且只能将代码写在 ```python 块中。"""
 
         messages = [
@@ -878,6 +898,11 @@ class BaseMathAgent:
                                 "geom_commands": geom_commands}
                 self._reasoning_cache.put(user_prompt, cache_result)
 
+                # ============== 4. 记录学生互动（自适应学习） ==============
+                if self.student_model and self._adaptive_engine:
+                    self._record_student_interaction(
+                        user_prompt, success=True)
+
                 if on_finish_cb:
                     on_finish_cb(True, code_content)
                 return cache_result
@@ -901,7 +926,33 @@ class BaseMathAgent:
 
         if on_finish_cb:
             on_finish_cb(False, "超出最大重试次数")
+
+        # 记录失败互动（自适应学习：追踪薄弱点）
+        if self.student_model and self._adaptive_engine:
+            self._record_student_interaction(user_prompt, success=False)
+
         return {"status": "failed", "error": "超出最大重试次数"}
+
+    def _record_student_interaction(self, user_prompt: str, success: bool):
+        """记录学生互动到认知模型中（自适应学习核心）。"""
+        try:
+            from mathlab.core.student_model import InteractionType, CognitiveLevel
+            interaction_type = self._adaptive_engine.classify_interaction(
+                user_prompt, success
+            )
+            knowledge_point = self._adaptive_engine.extract_knowledge_point(
+                user_prompt
+            )
+            cognitive_demand = self._adaptive_engine.get_recommended_cognitive_demand()
+            self.student_model.record_interaction(
+                interaction_type=interaction_type,
+                knowledge_point=knowledge_point,
+                prompt_text=user_prompt,
+                success=success,
+                cognitive_demand=cognitive_demand,
+            )
+        except Exception as e:
+            logger.error(f"记录学生互动失败: {e}")
 
     def _reflect_and_save_skill(self, original_prompt, raw_code):
         """后台静默运行：让大模型把刚刚跑通的特定业务代码，抽象为通用函数库"""
@@ -942,9 +993,11 @@ class PlannerAgent(BaseMathAgent):
     """
 
     def __init__(self, ai_manager, agent_registry=None, model_override=None,
-                 resource_config=None, parallel_execution=False, max_workers=3):
+                 resource_config=None, parallel_execution=False, max_workers=3,
+                 student_model=None):
         super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('PlannerAgent'))
+                         resource_config=resource_config or ResourceConfig.for_agent('PlannerAgent'),
+                         student_model=student_model)
         self.agent_registry = agent_registry  # 持有全局路由大脑，用于子任务委派
         # 并行执行配置：当 parallel_execution=True 时，独立步骤可并行调度
         self.parallel_execution = parallel_execution
@@ -961,25 +1014,32 @@ class PlannerAgent(BaseMathAgent):
         返回格式: {"topic": "...", "steps": [{"num": 1, "title": "...", "hint_for_teacher": "...", "parallelizable": false}]}
         parallelizable=true 表示该步骤可与其他可并行步骤同时执行。
         """
+        # 注入自适应教学策略（基于学生认知画像）
+        adaptive_strategy = ""
+        if self._adaptive_engine:
+            adaptive_strategy = self._adaptive_engine.build_adaptive_prompt(user_prompt)
+
         decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
 
 用户问题：{user_prompt}
+{adaptive_strategy}
 
 你必须严格按照以下 JSON 格式返回，不要包含任何其他文本：
 {{
     "topic": "本次课题的主题",
     "steps": [
-        {{"num": 1, "title": "第一步标题", "hint_for_teacher": "给授课老师的提示", "parallelizable": false}},
-        {{"num": 2, "title": "第二步标题", "hint_for_teacher": "给授课老师的提示", "parallelizable": false}}
+        {{"num": 1, "title": "第一步标题", "hint_for_teacher": "给授课老师的提示", "cognitive_level": "记忆/理解/应用/分析/评价/创造", "parallelizable": false}},
+        {{"num": 2, "title": "第二步标题", "hint_for_teacher": "给授课老师的提示", "cognitive_level": "记忆/理解/应用/分析/评价/创造", "parallelizable": false}}
     ]
 }}
 
 要求：
-1. 步骤从易到难，逐步引导
+1. 步骤从易到难，逐步引导，每个步骤标注 Bloom 认知层级
 2. 每个步骤聚焦一个核心探索点
 3. 不要一次性给最终答案
 4. 如果涉及画图，优先在前几步让几何专家画图
-5. parallelizable 设为 true 仅当该步骤不依赖任何前序步骤的输出结果（如独立画图、独立计算）"""
+5. parallelizable 设为 true 仅当该步骤不依赖任何前序步骤的输出结果（如独立画图、独立计算）
+6. 根据学生认知画像调整步骤难度梯度，确保在最近发展区内"""
         try:
             response = self.ai_manager.client.chat.completions.create(
                 model=self._get_effective_model(),
@@ -1054,6 +1114,21 @@ class PlannerAgent(BaseMathAgent):
         # ========== 阶段 1: 拆解教学大纲 ==========
         if on_thought_cb:
             on_thought_cb("🧠 教研组长正在分析问题，制定教学大纲...")
+
+        # 显示学生认知画像（自适应教学）
+        if self.student_model and self._adaptive_engine:
+            profile = self.student_model.get_profile_summary()
+            comfort, stretch = self.student_model.get_zpd_zone()
+            if on_thought_cb:
+                on_thought_cb(
+                    f"🎓 学生画像加载完成：\n"
+                    f"  ├─ 认知层级：{profile['cognitive_level']}\n"
+                    f"  ├─ 学习偏好：{profile['learning_style']}\n"
+                    f"  ├─ 平均掌握度：{profile['avg_mastery']}\n"
+                    f"  ├─ 参与度：{profile['engagement']}\n"
+                    f"  ├─ ZPD区间：{comfort.to_chinese()} → {stretch.to_chinese()}\n"
+                    f"  └─ 薄弱知识点：{', '.join(profile['weakness_areas']) or '无'}"
+                )
 
         plan = self._decompose_problem(user_prompt)
         topic = plan.get("topic", user_prompt)
@@ -1244,9 +1319,11 @@ class PlannerAgent(BaseMathAgent):
 
 
 class GeometryAgent(BaseMathAgent):
-    def __init__(self, ai_manager, model_override=None, resource_config=None):
+    def __init__(self, ai_manager, model_override=None, resource_config=None,
+                 student_model=None):
         super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('GeometryAgent'))
+                         resource_config=resource_config or ResourceConfig.for_agent('GeometryAgent'),
+                         student_model=student_model)
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
 你的任务是编写 Python 代码，调用 numpy 和 scipy 解决数学问题，并利用以下画板 API 在交互几何画板上作图：
 
@@ -1265,9 +1342,11 @@ class GeometryAgent(BaseMathAgent):
 
 
 class DataVizAgent(BaseMathAgent):
-    def __init__(self, ai_manager, model_override=None, resource_config=None):
+    def __init__(self, ai_manager, model_override=None, resource_config=None,
+                 student_model=None):
         super().__init__(ai_manager, model_override=model_override,
-                         resource_config=resource_config or ResourceConfig.for_agent('DataVizAgent'))
+                         resource_config=resource_config or ResourceConfig.for_agent('DataVizAgent'),
+                         student_model=student_model)
         # 强制将大模型的注意力集中在生成 ECharts 字典上
         self.system_prompt = """你是一个【高级数据可视化专家 (DataVizAgent)】。
 你的任务是根据用户的需求，生成极具科技感、配色高级的交互式图表。

@@ -22,13 +22,20 @@ class AIMixin:
         from mathlab.core.agent_registry import AgentRegistry
         from mathlab.core.ai_manager import PlannerAgent, GeometryAgent, DataVizAgent, ResourceConfig
         from mathlab.core.agent_bridge import AgentUIBridge
+        from mathlab.core.student_model import StudentModelManager
         import os
 
-        # 1. 初始化联邦路由大脑
-        self.agent_registry = AgentRegistry(self.ai_manager)
+        # 0. 初始化学生认知模型管理器（自适应学习核心）
+        self.student_model_manager = StudentModelManager()
+        self.student_model = self.student_model_manager.get_model("default")
+
+        # 1. 初始化联邦路由大脑，注入学生模型
+        self.agent_registry = AgentRegistry(
+            self.ai_manager, student_model=self.student_model
+        )
 
         # 2. 注册所有领域专家（支持模型多样性和资源限制）
-        # 教研组长：启用并行执行，使用默认模型
+        # 教研组长：启用并行执行，使用默认模型，注入学生模型实现自适应教学
         self.agent_registry.register_agent(
             name="PlannerAgent",
             description="数学教研组长：将复杂问题拆解为3-5个循序渐进的教学步骤，然后调度解析几何专家和数据可视化专家协同完成教学。适合深层理解、苏格拉底式教学场景。",
@@ -38,26 +45,29 @@ class AIMixin:
                 model_override=self._get_agent_model_override("PlannerAgent"),
                 parallel_execution=True,
                 max_workers=3,
+                student_model=self.student_model,
             )
         )
 
-        # 几何专家：可指定专用模型
+        # 几何专家：可指定专用模型，注入学生模型
         self.agent_registry.register_agent(
             name="GeometryAgent",
             description="擅长解决平面几何、微积分、代数方程求解，以及二维坐标系中的点线圆绘制任务。",
             agent_instance=GeometryAgent(
                 self.ai_manager,
                 model_override=self._get_agent_model_override("GeometryAgent"),
+                student_model=self.student_model,
             )
         )
 
-        # 数据可视化专家：可指定专用模型
+        # 数据可视化专家：可指定专用模型，注入学生模型
         self.agent_registry.register_agent(
             name="DataVizAgent",
             description="擅长处理统计数据可视化、柱状图、折线图、南丁格尔玫瑰图、3D曲面图等 ECharts 图表渲染任务。",
             agent_instance=DataVizAgent(
                 self.ai_manager,
                 model_override=self._get_agent_model_override("DataVizAgent"),
+                student_model=self.student_model,
             )
         )
 
@@ -74,7 +84,10 @@ class AIMixin:
         self.agent_bridge = AgentUIBridge(self.agent_registry, self)
 
         # 4. 创建统一 AI 范式门面（自动路由 Function Calling / Agent 代码生成）
-        self.ai_facade = AIFacade(self.ai_manager, self.agent_registry)
+        self.ai_facade = AIFacade(
+            self.ai_manager, self.agent_registry,
+            student_model=self.student_model,
+        )
 
         # 5. 信号与槽的严密绑定 (跨线程安全)
         # 思考 -> 打印到终端
@@ -184,7 +197,11 @@ class AIMixin:
             self.ai_tools_panel.code_editor.backend.execute_code(final_content)
         else:
             self.console.append_agent_observation("⚠️ 尝试多次失败，请手动干预。", is_error=True)
-            
+
+        # 持久化保存学生认知画像（自适应学习）
+        if hasattr(self, 'student_model_manager'):
+            self.student_model_manager.save_model("default")
+
         # AI 光标隐退
         if hasattr(self, 'ai_cursor'):
             self.ai_cursor.setVisible(False)
