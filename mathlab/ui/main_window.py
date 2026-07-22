@@ -1,3 +1,4 @@
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QMainWindow
 
@@ -131,14 +132,24 @@ class MainWindow(
         self.shortcut_summon = QShortcut(QKeySequence("Ctrl+K"), self)
         self.shortcut_summon.activated.connect(self.toggle_omni_bar)
 
-        # 启动 AI 全局交互集成
-        self._setup_ai_integration()
+        # ── 延迟初始化：窗口显示后再加载非关键模块 ─────────────────────
+        # 使用 QTimer.singleShot(0) 确保窗口先绘制完成，再执行重型初始化
+        # （AI 集成、ECharts 绑定、插件系统、REPL 命名空间注入）
+        QTimer.singleShot(0, self._deferred_init)
 
-        # 启动 ECharts 集成
-        self._setup_echarts_integration()
+    def _deferred_init(self):
+        """窗口显示后执行的非关键初始化（不阻塞首屏渲染）。"""
+        try:
+            # 启动 AI 全局交互集成
+            self._setup_ai_integration()
 
-        # ── 后置初始化（REPL 命名空间、事件监听、插件系统） ─────────────
-        self._init_post_setup()
+            # 启动 ECharts 集成
+            self._setup_echarts_integration()
+
+            # ── 后置初始化（REPL 命名空间、事件监听、插件系统） ─────────────
+            self._init_post_setup()
+        except Exception as e:
+            logger.error("延迟初始化失败: %s", e, exc_info=True)
 
     def _init_engines(self):
         """创建所有核心引擎实例（唯一的引擎初始化入口）。"""

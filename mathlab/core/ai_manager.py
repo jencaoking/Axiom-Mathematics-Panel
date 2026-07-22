@@ -45,14 +45,8 @@ logger = get_logger(__name__)
 # 工具 Schema 统一从 ai_tools.py 导入（消除重复定义）
 DRAW_TOOL_SCHEMA = GEOMETRY_DRAW_TOOL  # 别名，供 quiz_panel 等模块使用
 
-# Torch availability check
-try:
-    import torch  # noqa: F401
-    import torch.nn as nn  # noqa: F401
-
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
+# Torch availability check — 使用 find_spec 快速检测，避免模块级 import 加载重型库
+TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
 
 try:
     import onnxruntime as ort  # noqa: F401
@@ -67,6 +61,14 @@ try:
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
+
+
+def _lazy_import_torch():
+    """延迟导入 PyTorch，仅在 fit_neural_network 首次调用时加载"""
+    import torch
+    import torch.nn as nn
+
+    return torch, nn
 
 # --- 1. 引入严格的生成状态机 ---
 
@@ -435,7 +437,8 @@ class AIManager(QObject):
         if len(points) < 2:
             return {"success": False, "error": "Need at least 2 points"}
 
-        # [P0修复 Bug1] 补充缺失的导入：mean_squared_error 在此函数中使用但未导入
+        # 延迟导入 PyTorch，避免启动时加载重型库
+        torch, nn = _lazy_import_torch()
 
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
