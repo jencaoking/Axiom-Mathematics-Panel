@@ -50,6 +50,8 @@ class GeometryEngine(QObject):
         self.objects = {}
         self.name_counter = defaultdict(int)
         self._name_set = set()
+        # 空闲名称池：删除对象后回收名称，新增时优先复用，避免 while 循环
+        self._free_names = defaultdict(list)
         self.dependencies = DAG()
         self._listeners = []  # 向后兼容：旧的回调式监听器
         self._signals_blocked = False
@@ -127,11 +129,15 @@ class GeometryEngine(QObject):
 
     def _generate_name(self, obj_type):
         prefix = obj_type[0].upper()
+        # 优先从空闲名称池中复用已删除对象的名称
+        free_list = self._free_names.get(obj_type)
+        if free_list:
+            name = free_list.pop()
+            self._name_set.add(name)
+            return name
+        # 池为空时使用递增计数器，无需 while 循环检查冲突
         self.name_counter[obj_type] += 1
         name = f"{prefix}{self.name_counter[obj_type]}"
-        while name in self._name_set:
-            self.name_counter[obj_type] += 1
-            name = f"{prefix}{self.name_counter[obj_type]}"
         self._name_set.add(name)
         return name
 
@@ -421,18 +427,18 @@ class GeometryEngine(QObject):
             if dep_id in self.objects:
                 dep_obj = self.objects[dep_id]
                 self._name_set.discard(dep_obj.name)
-                # 同步递减计数器，保持名称状态一致
-                if hasattr(dep_obj, "type") and dep_obj.type in self.name_counter:
-                    self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
+                # 回收名称到空闲池，供后续新增对象复用
+                if hasattr(dep_obj, "type"):
+                    self._free_names[dep_obj.type].append(dep_obj.name)
                 self.dependencies.remove_node(dep_id)
                 self._notify("object_removed", dep_id)
                 del self.objects[dep_id]
 
         obj = self.objects[obj_id]
         self._name_set.discard(obj.name)
-        # 同步递减计数器
-        if hasattr(obj, "type") and obj.type in self.name_counter:
-            self.name_counter[obj.type] = max(0, self.name_counter[obj.type] - 1)
+        # 回收名称到空闲池
+        if hasattr(obj, "type"):
+            self._free_names[obj.type].append(obj.name)
         self.dependencies.remove_node(obj_id)
         self._notify("object_removed", obj_id)
         del self.objects[obj_id]
@@ -617,6 +623,7 @@ class GeometryEngine(QObject):
     def deserialize_all(self, data):
         self.objects.clear()
         self._name_set.clear()
+        self._free_names.clear()
         self.name_counter = defaultdict(int, data.get("name_counter", {}))
         self.dependencies = DAG()
 
@@ -650,6 +657,7 @@ class GeometryEngine(QObject):
     def clear(self):
         self.objects.clear()
         self._name_set.clear()
+        self._free_names.clear()
         self.name_counter.clear()
         self.dependencies = DAG()
         self._notify("canvas_cleared", None)

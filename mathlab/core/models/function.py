@@ -1,9 +1,35 @@
 import warnings
+from functools import lru_cache
 
 import numpy as np
 from sympy import lambdify, parse_expr, symbols
 
 from mathlab.core.models.base import GeometricObject
+
+
+# 表达式解析缓存：相同表达式字符串只解析一次，避免重复 parse_expr + lambdify 开销
+@lru_cache(maxsize=128)
+def _get_cached_lambdified_func(expression_str):
+    """将表达式字符串解析为 SymPy 表达式并 lambdify 为 NumPy 函数（带缓存）"""
+    x_sym = symbols("x")
+    expr = parse_expr(expression_str, local_dict={"x": x_sym})
+    return lambdify(x_sym, expr, "numpy")
+
+
+@lru_cache(maxsize=128)
+def _get_cached_lambdified_func_xy(expression_str):
+    """将二元表达式字符串解析为 SymPy 表达式并 lambdify 为 NumPy 函数（带缓存）"""
+    x_sym, y_sym = symbols("x y")
+    expr = parse_expr(expression_str, local_dict={"x": x_sym, "y": y_sym})
+    return lambdify((x_sym, y_sym), expr, "numpy")
+
+
+@lru_cache(maxsize=128)
+def _get_cached_lambdified_func_theta(expression_str):
+    """将极坐标表达式字符串解析为 SymPy 表达式并 lambdify 为 NumPy 函数（带缓存）"""
+    theta_sym = symbols("theta")
+    expr = parse_expr(expression_str, local_dict={"theta": theta_sym})
+    return lambdify(theta_sym, expr, "numpy")
 
 
 class FunctionPlot(GeometricObject):
@@ -18,16 +44,13 @@ class FunctionPlot(GeometricObject):
         self._generate_points()
 
     def _generate_points(self):
-        """生成离散点用于绘制（使用 lambdify 矢量化加速）"""
+        """生成离散点用于绘制（使用 lambdify 矢量化加速 + 表达式缓存）"""
         try:
-            x_sym = symbols("x")
-            expr = parse_expr(self.expression, local_dict={"x": x_sym})
-
             x_vals = np.linspace(self.x_range[0], self.x_range[1], self.num_points)
 
             try:
-                # 矢量化：将 SymPy 表达式转为 NumPy 函数
-                func = lambdify(x_sym, expr, "numpy")
+                # 使用缓存的表达式解析，避免重复 parse_expr 开销
+                func = _get_cached_lambdified_func(self.expression)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     y_vals = func(x_vals)
@@ -107,11 +130,9 @@ class ImplicitPlot(GeometricObject):
         3. 在候选单元的 4 个角点里收集 |Z| < near_zero_tol 的点
 
         相比原双重 Python 循环，resolution=400 时约快 80-120 倍。
+        表达式缓存进一步避免重复 parse_expr + lambdify 开销。
         """
         try:
-            x_sym, y_sym = symbols("x y")
-            expr = parse_expr(self.expression, local_dict={"x": x_sym, "y": y_sym})
-
             # 创建网格
             x_vals = np.linspace(self.x_range[0], self.x_range[1], self.resolution)
             y_vals = np.linspace(self.y_range[0], self.y_range[1], self.resolution)
@@ -119,7 +140,7 @@ class ImplicitPlot(GeometricObject):
 
             # 矢量化计算函数值（一次 C 级别运算替代 resolution² 次 subs）
             try:
-                func = lambdify((x_sym, y_sym), expr, "numpy")
+                func = _get_cached_lambdified_func_xy(self.expression)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     Z = func(X, Y)
@@ -222,16 +243,13 @@ class PolarPlot(GeometricObject):
         self._generate_points()
 
     def _generate_points(self):
-        """将极坐标转换为直角坐标并生成点（使用 lambdify 矢量化加速）"""
+        """将极坐标转换为直角坐标并生成点（使用 lambdify 矢量化加速 + 表达式缓存）"""
         try:
-            theta_sym = symbols("theta")
-            expr = parse_expr(self.expression, local_dict={"theta": theta_sym})
-
             theta_vals = np.linspace(self.theta_range[0], self.theta_range[1], self.num_points)
 
             try:
-                # 矢量化计算 r 值
-                func = lambdify(theta_sym, expr, "numpy")
+                # 使用缓存的表达式解析
+                func = _get_cached_lambdified_func_theta(self.expression)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     r_vals = func(theta_vals)

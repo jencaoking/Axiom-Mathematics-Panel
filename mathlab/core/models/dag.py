@@ -2,17 +2,22 @@ from collections import defaultdict
 
 
 class DAG:
+    """有向无环图：使用 set 存储邻接关系，实现 O(1) 的边添加与节点移除。
+
+    相比旧版基于 list 的实现：
+    - add_edge: O(1) 集合插入替代 O(n) 的 `not in` 线性检查
+    - remove_node: O(1) 集合 discard 替代 O(n) 的 list.remove
+    """
+
     def __init__(self):
-        self.graph = defaultdict(list)
-        self.reverse_graph = defaultdict(list)
+        self.graph = defaultdict(set)
+        self.reverse_graph = defaultdict(set)
 
     def add_edge(self, from_node, to_node):
         if self._is_reachable(to_node, from_node):
             raise ValueError(f"Cycle detected: {from_node} → {to_node}")
-        if to_node not in self.graph[from_node]:
-            self.graph[from_node].append(to_node)
-        if from_node not in self.reverse_graph[to_node]:
-            self.reverse_graph[to_node].append(from_node)
+        self.graph[from_node].add(to_node)
+        self.reverse_graph[to_node].add(from_node)
 
     def _is_reachable(self, src, dst):
         visited = set()
@@ -24,17 +29,15 @@ class DAG:
             if n in visited:
                 continue
             visited.add(n)
-            stack.extend(self.graph.get(n, []))
+            stack.extend(self.graph.get(n, ()))
         return False
 
     def remove_node(self, node):
-        for child in self.graph.get(node, []):
-            if node in self.reverse_graph.get(child, []):
-                self.reverse_graph[child].remove(node)
+        for child in self.graph.get(node, ()):
+            self.reverse_graph.get(child, set()).discard(node)
 
-        for parent in self.reverse_graph.get(node, []):
-            if node in self.graph.get(parent, []):
-                self.graph[parent].remove(node)
+        for parent in self.reverse_graph.get(node, ()):
+            self.graph.get(parent, set()).discard(node)
 
         self.graph.pop(node, None)
         self.reverse_graph.pop(node, None)
@@ -50,7 +53,7 @@ class DAG:
             if n in visiting:
                 raise ValueError(f"Cycle detected at node {n}")
             visiting.add(n)
-            for dep in self.reverse_graph[n]:
+            for dep in self.reverse_graph.get(n, ()):
                 dfs(dep)
             visiting.remove(n)
             visited.add(n)
@@ -76,7 +79,7 @@ class DAG:
             if n in visiting:
                 raise ValueError(f"Cycle detected at node {n}")
             visiting.add(n)
-            for dep in self.graph.get(n, []):
+            for dep in self.graph.get(n, ()):
                 dfs(dep)  # 先深入到底
             visiting.remove(n)
             visited.add(n)

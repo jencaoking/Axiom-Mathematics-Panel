@@ -62,6 +62,10 @@ class SandboxProcess:
         """
         核心看门狗线程：主动轮询子进程的 CPU 时间、CPU 占比与物理内存开销
         一旦超过阈值，立刻从外部施加硬核毁灭（SIGKILL / taskkill），彻底解决任何死循环
+
+        性能优化：自适应轮询间隔
+        - 前 5 秒高频轮询 (100ms)：快速捕获瞬时爆发的死循环/内存泄漏
+        - 5 秒后低频轮询 (500ms)：降低长时任务的后台 CPU 开销
         """
         start_time = time.time()
         while self.running and self.process and self.process.poll() is None:
@@ -114,7 +118,9 @@ class SandboxProcess:
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
 
-            time.sleep(0.1)  # 高频轮询，兼顾性能
+            # 自适应轮询间隔：前 5 秒高频，之后降为低频以节省 CPU
+            poll_interval = 0.1 if elapsed_time < 5.0 else 0.5
+            time.sleep(poll_interval)
 
     def _start_process(self):
         sandbox_script_path = os.path.join(os.path.dirname(__file__), "sandbox_script.py")

@@ -179,11 +179,11 @@ class GeometryPointItem(QGraphicsEllipseItem):
                 # 动态阈值：物理像素 5px 对应的逻辑坐标差异
                 logical_threshold = 5.0 / scale_factor if scale_factor > 0 else 0.01
 
-                # 提取其他点的逻辑坐标
+                # 性能优化：从缓存的点图元集合中提取，避免遍历全部场景对象
                 other_points = [
                     item.scenePos()
-                    for item in self.scene().items()
-                    if isinstance(item, GeometryPointItem) and item != self
+                    for item in self.canvas._point_item_set
+                    if item != self
                 ]
 
                 # 调用绘制
@@ -209,11 +209,11 @@ class GeometryPointItem(QGraphicsEllipseItem):
             if view:
                 scale_factor = view.transform().m11()
 
-                # 收集画布上排除自己的其他所有点
+                # 性能优化：从缓存的点图元集合中提取，避免遍历全部场景对象
                 other_points = [
                     item.scenePos()
-                    for item in self.scene().items()
-                    if isinstance(item, GeometryPointItem) and item != self
+                    for item in self.canvas._point_item_set
+                    if item != self
                 ]
 
                 # 送入引擎，计算最终修饰过的吸附坐标
@@ -309,6 +309,9 @@ class GeometryCanvas(QGraphicsView):
         self.polygon_items = {}
         self.curve_items = {}  # 存储所有曲线类型（圆锥曲线、函数绘图等）
         self.preview_item = None
+
+        # 性能优化：维护点图元集合，拖拽时直接遍历点集合而非全部场景对象
+        self._point_item_set = set()
 
         # ------------------------------------------------------------------
         # 混合渲染优化：防抖定时器和待渲染队列
@@ -693,6 +696,7 @@ class GeometryCanvas(QGraphicsView):
         self.circle_items.clear()
         self.polygon_items.clear()
         self.curve_items.clear()
+        self._point_item_set.clear()
         self.drawing_points.clear()
         self.preview_item = None
         # 重置绘制状态，防止下次 mouseMoveEvent 操作野指针
@@ -730,6 +734,7 @@ class GeometryCanvas(QGraphicsView):
             self.scene_obj.addItem(point_item)
             self.scene_obj.addItem(text_item)
 
+            self._point_item_set.add(point_item)
             self.object_map[obj_id] = {"point": point_item, "text": text_item}
 
         elif obj_type == "Segment":
@@ -934,6 +939,10 @@ class GeometryCanvas(QGraphicsView):
     def remove_object(self, obj_id):
         if obj_id in self.object_map:
             obj_info = self.object_map[obj_id]
+            # 从点图元缓存集合中移除
+            point_item = obj_info.get("point")
+            if point_item:
+                self._point_item_set.discard(point_item)
             for item in obj_info.values():
                 self.scene_obj.removeItem(item)
             del self.object_map[obj_id]

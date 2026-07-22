@@ -120,7 +120,7 @@ def export_canvas_to_latex(objects_data):
 # ==========================================
 # 混合渲染核心：SVG 生成与 LRU 缓存池
 # ==========================================
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=512)
 def generate_latex_svg(latex_str, color="#0b1c30", font_size=12):
     """
     将 LaTeX 字符串静默渲染为无损的 SVG 字节流。
@@ -148,7 +148,7 @@ class SharedSvgRendererCache:
     """
 
     _cache: OrderedDict[str, QSvgRenderer] = OrderedDict()
-    _MAX_CACHE_SIZE = 128
+    _MAX_CACHE_SIZE = 256
 
     @classmethod
     def get_renderer(cls, latex_str, color="#0b1c30"):

@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 from sympy import latex
 
@@ -12,30 +14,42 @@ from mathlab.core.models.base import GeometricObject
 
 
 class Locus(GeometricObject):
-    """动点轨迹：追踪依赖点的运动轨迹"""
+    """动点轨迹：追踪依赖点的运动轨迹
+
+    性能优化：使用 deque(maxlen=N) 作为环形缓冲区，
+    - append 为 O(1)（旧 list.pop(0) 为 O(n)）
+    - maxlen 自动淘汰旧数据，无需手动检查长度
+    - 仅在序列化/通知时转换为 list，避免每次 add 的 O(n) 复制
+    """
 
     def __init__(self, obj_id, name, tracer_point_id, driver_point_id, max_points=1000):
         super().__init__(obj_id, name, "Locus")
         self.tracer_point_id = tracer_point_id  # 被追踪的点
         self.driver_point_id = driver_point_id  # 驱动运动的点
         self.max_points = max_points
-        self.trail_points = []  # 轨迹点历史
+        self.trail_points = deque(maxlen=max_points)  # O(1) 环形缓冲区
         self.points_data = []
+        self._dirty = False  # 延迟同步标记
         self.depends_on = [tracer_point_id, driver_point_id]
 
     def add_trail_point(self, x, y):
-        """添加一个轨迹点"""
+        """添加一个轨迹点（O(1) 操作，不触发列表复制）"""
         self.trail_points.append((x, y))
-        if len(self.trail_points) > self.max_points:
-            self.trail_points.pop(0)
-        self.points_data = self.trail_points.copy()
-        self.coordinates = {"points": self.points_data}
+        self._dirty = True
+
+    def _sync_points_data(self):
+        """仅在需要时将 deque 转换为 list（序列化/通知前调用）"""
+        if self._dirty:
+            self.points_data = list(self.trail_points)
+            self.coordinates = {"points": self.points_data}
+            self._dirty = False
 
     def clear_trail(self):
         """清除轨迹"""
         self.trail_points.clear()
         self.points_data.clear()
         self.coordinates = {"points": []}
+        self._dirty = False
 
     def update_coordinates(self, engine):
         pass
@@ -44,11 +58,12 @@ class Locus(GeometricObject):
         return rf"Locus of {self.name}"
 
     def serialize(self):
+        self._sync_points_data()  # 确保序列化前数据已同步
         data = super().serialize()
         data["tracer_point_id"] = self.tracer_point_id
         data["driver_point_id"] = self.driver_point_id
         data["max_points"] = self.max_points
-        data["trail_points"] = self.trail_points
+        data["trail_points"] = list(self.trail_points)
         data["points_data"] = self.points_data
         return data
 
@@ -64,8 +79,11 @@ class Locus(GeometricObject):
         obj.coordinates = data.get("coordinates", {})
         obj.constraints = data.get("constraints", [])
         obj.depends_on = data.get("depends_on", [])
-        obj.trail_points = data.get("trail_points", [])
+        # 反序列化时将 list 转回 deque 以保持数据结构一致
+        trail = data.get("trail_points", [])
+        obj.trail_points = deque(trail, maxlen=obj.max_points)
         obj.points_data = data.get("points_data", [])
+        obj._dirty = False
         return obj
 
 
