@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import copy_metadata
+from PyInstaller.utils.hooks import copy_metadata, collect_data_files
 
 block_cipher = None
 
@@ -14,8 +14,13 @@ added_files = [
     ('mathlab/ui/*.qss', 'mathlab/ui'),
     ('mathlab/resources/icons/*', 'mathlab/resources/icons'),
     # 若有本地图标，请取消下方注释
-    # ('mathlab/resources/icon.ico', 'mathlab/resources')
+    # ('mathlab/resources/icon.ico', 'mathlab/resources'),
 ]
+# 收集 rfc3987_syntax 包的数据文件（.lark 语法文件）
+import rfc3987_syntax
+import os
+rfc3987_syntax_dir = os.path.dirname(rfc3987_syntax.__file__)
+added_files += [(os.path.join(rfc3987_syntax_dir, 'syntax_rfc3987.lark'), 'rfc3987_syntax')]
 added_files += copy_metadata('jupyter_client')
 
 # 2. 隐式依赖声明：强制打包动态加载的引擎和代理
@@ -45,6 +50,8 @@ hidden_imports = [
     'jupyterlab.labapp',
     'jupyter_core',
     'ipykernel_launcher',
+    # rfc3987_syntax 依赖（jsonschema 需要）
+    'rfc3987_syntax',
 ]
 
 a = Analysis(
