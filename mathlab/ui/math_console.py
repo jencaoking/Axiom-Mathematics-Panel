@@ -105,21 +105,21 @@ class MathConsole(QDockWidget):
         self._lbl_ws.setStyleSheet(f"color:{_COL_MUTED}; font-size:11px;")
         tb_layout.addWidget(self._lbl_ws)
 
-        btn_clear = QPushButton(t("math_console.clear") or "Clear")
-        btn_clear.setFixedHeight(24)
-        btn_clear.setStyleSheet(
+        self._btn_clear = QPushButton(t("math_console.clear") or "Clear")
+        self._btn_clear.setFixedHeight(24)
+        self._btn_clear.setStyleSheet(
             f"QPushButton{{background:#252535;color:{_COL_MUTED};"
             f"border:1px solid {_COL_BORDER};border-radius:3px;padding:0 10px;font-size:11px;}}"
             f"QPushButton:hover{{color:white;border-color:#555;}}"
         )
-        btn_clear.clicked.connect(self._clear_output)
-        tb_layout.addWidget(btn_clear)
+        self._btn_clear.clicked.connect(self._clear_output)
+        tb_layout.addWidget(self._btn_clear)
 
-        btn_reset = QPushButton(t("math_console.reset") or "Reset Workspace")
-        btn_reset.setFixedHeight(24)
-        btn_reset.setStyleSheet(btn_clear.styleSheet())
-        btn_reset.clicked.connect(self._reset_workspace)
-        tb_layout.addWidget(btn_reset)
+        self._btn_reset = QPushButton(t("math_console.reset") or "Reset Workspace")
+        self._btn_reset.setFixedHeight(24)
+        self._btn_reset.setStyleSheet(self._btn_clear.styleSheet())
+        self._btn_reset.clicked.connect(self._reset_workspace)
+        tb_layout.addWidget(self._btn_reset)
 
         root_layout.addWidget(toolbar)
 
@@ -161,16 +161,16 @@ class MathConsole(QDockWidget):
         self._input.installEventFilter(self)
         ir_layout.addWidget(self._input, stretch=1)
 
-        btn_run = QPushButton(t("math_console.run") or "▶ Run")
-        btn_run.setFixedHeight(28)
-        btn_run.setStyleSheet(
+        self._btn_run = QPushButton(t("math_console.run") or "▶ Run")
+        self._btn_run.setFixedHeight(28)
+        self._btn_run.setStyleSheet(
             f"QPushButton{{background:#007ACC;color:white;"
             f"border:none;border-radius:4px;padding:0 14px;font-size:12px;font-weight:bold;}}"
             f"QPushButton:hover{{background:#005F9E;}}"
             f"QPushButton:pressed{{background:#004B7A;}}"
         )
-        btn_run.clicked.connect(self._execute)
-        ir_layout.addWidget(btn_run)
+        self._btn_run.clicked.connect(self._execute)
+        ir_layout.addWidget(self._btn_run)
 
         root_layout.addWidget(input_row)
         self.setWidget(root)
@@ -404,6 +404,22 @@ class MathConsole(QDockWidget):
             self._lbl_ws.setText(f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})")
         else:
             self._lbl_ws.setText(t("math_console.workspace_empty") or "Workspace: Empty")
+
+    def retranslate_ui(self) -> None:
+        """更新所有 UI 文本为当前语言"""
+        self.setWindowTitle(t("math_console.title").upper())
+        if hasattr(self, "_lbl_ws"):
+            self._update_workspace_label()
+        if hasattr(self, "_btn_clear"):
+            self._btn_clear.setText(t("math_console.clear") or "Clear")
+        if hasattr(self, "_btn_reset"):
+            self._btn_reset.setText(t("math_console.reset") or "Reset Workspace")
+        if hasattr(self, "_input"):
+            self._input.setPlaceholderText(
+                t("math_console.placeholder") or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
+            )
+        if hasattr(self, "_btn_run"):
+            self._btn_run.setText(t("math_console.run") or "▶ Run")
 
     # ─────────────────────────────────────────────────────────────────────────
     # 公开 API（供 main_window 调用）

@@ -207,6 +207,7 @@ class DialogsMixin:
         self.algebra_panel.setWindowTitle(t("algebra_panel.title").upper())
         self.properties_panel.setWindowTitle(t("properties_panel.title").upper())
         self.console.setWindowTitle(t("console.title").upper())
+        self.math_console.setWindowTitle(t("math_console.title").upper())
         self.algo_vis_panel.setWindowTitle(t("algo_vis.title").upper())
         self.ai_tools_panel.setWindowTitle(t("ai_tools.title").upper())
         # [I18n 修复] 补充遗漏的函数探索器标题刷新
@@ -215,7 +216,11 @@ class DialogsMixin:
         self.algebra_panel.retranslate_ui()
         self.properties_panel.retranslate_ui()
         self.console.retranslate_ui()
+        self.math_console.retranslate_ui()
         self.algo_vis_panel.retranslate_ui()
         self.ai_tools_panel.retranslate_ui()
         # [I18n 修复] 级联调用函数探索器的重绘
         self.function_explorer.retranslate_ui()
+        # [I18n 修复] 级联调用 GeoGebra 面板的重绘
+        if hasattr(self, "geogebra_panel") and self.geogebra_panel is not None:
+            self.geogebra_panel.retranslate_ui()

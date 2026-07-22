@@ -210,7 +210,7 @@ class PreferencesDialog(QDialog):
         self.tabs.addTab(self._page_graphics(), t("preferences.graphics"))
         self.tabs.addTab(self._page_console(), t("preferences.console_tab"))
         self.tabs.addTab(self._page_shortcuts(), t("preferences.shortcuts"))
-        self.tabs.addTab(self._page_ai_lab(), "AI 实验室")
+        self.tabs.addTab(self._page_ai_lab(), t("preferences.ai_lab"))
         self.tabs.addTab(self._page_advanced(), t("preferences.advanced"))
 
         body_layout.addWidget(self.tabs, 1)
@@ -669,21 +669,29 @@ class PreferencesDialog(QDialog):
         section = QWidget()
         section_layout = QVBoxLayout(section)
         section_layout.setSpacing(16)
-        section_layout.addWidget(self._create_section_header("AI 实验室"))
+        section_layout.addWidget(self._create_section_header(t("preferences.ai_lab")))
 
         form = QFormLayout()
         form.setContentsMargins(0, 0, 0, 0)
         form.setSpacing(16)
 
         self.ai_provider_combo = QComboBox()
-        self.ai_provider_combo.addItems(["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"])
+        provider_data = [
+            ("deepseek", t("preferences.ai_provider_deepseek") or "DeepSeek"),
+            ("openai", t("preferences.ai_provider_openai") or "OpenAI"),
+            ("siliconflow", t("preferences.ai_provider_siliconflow") or "硅基流动 (SiliconFlow)"),
+            ("ollama", t("preferences.ai_provider_ollama") or "Ollama (本地)"),
+            ("custom", t("preferences.ai_provider_custom") or "自定义"),
+        ]
+        for data, text in provider_data:
+            self.ai_provider_combo.addItem(text, data)
         self.ai_provider_combo.setStyleSheet(
             "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
-        self.ai_provider_combo.currentTextChanged.connect(self._on_ai_provider_changed)
+        self.ai_provider_combo.currentIndexChanged.connect(self._on_ai_provider_changed)
 
         self.ai_base_url_input = QLineEdit()
-        self.ai_base_url_input.setPlaceholderText("例如: https://api.deepseek.com/v1")
+        self.ai_base_url_input.setPlaceholderText(t("preferences.ai_base_url_placeholder") or "例如: https://api.deepseek.com/v1")
         self.ai_base_url_input.setStyleSheet(
             "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
@@ -696,19 +704,19 @@ class PreferencesDialog(QDialog):
         )
 
         self.ai_model_input = QLineEdit()
-        self.ai_model_input.setPlaceholderText("例如: deepseek-chat")
+        self.ai_model_input.setPlaceholderText(t("preferences.ai_model_placeholder") or "例如: deepseek-chat")
         self.ai_model_input.setStyleSheet(
             "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
 
-        form.addRow("服务提供商:", self.ai_provider_combo)
+        form.addRow(t("preferences.ai_provider_label") or "服务提供商:", self.ai_provider_combo)
         form.addRow("Base URL:", self.ai_base_url_input)
         form.addRow("API Key:", self.ai_api_key_input)
-        form.addRow("默认模型:", self.ai_model_input)
+        form.addRow(t("preferences.ai_model_label") or "默认模型:", self.ai_model_input)
 
         section_layout.addLayout(form)
 
-        tip_label = QLabel("💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
+        tip_label = QLabel(t("preferences.ai_lab_tip") or "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
         tip_label.setStyleSheet("color: gray; font-size: 11px;")
         section_layout.addWidget(tip_label)
 
@@ -717,23 +725,24 @@ class PreferencesDialog(QDialog):
 
         return self._scroll(inner)
 
-    def _on_ai_provider_changed(self, text):
+    def _on_ai_provider_changed(self, index):
+        provider_key = self.ai_provider_combo.itemData(index)
         templates = {
-            "DeepSeek": {
+            "deepseek": {
                 "url": "https://api.deepseek.com/v1",
                 "model": "deepseek-chat",
             },
-            "硅基流动 (SiliconFlow)": {
+            "siliconflow": {
                 "url": "https://api.siliconflow.cn/v1",
                 "model": "deepseek-ai/DeepSeek-V3",
             },
-            "Ollama (本地)": {"url": "http://localhost:11434/v1", "model": "llama3"},
-            "OpenAI": {"url": "https://api.openai.com/v1", "model": "gpt-4o"},
+            "ollama": {"url": "http://localhost:11434/v1", "model": "llama3"},
+            "openai": {"url": "https://api.openai.com/v1", "model": "gpt-4o"},
         }
-        if text in templates:
-            self.ai_base_url_input.setText(templates[text]["url"])
-            self.ai_model_input.setText(templates[text]["model"])
-            if text == "Ollama (本地)":
+        if provider_key in templates:
+            self.ai_base_url_input.setText(templates[provider_key]["url"])
+            self.ai_model_input.setText(templates[provider_key]["model"])
+            if provider_key == "ollama":
                 self.ai_api_key_input.setText("ollama")
 
     def _load_settings(self):
@@ -821,7 +830,8 @@ class PreferencesDialog(QDialog):
         self.tabs.setTabText(1, t("preferences.graphics"))
         self.tabs.setTabText(2, t("preferences.console_tab"))
         self.tabs.setTabText(3, t("preferences.shortcuts"))
-        self.tabs.setTabText(4, t("preferences.advanced"))
+        self.tabs.setTabText(4, t("preferences.ai_lab"))
+        self.tabs.setTabText(5, t("preferences.advanced"))
 
         self.btn_cancel.setText(t("dialogs.cancel"))
         self.btn_apply.setText(t("preferences.apply"))

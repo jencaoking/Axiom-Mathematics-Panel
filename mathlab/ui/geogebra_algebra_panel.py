@@ -106,3 +106,12 @@ class GeoGebraAlgebraPanel(QWidget):
 
                 self.item_widgets[entity_id] = item_widget
                 self.list_layout.insertWidget(self.list_layout.count() - 1, item_widget)
+
+    def retranslate_ui(self) -> None:
+        """更新所有 UI 文本为当前语言"""
+        from mathlab.utils.i18n_manager import get_i18n
+
+        t = get_i18n().t
+        header = self.layout.itemAt(0).widget()
+        if header and isinstance(header, QLabel):
+            header.setText(t("geogebra.algebra_title") or "Algebra")

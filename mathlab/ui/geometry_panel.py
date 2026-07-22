@@ -88,3 +88,19 @@ class GeometryPanel(QWidget):
         if entity and entity.update_from_string(new_text):
             entity.notify_update()
             self.canvas.sync_ui_from_engine()
+
+    def retranslate_ui(self) -> None:
+        """更新所有 UI 文本为当前语言"""
+        from mathlab.utils.i18n_manager import get_i18n
+
+        t = get_i18n().t
+        tools = [
+            (f"👆 {t('geogebra.tool_move') or 'Move'}", ToolMode.SELECT),
+            (f"⏺ {t('geogebra.tool_point') or 'Point'}", ToolMode.POINT),
+            (f"📏 {t('geogebra.tool_line') or 'Line'}", ToolMode.LINE),
+            (f"❌ {t('geogebra.tool_intersect') or 'Intersect'}", ToolMode.INTERSECT),
+        ]
+        for btn, (text, _) in zip(self.btn_group.buttons(), tools):
+            btn.setText(text)
+        if hasattr(self, "algebra_view") and hasattr(self.algebra_view, "retranslate_ui"):
+            self.algebra_view.retranslate_ui()

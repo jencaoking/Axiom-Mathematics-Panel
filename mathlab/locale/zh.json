@@ -92,6 +92,17 @@
     "console_tab": "控制台",
     "shortcuts": "快捷键",
     "advanced": "高级",
+    "ai_lab": "AI 实验室",
+    "ai_provider_deepseek": "DeepSeek",
+    "ai_provider_openai": "OpenAI",
+    "ai_provider_siliconflow": "硅基流动 (SiliconFlow)",
+    "ai_provider_ollama": "Ollama (本地)",
+    "ai_provider_custom": "自定义",
+    "ai_provider_label": "服务提供商:",
+    "ai_model_label": "默认模型:",
+    "ai_base_url_placeholder": "例如: https://api.deepseek.com/v1",
+    "ai_model_placeholder": "例如: deepseek-chat",
+    "ai_lab_tip": "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。",
     "theme": "主题",
     "accent_color": "强调色",
     "interface_font": "界面字体",
@@ -368,6 +379,20 @@
     "cmd_limit": "微积分: 求极限",
     "cmd_taylor": "微积分: 泰勒展开"
   },
+  "math_console": {
+    "title": "数学控制台",
+    "workspace_empty": "工作区: 空",
+    "clear": "清空",
+    "reset": "重置工作区",
+    "placeholder": "输入 Octave 语法（例如 A = [1 2; 3 4] 或 eig(A)）...",
+    "run": "▶ 运行",
+    "backend_info": "后端: NumPy / SciPy / NumEngine · 语法: MATLAB/Octave 兼容<br>",
+    "hint1": "提示: 输入 <code style=\"color:{0};\">A = [1 2; 3 4]</code> 构建矩阵, ",
+    "hint2": "<code style=\"color:{0};\">eig(A)</code> 计算特征值, ↑↓ 浏览历史",
+    "reset_success": "✓ 工作区已重置",
+    "workspace": "工作区",
+    "vars": "变量"
+  },
   "animation": {
     "type": "动画类型",
     "translate": "平移变换",
@@ -406,16 +431,5 @@
     "tool_line": "直线/线段",
     "tool_intersect": "找交点",
     "algebra_title": "代数区 (Algebra)"
-  },
-  "math_console": {
-    "workspace_empty": "工作区: 空",
-    "clear": "清屏",
-    "reset": "重置工作区",
-    "placeholder": "输入 Octave 语法（如: A = [1 2; 3 4]  或  eig(A)），Enter 执行 ...",
-    "run": "▶ 执行",
-    "backend_info": "后端: NumPy / SciPy / NumEngine &nbsp;·&nbsp; 语法: MATLAB/Octave 兼容<br>",
-    "hint1": "提示: 输入 <code style=\"color:{0};\">A = [1 2; 3 4]</code> 构建矩阵，",
-    "hint2": "<code style=\"color:{0};\">eig(A)</code> 计算特征值，↑↓ 键浏览历史",
-    "reset_success": "✓ 工作区已重置"
   }
 }
