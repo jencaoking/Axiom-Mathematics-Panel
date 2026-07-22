@@ -2,71 +2,52 @@
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtGui import QShortcut, QKeySequence
 
-from .omni_bar import OmniBar
+from mathlab.ui.omni_bar import OmniBar
+
+# ── 核心引擎导入（统一使用绝对导入） ──────────────────────────────────────
+from mathlab.core.geometry_engine import GeometryEngine
+from mathlab.core.python_repl import PythonREPL
+from mathlab.core.ai_manager import AIManager
+from mathlab.core.cas_provider import CASProvider
+from mathlab.core.algo_animator import AlgoAnimator
+from mathlab.core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+from mathlab.core.command_manager import CommandManager, Command
+from mathlab.core.ipc_server import JupyterIPCServer
+from mathlab.core.ipc_client import JupyterIPCClient
+from mathlab.core.error_manager import AutoSaver
+from mathlab.core.sandbox import SandboxManager
+from mathlab.core.extension_api import MathLabAPI
+from mathlab.core.plugin_manager import PluginManager
+from mathlab.data.project import ProjectManager
 
 # ── JupyterLab 嵌入组件（软依赖：WebEngine 不存在时降级为占位面板） ──────────
 try:
-    from .jupyter_panel import JupyterPanel
-    from core.jupyter_manager import JupyterManager
+    from mathlab.ui.jupyter_panel import JupyterPanel
+    from mathlab.core.jupyter_manager import JupyterManager
 except ImportError:
-    try:
-        from .jupyter_panel import JupyterPanel
-        from ..core.jupyter_manager import JupyterManager
-    except ImportError:
-        JupyterPanel = None
-        JupyterManager = None
+    JupyterPanel = None
+    JupyterManager = None
 
 try:
-    from core.geometry_engine import GeometryEngine
-    from core.python_repl import PythonREPL
-    from core.ai_manager import AIManager
-    from core.cas_provider import CASProvider
-    from core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
-    from core.command_manager import CommandManager, Command
-    from core.ipc_server import JupyterIPCServer
-    from core.ipc_client import JupyterIPCClient
-    from core.error_manager import AutoSaver
-except ImportError:
-    from ..core.geometry_engine import GeometryEngine
-    from ..core.python_repl import PythonREPL
-    from ..core.ai_manager import AIManager
-    from ..core.cas_provider import CASProvider
-    from ..core.ipc_server import JupyterIPCServer
-    from ..core.ipc_client import JupyterIPCClient
-    from ..core.error_manager import AutoSaver
-
-try:
-    from .preferences_dialog import PreferencesDialog
+    from mathlab.ui.preferences_dialog import PreferencesDialog
 except ImportError:
     PreferencesDialog = None
 
-
-
-try:
-    from ..utils.theme_manager import get_current_theme
-except ImportError:
-    from utils.theme_manager import get_current_theme
-
-try:
-    from ..utils.i18n_manager import t, get_i18n
-except ImportError:
-    from utils.i18n_manager import t, get_i18n
-
-try:
-    from ..utils.logger import get_logger
-except ImportError:
-    from utils.logger import get_logger
+from mathlab.utils.theme_manager import get_current_theme
+from mathlab.utils.i18n_manager import t, get_i18n
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-from ._mixin_ui_setup import UISetupMixin
-from ._mixin_menus import MenusMixin
-from ._mixin_signals import SignalsMixin
-from ._mixin_commands import CommandsMixin
-from ._mixin_ai import AIMixin
-from ._mixin_file_io import FileIOMixin
-from ._mixin_dialogs import DialogsMixin
+from mathlab.ui._mixin_ui_setup import UISetupMixin
+from mathlab.ui._mixin_menus import MenusMixin
+from mathlab.ui._mixin_signals import SignalsMixin
+from mathlab.ui._mixin_commands import CommandsMixin
+from mathlab.ui._mixin_ai import AIMixin
+from mathlab.ui._mixin_file_io import FileIOMixin
+from mathlab.ui._mixin_dialogs import DialogsMixin
+
 
 class MainWindow(
     UISetupMixin,
@@ -84,31 +65,28 @@ class MainWindow(
         self.setGeometry(100, 100, 1200, 800)
 
         self._objects_data: dict = {}
-        self.current_function_id = None  # 跟踪当前正在编辑的函数ID
+        self.current_function_id = None
 
-        self.geometry_engine = GeometryEngine()
-        self.cas_provider = CASProvider()
-        self.geometry_engine.set_cas_provider(self.cas_provider)
-        self.python_repl = PythonREPL()
-        self.ai_manager = AIManager()
-
-        # 将 ai_manager 注入给代码编辑器
-        from mathlab.ui.code_editor import AutocompleteTextEdit
-        self.code_editor = AutocompleteTextEdit(ai_manager=self.ai_manager)
+        # ── 核心引擎初始化（唯一实例化点，消除双重初始化） ───────────────
+        self._init_engines()
 
         # 命令管理器（必须在 setup_ui 前创建，供各面板注册命令）
         self.cmd_manager = CommandManager()
 
-        # 🌟 1. 启动跨进程监听服务 🌟
-        self.ipc_server = JupyterIPCServer(port=45678, parent=self)
+        # ── IPC 通信（端口可配置化） ────────────────────────────────────
+        from mathlab.utils.config_manager import get_config
+        ipc_config = get_config('ipc', {})
+        ipc_server_port = ipc_config.get('server_port', 45678)
+        ipc_client_port = ipc_config.get('client_port', 45679)
+
+        self.ipc_server = JupyterIPCServer(port=ipc_server_port, parent=self)
         self.ipc_server.command_received.connect(self.handle_kernel_command)
         self.ipc_server.start()
 
-        # 🌟 2. 实例化发送器 (发给 Jupyter) 🌟
-        self.ipc_client = JupyterIPCClient(port=45679)
+        self.ipc_client = JupyterIPCClient(port=ipc_client_port)
 
         self.setup_ui()
-        
+
         # 将客户端挂载到画板上，供画板使用
         self.central_widget.ipc_client = self.ipc_client
         self.setup_menus()
@@ -126,31 +104,103 @@ class MainWindow(
         self.generate_points_worker = None
 
         self.connect_signals()
-        self._register_commands()  # 注册命令面板命令
+        self._register_commands()
 
         get_i18n().add_language_change_listener(self._on_language_changed)
         self.apply_theme(get_current_theme())
-        
-        # 初始化自动存档与恢复神机
+
+        # 初始化自动存档与恢复
         self.autosaver = AutoSaver(self)
         self.autosaver.check_and_recover()
-        
-        # 1. 挂载画板追踪器
+
+        # 挂载画板追踪器
         from mathlab.core.canvas_tracker import CanvasShadowTracker
         self.canvas_tracker = CanvasShadowTracker(self.geometry_engine)
-        
+
         # 实例化 Omni-Bar，保证生命周期绑定
         self.omni_bar = OmniBar(self)
-        
+
         # 注册全局快捷键 (Ctrl+K 或 Cmd+K)
         self.shortcut_summon = QShortcut(QKeySequence("Ctrl+K"), self)
         self.shortcut_summon.activated.connect(self.toggle_omni_bar)
-        
+
         # 启动 AI 全局交互集成
         self._setup_ai_integration()
-        
+
         # 启动 ECharts 集成
         self._setup_echarts_integration()
+
+        # ── 后置初始化（REPL 命名空间、事件监听、插件系统） ─────────────
+        self._init_post_setup()
+
+    def _init_engines(self):
+        """创建所有核心引擎实例（唯一的引擎初始化入口）。"""
+        self.geometry_engine = GeometryEngine()
+        self.cas_provider = CASProvider()
+        self.geometry_engine.set_cas_provider(self.cas_provider)
+        self.python_repl = PythonREPL()
+        self.ai_manager = AIManager()
+        self.algo_animator = AlgoAnimator()
+        self.project_manager = ProjectManager()
+        self.sandbox_manager = SandboxManager()
+
+        # 将 ai_manager 注入给代码编辑器
+        from mathlab.ui.code_editor import AutocompleteTextEdit
+        self.code_editor = AutocompleteTextEdit(ai_manager=self.ai_manager)
+
+    def _init_post_setup(self):
+        """后置初始化：REPL 命名空间注入、事件监听注册、插件系统启动。"""
+        # ── 注入 Python REPL 快捷命令命名空间 ───────────────────────────
+        self.python_repl.update_namespace({
+            'draw_point': lambda x, y: self.geometry_engine.add_point(x, y),
+            'draw_segment': lambda p1, p2: self.geometry_engine.add_segment(p1, p2),
+            'draw_circle': lambda center, radius: self.geometry_engine.add_circle(center, radius),
+            'clear_canvas': lambda: self.geometry_engine.objects.clear(),
+            'draw_ellipse': lambda center_id, a=2.0, b=1.0: self.geometry_engine.add_ellipse(center_id, a, b),
+            'draw_hyperbola': lambda center_id, a=1.0, b=1.0: self.geometry_engine.add_hyperbola(center_id, a, b),
+            'draw_parabola': lambda vertex_id, p=1.0, direction='up': self.geometry_engine.add_parabola(vertex_id, p, direction),
+            'draw_conic': lambda A=1, B=0, C=1, D=0, E=0, F=-1: self.geometry_engine.add_conic_section(A, B, C, D, E, F),
+            'plot_function': lambda expr, x_range=(-10, 10): self.geometry_engine.add_function_plot(expr, x_range),
+            'plot_implicit': lambda expr, x_range=(-10, 10), y_range=(-10, 10): self.geometry_engine.add_implicit_plot(expr, x_range, y_range),
+            'plot_polar': lambda expr, theta_range=(0, 6.28318): self.geometry_engine.add_polar_plot(expr, theta_range),
+            'create_locus': lambda tracer_id, driver_id: self.geometry_engine.add_locus(tracer_id, driver_id),
+            'update_locus': lambda locus_id: self.geometry_engine.update_locus(locus_id),
+            'solve': self.cas_provider.solve_equation,
+            'simplify': self.cas_provider.simplify,
+            'integrate': self.cas_provider.integrate,
+            'differentiate': self.cas_provider.differentiate,
+            'limit': self.cas_provider.limit,
+            'app': self,
+        })
+
+        # ── 注册几何引擎事件监听 ─────────────────────────────────────────
+        def on_geometry_event(event_type, data):
+            if not hasattr(self, 'algebra_panel') or not hasattr(self, 'central_widget'):
+                return
+            if event_type == 'object_added':
+                self.algebra_panel.add_object(data)
+                self.central_widget.draw_object(data['id'], data)
+            elif event_type == 'object_updated':
+                self.algebra_panel.update_object(data)
+                self.central_widget.update_object(data['id'], data)
+            elif event_type == 'object_removed':
+                obj_id = data['id'] if isinstance(data, dict) else data
+                self.algebra_panel.remove_object(obj_id)
+                self.central_widget.remove_object(obj_id)
+
+        self.geometry_engine.add_listener(on_geometry_event)
+
+        # ── 算法动画回调 ─────────────────────────────────────────────────
+        def on_algorithm_step(state):
+            if hasattr(self, 'algo_vis_panel'):
+                self.algo_vis_panel.update_visualization(state)
+
+        self.algo_animator.step_ready = on_algorithm_step
+
+        # ── 初始化插件系统 ───────────────────────────────────────────────
+        self.mathlab_api = MathLabAPI(self, self.cmd_manager, self.console)
+        self.plugin_manager = PluginManager(self.mathlab_api)
+        self.plugin_manager.load_all_plugins()
 
     def toggle_omni_bar(self):
         if self.omni_bar.isVisible() and self.omni_bar.windowOpacity() > 0:

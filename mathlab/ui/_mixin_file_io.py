@@ -7,20 +7,9 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QPainter as QtPainter
 from PySide6.QtSvg import QSvgGenerator
 
-try:
-    from ..utils.latex_renderer import export_canvas_to_latex
-except ImportError:
-    from utils.latex_renderer import export_canvas_to_latex
-
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
-
-try:
-    from ..utils.logger import get_logger
-except ImportError:
-    from utils.logger import get_logger
+from mathlab.utils.latex_renderer import export_canvas_to_latex
+from mathlab.utils.i18n_manager import t
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

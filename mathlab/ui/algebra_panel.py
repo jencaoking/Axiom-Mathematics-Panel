@@ -14,10 +14,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction, QFont, QColor, QPainter, QBrush, QPen, QCursor
 from PySide6.QtCore import Signal, Qt, QSize, QPoint
 
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
+from mathlab.utils.i18n_manager import t
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -31,12 +31,8 @@ from PySide6.QtWidgets import (
     QFrame, QLineEdit,
 )
 
-try:
-    from ..utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
-    from ..utils.theme_manager import THEMES, set_theme, get_current_theme
-except ImportError:
-    from utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
-    from utils.theme_manager import THEMES, set_theme, get_current_theme
+from mathlab.utils.i18n_manager import t, get_i18n, SUPPORTED_LANGUAGES
+from mathlab.utils.theme_manager import THEMES, set_theme, get_current_theme
 
 
 _TAB_STYLE = """

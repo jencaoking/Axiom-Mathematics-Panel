@@ -8,10 +8,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QPen, QBrush, QColor, QFont, QPainter
 from PySide6.QtCore import Qt, Signal, Slot, QTimer
 
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
+from mathlab.utils.i18n_manager import t
 
 
 class AlgoVisPanel(QDockWidget):

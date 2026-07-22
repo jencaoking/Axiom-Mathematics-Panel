@@ -21,10 +21,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QTimer, QEvent
 from PySide6.QtGui import QColor, QKeySequence, QShortcut, QFont
 
-try:
-    from ..core.command_manager import CommandManager, Command
-except ImportError:
-    from core.command_manager import CommandManager, Command
+from mathlab.core.command_manager import CommandManager, Command
 
 
 # ══════════════════════════════════════════════════════════════════

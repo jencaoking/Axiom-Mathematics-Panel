@@ -5,10 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QTextCursor, QFont
 from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
 
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
+from mathlab.utils.i18n_manager import t
 
 from mathlab.core.async_workers import TaskManager
 

@@ -17,35 +17,15 @@ from PySide6.QtWidgets import (
 from mathlab.ui.latex_chat_widget import LatexChatWidget
 from mathlab.ui.animated_widgets import SmoothCollapsibleBox, BreathingLabel
 
-try:
-    from .code_editor import AutocompleteTextEdit
-except ImportError as e:
-    if "attempted relative import" not in str(e) and "No module named" not in str(e):
-        raise
-    from code_editor import AutocompleteTextEdit
+from mathlab.ui.code_editor import AutocompleteTextEdit
 from PySide6.QtGui import QPen, QBrush, QColor, QTextCursor
 from PySide6.QtCore import Qt, Signal, QThread, QObject
 
-try:
-    from ..utils.i18n_manager import t
-except ImportError as e:
-    if "attempted relative import" not in str(e) and "No module named" not in str(e):
-        raise
-    from utils.i18n_manager import t
+from mathlab.utils.i18n_manager import t
 
-try:
-    from ..core.ai_manager import AIRequestConfig, AIProvider, AIState
-except ImportError as e:
-    if "attempted relative import" not in str(e) and "No module named" not in str(e):
-        raise
-    from core.ai_manager import AIRequestConfig, AIProvider, AIState
+from mathlab.core.ai_manager import AIRequestConfig, AIProvider, AIState
 
-try:
-    from ..ui.animations import start_breathing_effect, stop_animation
-except ImportError as e:
-    if "attempted relative import" not in str(e) and "No module named" not in str(e):
-        raise
-    from ui.animations import start_breathing_effect, stop_animation
+from mathlab.ui.animations import start_breathing_effect, stop_animation
 
 from PySide6.QtCore import QThreadPool
 from mathlab.core.jupyter_manager import get_jupyter_sandbox
@@ -956,10 +936,7 @@ class AIToolsPanel(QDockWidget):
         self.send_button.setText(t('ai_tools.send'))
         if hasattr(self, 'breath_anim'):
             self.breath_anim.stop()
-            try:
-                from ..ui.animations import get_opacity_effect
-            except ImportError as e:
-                from ui.animations import get_opacity_effect
+            from mathlab.ui.animations import get_opacity_effect
             get_opacity_effect(self.send_button).setOpacity(1.0)
 
     def _on_state_change(self, state: AIState):

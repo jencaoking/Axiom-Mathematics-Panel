@@ -6,16 +6,9 @@
 
 
 from mathlab.core.prompt_manager import prompt_manager
-
-try:
-    from core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
-except ImportError:
-    from ..core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
-
-try:
-    from ..utils.logger import get_logger
-except ImportError:
-    from utils.logger import get_logger
+from mathlab.core.async_workers import TaskManager, AIFitWorker, AIClusterWorker, AIRecognizeWorker, AIGeneratePointsWorker
+from mathlab.core.ai_facade import AIFacade, AITaskType
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,8 +49,11 @@ class AIMixin:
         
         # 3. UI 桥梁现在不再绑定单一 Agent，而是绑定整个 Registry 路由器
         self.agent_bridge = AgentUIBridge(self.agent_registry, self)
-        
-        # 4. 信号与槽的严密绑定 (跨线程安全)
+
+        # 4. 创建统一 AI 范式门面（自动路由 Function Calling / Agent 代码生成）
+        self.ai_facade = AIFacade(self.ai_manager, self.agent_registry)
+
+        # 5. 信号与槽的严密绑定 (跨线程安全)
         # 思考 -> 打印到终端
         self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
         

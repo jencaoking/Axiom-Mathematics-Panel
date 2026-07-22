@@ -1,7 +1,12 @@
 import queue
 import threading
 from typing import Dict, Any, List
-from jupyter_client import KernelManager
+
+try:
+    from jupyter_client import KernelManager
+except ImportError:
+    KernelManager = None
+
 from mathlab.core.sandbox_security import is_code_safe
 
 class JupyterSandbox:

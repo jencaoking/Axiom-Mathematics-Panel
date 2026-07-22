@@ -1,8 +1,19 @@
 from setuptools import setup, find_packages
+import os
+
+# 从统一版本管理模块读取版本号
+version = '3.7.1'
+_version_file = os.path.join(os.path.dirname(__file__), 'utils', 'version.py')
+if os.path.exists(_version_file):
+    with open(_version_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('__version__'):
+                version = line.split('=')[1].strip().strip('"').strip("'")
+                break
 
 setup(
     name='mathlab',
-    version='3.7.2',
+    version=version,
     description='Interactive Mathematics and AI Teaching Software',
     author='MathLab Team',
     packages=find_packages(),

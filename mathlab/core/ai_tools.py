@@ -1,7 +1,11 @@
 # filepath: mathlab/core/ai_tools.py
 import ast
 import json
-from mathlab.core.jupyter_manager import get_jupyter_sandbox
+
+try:
+    from mathlab.core.jupyter_manager import get_jupyter_sandbox
+except ImportError:
+    get_jupyter_sandbox = None
 
 try:
     from mathlab.utils.logger import get_logger

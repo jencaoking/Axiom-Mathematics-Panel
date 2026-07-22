@@ -14,15 +14,8 @@ from .signal_lab_panel import SignalLabPanel
 from .fractal_gpu_panel import FractalGPUExplorer
 from .command_bar import CommandBar
 
-try:
-    from ..utils.theme_manager import THEMES, get_current_theme
-except ImportError:
-    from utils.theme_manager import THEMES, get_current_theme
-
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
+from mathlab.utils.theme_manager import THEMES, get_current_theme
+from mathlab.utils.i18n_manager import t
 
 
 class MenusMixin:

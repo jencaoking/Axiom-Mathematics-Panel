@@ -6,15 +6,8 @@ import os
 import platform
 import subprocess
 
-try:
-    from core.command_manager import Command
-except ImportError:
-    from ..core.command_manager import Command
-
-try:
-    from ..utils.logger import get_logger, LOG_DIR
-except ImportError:
-    from utils.logger import get_logger, LOG_DIR
+from mathlab.core.command_manager import Command
+from mathlab.utils.logger import get_logger, LOG_DIR
 
 logger = get_logger(__name__)
 

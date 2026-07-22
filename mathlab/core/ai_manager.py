@@ -577,10 +577,7 @@ class AIManager(QObject):
         return {'success': True, 'points': points}
 
     def run_training_sandbox(self, code):
-        try:
-            from .sandbox import SandboxProcess
-        except ImportError:
-            from sandbox import SandboxProcess
+        from mathlab.core.sandbox import SandboxProcess
 
         sandbox = SandboxProcess()
         result = sandbox.run_code(code)

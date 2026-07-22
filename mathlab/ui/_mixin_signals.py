@@ -7,20 +7,9 @@ import uuid
 
 from PySide6.QtWidgets import QMessageBox
 
-try:
-    from core.async_workers import TaskManager
-except ImportError:
-    from ..core.async_workers import TaskManager
-
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
-
-try:
-    from ..utils.logger import get_logger
-except ImportError:
-    from utils.logger import get_logger
+from mathlab.core.async_workers import TaskManager
+from mathlab.utils.i18n_manager import t
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

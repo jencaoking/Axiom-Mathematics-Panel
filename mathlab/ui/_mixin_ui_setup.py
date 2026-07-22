@@ -22,25 +22,14 @@ from .notebook_panel import NotebookPanel
 
 # Soft dependencies
 try:
-    from .jupyter_panel import JupyterPanel
-    from core.jupyter_manager import JupyterManager
+    from mathlab.ui.jupyter_panel import JupyterPanel
+    from mathlab.core.jupyter_manager import JupyterManager
 except ImportError:
-    try:
-        from .jupyter_panel import JupyterPanel
-        from ..core.jupyter_manager import JupyterManager
-    except ImportError:
-        JupyterPanel = None
-        JupyterManager = None
+    JupyterPanel = None
+    JupyterManager = None
 
-try:
-    from ..utils.i18n_manager import t
-except ImportError:
-    from utils.i18n_manager import t
-
-try:
-    from ..utils.logger import get_logger
-except ImportError:
-    from utils.logger import get_logger
+from mathlab.utils.i18n_manager import t
+from mathlab.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -173,10 +162,7 @@ class UISetupMixin:
 
     def load_stylesheet(self):
         try:
-            try:
-                from ..utils.theme_manager import get_theme_colors
-            except ImportError:
-                from utils.theme_manager import get_theme_colors
+            from mathlab.utils.theme_manager import get_theme_colors
             theme = get_theme_colors()
             
             stylesheet_path = os.path.join(

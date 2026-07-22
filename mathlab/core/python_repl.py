@@ -9,11 +9,7 @@ except ImportError:
 
 logger = get_logger(__name__)
 
-# 支持相对导入和绝对导入两种方式
-try:
-    from .sandbox import SandboxProcess
-except ImportError:
-    from sandbox import SandboxProcess
+from mathlab.core.sandbox import SandboxProcess
 
 class PythonREPL:
     def __init__(self, namespace=None, session_mode=True):
