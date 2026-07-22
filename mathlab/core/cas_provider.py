@@ -344,15 +344,9 @@ class CASProvider:
             eq = simplify(eq)
 
             coeffs = eq.as_coefficients_dict()
-            coeff_x = (
-                float(coeffs.get(x, 0).evalf()) if coeffs.get(x) is not None else 0.0
-            )
-            coeff_y = (
-                float(coeffs.get(y, 0).evalf()) if coeffs.get(y) is not None else 0.0
-            )
-            const = (
-                float(coeffs.get(1, 0).evalf()) if coeffs.get(1) is not None else 0.0
-            )
+            coeff_x = float(coeffs.get(x, 0).evalf()) if coeffs.get(x) is not None else 0.0
+            coeff_y = float(coeffs.get(y, 0).evalf()) if coeffs.get(y) is not None else 0.0
+            const = float(coeffs.get(1, 0).evalf()) if coeffs.get(1) is not None else 0.0
 
             points = []
 

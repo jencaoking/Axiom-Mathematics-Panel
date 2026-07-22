@@ -221,9 +221,7 @@ class TestTeachingQualityEvaluator:
 
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
         assert not pedagogy_report.passed
-        assert any(
-            "苏格拉底" in issue or "答案" in issue for issue in pedagogy_report.issues
-        )
+        assert any("苏格拉底" in issue or "答案" in issue for issue in pedagogy_report.issues)
 
     def test_evaluate_missing_question_ending(self):
         evaluator = TeachingQualityEvaluator()
@@ -256,9 +254,7 @@ class TestTeachingQualityEvaluator:
         reports = evaluator.evaluate(content, "什么是导数", plan=None)
 
         pedagogy_report = reports[QualityDimension.PEDAGOGICAL_DESIGN]
-        assert any(
-            "表达方式" in issue or "UDL" in issue for issue in pedagogy_report.issues
-        )
+        assert any("表达方式" in issue or "UDL" in issue for issue in pedagogy_report.issues)
 
     def test_evaluate_coherence_with_good_plan(self):
         evaluator = TeachingQualityEvaluator()
@@ -293,9 +289,7 @@ class TestTeachingQualityEvaluator:
 
         coherence_report = reports[QualityDimension.CONTEXT_COHERENCE]
         assert not coherence_report.passed
-        assert any(
-            "梯度" in issue or "跨度" in issue for issue in coherence_report.issues
-        )
+        assert any("梯度" in issue or "跨度" in issue for issue in coherence_report.issues)
 
     def test_evaluate_coherence_excessive_level_span(self):
         evaluator = TeachingQualityEvaluator()

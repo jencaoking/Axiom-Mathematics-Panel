@@ -37,9 +37,7 @@ class SignalsMixin:
         if hasattr(self, "properties_panel"):
             self.properties_panel.object_renamed.connect(self.on_object_renamed)
             self.properties_panel.color_changed.connect(self.on_object_color_changed)
-            self.properties_panel.opacity_changed.connect(
-                self.on_object_opacity_changed
-            )
+            self.properties_panel.opacity_changed.connect(self.on_object_opacity_changed)
             self.properties_panel.stroke_changed.connect(self.on_object_stroke_changed)
             self.properties_panel.label_toggled.connect(self.on_object_label_toggled)
 
@@ -56,9 +54,7 @@ class SignalsMixin:
         # 连接函数探索器信号
         self.function_explorer.function_added.connect(self.on_function_added)
         self.function_explorer.function_updated.connect(self.on_function_updated)
-        self.function_explorer.render_integral_area.connect(
-            self.on_render_integral_area
-        )
+        self.function_explorer.render_integral_area.connect(self.on_render_integral_area)
         self.function_explorer.render_tangent_line.connect(self.on_render_tangent_line)
 
     def on_code_completion_requested(self, code_text: str, line: int, column: int):
@@ -165,9 +161,7 @@ class SignalsMixin:
                 obj.original_expression = expression
                 obj.parameters = func_data.get("parameters", {})
         except Exception as e:
-            QMessageBox.warning(
-                self, t("dialogs.error"), f"{t('errors.invalid_expression')}: {str(e)}"
-            )
+            QMessageBox.warning(self, t("dialogs.error"), f"{t('errors.invalid_expression')}: {str(e)}")
 
     # [P0修复 Bug4] 接收 obj_id 并精确更新，而非依赖共享的 current_function_id
     def on_function_updated(self, obj_id: str, func_data: dict):
@@ -196,15 +190,11 @@ class SignalsMixin:
             logger.warning("更新函数时出错: %s", e)
 
     def on_render_integral_area(self, expr: str, a: float, b: float, result: float):
-        if hasattr(self, "central_widget") and hasattr(
-            self.central_widget, "render_integral_area"
-        ):
+        if hasattr(self, "central_widget") and hasattr(self.central_widget, "render_integral_area"):
             self.central_widget.render_integral_area(expr, a, b, result)
 
     def on_render_tangent_line(self, expr: str, x0: float, k: float):
-        if hasattr(self, "central_widget") and hasattr(
-            self.central_widget, "render_tangent_line"
-        ):
+        if hasattr(self, "central_widget") and hasattr(self.central_widget, "render_tangent_line"):
             self.central_widget.render_tangent_line(expr, x0, k)
 
     # ── AI 全局交互集成 ──────────────────────────────────────────────
@@ -358,12 +348,8 @@ class SignalsMixin:
                     p2_id = obj.point2_id
 
                     # 更新控制点
-                    self.geometry_engine.update_point(
-                        p1_id, x=new_coords[0][0], y=new_coords[0][1]
-                    )
-                    self.geometry_engine.update_point(
-                        p2_id, x=new_coords[1][0], y=new_coords[1][1]
-                    )
+                    self.geometry_engine.update_point(p1_id, x=new_coords[0][0], y=new_coords[0][1])
+                    self.geometry_engine.update_point(p2_id, x=new_coords[1][0], y=new_coords[1][1])
 
                     self.geometry_engine.block_signals(False)
                     obj.update_coordinates(self.geometry_engine)
@@ -372,9 +358,7 @@ class SignalsMixin:
 
             # 2. 定义失败回调
             def on_error(err_msg):
-                self.console.display_system_message(
-                    f"公式解析失败: {err_msg}", level="error"
-                )
+                self.console.display_system_message(f"公式解析失败: {err_msg}", level="error")
 
             # 3. 将阻塞的方程反解任务丢入线程池！
             TaskManager().submit(
@@ -465,9 +449,7 @@ class SignalsMixin:
             web_view.page().runJavaScript(js_code)
         else:
             # 如果 ECharts 插件尚未加载，向控制台显示提示
-            self.math_console.display_message(
-                "⚠ ECharts 插件未激活，请先加载并打开《高级数据调参》面板。", "warn"
-            )
+            self.math_console.display_message("⚠ ECharts 插件未激活，请先加载并打开《高级数据调参》面板。", "warn")
 
     def _get_echarts_webview(self):
         """

@@ -175,9 +175,7 @@ class _AlgebraItem(QFrame):
     # ── style helpers ─────────────────────────────────────────────────
 
     def _apply_base_style(self):
-        self._name_label.setStyleSheet(
-            "QLabel { font-size: 14px; font-weight: 600; color: #0b1c30; }"
-        )
+        self._name_label.setStyleSheet("QLabel { font-size: 14px; font-weight: 600; color: #0b1c30; }")
         self._formula_label.setStyleSheet(
             "QLabel {"
             "  font-family: 'Consolas', 'JetBrains Mono', monospace;"
@@ -252,9 +250,7 @@ class AlgebraPanel(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__(t("algebra_panel.title"), parent)
-        self.setAllowedAreas(
-            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
-        )
+        self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.setMinimumWidth(200)
 
         self.object_items: dict[str, _AlgebraItem] = {}
@@ -289,9 +285,7 @@ class AlgebraPanel(QDockWidget):
         self._scroll_area = QScrollArea()
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll_area.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self._list_widget = QWidget()
         self._list_widget.setObjectName("algebra_list")
@@ -411,10 +405,7 @@ class AlgebraPanel(QDockWidget):
             x_eq_sign = "-" if cx >= 0 else "+"
             y_eq_sign = "-" if cy >= 0 else "+"
             r_sq = r * r
-            return (
-                f"(x {x_eq_sign} {cx_str})\u00b2 + "
-                f"(y {y_eq_sign} {cy_str})\u00b2 = {r_sq:.2f}"
-            )
+            return f"(x {x_eq_sign} {cx_str})\u00b2 + " f"(y {y_eq_sign} {cy_str})\u00b2 = {r_sq:.2f}"
 
         elif obj_type == "Segment":
             x1 = coords.get("x1", 0.0)

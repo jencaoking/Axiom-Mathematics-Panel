@@ -173,16 +173,10 @@ class TestJupyterSandboxFix:
         for line in lines:
             stripped = line.strip()
             # 跳过注释和文档字符串
-            if (
-                stripped.startswith("#")
-                or stripped.startswith('"')
-                or stripped.startswith("'")
-            ):
+            if stripped.startswith("#") or stripped.startswith('"') or stripped.startswith("'"):
                 continue
             # 不应有裸 print( 调用
-            assert not (
-                stripped.startswith("print(") or " print(" in stripped
-            ), f"发现裸 print 调用: {line}"
+            assert not (stripped.startswith("print(") or " print(" in stripped), f"发现裸 print 调用: {line}"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -489,10 +483,7 @@ class TestAIFacadeFix:
             facade = AIFacade(mock_ai_manager, agent_registry=None)
 
         assert facade.agent_registry is None
-        assert any(
-            "agent_registry" in record.message and "None" in record.message
-            for record in caplog.records
-        )
+        assert any("agent_registry" in record.message and "None" in record.message for record in caplog.records)
 
     def test_no_warning_when_registry_provided(self, caplog):
         """验证 agent_registry 提供时不记录警告。"""
@@ -506,10 +497,7 @@ class TestAIFacadeFix:
             facade = AIFacade(mock_ai_manager, agent_registry=mock_registry)
 
         assert facade.agent_registry is mock_registry
-        assert not any(
-            "agent_registry" in record.message and "None" in record.message
-            for record in caplog.records
-        )
+        assert not any("agent_registry" in record.message and "None" in record.message for record in caplog.records)
 
     def test_classify_intent_simple_tool(self):
         """验证简单工具调用意图分类。"""

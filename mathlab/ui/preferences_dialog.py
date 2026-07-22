@@ -307,9 +307,7 @@ class PreferencesDialog(QDialog):
         section = QWidget()
         section_layout = QVBoxLayout(section)
         section_layout.setSpacing(16)
-        section_layout.addWidget(
-            self._create_section_header(t("preferences.appearance"))
-        )
+        section_layout.addWidget(self._create_section_header(t("preferences.appearance")))
 
         form = QFormLayout()
         form.setContentsMargins(0, 0, 0, 0)
@@ -320,8 +318,7 @@ class PreferencesDialog(QDialog):
         theme_label.setStyleSheet("font-size: 12px; color: #434655;")
         self.theme_combo = QComboBox()
         self.theme_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         for key, data in THEMES.items():
             self.theme_combo.addItem(data["name"], key)
@@ -336,9 +333,7 @@ class PreferencesDialog(QDialog):
             btn = QPushButton()
             btn.setFixedSize(26, 26)
             btn.setCheckable(True)
-            btn.setStyleSheet(
-                f"background-color:{color}; border-radius:13px; border:2px solid transparent;"
-            )
+            btn.setStyleSheet(f"background-color:{color}; border-radius:13px; border:2px solid transparent;")
             btn.setToolTip(
                 t(
                     "preferences.accent_tooltip",
@@ -362,8 +357,7 @@ class PreferencesDialog(QDialog):
         self.ui_font_size_spin.setRange(8, 24)
         self.ui_font_size_spin.setSuffix(" pt")
         self.ui_font_size_spin.setStyleSheet(
-            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         font_row = QHBoxLayout()
         font_row.addWidget(self.ui_font_combo, 1)
@@ -377,8 +371,7 @@ class PreferencesDialog(QDialog):
         self.bg_combo.addItem(t("preferences.canvas_bg_blank"), "blank")
         self.bg_combo.addItem(t("preferences.canvas_bg_polar"), "polar")
         self.bg_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(bg_label, self.bg_combo)
 
@@ -389,8 +382,7 @@ class PreferencesDialog(QDialog):
             self.lang_combo.addItem(display, code)
         self.lang_combo.currentIndexChanged.connect(self._on_lang_combo_changed)
         self.lang_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(lang_label, self.lang_combo)
 
@@ -421,8 +413,7 @@ class PreferencesDialog(QDialog):
         self.line_width_spin.setSingleStep(0.1)
         self.line_width_spin.setSuffix(" px")
         self.line_width_spin.setStyleSheet(
-            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(line_width_label, self.line_width_spin)
 
@@ -432,8 +423,7 @@ class PreferencesDialog(QDialog):
         self.point_size_spin.setRange(1, 20)
         self.point_size_spin.setSuffix(" px")
         self.point_size_spin.setStyleSheet(
-            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(point_size_label, self.point_size_spin)
 
@@ -459,8 +449,7 @@ class PreferencesDialog(QDialog):
         self.snap_combo.addItem(t("preferences.snap_points"), "points")
         self.snap_combo.addItem(t("preferences.snap_off"), "off")
         self.snap_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(snap_label, self.snap_combo)
 
@@ -478,9 +467,7 @@ class PreferencesDialog(QDialog):
         section = QWidget()
         section_layout = QVBoxLayout(section)
         section_layout.setSpacing(16)
-        section_layout.addWidget(
-            self._create_section_header(t("preferences.console_tab"))
-        )
+        section_layout.addWidget(self._create_section_header(t("preferences.console_tab")))
 
         form = QFormLayout()
         form.setContentsMargins(0, 0, 0, 0)
@@ -497,8 +484,7 @@ class PreferencesDialog(QDialog):
         self.con_font_size_spin.setRange(8, 30)
         self.con_font_size_spin.setSuffix(" pt")
         self.con_font_size_spin.setStyleSheet(
-            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         font_row = QHBoxLayout()
         font_row.addWidget(self.con_font_combo, 1)
@@ -512,8 +498,7 @@ class PreferencesDialog(QDialog):
         self.color_scheme_combo.addItem(t("preferences.scheme_light"), "light")
         self.color_scheme_combo.addItem(t("preferences.scheme_system"), "system")
         self.color_scheme_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(color_label, self.color_scheme_combo)
 
@@ -523,8 +508,7 @@ class PreferencesDialog(QDialog):
         self.history_spin.setRange(100, 10000)
         self.history_spin.setSingleStep(100)
         self.history_spin.setStyleSheet(
-            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 6px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         form.addRow(history_label, self.history_spin)
 
@@ -553,9 +537,7 @@ class PreferencesDialog(QDialog):
         layout.addWidget(header)
 
         self.shortcut_table = QTableWidget(0, 2)
-        self.shortcut_table.setHorizontalHeaderLabels(
-            [t("preferences.action"), t("preferences.shortcut")]
-        )
+        self.shortcut_table.setHorizontalHeaderLabels([t("preferences.action"), t("preferences.shortcut")])
         self.shortcut_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.shortcut_table.setAlternatingRowColors(True)
         self.shortcut_table.setEditTriggers(QTableWidget.DoubleClicked)
@@ -694,35 +676,29 @@ class PreferencesDialog(QDialog):
         form.setSpacing(16)
 
         self.ai_provider_combo = QComboBox()
-        self.ai_provider_combo.addItems(
-            ["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"]
-        )
+        self.ai_provider_combo.addItems(["DeepSeek", "OpenAI", "硅基流动 (SiliconFlow)", "Ollama (本地)", "自定义"])
         self.ai_provider_combo.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
         self.ai_provider_combo.currentTextChanged.connect(self._on_ai_provider_changed)
 
         self.ai_base_url_input = QLineEdit()
         self.ai_base_url_input.setPlaceholderText("例如: https://api.deepseek.com/v1")
         self.ai_base_url_input.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
 
         self.ai_api_key_input = QLineEdit()
         self.ai_api_key_input.setPlaceholderText("sk-...")
         self.ai_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.ai_api_key_input.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
 
         self.ai_model_input = QLineEdit()
         self.ai_model_input.setPlaceholderText("例如: deepseek-chat")
         self.ai_model_input.setStyleSheet(
-            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; "
-            "border-radius: 4px; background: white;"
+            "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
 
         form.addRow("服务提供商:", self.ai_provider_combo)
@@ -732,9 +708,7 @@ class PreferencesDialog(QDialog):
 
         section_layout.addLayout(form)
 
-        tip_label = QLabel(
-            "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。"
-        )
+        tip_label = QLabel("💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
         tip_label.setStyleSheet("color: gray; font-size: 11px;")
         section_layout.addWidget(tip_label)
 
@@ -804,9 +778,7 @@ class PreferencesDialog(QDialog):
         self.hw_accel_check.setChecked(s.get("hw_accel", False))
         self.autosave_spin.setValue(s.get("autosave_interval", 5))
 
-        self.ai_base_url_input.setText(
-            s.get("ai_base_url", "https://api.deepseek.com/v1")
-        )
+        self.ai_base_url_input.setText(s.get("ai_base_url", "https://api.deepseek.com/v1"))
         self.ai_api_key_input.setText(s.get("ai_api_key", ""))
         self.ai_model_input.setText(s.get("ai_model", "deepseek-chat"))
 
@@ -824,9 +796,7 @@ class PreferencesDialog(QDialog):
             selected = color == hex_color
             btn.setChecked(selected)
             border = "#1e293b" if selected else "transparent"
-            btn.setStyleSheet(
-                f"background-color:{color}; border-radius:13px; border:2px solid {border};"
-            )
+            btn.setStyleSheet(f"background-color:{color}; border-radius:13px; border:2px solid {border};")
 
     def _on_lang_combo_changed(self, index: int):
         lang_code = self.lang_combo.itemData(index)

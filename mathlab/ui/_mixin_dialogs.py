@@ -51,9 +51,7 @@ class DialogsMixin:
             if name_or_key in THEMES:
                 theme_key = name_or_key
             else:
-                theme_key = next(
-                    (k for k, v in THEMES.items() if v["name"] == name_or_key), "light"
-                )
+                theme_key = next((k for k, v in THEMES.items() if v["name"] == name_or_key), "light")
             self.apply_theme(theme_key)
             self.load_stylesheet()
 
@@ -61,21 +59,13 @@ class DialogsMixin:
 
         def log_pref(name, val):
             if hasattr(self, "console"):
-                self.console.display_system_message(
-                    f"偏好设置已更新: {name} (功能预留)", level="info"
-                )
+                self.console.display_system_message(f"偏好设置已更新: {name} (功能预留)", level="info")
 
         dlg.accent_color_changed.connect(lambda c: log_pref("强调色", c))
         dlg.font_changed.connect(lambda f, s: log_pref("字体", f"{f} {s}px"))
-        dlg.graphics_settings_changed.connect(
-            lambda gfx: log_pref("图形设置", str(gfx))
-        )
-        dlg.console_settings_changed.connect(
-            lambda con: log_pref("控制台设置", str(con))
-        )
-        dlg.advanced_settings_changed.connect(
-            lambda adv: log_pref("高级设置", str(adv))
-        )
+        dlg.graphics_settings_changed.connect(lambda gfx: log_pref("图形设置", str(gfx)))
+        dlg.console_settings_changed.connect(lambda con: log_pref("控制台设置", str(con)))
+        dlg.advanced_settings_changed.connect(lambda adv: log_pref("高级设置", str(adv)))
         dlg.exec()
 
     def show_theme_dialog(self) -> None:
@@ -154,19 +144,13 @@ class DialogsMixin:
         self.setWindowTitle(t("main_window.title"))
 
         if hasattr(self, "central_tabs"):
-            self.central_tabs.setTabText(
-                0, t("notebook.title") or "Interactive Notebook"
-            )
-            self.central_tabs.setTabText(
-                1, t("main_window.geometry_tools") or "Geometry Canvas"
-            )
+            self.central_tabs.setTabText(0, t("notebook.title") or "Interactive Notebook")
+            self.central_tabs.setTabText(1, t("main_window.geometry_tools") or "Geometry Canvas")
 
         if hasattr(self, "notebook") and hasattr(self.notebook, "retranslate_ui"):
             self.notebook.retranslate_ui()
 
-        if hasattr(self, "properties_panel") and hasattr(
-            self.properties_panel, "retranslate_ui"
-        ):
+        if hasattr(self, "properties_panel") and hasattr(self.properties_panel, "retranslate_ui"):
             self.properties_panel.retranslate_ui()
 
         self.file_menu.setTitle(t("menu.file"))

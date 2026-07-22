@@ -105,9 +105,7 @@ class FunctionExplorerPanel(QDockWidget):
 
     def __init__(self, parent=None):
         super().__init__(t("function_explorer.title"), parent)
-        self.setAllowedAreas(
-            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
-        )
+        self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.setMinimumWidth(320)  # 稍微加宽以容纳新的微积分面板
 
         self.current_function_id = None
@@ -227,24 +225,14 @@ class FunctionExplorerPanel(QDockWidget):
         transform_layout.addLayout(trans_row2)
 
         # 连接变换信号
-        self.shift_left_btn.clicked.connect(
-            lambda: self._apply_transform("shift", -1, 0)
-        )
-        self.shift_right_btn.clicked.connect(
-            lambda: self._apply_transform("shift", 1, 0)
-        )
+        self.shift_left_btn.clicked.connect(lambda: self._apply_transform("shift", -1, 0))
+        self.shift_right_btn.clicked.connect(lambda: self._apply_transform("shift", 1, 0))
         self.shift_up_btn.clicked.connect(lambda: self._apply_transform("shift", 0, 1))
-        self.shift_down_btn.clicked.connect(
-            lambda: self._apply_transform("shift", 0, -1)
-        )
+        self.shift_down_btn.clicked.connect(lambda: self._apply_transform("shift", 0, -1))
         self.scale_x_btn.clicked.connect(lambda: self._apply_transform("scale", 1.5, 1))
         self.scale_y_btn.clicked.connect(lambda: self._apply_transform("scale", 1, 1.5))
-        self.reflect_x_btn.clicked.connect(
-            lambda: self._apply_transform("reflect", -1, 1)
-        )
-        self.reflect_y_btn.clicked.connect(
-            lambda: self._apply_transform("reflect", 1, -1)
-        )
+        self.reflect_x_btn.clicked.connect(lambda: self._apply_transform("reflect", -1, 1))
+        self.reflect_y_btn.clicked.connect(lambda: self._apply_transform("reflect", 1, -1))
 
         main_layout.addWidget(transform_group)
 
@@ -274,9 +262,7 @@ class FunctionExplorerPanel(QDockWidget):
 
         int_row2 = QHBoxLayout()
         self.calc_int_btn = QPushButton("计算面积并填充阴影")
-        self.calc_int_btn.setStyleSheet(
-            "background-color: #e0f2fe; color: #0284c7; border-radius: 4px; padding: 4px;"
-        )
+        self.calc_int_btn.setStyleSheet("background-color: #e0f2fe; color: #0284c7; border-radius: 4px; padding: 4px;")
         self.calc_int_btn.clicked.connect(self._on_calculate_integral)
         int_row2.addWidget(self.calc_int_btn)
 
@@ -338,18 +324,14 @@ class FunctionExplorerPanel(QDockWidget):
     def _on_calculate_integral(self):
         """触发计算定积分并绘图"""
         if not HAS_CALCULUS_ENGINE:
-            QMessageBox.information(
-                self, "提示", "请先在核心引擎中启用 C# 微积分模块。"
-            )
+            QMessageBox.information(self, "提示", "请先在核心引擎中启用 C# 微积分模块。")
             return
 
         expr = self._get_evaluated_expression()
         a_str, b_str = self.int_a_input.text(), self.int_b_input.text()
 
         if not expr or not a_str or not b_str:
-            QMessageBox.warning(
-                self, "参数不全", "请确保已输入函数表达式，以及积分上下限 a 和 b。"
-            )
+            QMessageBox.warning(self, "参数不全", "请确保已输入函数表达式，以及积分上下限 a 和 b。")
             return
 
         try:
@@ -376,18 +358,14 @@ class FunctionExplorerPanel(QDockWidget):
     def _on_calculate_tangent(self):
         """触发计算切线并绘图"""
         if not HAS_CALCULUS_ENGINE:
-            QMessageBox.information(
-                self, "提示", "请先在核心引擎中启用 C# 微积分模块。"
-            )
+            QMessageBox.information(self, "提示", "请先在核心引擎中启用 C# 微积分模块。")
             return
 
         expr = self._get_evaluated_expression()
         x0_str = self.deriv_x_input.text()
 
         if not expr or not x0_str:
-            QMessageBox.warning(
-                self, "参数不全", "请确保已输入函数表达式及切点坐标 x0。"
-            )
+            QMessageBox.warning(self, "参数不全", "请确保已输入函数表达式及切点坐标 x0。")
             return
 
         try:
@@ -466,9 +444,7 @@ class FunctionExplorerPanel(QDockWidget):
         """绘制函数"""
         expression = self.expr_input.text().strip()
         if not expression:
-            QMessageBox.warning(
-                self, t("dialogs.warning"), t("function_explorer.empty_expression")
-            )
+            QMessageBox.warning(self, t("dialogs.warning"), t("function_explorer.empty_expression"))
             return
 
         # 确定函数类型
@@ -510,14 +486,10 @@ class FunctionExplorerPanel(QDockWidget):
 
         # 创建新滑块
         for param_name in params:
-            slider = ParameterSlider(
-                param_name, min_val=-10.0, max_val=10.0, default_val=1.0
-            )
+            slider = ParameterSlider(param_name, min_val=-10.0, max_val=10.0, default_val=1.0)
             slider.value_changed.connect(self._on_parameter_changed)
             self.parameter_sliders[param_name] = slider
-            self.params_container_layout.insertWidget(
-                self.params_container_layout.count() - 1, slider
-            )
+            self.params_container_layout.insertWidget(self.params_container_layout.count() - 1, slider)
 
         # 显示/隐藏参数组
         self.params_group.setVisible(len(params) > 0)
@@ -537,18 +509,14 @@ class FunctionExplorerPanel(QDockWidget):
             for pname, pval in self.parameter_sliders.items():
                 val = pval.get_value()
                 # 使用正则确保完整匹配参数名
-                modified_expr = re.sub(
-                    r"\b" + re.escape(pname) + r"\b", f"({val})", modified_expr
-                )
+                modified_expr = re.sub(r"\b" + re.escape(pname) + r"\b", f"({val})", modified_expr)
 
             # 重新绘制
             func_data = {
                 "type": self.type_combo.currentData(),
                 "expression": modified_expr,
                 "original_expression": expression,
-                "parameters": {
-                    p: s.get_value() for p, s in self.parameter_sliders.items()
-                },
+                "parameters": {p: s.get_value() for p, s in self.parameter_sliders.items()},
                 "x_range": (-10, 10),
                 "y_range": (-10, 10),
             }
@@ -580,9 +548,7 @@ class FunctionExplorerPanel(QDockWidget):
                 if factor_x != 0:
                     # 水平平移: x -> (x - shift)，使用正则整词匹配避免替换 exp、max 等
                     shift = factor_x
-                    transformed_expr = re.sub(
-                        r"\bx\b", f"(x - {shift})", transformed_expr
-                    )
+                    transformed_expr = re.sub(r"\bx\b", f"(x - {shift})", transformed_expr)
                 if factor_y != 0:
                     # 垂直平移: f(x) + shift
                     shift = factor_y
@@ -592,9 +558,7 @@ class FunctionExplorerPanel(QDockWidget):
                 # 伸缩: f(ax) * b
                 if factor_x != 1:
                     # 水平伸缩: x -> x/a，使用正则整词匹配
-                    transformed_expr = re.sub(
-                        r"\bx\b", f"(x / {factor_x})", transformed_expr
-                    )
+                    transformed_expr = re.sub(r"\bx\b", f"(x / {factor_x})", transformed_expr)
                 if factor_y != 1:
                     # 垂直伸缩: f(x) * b
                     transformed_expr = f"{factor_y} * ({transformed_expr})"

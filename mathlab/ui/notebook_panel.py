@@ -31,9 +31,7 @@ class VSCodeStyleCellWidget(QFrame):
     language_changed = Signal(str)
     code_synced = Signal(str)
 
-    def __init__(
-        self, cell_id, cell_type="code", content="", language="mathlab", parent=None
-    ):
+    def __init__(self, cell_id, cell_type="code", content="", language="mathlab", parent=None):
         super().__init__(parent)
         self.cell_id = cell_id
         self.cell_type = cell_type
@@ -83,9 +81,7 @@ class VSCodeStyleCellWidget(QFrame):
                 self.lang_selector.setCurrentText("Python")
             else:
                 self.lang_selector.setCurrentText("MathLab")
-            self.lang_selector.setStyleSheet(
-                "background-color: #3c3c3c; color: white; border: none; padding: 2px;"
-            )
+            self.lang_selector.setStyleSheet("background-color: #3c3c3c; color: white; border: none; padding: 2px;")
             self.lang_selector.currentTextChanged.connect(self.on_language_changed)
             toolbar_layout.addWidget(self.lang_selector)
 
@@ -97,24 +93,16 @@ class VSCodeStyleCellWidget(QFrame):
 
         # Editor
         if self.cell_type == "code":
-            self.input_editor = MonacoCodeEditor(
-                initial_text=initial_content, initial_language=initial_language
-            )
+            self.input_editor = MonacoCodeEditor(initial_text=initial_content, initial_language=initial_language)
             self.input_editor.setFixedHeight(150)
             self.input_editor.execute_requested.connect(self.on_monaco_run)
-            self.input_editor.ai_explain_requested.connect(
-                self.cell_ai_explain_requested.emit
-            )
+            self.input_editor.ai_explain_requested.connect(self.cell_ai_explain_requested.emit)
             self.input_editor.code_synced.connect(self.code_synced.emit)
         else:
             self.input_editor = QTextEdit(initial_content)
-            self.input_editor.setStyleSheet(
-                "background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c;"
-            )
+            self.input_editor.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c;")
             self.input_editor.setFixedHeight(100)
-            self.input_editor.textChanged.connect(
-                lambda: self.code_synced.emit(self.input_editor.toPlainText())
-            )
+            self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
 
         # Sliders container
         self.sliders_container = QFrame()
@@ -196,9 +184,7 @@ class NotebookPanel(QWidget):
                 ui_cell.retranslate_ui()
 
         # 监听内核发出的滑块请求
-        self.backend.kernel.signals.slider_requested.connect(
-            self.handle_slider_requested
-        )
+        self.backend.kernel.signals.slider_requested.connect(self.handle_slider_requested)
 
         self.init_ui()
         self.add_new_cell(CellType.CODE)
@@ -211,52 +197,36 @@ class NotebookPanel(QWidget):
         # ── 1. 顶部全局工具栏 ──
         self.toolbar = QFrame()
         self.toolbar.setFixedHeight(40)
-        self.toolbar.setStyleSheet(
-            "background-color: #252526; border-bottom: 1px solid #333;"
-        )
+        self.toolbar.setStyleSheet("background-color: #252526; border-bottom: 1px solid #333;")
         toolbar_layout = QHBoxLayout(self.toolbar)
         toolbar_layout.setContentsMargins(10, 0, 10, 0)
 
-        self.btn_save = self._create_toolbar_btn(
-            f"💾 {t('notebook.save') or 'Save'}", "#d7ba7d"
-        )
-        self.btn_load = self._create_toolbar_btn(
-            f"📂 {t('notebook.open') or 'Open'}", "#d7ba7d"
-        )
+        self.btn_save = self._create_toolbar_btn(f"💾 {t('notebook.save') or 'Save'}", "#d7ba7d")
+        self.btn_load = self._create_toolbar_btn(f"📂 {t('notebook.open') or 'Open'}", "#d7ba7d")
         self.btn_add_code = self._create_toolbar_btn(t("notebook.add_code"), "#007acc")
-        self.btn_add_markdown = self._create_toolbar_btn(
-            t("notebook.add_markdown"), "#608b4e"
-        )
+        self.btn_add_markdown = self._create_toolbar_btn(t("notebook.add_markdown"), "#608b4e")
         self.btn_run_all = self._create_toolbar_btn(t("notebook.run_all"), "#c586c0")
-        self.btn_clear_all = self._create_toolbar_btn(
-            t("notebook.clear_all"), "#858585"
-        )
+        self.btn_clear_all = self._create_toolbar_btn(t("notebook.clear_all"), "#858585")
 
         toolbar_layout.addWidget(self.btn_load)
         toolbar_layout.addWidget(self.btn_save)
         toolbar_layout.addWidget(self.btn_add_code)
         toolbar_layout.addWidget(self.btn_add_markdown)
-        toolbar_layout.addSpacerItem(
-            QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        )
+        toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         toolbar_layout.addWidget(self.btn_run_all)
         toolbar_layout.addWidget(self.btn_clear_all)
 
         self.btn_save.clicked.connect(self.save_notebook)
         self.btn_load.clicked.connect(self.load_notebook)
         self.btn_add_code.clicked.connect(lambda: self.add_new_cell(CellType.CODE))
-        self.btn_add_markdown.clicked.connect(
-            lambda: self.add_new_cell(CellType.MARKDOWN)
-        )
+        self.btn_add_markdown.clicked.connect(lambda: self.add_new_cell(CellType.MARKDOWN))
         self.btn_run_all.clicked.connect(self.run_all_cells)
         self.btn_clear_all.clicked.connect(self.clear_all_outputs)
 
         # ── 2. 可滚动的画布区域 ──
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet(
-            "QScrollArea { border: none; background-color: #1e1e1e; }"
-        )
+        self.scroll_area.setStyleSheet("QScrollArea { border: none; background-color: #1e1e1e; }")
 
         self.canvas_widget = QWidget()
         self.canvas_widget.setStyleSheet("background-color: #1e1e1e;")
@@ -294,36 +264,20 @@ class NotebookPanel(QWidget):
         """
         # 创建 UI
         if backend_cell.type == CellType.CODE:
-            ui_cell = VSCodeStyleCellWidget(
-                backend_cell.id, "code", backend_cell.content, backend_cell.language
-            )
+            ui_cell = VSCodeStyleCellWidget(backend_cell.id, "code", backend_cell.content, backend_cell.language)
 
             # 监听执行信号
-            ui_cell.execute_requested.connect(
-                lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code)
-            )
+            ui_cell.execute_requested.connect(lambda code, cid=backend_cell.id: self.execute_single_cell(cid, code))
 
             # [BUG修复] 恢复对 code_synced 的连接，修复直接保存导致代码丢失的问题
-            ui_cell.code_synced.connect(
-                lambda new_code, cid=backend_cell.id: self._sync_backend_content(
-                    cid, new_code
-                )
-            )
-            ui_cell.language_changed.connect(
-                lambda lang, cid=backend_cell.id: self._sync_backend_language(cid, lang)
-            )
+            ui_cell.code_synced.connect(lambda new_code, cid=backend_cell.id: self._sync_backend_content(cid, new_code))
+            ui_cell.language_changed.connect(lambda lang, cid=backend_cell.id: self._sync_backend_language(cid, lang))
             ui_cell.cell_ai_explain_requested.connect(self.ai_explain_requested.emit)
 
         else:  # Markdown
             ui_cell = MarkdownCellWidget(backend_cell.id, backend_cell.content)
-            ui_cell.btn_delete.clicked.connect(
-                lambda _, cid=backend_cell.id: self.delete_cell(cid)
-            )
-            ui_cell.code_synced.connect(
-                lambda new_code, cid=backend_cell.id: self._sync_backend_content(
-                    cid, new_code
-                )
-            )
+            ui_cell.btn_delete.clicked.connect(lambda _, cid=backend_cell.id: self.delete_cell(cid))
+            ui_cell.code_synced.connect(lambda new_code, cid=backend_cell.id: self._sync_backend_content(cid, new_code))
 
             # 为了能在 load 的时候自动显示公式而不是显示源码，你可以直接调用渲染
             if backend_cell.content:
@@ -445,9 +399,7 @@ class NotebookPanel(QWidget):
             # 注意：因为有了心跳同步，此时 backend 里的 content 绝对是最新的
             self.backend.save_to_file(file_path)
             # 在状态栏或弹窗提示成功
-            QMessageBox.information(
-                self, "保存成功", f"笔记本已安全保存至:\n{os.path.basename(file_path)}"
-            )
+            QMessageBox.information(self, "保存成功", f"笔记本已安全保存至:\n{os.path.basename(file_path)}")
         except Exception as e:
             QMessageBox.critical(self, "保存失败", f"无法写入文件:\n{str(e)}")
 

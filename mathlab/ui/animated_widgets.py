@@ -44,9 +44,7 @@ class SmoothCollapsibleBox(QWidget):
 
         # 内容区容器
         self.content_area = QScrollArea(self)
-        self.content_area.setStyleSheet(
-            "QScrollArea { border: none; background: transparent; }"
-        )
+        self.content_area.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self.content_area.setSizePolicy(
             self.content_area.sizePolicy().Policy.Expanding,
             self.content_area.sizePolicy().Policy.Fixed,
@@ -83,9 +81,7 @@ class SmoothCollapsibleBox(QWidget):
 
     def on_toggle(self):
         checked = self.toggle_btn.isChecked()
-        self.toggle_btn.setArrowType(
-            Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow
-        )
+        self.toggle_btn.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
 
         # 动态计算内容物展开时所需的真实高度
         content_height = self.content_layout.sizeHint().height()

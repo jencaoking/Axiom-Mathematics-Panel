@@ -299,9 +299,7 @@ class AgentRegistry:
             )
         return result
 
-    def route_and_execute(
-        self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb=None
-    ):
+    def route_and_execute(self, user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb=None):
         """
         核心路由逻辑：分类 -> 派发 -> 执行
 
@@ -315,9 +313,7 @@ class AgentRegistry:
             return
 
         # 1. 构建动态的路由 Prompt，列出所有可用专家
-        agent_descriptions = "\n".join(
-            [f"- {name}: {info['description']}" for name, info in self.agents.items()]
-        )
+        agent_descriptions = "\n".join([f"- {name}: {info['description']}" for name, info in self.agents.items()])
 
         # BUG 10 修复：使用三引号嵌套避免用户输入中的引号破坏格式
         router_prompt = f"""你是一个高级任务调度路由大脑。
@@ -360,15 +356,11 @@ class AgentRegistry:
                 if not fallback:
                     raise RuntimeError("系统中没有任何已注册的专家。")
                 if on_thought_cb:
-                    on_thought_cb(
-                        f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 {fallback}。"
-                    )
+                    on_thought_cb(f"⚠️ 路由识别为 {selected_agent_name} 但未找到该专家，默认回退给 {fallback}。")
                 selected_agent_name = fallback
             else:
                 if on_thought_cb:
-                    on_thought_cb(
-                        f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】"
-                    )
+                    on_thought_cb(f"🎯 意图锁定！已将任务移交至领域专家：【{selected_agent_name}】")
 
             # 4. 真正移交控制权，启动该专家的 ReAct 推理闭环
             # [修复] 添加超时控制，防止 LLM 响应慢导致系统阻塞
@@ -378,9 +370,7 @@ class AgentRegistry:
 
             def _execute_with_timeout():
                 try:
-                    expert_agent.solve_problem(
-                        user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb
-                    )
+                    expert_agent.solve_problem(user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb)
                 except Exception as e:
                     result_container["error"] = e
                 finally:
@@ -392,9 +382,7 @@ class AgentRegistry:
 
             if not result_container["finished"]:
                 if on_thought_cb:
-                    on_thought_cb(
-                        f"⏰ 专家执行超时（超过 {self._execution_timeout} 秒），已强制终止。"
-                    )
+                    on_thought_cb(f"⏰ 专家执行超时（超过 {self._execution_timeout} 秒），已强制终止。")
                 if on_finish_cb:
                     on_finish_cb(False, f"执行超时（{self._execution_timeout}秒）")
             elif result_container["error"]:

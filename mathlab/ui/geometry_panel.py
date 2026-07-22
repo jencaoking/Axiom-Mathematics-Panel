@@ -27,9 +27,7 @@ class GeometryPanel(QWidget):
         # ── 1. 顶部工具栏 ──
         self.toolbar = QWidget()
         self.toolbar.setFixedHeight(45)
-        self.toolbar.setStyleSheet(
-            "background-color: #2d2d2d; border-bottom: 1px solid #1e1e1e;"
-        )
+        self.toolbar.setStyleSheet("background-color: #2d2d2d; border-bottom: 1px solid #1e1e1e;")
         tb_layout = QHBoxLayout(self.toolbar)
         tb_layout.setContentsMargins(10, 0, 10, 0)
         tb_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -74,9 +72,7 @@ class GeometryPanel(QWidget):
         self.splitter.addWidget(self.canvas)
 
         self.splitter.setSizes([250, 750])
-        self.splitter.setStyleSheet(
-            "QSplitter::handle { background-color: #333; width: 2px; }"
-        )
+        self.splitter.setStyleSheet("QSplitter::handle { background-color: #333; width: 2px; }")
 
         self.layout.addWidget(self.splitter)
 

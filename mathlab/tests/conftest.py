@@ -26,12 +26,8 @@ if str(_PROJECT_ROOT) not in sys.path:
 def pytest_configure(config):
     config.addinivalue_line("markers", "unit: fast isolated unit tests")
     config.addinivalue_line("markers", "integration: multi-component integration tests")
-    config.addinivalue_line(
-        "markers", "e2e: end-to-end UI tests requiring Qt event loop"
-    )
-    config.addinivalue_line(
-        "markers", "slow: tests that take >2s (deselect with '-m \"not slow\"')"
-    )
+    config.addinivalue_line("markers", "e2e: end-to-end UI tests requiring Qt event loop")
+    config.addinivalue_line("markers", "slow: tests that take >2s (deselect with '-m \"not slow\"')")
     config.addinivalue_line("markers", "qt: tests that require a Qt event loop")
 
 

@@ -163,16 +163,10 @@ class MainWindow(
             {
                 "draw_point": lambda x, y: self.geometry_engine.add_point(x, y),
                 "draw_segment": lambda p1, p2: self.geometry_engine.add_segment(p1, p2),
-                "draw_circle": lambda center, radius: self.geometry_engine.add_circle(
-                    center, radius
-                ),
+                "draw_circle": lambda center, radius: self.geometry_engine.add_circle(center, radius),
                 "clear_canvas": lambda: self.geometry_engine.objects.clear(),
-                "draw_ellipse": lambda center_id, a=2.0, b=1.0: self.geometry_engine.add_ellipse(
-                    center_id, a, b
-                ),
-                "draw_hyperbola": lambda center_id, a=1.0, b=1.0: self.geometry_engine.add_hyperbola(
-                    center_id, a, b
-                ),
+                "draw_ellipse": lambda center_id, a=2.0, b=1.0: self.geometry_engine.add_ellipse(center_id, a, b),
+                "draw_hyperbola": lambda center_id, a=1.0, b=1.0: self.geometry_engine.add_hyperbola(center_id, a, b),
                 "draw_parabola": lambda vertex_id, p=1.0, direction="up": self.geometry_engine.add_parabola(
                     vertex_id, p, direction
                 ),
@@ -191,12 +185,8 @@ class MainWindow(
                     0,
                     6.28318,
                 ): self.geometry_engine.add_polar_plot(expr, theta_range),
-                "create_locus": lambda tracer_id, driver_id: self.geometry_engine.add_locus(
-                    tracer_id, driver_id
-                ),
-                "update_locus": lambda locus_id: self.geometry_engine.update_locus(
-                    locus_id
-                ),
+                "create_locus": lambda tracer_id, driver_id: self.geometry_engine.add_locus(tracer_id, driver_id),
+                "update_locus": lambda locus_id: self.geometry_engine.update_locus(locus_id),
                 "solve": self.cas_provider.solve_equation,
                 "simplify": self.cas_provider.simplify,
                 "integrate": self.cas_provider.integrate,
@@ -208,9 +198,7 @@ class MainWindow(
 
         # ── 注册几何引擎事件监听 ─────────────────────────────────────────
         def on_geometry_event(event_type, data):
-            if not hasattr(self, "algebra_panel") or not hasattr(
-                self, "central_widget"
-            ):
+            if not hasattr(self, "algebra_panel") or not hasattr(self, "central_widget"):
                 return
             if event_type == "object_added":
                 self.algebra_panel.add_object(data)

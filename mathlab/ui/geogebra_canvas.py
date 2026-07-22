@@ -48,22 +48,15 @@ class QGeoPointItem(QGraphicsEllipseItem):
             self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges)
 
     def itemChange(self, change, value):
-        if (
-            change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionChange
-            and self.scene()
-        ):
+        if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
             self.geo_entity.set_coords(new_pos.x(), new_pos.y())
 
             canvas = self.engine_ui_link
             # 🌟 灵魂连击：拖动的瞬间，向 Jupyter 狂发坐标数据 🌟
             if hasattr(canvas, "ipc_client") and canvas.ipc_client:
-                canvas.ipc_client.sync_variable(
-                    f"{self.geo_entity.name}_x", new_pos.x()
-                )
-                canvas.ipc_client.sync_variable(
-                    f"{self.geo_entity.name}_y", new_pos.y()
-                )
+                canvas.ipc_client.sync_variable(f"{self.geo_entity.name}_x", new_pos.x())
+                canvas.ipc_client.sync_variable(f"{self.geo_entity.name}_y", new_pos.y())
 
             self.engine_ui_link.sync_ui_from_engine()
         return super().itemChange(change, value)
@@ -184,9 +177,7 @@ class GeoGebraCanvas(QGraphicsView):
             if isinstance(clicked_entity, GeoPoint):
                 pt = clicked_entity
             else:
-                pt = self.engine.add_free_point(
-                    f"P{self._pt_counter}", scene_pos.x(), scene_pos.y()
-                )
+                pt = self.engine.add_free_point(f"P{self._pt_counter}", scene_pos.x(), scene_pos.y())
                 self._pt_counter += 1
                 self._create_ui_item(pt)
 
@@ -210,17 +201,13 @@ class GeoGebraCanvas(QGraphicsView):
                 if len(self.action_buffer) == 2:
                     shape1, shape2 = self.action_buffer
 
-                    i1 = GeoIntersection(
-                        f"I{self._intersect_counter}", shape1, shape2, root_index=0
-                    )
+                    i1 = GeoIntersection(f"I{self._intersect_counter}", shape1, shape2, root_index=0)
                     self._intersect_counter += 1
                     self.engine.entities[i1.id] = i1
                     self._create_ui_item(i1)
 
                     if isinstance(shape1, GeoCircle) or isinstance(shape2, GeoCircle):
-                        i2 = GeoIntersection(
-                            f"I{self._intersect_counter}", shape1, shape2, root_index=1
-                        )
+                        i2 = GeoIntersection(f"I{self._intersect_counter}", shape1, shape2, root_index=1)
                         self._intersect_counter += 1
                         self.engine.entities[i2.id] = i2
                         self._create_ui_item(i2)

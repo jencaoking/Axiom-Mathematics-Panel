@@ -45,9 +45,7 @@ class CsCalculusEngine:
         cs_delegate = Func[Double, Double](py_func)
 
         # 呼叫 C# 引擎，C# 会在内部的自适应循环中不断回调这个委托
-        return self._engine.IntegrateAdaptive(
-            cs_delegate, float(a), float(b), float(tol)
-        )
+        return self._engine.IntegrateAdaptive(cs_delegate, float(a), float(b), float(tol))
 
     def differentiate(self, py_func, x: float):
         cs_delegate = Func[Double, Double](py_func)

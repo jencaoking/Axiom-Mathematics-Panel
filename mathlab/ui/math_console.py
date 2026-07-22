@@ -66,9 +66,7 @@ class MathConsole(QDockWidget):
         super().__init__(f"{title} (Octave / NumEngine)", parent)
         self.setAllowedAreas(Qt.BottomDockWidgetArea | Qt.RightDockWidgetArea)
         self.setFeatures(
-            QDockWidget.DockWidgetMovable
-            | QDockWidget.DockWidgetFloatable
-            | QDockWidget.DockWidgetClosable
+            QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetFloatable | QDockWidget.DockWidgetClosable
         )
 
         self.bridge = OctaveBridge()
@@ -93,17 +91,13 @@ class MathConsole(QDockWidget):
 
         # ── 工具栏 ────────────────────────────────────────────────────────────
         toolbar = QWidget()
-        toolbar.setStyleSheet(
-            f"background:{_BG_INPUT}; border-bottom:1px solid {_COL_BORDER};"
-        )
+        toolbar.setStyleSheet(f"background:{_BG_INPUT}; border-bottom:1px solid {_COL_BORDER};")
         tb_layout = QHBoxLayout(toolbar)
         tb_layout.setContentsMargins(8, 4, 8, 4)
         tb_layout.setSpacing(6)
 
         lbl_title = QLabel("⟩  MathLab Console")
-        lbl_title.setStyleSheet(
-            f"color:{_COL_ACCENT}; font-family:{_FONT_MONO}; font-size:12px; font-weight:bold;"
-        )
+        lbl_title.setStyleSheet(f"color:{_COL_ACCENT}; font-family:{_FONT_MONO}; font-size:12px; font-weight:bold;")
         tb_layout.addWidget(lbl_title)
         tb_layout.addStretch()
 
@@ -135,28 +129,19 @@ class MathConsole(QDockWidget):
         self._output.setReadOnly(True)
         self._output.setFont(QFont("Consolas", 11))
         self._output.setStyleSheet(
-            f"QTextBrowser{{"
-            f"  background:{_BG_MAIN};"
-            f"  color:#D4D4D4;"
-            f"  border:none;"
-            f"  padding:12px;"
-            f"}}"
+            f"QTextBrowser{{" f"  background:{_BG_MAIN};" f"  color:#D4D4D4;" f"  border:none;" f"  padding:12px;" f"}}"
         )
         root_layout.addWidget(self._output, stretch=1)
 
         # ── 输入行 ────────────────────────────────────────────────────────────
         input_row = QWidget()
-        input_row.setStyleSheet(
-            f"background:{_BG_INPUT}; border-top:2px solid #007ACC;"
-        )
+        input_row.setStyleSheet(f"background:{_BG_INPUT}; border-top:2px solid #007ACC;")
         ir_layout = QHBoxLayout(input_row)
         ir_layout.setContentsMargins(8, 4, 8, 4)
         ir_layout.setSpacing(6)
 
         prompt_lbl = QLabel(">>")
-        prompt_lbl.setStyleSheet(
-            f"color:{_COL_PROMPT}; font-family:{_FONT_MONO}; font-size:14px; font-weight:bold;"
-        )
+        prompt_lbl.setStyleSheet(f"color:{_COL_PROMPT}; font-family:{_FONT_MONO}; font-size:14px; font-weight:bold;")
         ir_layout.addWidget(prompt_lbl)
 
         self._input = QLineEdit()
@@ -170,8 +155,7 @@ class MathConsole(QDockWidget):
             f"}}"
         )
         self._input.setPlaceholderText(
-            t("math_console.placeholder")
-            or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
+            t("math_console.placeholder") or "Enter Octave syntax (e.g. A = [1 2; 3 4] or eig(A)) ..."
         )
         self._input.returnPressed.connect(self._execute)
         self._input.installEventFilter(self)
@@ -209,9 +193,7 @@ class MathConsole(QDockWidget):
     def _navigate_history(self, direction: int) -> None:
         if not self._history:
             return
-        self._history_idx = max(
-            0, min(len(self._history) - 1, self._history_idx + direction)
-        )
+        self._history_idx = max(0, min(len(self._history) - 1, self._history_idx + direction))
         self._input.setText(self._history[self._history_idx])
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -244,14 +226,10 @@ class MathConsole(QDockWidget):
             self._append_html("<br>")
         except OctaveBridgeError as exc:
             safe_err = html.escape(str(exc)).replace("\n", "<br>")
-            self._append_html(
-                f"<span style='color:{_COL_ERROR};'>⚠ {safe_err}</span><br><br>"
-            )
+            self._append_html(f"<span style='color:{_COL_ERROR};'>⚠ {safe_err}</span><br><br>")
         except Exception as exc:
             safe_err = html.escape(str(exc))
-            self._append_html(
-                f"<span style='color:{_COL_ERROR};'>💥 内部错误: {safe_err}</span><br><br>"
-            )
+            self._append_html(f"<span style='color:{_COL_ERROR};'>💥 内部错误: {safe_err}</span><br><br>")
 
         self._update_workspace_label()
         self._scroll_to_bottom()
@@ -272,10 +250,7 @@ class MathConsole(QDockWidget):
             return self._render_scalar(value)
         if isinstance(value, complex):
             return self._render_scalar(value)
-        return (
-            f"<span style='color:{_COL_SCALAR};font-family:{_FONT_MONO};'>"
-            f"{html.escape(str(value))}</span><br>"
-        )
+        return f"<span style='color:{_COL_SCALAR};font-family:{_FONT_MONO};'>" f"{html.escape(str(value))}</span><br>"
 
     def _render_ndarray(self, arr: np.ndarray) -> str:
         """渲染 numpy 数组 → HTML 表格"""
@@ -298,14 +273,9 @@ class MathConsole(QDockWidget):
         )
 
     def _render_1d(self, arr: np.ndarray) -> str:
-        cells = "".join(
-            f"<td style='{self._td_style(_COL_MATRIX)}'>{self._fmt(v)}</td>"
-            for v in arr
-        )
+        cells = "".join(f"<td style='{self._td_style(_COL_MATRIX)}'>{self._fmt(v)}</td>" for v in arr)
         shape_hint = f"<span style='color:{_COL_MUTED};font-size:10px;'>1×{len(arr)}</span>&nbsp;"
-        return (
-            shape_hint + f"<table style='{self._tbl_style()}'><tr>{cells}</tr></table>"
-        )
+        return shape_hint + f"<table style='{self._tbl_style()}'><tr>{cells}</tr></table>"
 
     def _render_2d(self, arr: np.ndarray) -> str:
         rows_html = []
@@ -316,22 +286,13 @@ class MathConsole(QDockWidget):
                 f"padding:2px 6px;text-align:right;border-right:1px solid {_COL_BORDER};'>"
                 f"{i + 1}</td>"
             )
-            cells = "".join(
-                f"<td style='{self._td_style(_COL_MATRIX)}'>{self._fmt(v)}</td>"
-                for v in row
-            )
+            cells = "".join(f"<td style='{self._td_style(_COL_MATRIX)}'>{self._fmt(v)}</td>" for v in row)
             rows_html.append(f"<tr>{row_lbl}{cells}</tr>")
 
         shape_hint = (
-            f"<span style='color:{_COL_MUTED};font-size:10px;'>"
-            f"{arr.shape[0]}×{arr.shape[1]} matrix</span><br>"
+            f"<span style='color:{_COL_MUTED};font-size:10px;'>" f"{arr.shape[0]}×{arr.shape[1]} matrix</span><br>"
         )
-        return (
-            shape_hint
-            + f"<table style='{self._tbl_style()}'>"
-            + "".join(rows_html)
-            + "</table>"
-        )
+        return shape_hint + f"<table style='{self._tbl_style()}'>" + "".join(rows_html) + "</table>"
 
     def _render_dict(self, d: dict) -> str:
         """渲染字典（eig/svd 等返回的结构化结果）"""
@@ -348,10 +309,7 @@ class MathConsole(QDockWidget):
         return "<div style='margin-left:12px;'>" + "".join(parts) + "</div>"
 
     def _render_sequence(self, seq) -> str:
-        items = "".join(
-            f"<li style='color:{_COL_SCALAR};'>{self._render(item)}</li>"
-            for item in seq
-        )
+        items = "".join(f"<li style='color:{_COL_SCALAR};'>{self._render(item)}</li>" for item in seq)
         return f"<ul style='margin:4px 0 8px 16px;padding:0;'>{items}</ul>"
 
     def _render_scalar(self, v) -> str:
@@ -390,11 +348,7 @@ class MathConsole(QDockWidget):
 
     @staticmethod
     def _tbl_style() -> str:
-        return (
-            f"border-collapse:collapse;"
-            f"margin:4px 0 10px 0;"
-            f"background:{_BG_TABLE};"
-        )
+        return f"border-collapse:collapse;" f"margin:4px 0 10px 0;" f"background:{_BG_TABLE};"
 
     def _append_html(self, html_str: str) -> None:
         cursor = self._output.textCursor()
@@ -412,13 +366,11 @@ class MathConsole(QDockWidget):
             or "Backend: NumPy / SciPy / NumEngine &nbsp;·&nbsp; Syntax: MATLAB/Octave Compatible<br>"
         )
         hint1 = (
-            t("math_console.hint1")
-            or "Hint: Enter <code style='color:{0};'>A = [1 2; 3 4]</code> to build matrix, "
+            t("math_console.hint1") or "Hint: Enter <code style='color:{0};'>A = [1 2; 3 4]</code> to build matrix, "
         )
         hint1 = hint1.format(_COL_INPUT)
         hint2 = (
-            t("math_console.hint2")
-            or "<code style='color:{0};'>eig(A)</code> for eigenvalues, ↑↓ to browse history"
+            t("math_console.hint2") or "<code style='color:{0};'>eig(A)</code> for eigenvalues, ↑↓ to browse history"
         )
         hint2 = hint2.format(_COL_INPUT)
         self._append_html(
@@ -439,10 +391,7 @@ class MathConsole(QDockWidget):
         self.bridge.reset()
         self._clear_output()
         reset_success = t("math_console.reset_success") or "✓ Workspace reset"
-        self._append_html(
-            f"<span style='color:{_COL_MUTED};font-size:11px;'>"
-            f"{reset_success}</span><br><br>"
-        )
+        self._append_html(f"<span style='color:{_COL_MUTED};font-size:11px;'>" f"{reset_success}</span><br><br>")
         self._update_workspace_label()
 
     def _update_workspace_label(self) -> None:
@@ -452,13 +401,9 @@ class MathConsole(QDockWidget):
             suffix = " …" if len(ws) > 8 else ""
             workspace_prefix = t("math_console.workspace") or "Workspace"
             vars_suffix = t("math_console.vars") or "vars"
-            self._lbl_ws.setText(
-                f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})"
-            )
+            self._lbl_ws.setText(f"{workspace_prefix}: {names}{suffix}  ({len(ws)} {vars_suffix})")
         else:
-            self._lbl_ws.setText(
-                t("math_console.workspace_empty") or "Workspace: Empty"
-            )
+            self._lbl_ws.setText(t("math_console.workspace_empty") or "Workspace: Empty")
 
     # ─────────────────────────────────────────────────────────────────────────
     # 公开 API（供 main_window 调用）
@@ -480,7 +425,5 @@ class MathConsole(QDockWidget):
             "error": _COL_ERROR,
         }.get(level, _COL_MUTED)
         safe = html.escape(msg).replace("\n", "<br>")
-        self._append_html(
-            f"<span style='color:{color};font-size:11px;'>{safe}</span><br>"
-        )
+        self._append_html(f"<span style='color:{color};font-size:11px;'>{safe}</span><br>")
         self._scroll_to_bottom()

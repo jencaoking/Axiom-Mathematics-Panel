@@ -174,18 +174,14 @@ class MenusMixin:
         self.delete_action.triggered.connect(self.on_delete_selected)
         self.undo_action.triggered.connect(
             lambda: (
-                self.console.display_system_message(
-                    "Undo (撤销) 功能尚未实现", level="warn"
-                )
+                self.console.display_system_message("Undo (撤销) 功能尚未实现", level="warn")
                 if hasattr(self, "console")
                 else None
             )
         )
         self.redo_action.triggered.connect(
             lambda: (
-                self.console.display_system_message(
-                    "Redo (重做) 功能尚未实现", level="warn"
-                )
+                self.console.display_system_message("Redo (重做) 功能尚未实现", level="warn")
                 if hasattr(self, "console")
                 else None
             )
@@ -201,9 +197,7 @@ class MenusMixin:
         self.math_console_action.triggered.connect(self.toggle_math_console)
 
         self.geometry_tool_action.triggered.connect(self._show_command_palette)
-        self.algebra_tool_action.triggered.connect(
-            lambda: self.toggle_algebra_panel(True)
-        )
+        self.algebra_tool_action.triggered.connect(lambda: self.toggle_algebra_panel(True))
         self.ai_tool_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
         self.signal_lab_action.triggered.connect(self.open_signal_lab)
         self.fractal_gpu_action.triggered.connect(self.open_gpu_fractal_explorer)
@@ -212,12 +206,8 @@ class MenusMixin:
         self.language_action.triggered.connect(self.show_language_dialog)
         self.preferences_action.triggered.connect(self.show_preferences_dialog)
 
-        self.ai_scatter_action.triggered.connect(
-            lambda: self.toggle_ai_tools_panel(True)
-        )
-        self.ai_cluster_action.triggered.connect(
-            lambda: self.toggle_ai_tools_panel(True)
-        )
+        self.ai_scatter_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
+        self.ai_cluster_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
         self.ai_digit_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
         self.ai_train_action.triggered.connect(lambda: self.toggle_ai_tools_panel(True))
 
@@ -342,9 +332,7 @@ class MenusMixin:
             ("pan", self.pan_action),
         ]
         for tool_name, action in tool_map:
-            action.triggered.connect(
-                lambda checked, tn=tool_name: self.on_action_selected(tn)
-            )
+            action.triggered.connect(lambda checked, tn=tool_name: self.on_action_selected(tn))
 
     def on_action_selected(self, tool_name: str) -> None:
         for action in self.tool_actions:

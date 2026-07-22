@@ -69,9 +69,7 @@ class AIProviderConfig:
     def _merge_user_config(self, user_config: Dict):
         """深度合并用户配置：允许覆盖已有字段，也允许新增自定义提供商。"""
         for provider, overrides in user_config.items():
-            if provider in self._config_cache and isinstance(
-                self._config_cache[provider], dict
-            ):
+            if provider in self._config_cache and isinstance(self._config_cache[provider], dict):
                 self._config_cache[provider].update(overrides)
             else:
                 # 允许用户通过配置文件新增全新的提供商
@@ -107,16 +105,12 @@ class AIProviderConfig:
     def get_model_name(self, provider_value: str) -> str:
         """获取指定提供商的模型名称 (优先 custom_model，回退 default_model)。"""
         provider_config = self._config_cache.get(provider_value, {})
-        return provider_config.get("custom_model") or provider_config.get(
-            "default_model", ""
-        )
+        return provider_config.get("custom_model") or provider_config.get("default_model", "")
 
     def get_api_endpoint(self, provider_value: str) -> str:
         """获取指定提供商的 API 端点 (优先 custom_endpoint，回退 api_endpoint)。"""
         provider_config = self._config_cache.get(provider_value, {})
-        return provider_config.get("custom_endpoint") or provider_config.get(
-            "api_endpoint", ""
-        )
+        return provider_config.get("custom_endpoint") or provider_config.get("api_endpoint", "")
 
     def get_auth_type(self, provider_value: str) -> str:
         """获取指定提供商的认证类型 (默认 bearer，claude 系列使用 anthropic)。"""

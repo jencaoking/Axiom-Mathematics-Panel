@@ -67,9 +67,7 @@ class TestGeometryEngineSignals:
     def test_geometry_event_signal_emitted(self, engine):
         """通用 geometry_event 信号应携带事件类型和数据。"""
         received = []
-        engine.geometry_event.connect(
-            lambda etype, data: received.append((etype, data))
-        )
+        engine.geometry_event.connect(lambda etype, data: received.append((etype, data)))
 
         engine.add_point(1.0, 2.0)
 
@@ -236,9 +234,7 @@ class TestAIFacade:
 
         called = {}
 
-        facade._run_function_calling = lambda *args, **kwargs: called.update(
-            {"fc": True}
-        )
+        facade._run_function_calling = lambda *args, **kwargs: called.update({"fc": True})
         facade._run_agent_loop = lambda *args, **kwargs: called.update({"agent": True})
 
         result = facade.route_request("画一个圆")
@@ -252,9 +248,7 @@ class TestAIFacade:
 
         called = {}
 
-        facade._run_function_calling = lambda *args, **kwargs: called.update(
-            {"fc": True}
-        )
+        facade._run_function_calling = lambda *args, **kwargs: called.update({"fc": True})
         facade._run_agent_loop = lambda *args, **kwargs: called.update({"agent": True})
 
         result = facade.route_request("证明勾股定理")

@@ -69,9 +69,7 @@ class TaskManager(QObject):
 
         logger.info(f"TaskManager 启动，最大并发线程数: {max_threads}")
 
-    def submit(
-        self, fn, on_success=None, on_error=None, group_id=None, *args, **kwargs
-    ):
+    def submit(self, fn, on_success=None, on_error=None, group_id=None, *args, **kwargs):
         """
         核心 API：将阻塞任务提交至后台线程池
 
@@ -121,9 +119,7 @@ class TaskManager(QObject):
         worker.signals.error.connect(error_interceptor)
 
         self.thread_pool.start(worker)
-        logger.debug(
-            f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}"
-        )
+        logger.debug(f"已提交任务 [{fn.__name__}] 至线程池，当前活动线程: {self.thread_pool.activeThreadCount()}")
 
     def _check_pending(self, group_id):
         if group_id is None:
@@ -176,9 +172,7 @@ class AIFitWorker(TaskWorker):
     def run(self):
         try:
             if self._fit_type == "polynomial":
-                result = self._ai_manager.fit_polynomial_regression(
-                    self._points, self._degree
-                )
+                result = self._ai_manager.fit_polynomial_regression(self._points, self._degree)
             else:
                 result = self._ai_manager.fit_linear_regression(self._points)
             self.signals.finished.emit(result)

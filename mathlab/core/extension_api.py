@@ -57,7 +57,5 @@ class MathLabAPI:
         for dock in self._dynamic_panels:
             self._main_window.removeDockWidget(dock)
             dock.deleteLater()
-            logging.info(
-                f"[MathLabAPI] Removed sidebar panel dock: {dock.objectName()}"
-            )
+            logging.info(f"[MathLabAPI] Removed sidebar panel dock: {dock.objectName()}")
         self._dynamic_panels.clear()

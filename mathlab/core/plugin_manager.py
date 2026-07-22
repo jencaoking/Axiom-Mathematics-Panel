@@ -14,9 +14,7 @@ class PluginManager:
     def __init__(self, api_context: MathLabAPI, plugin_dir: str = None):
         self.api = api_context
         if plugin_dir is None:
-            self.plugin_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "plugins"
-            )
+            self.plugin_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "plugins")
         else:
             self.plugin_dir = plugin_dir
         self.active_plugins: Dict[str, MathLabPlugin] = {}
@@ -40,11 +38,7 @@ class PluginManager:
             item_path = os.path.join(self.plugin_dir, item)
 
             # 我们假设每个插件是一个独立的文件夹，且内部有一个 main.py
-            if (
-                os.path.isdir(item_path)
-                and not item.startswith("__")
-                and not item.startswith(".")
-            ):
+            if os.path.isdir(item_path) and not item.startswith("__") and not item.startswith("."):
                 main_py_path = os.path.join(item_path, "main.py")
                 if os.path.exists(main_py_path):
                     try:
@@ -53,10 +47,7 @@ class PluginManager:
 
                         # 在模块中寻找继承自 MathLabPlugin 的类
                         for name, obj in inspect.getmembers(module, inspect.isclass):
-                            if (
-                                issubclass(obj, MathLabPlugin)
-                                and obj is not MathLabPlugin
-                            ):
+                            if issubclass(obj, MathLabPlugin) and obj is not MathLabPlugin:
                                 self._activate_plugin(obj())
 
                     except Exception as e:
@@ -64,9 +55,7 @@ class PluginManager:
 
     def _activate_plugin(self, plugin_instance: MathLabPlugin):
         plugin_id = (
-            plugin_instance.name
-            if plugin_instance.name != "Unnamed Plugin"
-            else plugin_instance.__class__.__name__
+            plugin_instance.name if plugin_instance.name != "Unnamed Plugin" else plugin_instance.__class__.__name__
         )
         if plugin_id in self.active_plugins:
             logger.warning("插件 [%s] 已加载，跳过重复激活。", plugin_id)
@@ -74,9 +63,7 @@ class PluginManager:
 
         try:
             # 为每个插件创建一个专属的 API 实例，从而隔离注册的组件
-            plugin_api = MathLabAPI(
-                self.api._main_window, self.api._cmd_manager, self.api._console
-            )
+            plugin_api = MathLabAPI(self.api._main_window, self.api._cmd_manager, self.api._console)
             plugin_instance.on_activate(plugin_api)
             self.active_plugins[plugin_id] = plugin_instance
             self.plugin_apis[plugin_id] = plugin_api
@@ -97,9 +84,7 @@ class PluginManager:
                 try:
                     self.plugin_apis[plugin_name].cleanup()
                 except Exception as e:
-                    logger.error(
-                        "清理插件 [%s] API 时出错: %s", plugin_name, e, exc_info=True
-                    )
+                    logger.error("清理插件 [%s] API 时出错: %s", plugin_name, e, exc_info=True)
                 del self.plugin_apis[plugin_name]
 
         self.active_plugins.clear()

@@ -31,9 +31,7 @@ class SandboxProcess:
         self._watchdog_triggered = False
         self._watchdog_error_msg = ""
 
-    def configure(
-        self, max_memory_mb=None, max_time_seconds=None, max_cpu_percent=None
-    ):
+    def configure(self, max_memory_mb=None, max_time_seconds=None, max_cpu_percent=None):
         """运行时动态调整资源限制"""
         if max_memory_mb is not None:
             self.max_memory_mb = max_memory_mb
@@ -72,9 +70,7 @@ class SandboxProcess:
             # 1. 检查时间超时（防止任何级别的 CPU 死循环）
             if elapsed_time > timeout:
                 self._watchdog_triggered = True
-                self._watchdog_error_msg = (
-                    f"Execution timed out after {timeout} seconds."
-                )
+                self._watchdog_error_msg = f"Execution timed out after {timeout} seconds."
                 self.terminate()
                 break
 
@@ -95,8 +91,7 @@ class SandboxProcess:
                     if total_memory_mb > self.max_memory_mb:
                         self._watchdog_triggered = True
                         self._watchdog_error_msg = (
-                            f"Memory limit exceeded: Used {total_memory_mb:.1f}MB "
-                            f"/ Max {self.max_memory_mb}MB."
+                            f"Memory limit exceeded: Used {total_memory_mb:.1f}MB " f"/ Max {self.max_memory_mb}MB."
                         )
                         self.terminate()
                         break
@@ -111,8 +106,7 @@ class SandboxProcess:
                         if recheck_cpu > self.max_cpu_percent:
                             self._watchdog_triggered = True
                             self._watchdog_error_msg = (
-                                f"CPU limit exceeded: Used {recheck_cpu:.1f}% "
-                                f"/ Max {self.max_cpu_percent}%."
+                                f"CPU limit exceeded: Used {recheck_cpu:.1f}% " f"/ Max {self.max_cpu_percent}%."
                             )
                             self.terminate()
                             break
@@ -122,9 +116,7 @@ class SandboxProcess:
             time.sleep(0.1)  # 高频轮询，兼顾性能
 
     def _start_process(self):
-        sandbox_script_path = os.path.join(
-            os.path.dirname(__file__), "sandbox_script.py"
-        )
+        sandbox_script_path = os.path.join(os.path.dirname(__file__), "sandbox_script.py")
         env = os.environ.copy()
         # [安全修复] 仅保留非空的绝对路径，排除当前目录 '' 和相对路径
         sep = ";" if sys.platform == "win32" else ":"
@@ -177,9 +169,7 @@ class SandboxProcess:
         reader_thread.start()
 
         # [修复] 启动独立的看门狗线程统一监控超时和内存，避免主循环重复检查
-        watchdog_thread = threading.Thread(
-            target=self._monitor_watchdog, args=(timeout,), daemon=True
-        )
+        watchdog_thread = threading.Thread(target=self._monitor_watchdog, args=(timeout,), daemon=True)
         watchdog_thread.start()
 
         # 主循环仅等待读取线程完成，超时/内存由看门狗处理

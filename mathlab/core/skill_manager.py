@@ -25,9 +25,7 @@ except ImportError:
 class SkillLibrary:
     def __init__(self):
         # 技能库持久化路径
-        self.file_path = os.path.join(
-            os.path.dirname(__file__), "..", "data", "skills.json"
-        )
+        self.file_path = os.path.join(os.path.dirname(__file__), "..", "data", "skills.json")
         self.skills = []
         self._lock = threading.Lock()  # BUG 2 修复：线程安全锁
         self._vectorizer = None  # BUG 8 修复：TF-IDF 缓存
@@ -72,11 +70,7 @@ class SkillLibrary:
 
             if not SKLEARN_AVAILABLE:
                 # 如果没有 sklearn，降级为简单的关键词命中匹配
-                return [
-                    s
-                    for s in self.skills
-                    if any(word in s["intent"] for word in user_prompt.split())
-                ][:top_k]
+                return [s for s in self.skills if any(word in s["intent"] for word in user_prompt.split())][:top_k]
 
             try:
                 corpus = [skill["intent"] for skill in self.skills]

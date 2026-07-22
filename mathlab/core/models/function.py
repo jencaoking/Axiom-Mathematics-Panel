@@ -37,9 +37,7 @@ class FunctionPlot(GeometricObject):
 
             # 过滤掉 NaN/Inf
             mask = np.isfinite(y_vals)
-            points = list(
-                zip(x_vals[mask].tolist(), y_vals[mask].astype(float).tolist())
-            )
+            points = list(zip(x_vals[mask].tolist(), y_vals[mask].astype(float).tolist()))
 
             self.points_data = points
             self.coordinates = {"points": points}
@@ -214,9 +212,7 @@ class ImplicitPlot(GeometricObject):
 class PolarPlot(GeometricObject):
     """极坐标绘图：r = f(θ)"""
 
-    def __init__(
-        self, obj_id, name, expression, theta_range=(0, 2 * np.pi), num_points=500
-    ):
+    def __init__(self, obj_id, name, expression, theta_range=(0, 2 * np.pi), num_points=500):
         super().__init__(obj_id, name, "PolarPlot")
         self.expression = expression
         self.theta_range = theta_range
@@ -230,9 +226,7 @@ class PolarPlot(GeometricObject):
             theta_sym = symbols("theta")
             expr = parse_expr(self.expression, local_dict={"theta": theta_sym})
 
-            theta_vals = np.linspace(
-                self.theta_range[0], self.theta_range[1], self.num_points
-            )
+            theta_vals = np.linspace(self.theta_range[0], self.theta_range[1], self.num_points)
 
             try:
                 # 矢量化计算 r 值

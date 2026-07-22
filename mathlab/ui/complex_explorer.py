@@ -102,9 +102,7 @@ class FractalExplorer(QWidget):
         bytes_per_line = 3 * width
 
         # 保持引用防止崩溃
-        q_img = QImage(
-            rgb_matrix.data, width, height, bytes_per_line, QImage.Format_RGB888
-        )
+        q_img = QImage(rgb_matrix.data, width, height, bytes_per_line, QImage.Format_RGB888)
         q_img.ndarray = rgb_matrix
         self._qimages[key] = q_img
 

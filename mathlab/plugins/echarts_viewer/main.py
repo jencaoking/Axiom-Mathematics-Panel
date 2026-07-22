@@ -28,9 +28,7 @@ class EChartsViewerPlugin(MathLabPlugin):
         self.web_view.page().setWebChannel(self.channel)
 
         # 3. 加载本地前端工程
-        html_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "web", "index.html"
-        )
+        html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "index.html")
         self.web_view.load(QUrl.fromLocalFile(html_path))
 
         # 4. 添加到 MathLab 侧边栏
@@ -43,9 +41,7 @@ class EChartsViewerPlugin(MathLabPlugin):
             action=self._render_demo_data,
             category="Web图表",
         )
-        api.print_to_console(
-            "[ECharts Plugin] Module activated.", color_or_level="#aaffaa"
-        )
+        api.print_to_console("[ECharts Plugin] Module activated.", color_or_level="#aaffaa")
 
     def _render_demo_data(self):
         """模拟 Python 后端计算大量数据，并推给前端渲染"""

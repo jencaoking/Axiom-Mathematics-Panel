@@ -63,10 +63,7 @@ class FileIOMixin:
                     }
                     self.geometry_engine.deserialize_all(legacy_data)
 
-                self._objects_data = {
-                    obj.id: obj.serialize()
-                    for obj in self.geometry_engine.get_all_objects()
-                }
+                self._objects_data = {obj.id: obj.serialize() for obj in self.geometry_engine.get_all_objects()}
                 for obj in self.geometry_engine.get_all_objects():
                     self.algebra_panel.add_object(obj.serialize())
                     self.central_widget.draw_object(obj.id, obj.serialize())
@@ -121,9 +118,7 @@ class FileIOMixin:
             )
 
     def on_export_png(self) -> None:
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, t("dialogs.export_png"), "", "PNG Files (*.png)"
-        )
+        file_path, _ = QFileDialog.getSaveFileName(self, t("dialogs.export_png"), "", "PNG Files (*.png)")
         if not file_path:
             return
         if not file_path.endswith(".png"):
@@ -133,14 +128,10 @@ class FileIOMixin:
             pixmap.save(file_path)
             self.statusBar().showMessage(t("status_bar.exported", file_path))
         except Exception as e:
-            QMessageBox.warning(
-                self, t("dialogs.error"), t("dialogs.failed_to_export", str(e))
-            )
+            QMessageBox.warning(self, t("dialogs.error"), t("dialogs.failed_to_export", str(e)))
 
     def on_export_svg(self) -> None:
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, t("dialogs.export_svg"), "", "SVG Files (*.svg)"
-        )
+        file_path, _ = QFileDialog.getSaveFileName(self, t("dialogs.export_svg"), "", "SVG Files (*.svg)")
         if not file_path:
             return
         if not file_path.endswith(".svg"):
@@ -163,14 +154,10 @@ class FileIOMixin:
 
             self.statusBar().showMessage(t("status_bar.exported_svg", file_path))
         except Exception as e:
-            QMessageBox.warning(
-                self, t("dialogs.error"), t("dialogs.failed_to_export", str(e))
-            )
+            QMessageBox.warning(self, t("dialogs.error"), t("dialogs.failed_to_export", str(e)))
 
     def on_export_latex(self) -> None:
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, t("dialogs.export_latex"), "", "LaTeX Files (*.tex)"
-        )
+        file_path, _ = QFileDialog.getSaveFileName(self, t("dialogs.export_latex"), "", "LaTeX Files (*.tex)")
         if not file_path:
             return
         if not file_path.endswith(".tex"):
@@ -181,6 +168,4 @@ class FileIOMixin:
                 f.write(latex_content)
             self.statusBar().showMessage(t("status_bar.exported_latex", file_path))
         except Exception as e:
-            QMessageBox.warning(
-                self, t("dialogs.error"), t("dialogs.failed_to_export", str(e))
-            )
+            QMessageBox.warning(self, t("dialogs.error"), t("dialogs.failed_to_export", str(e)))

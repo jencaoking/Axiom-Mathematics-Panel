@@ -18,11 +18,7 @@ class OmniBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         # ✨ 魔法标志：脱离主窗体、无边框、永远置顶、背景透明
-        self.setWindowFlags(
-            Qt.WindowType.Tool
-            | Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint
-        )
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self.setup_ui()
@@ -56,9 +52,7 @@ class OmniBar(QWidget):
 
         # 1. 当前 Agent 身份指示器
         self.agent_icon = QLabel("🟢")
-        self.agent_icon.setStyleSheet(
-            "font-size: 20px; background: transparent; border: none;"
-        )
+        self.agent_icon.setStyleSheet("font-size: 20px; background: transparent; border: none;")
 
         # 2. 无边框的主输入框
         self.input_field = QLineEdit()
@@ -77,9 +71,7 @@ class OmniBar(QWidget):
 
         # 3. 极其克制的状态微标 (Token / 状态)
         self.status_label = QLabel("💤")
-        self.status_label.setStyleSheet(
-            "font-size: 14px; background: transparent; border: none; color: #888;"
-        )
+        self.status_label.setStyleSheet("font-size: 14px; background: transparent; border: none; color: #888;")
 
         panel_layout.addWidget(self.agent_icon)
         panel_layout.addWidget(self.input_field)
@@ -162,11 +154,7 @@ class OmniBar(QWidget):
 
             # [BUG修复] 安全的属性访问，防御父窗体已被销毁或属性不存在的情况
             parent_win = self.parent()
-            if (
-                parent_win
-                and hasattr(parent_win, "ai_tools_panel")
-                and parent_win.ai_tools_panel
-            ):
+            if parent_win and hasattr(parent_win, "ai_tools_panel") and parent_win.ai_tools_panel:
                 parent_win.ai_tools_panel.chat_input.setText(text)
                 parent_win.ai_tools_panel.on_send_message()
 

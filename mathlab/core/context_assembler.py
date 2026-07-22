@@ -12,9 +12,7 @@ class ContextAssembler:
         # 获取 YAML 中的碎片库
         self.snippets = self.prompt_manager._prompts.get("snippets", {})
 
-    def build_dynamic_system_prompt(
-        self, base_system_prompt: str, user_text: str, canvas_tracker
-    ) -> str:
+    def build_dynamic_system_prompt(self, base_system_prompt: str, user_text: str, canvas_tracker) -> str:
         addons = []
 
         # 规则 1：是否需要注入 LaTeX 规则？
@@ -33,20 +31,14 @@ class ContextAssembler:
 
         if not is_canvas_empty:
             # 宽泛的几何匹配词
-            if re.search(
-                r"(图|这|怎么画|面积|点|线|圆|三角形|角度|距离|相交)", user_text
-            ):
-                snippet = self.snippets.get("canvas_state", "").replace(
-                    "{canvas_json}", canvas_json
-                )
+            if re.search(r"(图|这|怎么画|面积|点|线|圆|三角形|角度|距离|相交)", user_text):
+                snippet = self.snippets.get("canvas_state", "").replace("{canvas_json}", canvas_json)
                 addons.append(snippet)
 
                 # 规则 3：如果有高级的本地启发式结果（Insights），一并注入
                 insights = getattr(canvas_tracker, "current_insights", "")
                 if insights:
-                    insight_snippet = self.snippets.get("local_insights", "").replace(
-                        "{insights}", insights
-                    )
+                    insight_snippet = self.snippets.get("local_insights", "").replace("{insights}", insights)
                     addons.append(insight_snippet)
 
         # 规则 4：是否需要注入软件操作指南？

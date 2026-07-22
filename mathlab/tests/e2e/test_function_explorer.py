@@ -25,9 +25,7 @@ def test_parameter_extraction(qtbot):
 
     for expr, expected in test_cases:
         params = panel._extract_parameters(expr)
-        assert set(params) == set(
-            expected
-        ), f"Expression {expr} parameter extraction failed"
+        assert set(params) == set(expected), f"Expression {expr} parameter extraction failed"
 
 
 @pytest.mark.e2e

@@ -69,9 +69,7 @@ class MarkdownCellWidget(QFrame):
         self.btn_edit.clicked.connect(self.switch_to_edit)
 
         self.toolbar_layout.addWidget(self.type_label)
-        self.toolbar_layout.addSpacerItem(
-            QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        )
+        self.toolbar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.toolbar_layout.addWidget(self.btn_edit)
         self.toolbar_layout.addWidget(self.btn_delete)
 
@@ -89,20 +87,14 @@ class MarkdownCellWidget(QFrame):
             QTextEdit:focus { border: 1px solid #007acc; }
         """)
         self.input_editor.textChanged.connect(self._adjust_editor_height)
-        self.input_editor.textChanged.connect(
-            lambda: self.code_synced.emit(self.input_editor.toPlainText())
-        )
+        self.input_editor.textChanged.connect(lambda: self.code_synced.emit(self.input_editor.toPlainText()))
 
         # ── 3. 预览模式: WebEngine 渲染器 ──
         self.viewer = QWebEngineView()
         self.viewer.setMinimumHeight(60)
-        self.viewer.page().setBackgroundColor(
-            self.palette().color(self.backgroundRole())
-        )
+        self.viewer.page().setBackgroundColor(self.palette().color(self.backgroundRole()))
 
-        html_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "resources", "markdown.html")
-        )
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resources", "markdown.html"))
         self.viewer.load(QUrl.fromLocalFile(html_path))
         self.viewer.hide()  # 初始隐藏，等渲染
 
@@ -122,12 +114,7 @@ class MarkdownCellWidget(QFrame):
         text = self.input_editor.toPlainText()
         # 处理转义符，防止 JS 报错
         # [BUG修复] 补充 ${} 转义，防止模板字符串注入
-        safe_text = (
-            text.replace("\\", "\\\\")
-            .replace("`", "\\`")
-            .replace("${", "\\${")
-            .replace("\n", "\\n")
-        )
+        safe_text = text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${").replace("\n", "\\n")
         js_code = f"renderMarkdown(`{safe_text}`);"
 
         self.viewer.page().runJavaScript(js_code)
@@ -180,9 +167,7 @@ class MarkdownCellWidget(QFrame):
 
     def set_focused(self, is_focused):
         if is_focused:
-            self.setStyleSheet(
-                "MarkdownCellWidget { border-left: 3px solid #007acc; background-color: #252526; }"
-            )
+            self.setStyleSheet("MarkdownCellWidget { border-left: 3px solid #007acc; background-color: #252526; }")
         else:
             self.setStyleSheet(
                 "MarkdownCellWidget { border-left: 3px solid transparent; background-color: transparent; }"

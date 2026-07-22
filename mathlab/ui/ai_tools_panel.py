@@ -80,9 +80,7 @@ class AIToolsPanel(QDockWidget):
 
         self.model_combo = QComboBox()
         self.model_combo.addItem(t("ai_tools.linear_regression"), "linear_regression")
-        self.model_combo.addItem(
-            t("ai_tools.polynomial_regression"), "polynomial_regression"
-        )
+        self.model_combo.addItem(t("ai_tools.polynomial_regression"), "polynomial_regression")
         self.model_combo.addItem(t("ai_tools.neural_network"), "neural_network")
 
         self.degree_spin = QSpinBox()
@@ -133,9 +131,7 @@ class AIToolsPanel(QDockWidget):
         self.drawing_scene = QGraphicsScene()
         self.drawing_view.setScene(self.drawing_scene)
         self.drawing_view.setFixedSize(280, 280)
-        self.drawing_view.setStyleSheet(
-            "background-color: white; border: 1px solid #c3c6d7;"
-        )
+        self.drawing_view.setStyleSheet("background-color: white; border: 1px solid #c3c6d7;")
 
         self.drawing_points = []
 
@@ -259,15 +255,11 @@ class AIToolsPanel(QDockWidget):
         plan_inner_layout = QVBoxLayout()
         self.plan_list_view = QListWidget()
         self.plan_list_view.setFixedHeight(120)  # 限制最高高度
-        self.plan_list_view.setStyleSheet(
-            "border: 1px solid #E0E0E0; border-radius: 4px;"
-        )
+        self.plan_list_view.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 4px;")
 
         self.start_teach_btn = QPushButton("🚀 开始分步互动讲解")
         self.start_teach_btn.setEnabled(False)
-        self.start_teach_btn.setStyleSheet(
-            "background-color: #27AE60; color: white; padding: 6px; border-radius: 4px;"
-        )
+        self.start_teach_btn.setStyleSheet("background-color: #27AE60; color: white; padding: 6px; border-radius: 4px;")
         self.start_teach_btn.clicked.connect(self._start_execution_teaching)
 
         plan_inner_layout.addWidget(self.plan_list_view)
@@ -298,9 +290,7 @@ class AIToolsPanel(QDockWidget):
         # 3. 底部：输入区
         self.chat_input = QLineEdit()
         self.chat_input.setFixedHeight(40)
-        self.chat_input.setStyleSheet(
-            "border: 1px solid #CCC; border-radius: 6px; padding: 4px;"
-        )
+        self.chat_input.setStyleSheet("border: 1px solid #CCC; border-radius: 6px; padding: 4px;")
         self.chat_input.setPlaceholderText(t("ai_tools.ask_question"))
         self.chat_input.returnPressed.connect(self.on_send_message)
 
@@ -526,20 +516,14 @@ class AIToolsPanel(QDockWidget):
 
     def set_recognition_result(self, result):
         if result.get("success"):
-            self.result_digit_label.setText(
-                f'{t("ai_tools.prediction")} {result["prediction"]}'
-            )
+            self.result_digit_label.setText(f'{t("ai_tools.prediction")} {result["prediction"]}')
             top3 = result.get("top3", [])
-            top3_text = "\n".join(
-                [f'{item["digit"]}: {item["probability"]:.2%}' for item in top3]
-            )
+            top3_text = "\n".join([f'{item["digit"]}: {item["probability"]:.2%}' for item in top3])
             self.top3_label.setText(f'{t("ai_tools.top3")}\n{top3_text}')
 
     def set_cluster_result(self, result):
         if result.get("success"):
-            self.cluster_result_label.setText(
-                f'{t("ai_tools.cluster_count")} {result.get("n_clusters", 0)}'
-            )
+            self.cluster_result_label.setText(f'{t("ai_tools.cluster_count")} {result.get("n_clusters", 0)}')
 
     def append_training_output(self, text):
         self.output_area.append(text)
@@ -581,15 +565,11 @@ class AIToolsPanel(QDockWidget):
                 if not getattr(engine, "is_draft_mode", False):
                     if hasattr(engine, "begin_draft"):
                         engine.begin_draft()
-                    self.chat_display.add_message(
-                        "ai", "**[系统]** 👻 已进入画板草稿模式。"
-                    )
+                    self.chat_display.add_message("ai", "**[系统]** 👻 已进入画板草稿模式。")
                 else:
                     if hasattr(engine, "commit_draft"):
                         engine.commit_draft()
-                    self.chat_display.add_message(
-                        "ai", "**[系统]** ✅ 草稿已合并至正式画板。"
-                    )
+                    self.chat_display.add_message("ai", "**[系统]** ✅ 草稿已合并至正式画板。")
 
         elif command == "/quiz":
             self.switch_agent("quiz")
@@ -608,16 +588,12 @@ class AIToolsPanel(QDockWidget):
             self.chat_display.add_message("ai", help_text)
 
         else:
-            self.chat_display.add_message(
-                "ai", f"**[错误]** 未知指令: {command}，输入 /help 查看支持的命令。"
-            )
+            self.chat_display.add_message("ai", f"**[错误]** 未知指令: {command}，输入 /help 查看支持的命令。")
 
     def on_send_message(self):
         if self.is_generating:
             main_win = self.window()
-            if hasattr(main_win, "ai_manager") and getattr(
-                main_win.ai_manager, "current_worker", None
-            ):
+            if hasattr(main_win, "ai_manager") and getattr(main_win.ai_manager, "current_worker", None):
                 main_win.ai_manager.current_worker.cancel()
             self.on_request_finished(was_cancelled=True)
             self.chat_display.add_message("ai", "*[已停止生成]*")
@@ -732,9 +708,7 @@ class AIToolsPanel(QDockWidget):
             # 流式结束，固化到 WebEngine 内部状态
             self.chat_display.finalize_streaming_message()
 
-    def _execute_with_reflection(
-        self, tool_name: str, args_dict: dict, retry_count: int
-    ):
+    def _execute_with_reflection(self, tool_name: str, args_dict: dict, retry_count: int):
         """
         核心反思机制：带最大尝试次数的智能容错执行器
         """
@@ -744,9 +718,7 @@ class AIToolsPanel(QDockWidget):
         engine = getattr(main_window, "geometry_engine", None)
 
         if retry_count >= MAX_RETRIES:
-            self.chat_display.add_message(
-                "ai", "🚨 **AI 尝试了 3 次修正均告失败，已自动中止操作。**"
-            )
+            self.chat_display.add_message("ai", "🚨 **AI 尝试了 3 次修正均告失败，已自动中止操作。**")
             self.action_label.setText("❌ 执行中止")
             if engine and hasattr(engine, "discard_draft"):
                 engine.discard_draft()
@@ -765,9 +737,7 @@ class AIToolsPanel(QDockWidget):
                     engine.validate_commands(commands)
 
                 if hasattr(main_window, "central_widget"):
-                    main_window.central_widget.execute_commands_with_animation(
-                        engine, commands
-                    )
+                    main_window.central_widget.execute_commands_with_animation(engine, commands)
 
                 self._render_draft_review_card()  # 弹出采纳/撤销卡片
                 self.action_label.setText("✅ 画图完成")
@@ -799,9 +769,7 @@ class AIToolsPanel(QDockWidget):
                     user_prompt=reflection_prompt,
                     system_prompt="你是一个具备极强自我反省能力的数学专家。当系统报错时，你必须通过再次调用工具来修复它。",
                     tools=get_agent(self.current_agent_id).tools,
-                    on_tool=lambda name, new_args: self._execute_with_reflection(
-                        name, new_args, retry_count + 1
-                    ),
+                    on_tool=lambda name, new_args: self._execute_with_reflection(name, new_args, retry_count + 1),
                     on_finish=self._on_nested_request_finished,
                     on_error=lambda err: logger.error("静默修复网络异常: %s", err),
                 )
@@ -816,7 +784,9 @@ class AIToolsPanel(QDockWidget):
             prev_agent = get_agent(self.current_agent_id)
 
             # 1. 在聊天框打印极其极客的“内部交接日志”
-            handoff_msg = f'🤝 **[协作协议触发]** {prev_agent.name} 将任务移交给了 @{target_agent_id}\n\n*内部工单: "{notes}"*'
+            handoff_msg = (
+                f'🤝 **[协作协议触发]** {prev_agent.name} 将任务移交给了 @{target_agent_id}\n\n*内部工单: "{notes}"*'
+            )
             self.chat_display.add_message("ai", handoff_msg)
 
             # 2. 视觉与逻辑同步：一键切换到目标专家
@@ -882,9 +852,7 @@ class AIToolsPanel(QDockWidget):
                 topic = args_dict.get("topic", "新课题")
 
                 # 刷新 UI 大纲列表
-                self.plan_box.toggle_btn.setText(
-                    f"📋 教学大纲: {topic} (点击折叠/展开)"
-                )
+                self.plan_box.toggle_btn.setText(f"📋 教学大纲: {topic} (点击折叠/展开)")
                 self.plan_list_view.clear()
 
                 for step in self.active_plan_steps:
@@ -914,9 +882,7 @@ class AIToolsPanel(QDockWidget):
             try:
                 target_name = args_dict.get("target_element")
                 text = args_dict.get("text")
-                if hasattr(main_window, "geometry_engine") and hasattr(
-                    main_window, "central_widget"
-                ):
+                if hasattr(main_window, "geometry_engine") and hasattr(main_window, "central_widget"):
                     engine = main_window.geometry_engine
                     canvas = main_window.central_widget
                     target_obj = None
@@ -935,12 +901,8 @@ class AIToolsPanel(QDockWidget):
                 element_names = args_dict.get("element_names", [])
                 color = args_dict.get("color", "orange")
 
-                if hasattr(main_window, "geometry_engine") and hasattr(
-                    main_window, "central_widget"
-                ):
-                    main_window.central_widget.highlight_elements(
-                        main_window.geometry_engine, element_names, color
-                    )
+                if hasattr(main_window, "geometry_engine") and hasattr(main_window, "central_widget"):
+                    main_window.central_widget.highlight_elements(main_window.geometry_engine, element_names, color)
                     magic_html = f"<div style='background-color: #FEF9E7; color: #D35400; padding: 8px; border-radius: 4px; border-left: 4px solid #F39C12;'><i>🔦 激光笔已激活：正在引导关注 {', '.join(element_names)} </i></div><br>"
                     self.chat_display.append(magic_html)
             except Exception as e:
@@ -977,25 +939,17 @@ class AIToolsPanel(QDockWidget):
 
         def on_accept():
             main_window = self.window()
-            if hasattr(main_window, "geometry_engine") and hasattr(
-                main_window.geometry_engine, "commit_draft"
-            ):
+            if hasattr(main_window, "geometry_engine") and hasattr(main_window.geometry_engine, "commit_draft"):
                 main_window.geometry_engine.commit_draft()
             card_widget.deleteLater()
-            self.chat_display.append(
-                "<div style='color: #27AE60;'><i>[系统] 您已采纳 AI 的画图方案。</i></div><br>"
-            )
+            self.chat_display.append("<div style='color: #27AE60;'><i>[系统] 您已采纳 AI 的画图方案。</i></div><br>")
 
         def on_discard():
             main_window = self.window()
-            if hasattr(main_window, "geometry_engine") and hasattr(
-                main_window.geometry_engine, "discard_draft"
-            ):
+            if hasattr(main_window, "geometry_engine") and hasattr(main_window.geometry_engine, "discard_draft"):
                 main_window.geometry_engine.discard_draft()
             card_widget.deleteLater()
-            self.chat_display.append(
-                "<div style='color: #E74C3C;'><i>[系统] 草稿已撤销。</i></div><br>"
-            )
+            self.chat_display.append("<div style='color: #E74C3C;'><i>[系统] 草稿已撤销。</i></div><br>")
 
         btn_accept.clicked.connect(on_accept)
         btn_discard.clicked.connect(on_discard)
@@ -1144,9 +1098,7 @@ class AIToolsPanel(QDockWidget):
             self.ai_agent = GeometryAgent(ai_mgr) if ai_mgr else None
 
         if not self.ai_agent:
-            self.chat_display.add_message(
-                "ai", "**[错误]** AI Manager 未初始化，无法生成代码。"
-            )
+            self.chat_display.add_message("ai", "**[错误]** AI Manager 未初始化，无法生成代码。")
             return
 
         # 1. 开启子线程调用 Agent，防止 UI 卡顿

@@ -156,9 +156,7 @@ class AIEngineWorker(QThread):
                     break
 
                 if chunk.usage is not None:
-                    self.usage_reported.emit(
-                        chunk.usage.prompt_tokens, chunk.usage.completion_tokens
-                    )
+                    self.usage_reported.emit(chunk.usage.prompt_tokens, chunk.usage.completion_tokens)
                     continue
 
                 if not chunk.choices:
@@ -167,8 +165,7 @@ class AIEngineWorker(QThread):
                 delta = chunk.choices[0].delta
 
                 if not has_started_typing and (
-                    getattr(delta, "content", None)
-                    or getattr(delta, "tool_calls", None)
+                    getattr(delta, "content", None) or getattr(delta, "tool_calls", None)
                 ):  # noqa: E501
                     has_started_typing = True
                     self.state_changed.emit(AIState.GENERATING)
@@ -187,9 +184,7 @@ class AIEngineWorker(QThread):
                             tool_calls_buffer[idx]["name"] = tc.function.name
 
                         if tc.function and tc.function.arguments:
-                            tool_calls_buffer[idx][
-                                "arguments"
-                            ] += tc.function.arguments  # noqa: E501
+                            tool_calls_buffer[idx]["arguments"] += tc.function.arguments  # noqa: E501
 
             if tool_calls_buffer:
                 self.state_changed.emit(AIState.EXECUTING_TOOL)
@@ -304,9 +299,7 @@ class AIManager(QObject):
                 # [BUG修复] 移除危险的 terminate()，改为警告并断开连接
                 logger.warning("AI Worker 未在 5 秒内停止，已断开信号连接")
 
-        self.current_worker = AIEngineWorker(
-            self.client, self.current_model, messages, tools
-        )
+        self.current_worker = AIEngineWorker(self.client, self.current_model, messages, tools)
 
         if on_state_change:
             self.current_worker.state_changed.connect(on_state_change)
@@ -356,9 +349,7 @@ class AIManager(QObject):
             if len(input_data.shape) == 1:
                 input_data = input_data.reshape(1, -1)
 
-            result = model["session"].run(
-                [model["output_name"]], {model["input_name"]: input_data}
-            )
+            result = model["session"].run([model["output_name"]], {model["input_name"]: input_data})
 
             return {"success": True, "prediction": result[0].tolist()}
         except Exception as e:
@@ -447,9 +438,7 @@ class AIManager(QObject):
         X = torch.tensor([[p[0]] for p in points], dtype=torch.float32)
         y = torch.tensor([[p[1]] for p in points], dtype=torch.float32)
 
-        model = nn.Sequential(
-            nn.Linear(1, hidden_size), nn.ReLU(), nn.Linear(hidden_size, 1)
-        )
+        model = nn.Sequential(nn.Linear(1, hidden_size), nn.ReLU(), nn.Linear(hidden_size, 1))
 
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -539,13 +528,9 @@ class AIManager(QObject):
         model = self.models["mnist"]
 
         try:
-            image_data = (
-                np.array(image_data, dtype=np.float32).reshape(1, 1, 28, 28) / 255.0
-            )
+            image_data = np.array(image_data, dtype=np.float32).reshape(1, 1, 28, 28) / 255.0
 
-            result = model["session"].run(
-                [model["output_name"]], {model["input_name"]: image_data}
-            )
+            result = model["session"].run([model["output_name"]], {model["input_name"]: image_data})
 
             predictions = result[0][0]
             top3_indices = np.argsort(predictions)[::-1][:3]
@@ -556,10 +541,7 @@ class AIManager(QObject):
                 "success": True,
                 "prediction": int(np.argmax(predictions)),
                 "probabilities": predictions.tolist(),
-                "top3": [
-                    {"digit": d, "probability": p}
-                    for d, p in zip(top3_digits, top3_probs)
-                ],  # noqa: E501
+                "top3": [{"digit": d, "probability": p} for d, p in zip(top3_digits, top3_probs)],  # noqa: E501
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -587,9 +569,7 @@ class ReasoningCache:
     """
 
     def __init__(self, cache_path=None, similarity_threshold=0.85):
-        self._cache_path = cache_path or os.path.join(
-            os.path.dirname(__file__), "..", "data", "reasoning_cache.json"
-        )
+        self._cache_path = cache_path or os.path.join(os.path.dirname(__file__), "..", "data", "reasoning_cache.json")
         self._similarity_threshold = similarity_threshold
         self._cache = []
         self._lock = threading.Lock()
@@ -646,10 +626,7 @@ class ReasoningCache:
                     best_idx = int(np.argmax(sims))
 
                     if sims[best_idx] >= self._similarity_threshold:
-                        logger.info(
-                            f"📦 推理缓存相似命中 (sim={sims[best_idx]:.3f}): "
-                            f"{user_prompt[:40]}..."
-                        )
+                        logger.info(f"📦 推理缓存相似命中 (sim={sims[best_idx]:.3f}): " f"{user_prompt[:40]}...")
                         return self._cache[best_idx]["result"]
                 except Exception as e:
                     logger.error(f"缓存相似度检索失败: {e}")
@@ -708,9 +685,7 @@ class ResourceConfig:
 
     DEFAULT = None  # 类级默认实例，延迟初始化
 
-    def __init__(
-        self, max_memory_mb=512, max_time_seconds=60, max_cpu_percent=80, max_steps=5
-    ):
+    def __init__(self, max_memory_mb=512, max_time_seconds=60, max_cpu_percent=80, max_steps=5):
         self.max_memory_mb = max_memory_mb
         self.max_time_seconds = max_time_seconds
         self.max_cpu_percent = max_cpu_percent
@@ -734,15 +709,9 @@ class ResourceConfig:
     def for_agent(cls, agent_name):
         """根据 Agent 名称返回预设的资源限制"""
         presets = {
-            "PlannerAgent": cls(
-                max_memory_mb=512, max_time_seconds=120, max_cpu_percent=80, max_steps=5
-            ),
-            "GeometryAgent": cls(
-                max_memory_mb=256, max_time_seconds=60, max_cpu_percent=70, max_steps=5
-            ),
-            "DataVizAgent": cls(
-                max_memory_mb=512, max_time_seconds=90, max_cpu_percent=80, max_steps=5
-            ),
+            "PlannerAgent": cls(max_memory_mb=512, max_time_seconds=120, max_cpu_percent=80, max_steps=5),
+            "GeometryAgent": cls(max_memory_mb=256, max_time_seconds=60, max_cpu_percent=70, max_steps=5),
+            "DataVizAgent": cls(max_memory_mb=512, max_time_seconds=90, max_cpu_percent=80, max_steps=5),
         }
         return presets.get(agent_name, cls.get_default())
 
@@ -822,27 +791,15 @@ class BaseMathAgent:
 
     def _get_effective_model(self):
         """获取当前 Agent 实际使用的模型：优先 model_override，其次 ai_manager.current_model"""
-        return (
-            self.model_override
-            or getattr(self.ai_manager, "current_model", None)
-            or self.model
-        )  # noqa: E501
+        return self.model_override or getattr(self.ai_manager, "current_model", None) or self.model  # noqa: E501
 
     def _llm_generate_code(self, messages):
         # 真正使用时通过 ai_manager.client 调用大模型接口
         try:
             model = self._get_effective_model()
-            response = self.ai_manager.client.chat.completions.create(
-                model=model, messages=messages, temperature=0.1
-            )
-            suggestion = (
-                response.choices[0].message.content if response.choices else ""
-            )  # noqa: E501
-            suggestion = (
-                suggestion.replace("```python\n", "")
-                .replace("\n```", "")
-                .replace("```", "")
-            )
+            response = self.ai_manager.client.chat.completions.create(model=model, messages=messages, temperature=0.1)
+            suggestion = response.choices[0].message.content if response.choices else ""  # noqa: E501
+            suggestion = suggestion.replace("```python\n", "").replace("\n```", "").replace("```", "")
             return suggestion
         except Exception as e:
             # SUGGESTION 11 修复：使用 logger 替代 print
@@ -888,9 +845,7 @@ class BaseMathAgent:
         if relevant_skills:
             skill_context = "\n【本地技能库中的成功经验】\n以下是你过去成功写过的类似代码，你可以直接复用或参考它们的 API 调用方式：\n"  # noqa: E501
             for s in relevant_skills:
-                skill_context += (
-                    f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
-                )
+                skill_context += f"💡 意图: {s['intent']}\n```python\n{s['code']}\n```\n\n"
             if on_thought_cb:
                 on_thought_cb(f"⚡ 唤醒了 {len(relevant_skills)} 条历史成功经验！")
 
@@ -914,9 +869,7 @@ class BaseMathAgent:
             from mathlab.core.pedagogical_engine import PedagogicalPromptBuilder
 
             pedagogical_builder = PedagogicalPromptBuilder(self.student_model)
-            pedagogical_context = pedagogical_builder.build_code_generation_constraint(
-                user_prompt
-            )
+            pedagogical_context = pedagogical_builder.build_code_generation_constraint(user_prompt)
 
         system_prompt = f"""{self.system_prompt}
 {skill_context}
@@ -955,9 +908,7 @@ class BaseMathAgent:
                     on_geom_cb(geom_commands)
 
                 if on_thought_cb:
-                    on_thought_cb(
-                        f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}"
-                    )
+                    on_thought_cb(f"✅ 沙箱执行成功！输出:\n{execution_result.get('output', '')}")
 
                 # ============== 2. 触发后台"自我提炼"机制 ==============
                 threading.Thread(
@@ -990,9 +941,7 @@ class BaseMathAgent:
                     )  # noqa: E501
 
                 # 将报错信息加入对话历史，让 AI 修正
-                messages.append(
-                    {"role": "assistant", "content": f"```python\n{code_content}\n```"}
-                )
+                messages.append({"role": "assistant", "content": f"```python\n{code_content}\n```"})
                 messages.append(
                     {
                         "role": "user",
@@ -1018,9 +967,7 @@ class BaseMathAgent:
     def _record_student_interaction(self, user_prompt: str, success: bool):
         """记录学生互动到认知模型中（自适应学习核心）。"""
         try:
-            interaction_type = self._adaptive_engine.classify_interaction(
-                user_prompt, success
-            )
+            interaction_type = self._adaptive_engine.classify_interaction(user_prompt, success)
             knowledge_point = self._adaptive_engine.extract_knowledge_point(user_prompt)
             cognitive_demand = self._adaptive_engine.get_recommended_cognitive_demand()
             self.student_model.record_interaction(
@@ -1054,9 +1001,7 @@ class BaseMathAgent:
             result_json = json.loads(response.choices[0].message.content)
 
             # 存入本地知识库
-            self.skill_lib.save_skill(
-                result_json["intent"], result_json["abstract_code"]
-            )
+            self.skill_lib.save_skill(result_json["intent"], result_json["abstract_code"])
         except Exception as e:
             # SUGGESTION 11 修复：使用 logger 替代 print
             logger.error(f"技能提炼失败 (后台线程): {e}")
@@ -1122,9 +1067,7 @@ class PlannerAgent(BaseMathAgent):
         # 注入教学法约束（Bloom/ZPD/UDL/Socratic）
         pedagogical_constraint = ""
         if self._pedagogical_builder:
-            pedagogical_constraint = (
-                self._pedagogical_builder.build_decomposition_constraint()
-            )
+            pedagogical_constraint = self._pedagogical_builder.build_decomposition_constraint()
 
         decompose_prompt = f"""请将以下数学问题拆解为 3-5 个由浅入深、循序渐进的教学步骤。
 
@@ -1292,18 +1235,13 @@ class PlannerAgent(BaseMathAgent):
             if on_thought_cb:
                 on_thought_cb("⚠️ 教学大纲生成失败，回退到通用求解模式。")
             # 回退到基类的纯代码闭环
-            return super().solve_problem(
-                user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb
-            )
+            return super().solve_problem(user_prompt, on_thought_cb, on_code_cb, on_finish_cb, on_geom_cb)
 
         # 输出大纲
         if on_thought_cb:
             on_thought_cb(f"📋 课题：{topic}")
             for s in steps:
-                on_thought_cb(
-                    f"  ├─ 步骤 {s['num']}: {s['title']}"
-                    f"（💡 {s.get('hint_for_teacher', '')}）"
-                )
+                on_thought_cb(f"  ├─ 步骤 {s['num']}: {s['title']}" f"（💡 {s.get('hint_for_teacher', '')}）")
 
         # ========== 阶段 2: 调度子 Agent（支持串行/并行模式）==========
         all_codes: list[str] = []
@@ -1329,19 +1267,14 @@ class PlannerAgent(BaseMathAgent):
             hint = step.get("hint_for_teacher", "")
             cognitive_level = step.get("cognitive_level", "理解")
 
-            sub_prompt = (
-                f"在教学主题「{topic}」的框架下，完成第 {num} 步：{title}。"
-                f"\n教学提示：{hint}"
-            )
+            sub_prompt = f"在教学主题「{topic}」的框架下，完成第 {num} 步：{title}。" f"\n教学提示：{hint}"
 
             # 注入教学法约束到子步骤（Bloom 层级行为指导）
             if self._pedagogical_builder:
-                step_constraint = (
-                    self._pedagogical_builder.build_step_execution_constraint(
-                        step_title=title,
-                        cognitive_level=cognitive_level,
-                        hint=hint,
-                    )
+                step_constraint = self._pedagogical_builder.build_step_execution_constraint(
+                    step_title=title,
+                    cognitive_level=cognitive_level,
+                    hint=hint,
                 )
                 sub_prompt += f"\n\n{step_constraint}"
 
@@ -1374,9 +1307,7 @@ class PlannerAgent(BaseMathAgent):
 
             if sub_info is None:
                 if on_thought_cb:
-                    on_thought_cb(
-                        f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行..."
-                    )
+                    on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
 
                 def _noop_finish_cb(success, content):
                     pass
@@ -1472,17 +1403,12 @@ class PlannerAgent(BaseMathAgent):
         # 并行执行可并行步骤
         if parallel_steps:
             if on_thought_cb:
-                on_thought_cb(
-                    f"🚀 启动并行执行模式：{len(parallel_steps)} 个独立步骤同时调度..."
-                )
+                on_thought_cb(f"🚀 启动并行执行模式：{len(parallel_steps)} 个独立步骤同时调度...")
 
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                future_to_step = {
-                    executor.submit(_execute_single_step, step): step
-                    for step in parallel_steps
-                }
+                future_to_step = {executor.submit(_execute_single_step, step): step for step in parallel_steps}
                 parallel_results = {}
                 for future in as_completed(future_to_step):
                     step = future_to_step[future]
@@ -1493,9 +1419,7 @@ class PlannerAgent(BaseMathAgent):
                             if success:
                                 on_thought_cb(f"  ✅ 第 {num} 步完成 (并行)")
                             else:
-                                on_thought_cb(
-                                    f"  ⚠️ 第 {num} 步未能产出完整结果 (并行)"
-                                )
+                                on_thought_cb(f"  ⚠️ 第 {num} 步未能产出完整结果 (并行)")
                     except Exception as e:
                         if on_thought_cb:
                             on_thought_cb(f"  ❌ 并行步骤异常: {e}")
@@ -1527,9 +1451,7 @@ class PlannerAgent(BaseMathAgent):
         # 教学质量评估闭环：评估生成内容并反馈
         quality_report = None
         if self._quality_evaluator:
-            quality_report = self._run_quality_evaluation(
-                final_code, user_prompt, plan, on_thought_cb
-            )
+            quality_report = self._run_quality_evaluation(final_code, user_prompt, plan, on_thought_cb)
 
         if on_finish_cb:
             on_finish_cb(True, final_code)
@@ -1577,16 +1499,13 @@ class PlannerAgent(BaseMathAgent):
                     icon = "✅" if report.passed else "❌"
                     name = dim_names.get(dim, dim.value)
                     on_thought_cb(
-                        f"  {icon} {name}: {report.score:.0%}"
-                        + (f" — {report.issues[0]}" if report.issues else "")
+                        f"  {icon} {name}: {report.score:.0%}" + (f" — {report.issues[0]}" if report.issues else "")
                     )
 
             # 序列化报告
             return {
                 "overall_score": overall,
-                "dimensions": {
-                    dim.value: report.to_dict() for dim, report in reports.items()
-                },
+                "dimensions": {dim.value: report.to_dict() for dim, report in reports.items()},
             }
         except Exception as e:
             logger.error(f"教学质量评估失败: {e}")
@@ -1594,14 +1513,11 @@ class PlannerAgent(BaseMathAgent):
 
 
 class GeometryAgent(BaseMathAgent):
-    def __init__(
-        self, ai_manager, model_override=None, resource_config=None, student_model=None
-    ):
+    def __init__(self, ai_manager, model_override=None, resource_config=None, student_model=None):
         super().__init__(
             ai_manager,
             model_override=model_override,
-            resource_config=resource_config
-            or ResourceConfig.for_agent("GeometryAgent"),
+            resource_config=resource_config or ResourceConfig.for_agent("GeometryAgent"),
             student_model=student_model,
         )
         self.system_prompt = """你是一个【2D 解析几何与代数专家】。
@@ -1622,9 +1538,7 @@ class GeometryAgent(BaseMathAgent):
 
 
 class DataVizAgent(BaseMathAgent):
-    def __init__(
-        self, ai_manager, model_override=None, resource_config=None, student_model=None
-    ):
+    def __init__(self, ai_manager, model_override=None, resource_config=None, student_model=None):
         super().__init__(
             ai_manager,
             model_override=model_override,

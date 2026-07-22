@@ -213,9 +213,7 @@ class AlgoVisPanel(QDockWidget):
         self.current_state = state
         self.scene.clear()
 
-        self.status_label.setText(
-            t("algo_vis.status_prefix") + state.get("description", "")
-        )
+        self.status_label.setText(t("algo_vis.status_prefix") + state.get("description", ""))
 
         state_type = state.get("type")
 
@@ -316,9 +314,7 @@ class AlgoVisPanel(QDockWidget):
         radius = 100
 
         for i, node in enumerate(nodes):
-            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (
-                0.5 + 0.5 * (i % 3)
-            )
+            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (0.5 + 0.5 * (i % 3))
             y = center_y + radius * (i % 2 - 0.5) * 2
             node_positions[node] = (x, y)
 
@@ -331,9 +327,7 @@ class AlgoVisPanel(QDockWidget):
             else:
                 node_radius = 20
 
-            circle = QGraphicsEllipseItem(
-                x - node_radius, y - node_radius, node_radius * 2, node_radius * 2
-            )
+            circle = QGraphicsEllipseItem(x - node_radius, y - node_radius, node_radius * 2, node_radius * 2)
             circle.setBrush(QBrush(color))
             circle.setPen(QPen(QColor("#0b1c30"), 2))
             self.scene.addItem(circle)
@@ -368,9 +362,7 @@ class AlgoVisPanel(QDockWidget):
         radius = 100
 
         for i, node in enumerate(nodes):
-            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (
-                0.5 + 0.5 * (i % 3)
-            )
+            x = center_x + radius * (1 if i < len(nodes) / 2 else -1) * (0.5 + 0.5 * (i % 3))
             y = center_y + radius * (i % 2 - 0.5) * 2
             node_positions[node] = (x, y)
 

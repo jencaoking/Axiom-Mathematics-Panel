@@ -302,12 +302,8 @@ class TestAdaptiveEngine:
     def test_classify_interaction_draw(self):
         model = StudentModel("test")
         engine = AdaptiveEngine(model)
-        assert (
-            engine.classify_interaction("画一个三角形") == InteractionType.DRAW_REQUEST
-        )
-        assert (
-            engine.classify_interaction("绘制函数图像") == InteractionType.DRAW_REQUEST
-        )
+        assert engine.classify_interaction("画一个三角形") == InteractionType.DRAW_REQUEST
+        assert engine.classify_interaction("绘制函数图像") == InteractionType.DRAW_REQUEST
 
     def test_classify_interaction_solve(self):
         model = StudentModel("test")
@@ -318,14 +314,8 @@ class TestAdaptiveEngine:
     def test_classify_interaction_explain(self):
         model = StudentModel("test")
         engine = AdaptiveEngine(model)
-        assert (
-            engine.classify_interaction("为什么这样解")
-            == InteractionType.EXPLAIN_REQUEST
-        )
-        assert (
-            engine.classify_interaction("解释一下证明过程")
-            == InteractionType.EXPLAIN_REQUEST
-        )
+        assert engine.classify_interaction("为什么这样解") == InteractionType.EXPLAIN_REQUEST
+        assert engine.classify_interaction("解释一下证明过程") == InteractionType.EXPLAIN_REQUEST
 
     def test_extract_knowledge_point(self):
         model = StudentModel("test")

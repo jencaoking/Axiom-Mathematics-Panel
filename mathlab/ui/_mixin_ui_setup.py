@@ -56,12 +56,8 @@ class UISetupMixin:
         except ImportError:
             self.geogebra_panel = None
 
-        self.central_tabs.addTab(
-            self.notebook, t("notebook.title") or "Interactive Notebook"
-        )
-        self.central_tabs.addTab(
-            self.central_widget, t("main_window.geometry_tools") or "Geometry Canvas"
-        )
+        self.central_tabs.addTab(self.notebook, t("notebook.title") or "Interactive Notebook")
+        self.central_tabs.addTab(self.central_widget, t("main_window.geometry_tools") or "Geometry Canvas")
         if self.geogebra_panel:
             self.central_tabs.addTab(self.geogebra_panel, "Mini GeoGebra")
 
@@ -76,9 +72,7 @@ class UISetupMixin:
         self.jupyter_workspace = None
 
         if JupyterManager is None or JupyterPanel is None:
-            logger.warning(
-                "JupyterManager / JupyterPanel 未能导入，Jupyter 标签页已跳过。"
-            )
+            logger.warning("JupyterManager / JupyterPanel 未能导入，Jupyter 标签页已跳过。")
             return
 
         try:
@@ -91,9 +85,7 @@ class UISetupMixin:
             import threading
 
             def _start_and_load():
-                success = self.jupyter_mgr.start(
-                    timeout=getattr(self.jupyter_mgr, "_default_timeout", 30)
-                )
+                success = self.jupyter_mgr.start(timeout=getattr(self.jupyter_mgr, "_default_timeout", 30))
                 # 切回主线程执行 UI 操作（Qt 要求 UI 操作在主线程）
                 from PySide6.QtCore import QMetaObject, Qt
 
@@ -118,13 +110,9 @@ class UISetupMixin:
 
                     QTimer.singleShot(0, _show_error)
 
-            t_jupyter = threading.Thread(
-                target=_start_and_load, daemon=True, name="JupyterStartup"
-            )
+            t_jupyter = threading.Thread(target=_start_and_load, daemon=True, name="JupyterStartup")
             t_jupyter.start()
-            logger.info(
-                "JupyterLab 后台启动线程已派发，端口：%s", self.jupyter_mgr.port
-            )
+            logger.info("JupyterLab 后台启动线程已派发，端口：%s", self.jupyter_mgr.port)
 
         except Exception as exc:
             logger.warning("Jupyter 初始化失败（不影响其他功能）：%s", exc)
@@ -183,9 +171,7 @@ class UISetupMixin:
         # ── ✨ 信号接线：数学控制台 plot() 命令 → ECharts 渲染 ────────────────
         # math_console.bridge.signals 是 BridgeSignals(QObject)，
         # plot_requested 发射一个包含 x/y/type/title 的 dict。
-        self.math_console.bridge.signals.plot_requested.connect(
-            self.handle_console_plot
-        )
+        self.math_console.bridge.signals.plot_requested.connect(self.handle_console_plot)
 
     def load_stylesheet(self):
         try:
@@ -193,9 +179,7 @@ class UISetupMixin:
 
             theme = get_theme_colors()
 
-            stylesheet_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "ui", "styles.qss"
-            )
+            stylesheet_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "styles.qss")
             with open(stylesheet_path, "r", encoding="utf-8") as f:
                 qss = f.read()
 

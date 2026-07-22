@@ -47,9 +47,7 @@ class TestLatexRenderer:
 
     @pytest.mark.unit
     def test_export_circle(self):
-        objects = [
-            {"type": "Circle", "name": "C", "coordinates": {"cx": 0, "cy": 0, "r": 5}}
-        ]
+        objects = [{"type": "Circle", "name": "C", "coordinates": {"cx": 0, "cy": 0, "r": 5}}]
         latex = export_canvas_to_latex(objects)
         assert r"\draw[thick, teal]" in latex
         assert "circle" in latex

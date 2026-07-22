@@ -12,7 +12,7 @@ import re
 import io
 from enum import Enum
 from functools import lru_cache
-from typing import Optional, List, Tuple
+from typing import List, Tuple
 
 import markdown as md_lib
 
@@ -58,10 +58,7 @@ class MarkdownService:
 
     # 任意 LaTeX 定界符检测
     _HAS_LATEX_RE = re.compile(
-        r"\$\$.+?\$\$"
-        r"|(?<!\$)\$(?!\$).+?(?<!\$)\$(?!\$)"
-        r"|\\\(.+?\\\)"
-        r"|\\\[.+?\\\]",
+        r"\$\$.+?\$\$" r"|(?<!\$)\$(?!\$).+?(?<!\$)\$(?!\$)" r"|\\\(.+?\\\)" r"|\\\[.+?\\\]",
         re.DOTALL,
     )
 
@@ -163,8 +160,7 @@ class MarkdownService:
             else:
                 # 降级：以 serif 字体显示原始 LaTeX
                 style = (
-                    "font-family: serif; font-style: italic; display: block; "
-                    "text-align: center; margin: 8px 0;"
+                    "font-family: serif; font-style: italic; display: block; " "text-align: center; margin: 8px 0;"
                     if display
                     else "font-family: serif; font-style: italic;"
                 )
@@ -317,10 +313,7 @@ class MarkdownService:
         document.addResource(QTextDocument.ImageResource, url, img)
 
         if display:
-            return (
-                f'<div style="text-align: center; margin: 8px 0;">'
-                f'<img src="{resource_url}" /></div>'
-            )
+            return f'<div style="text-align: center; margin: 8px 0;">' f'<img src="{resource_url}" /></div>'
         return f'<img src="{resource_url}" style="vertical-align: middle;" />'
 
     # ──────────────────────────────────────────────────────────────

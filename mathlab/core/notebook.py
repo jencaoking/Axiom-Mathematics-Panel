@@ -19,9 +19,7 @@ class NotebookCell:
     记录了输入内容、执行状态、输出结果以及独立的 ID
     """
 
-    def __init__(
-        self, cell_type: CellType, content: str = "", language: str = "mathlab"
-    ):
+    def __init__(self, cell_type: CellType, content: str = "", language: str = "mathlab"):
         self.id = str(uuid.uuid4())[:8]  # 生成简短的唯一标识符
         self.type = cell_type
         self.content = content
@@ -55,14 +53,10 @@ class NotebookCell:
                 result = kernel.evaluate(self.content)
                 if result is not None:
                     # 成功执行并有返回值
-                    self.outputs.append(
-                        {"type": "result", "data": result, "status": "success"}
-                    )
+                    self.outputs.append({"type": "result", "data": result, "status": "success"})
             except Exception as e:
                 # 捕获语法错误或计算异常
-                self.outputs.append(
-                    {"type": "error", "data": str(e), "status": "failed"}
-                )
+                self.outputs.append({"type": "error", "data": str(e), "status": "failed"})
 
     def to_dict(self) -> dict:
         """序列化为字典，用于保存文件"""
@@ -77,9 +71,7 @@ class NotebookCell:
     @classmethod
     def from_dict(cls, data: dict) -> "NotebookCell":
         """从字典反序列化"""
-        cell = cls(
-            CellType(data["type"]), data["content"], data.get("language", "mathlab")
-        )
+        cell = cls(CellType(data["type"]), data["content"], data.get("language", "mathlab"))
         cell.id = data.get("id", cell.id)
         return cell
 

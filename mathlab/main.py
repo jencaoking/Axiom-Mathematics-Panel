@@ -12,9 +12,7 @@ if getattr(sys, "frozen", False):
     # 修复 QtWebEngineProcess 找不到 PySide6 内部 DLL 的系统错误弹窗
     pyside_dir = os.path.join(getattr(sys, "_MEIPASS", ""), "PySide6")
     os.environ["PATH"] = pyside_dir + os.pathsep + os.environ.get("PATH", "")
-    os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(
-        pyside_dir, "QtWebEngineProcess.exe"
-    )
+    os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(pyside_dir, "QtWebEngineProcess.exe")
 else:
     # 开发模式
     application_path = os.path.dirname(os.path.abspath(__file__))
@@ -145,11 +143,7 @@ if __name__ == "__main__":
     # ── 拦截子进程调用 (解决 PyInstaller 无限弹黑窗口闪退问题) ──
     if len(sys.argv) >= 2:
         # 拦截 Jupyter kernel 的启动 (-m ipykernel_launcher)
-        if (
-            sys.argv[1] == "-m"
-            and len(sys.argv) >= 3
-            and sys.argv[2] == "ipykernel_launcher"
-        ):
+        if sys.argv[1] == "-m" and len(sys.argv) >= 3 and sys.argv[2] == "ipykernel_launcher":
             from ipykernel import kernelapp
 
             kernelapp.launch_new_instance()

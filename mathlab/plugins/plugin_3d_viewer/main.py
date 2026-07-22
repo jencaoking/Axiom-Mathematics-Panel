@@ -70,9 +70,7 @@ class ThreeJSViewerPlugin(MathLabPlugin):
     def on_geometry_event(self, event_type, data):
         """当引擎中添加、移动或删除物体时，立即同步给 Three.js"""
         # 如果是 JS 本身发起的拖拽更新，则不要再推回去（防止无限踢皮球）
-        if hasattr(self, "bridge") and getattr(
-            self.bridge, "_is_syncing_from_js", False
-        ):
+        if hasattr(self, "bridge") and getattr(self.bridge, "_is_syncing_from_js", False):
             return
 
         # 无论发生什么事件，直接把整棵依赖树的所有坐标打包发给前端

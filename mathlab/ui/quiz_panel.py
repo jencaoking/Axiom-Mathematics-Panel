@@ -42,9 +42,7 @@ class QuizCardWidget(QWidget):
         layout = QVBoxLayout(self)
 
         # 1. 知识点标签
-        kp_label = QLabel(
-            f"🧠 考点：{self.quiz_data.get('knowledge_point', '综合应用')}"
-        )
+        kp_label = QLabel(f"🧠 考点：{self.quiz_data.get('knowledge_point', '综合应用')}")
         kp_label.setObjectName("knowledge")
         layout.addWidget(kp_label)
 

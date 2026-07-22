@@ -228,9 +228,7 @@ def main():
             sys.stdout.write(out_str)
             sys.stdout.flush()
         except BaseException as e:
-            sys.stdout.write(
-                json.dumps({"success": False, "output": "", "error": str(e)}) + "\n"
-            )
+            sys.stdout.write(json.dumps({"success": False, "output": "", "error": str(e)}) + "\n")
             sys.stdout.flush()
 
 

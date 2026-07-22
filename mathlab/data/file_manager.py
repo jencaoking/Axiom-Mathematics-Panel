@@ -258,9 +258,7 @@ class FileManager:
         os.makedirs(mathlab_dir, exist_ok=True)
         return mathlab_dir
 
-    def create_project(
-        self, name: str, category: FileCategory = FileCategory.UNTITLED
-    ) -> Dict:
+    def create_project(self, name: str, category: FileCategory = FileCategory.UNTITLED) -> Dict:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = "".join(c if c.isalnum() else "_" for c in name)
         filename = f"{safe_name}_{timestamp}.mathlab"
@@ -281,9 +279,7 @@ class FileManager:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(project_data, f, indent=2)
 
-            self.index.add_entry(
-                file_path, {"category": category.value, "object_types": [], "tags": []}
-            )
+            self.index.add_entry(file_path, {"category": category.value, "object_types": [], "tags": []})
 
             return {"success": True, "file_path": file_path}
         except Exception as e:
@@ -299,14 +295,7 @@ class FileManager:
                 {
                     "category": data.get("category", FileCategory.UNTITLED.value),
                     "object_types": list(
-                        set(
-                            t
-                            for t in (
-                                obj.get("type")
-                                for obj in data.get("objects", {}).values()
-                            )
-                            if t is not None
-                        )
+                        set(t for t in (obj.get("type") for obj in data.get("objects", {}).values()) if t is not None)
                     ),
                     "tags": data.get("settings", {}).get("tags", []),
                 },
@@ -330,14 +319,7 @@ class FileManager:
                 {
                     "category": data.get("category", FileCategory.UNTITLED.value),
                     "object_types": list(
-                        set(
-                            t
-                            for t in (
-                                obj.get("type")
-                                for obj in data.get("objects", {}).values()
-                            )
-                            if t is not None
-                        )
+                        set(t for t in (obj.get("type") for obj in data.get("objects", {}).values()) if t is not None)
                     ),
                     "tags": data.get("settings", {}).get("tags", []),
                 },
@@ -395,14 +377,7 @@ class FileManager:
                 {
                     "category": data.get("category", FileCategory.UNTITLED.value),
                     "object_types": list(
-                        set(
-                            t
-                            for t in (
-                                obj.get("type")
-                                for obj in data.get("objects", {}).values()
-                            )
-                            if t is not None
-                        )
+                        set(t for t in (obj.get("type") for obj in data.get("objects", {}).values()) if t is not None)
                     ),
                     "tags": data.get("settings", {}).get("tags", []),
                 },
@@ -421,9 +396,7 @@ class FileManager:
     def get_statistics(self) -> Dict:
         return self.index.get_statistics()
 
-    def categorize_project(
-        self, file_path: str, category: FileCategory, tags: Optional[List[str]] = None
-    ) -> Dict:
+    def categorize_project(self, file_path: str, category: FileCategory, tags: Optional[List[str]] = None) -> Dict:
         abs_path = os.path.abspath(file_path)
         if abs_path not in self.index.entries:
             return {"success": False, "error": "Project not found in index"}

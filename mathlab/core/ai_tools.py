@@ -502,13 +502,7 @@ def execute_math_task(code_snippet: str):
     并把 Agent 代码中累积的绘图命令随返回值一起传出。
     """
     # 将画板桥接函数注入到用户代码中
-    wrapped_code = (
-        _GEOM_BRIDGE_INJECT
-        + "\n"
-        + code_snippet
-        + "\n"
-        + "print('__GEOBRIDGE_CMDS__' + repr(__gbcmds))"
-    )
+    wrapped_code = _GEOM_BRIDGE_INJECT + "\n" + code_snippet + "\n" + "print('__GEOBRIDGE_CMDS__' + repr(__gbcmds))"
     result = get_jupyter_sandbox().execute_code(wrapped_code)
 
     # 从输出中分离绘图命令

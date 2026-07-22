@@ -59,9 +59,7 @@ class AnimationPanelWidget(QWidget):
 
         # ── 标题 ──
         title = QLabel(t("plugins.animation_studio") or "Animation Studio")
-        title.setStyleSheet(
-            "font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;"
-        )
+        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;")
         layout.addWidget(title)
 
         # ── 动画类型 ──
@@ -71,9 +69,7 @@ class AnimationPanelWidget(QWidget):
         self.combo_type.addItem(t("animation.translate") or "Translation", "translate")
         self.combo_type.addItem(t("animation.rotate") or "Rotation", "rotate")
         self.combo_type.addItem(t("animation.scale") or "Scaling", "scale")
-        self.combo_type.addItem(
-            t("animation.param_func") or "Function Parameter", "param_func"
-        )
+        self.combo_type.addItem(t("animation.param_func") or "Function Parameter", "param_func")
         self.combo_type.currentIndexChanged.connect(self._on_type_changed)
         type_layout.addWidget(self.combo_type)
         layout.addWidget(type_group)
@@ -139,9 +135,7 @@ class AnimationPanelWidget(QWidget):
         self.slider_speed.setRange(10, 300)
         self.slider_speed.setValue(50)
         self.label_speed_val = QLabel("50ms")
-        self.slider_speed.valueChanged.connect(
-            lambda v: self.label_speed_val.setText(f"{v}ms")
-        )
+        self.slider_speed.valueChanged.connect(lambda v: self.label_speed_val.setText(f"{v}ms"))
 
         # ── 速度控制 ──
         speed_group = QGroupBox(t("animation.speed") or "Speed (frame interval)")
@@ -180,9 +174,7 @@ class AnimationPanelWidget(QWidget):
         layout.addWidget(self.label_status)
 
         # ── 提示 ──
-        hint = QLabel(
-            t("animation.hint") or "Tip: Select points on canvas first, then play."
-        )
+        hint = QLabel(t("animation.hint") or "Tip: Select points on canvas first, then play.")
         hint.setStyleSheet("color: #777; font-size: 11px;")
         hint.setWordWrap(True)
         layout.addWidget(hint)
@@ -233,48 +225,22 @@ class AnimationPanelWidget(QWidget):
         if mode == "translate":
             self.param_layout.addRow("Δx:", self.spin_tx)
             self.param_layout.addRow("Δy:", self.spin_ty)
-            self.param_layout.addRow(
-                t("animation.duration") or "Duration:", self.spin_duration
-            )
+            self.param_layout.addRow(t("animation.duration") or "Duration:", self.spin_duration)
         elif mode == "rotate":
-            self.param_layout.addRow(
-                t("animation.center_x") or "Center X:", self.spin_rot_cx
-            )
-            self.param_layout.addRow(
-                t("animation.center_y") or "Center Y:", self.spin_rot_cy
-            )
-            self.param_layout.addRow(
-                t("animation.angle") or "Angle:", self.spin_rot_angle
-            )
-            self.param_layout.addRow(
-                t("animation.duration") or "Duration:", self.spin_duration
-            )
+            self.param_layout.addRow(t("animation.center_x") or "Center X:", self.spin_rot_cx)
+            self.param_layout.addRow(t("animation.center_y") or "Center Y:", self.spin_rot_cy)
+            self.param_layout.addRow(t("animation.angle") or "Angle:", self.spin_rot_angle)
+            self.param_layout.addRow(t("animation.duration") or "Duration:", self.spin_duration)
         elif mode == "scale":
-            self.param_layout.addRow(
-                t("animation.center_x") or "Center X:", self.spin_scale_cx
-            )
-            self.param_layout.addRow(
-                t("animation.center_y") or "Center Y:", self.spin_scale_cy
-            )
-            self.param_layout.addRow(
-                t("animation.factor") or "Factor:", self.spin_scale_factor
-            )
-            self.param_layout.addRow(
-                t("animation.duration") or "Duration:", self.spin_duration
-            )
+            self.param_layout.addRow(t("animation.center_x") or "Center X:", self.spin_scale_cx)
+            self.param_layout.addRow(t("animation.center_y") or "Center Y:", self.spin_scale_cy)
+            self.param_layout.addRow(t("animation.factor") or "Factor:", self.spin_scale_factor)
+            self.param_layout.addRow(t("animation.duration") or "Duration:", self.spin_duration)
         elif mode == "param_func":
-            self.param_layout.addRow(
-                t("animation.expression") or "f(a,x):", self.input_func_expr
-            )
-            self.param_layout.addRow(
-                t("animation.param_start") or "a start:", self.spin_param_start
-            )
-            self.param_layout.addRow(
-                t("animation.param_end") or "a end:", self.spin_param_end
-            )
-            self.param_layout.addRow(
-                t("animation.duration") or "Duration:", self.spin_duration
-            )
+            self.param_layout.addRow(t("animation.expression") or "f(a,x):", self.input_func_expr)
+            self.param_layout.addRow(t("animation.param_start") or "a start:", self.spin_param_start)
+            self.param_layout.addRow(t("animation.param_end") or "a end:", self.spin_param_end)
+            self.param_layout.addRow(t("animation.duration") or "Duration:", self.spin_duration)
 
     # ──────────────────────────────────────────────────────────────
     # 引擎访问
@@ -310,9 +276,7 @@ class AnimationPanelWidget(QWidget):
         else:
             point_ids = self._get_selected_points()
             if not point_ids:
-                self._set_status(
-                    t("animation.no_points") or "No points found on canvas."
-                )
+                self._set_status(t("animation.no_points") or "No points found on canvas.")
                 return
             self._start_transform(engine, mode, point_ids)
 
@@ -350,9 +314,7 @@ class AnimationPanelWidget(QWidget):
         for pid in point_ids:
             obj = engine.get_object(pid)
             if obj and obj.type == "Point":
-                orig_coords.append(
-                    (obj.coordinates.get("x", 0.0), obj.coordinates.get("y", 0.0))
-                )
+                orig_coords.append((obj.coordinates.get("x", 0.0), obj.coordinates.get("y", 0.0)))
             else:
                 orig_coords.append(None)
 
@@ -573,9 +535,7 @@ class AnimationStudioPlugin(MathLabPlugin):
     name = "Animation Studio"
     version = "1.0.0"
     author = "MathLab Team"
-    description = (
-        "Geometric transformation, function parameter, and trajectory animations."
-    )
+    description = "Geometric transformation, function parameter, and trajectory animations."
 
     def __init__(self):
         self.api = None
@@ -584,9 +544,7 @@ class AnimationStudioPlugin(MathLabPlugin):
     def on_activate(self, api: MathLabAPI):
         self.api = api
         self.widget = AnimationPanelWidget(api)
-        api.add_sidebar_panel(
-            t("plugins.animation_studio") or "Animation Studio", self.widget
-        )
+        api.add_sidebar_panel(t("plugins.animation_studio") or "Animation Studio", self.widget)
 
         # 注册命令
         api.register_command(
@@ -620,9 +578,7 @@ class AnimationStudioPlugin(MathLabPlugin):
             category="动画",
         )
 
-        api.print_to_console(
-            "[Animation Studio] Plugin activated.", color_or_level="info"
-        )
+        api.print_to_console("[Animation Studio] Plugin activated.", color_or_level="info")
 
     def _quick_action(self, mode: str):
         """命令面板快捷入口"""

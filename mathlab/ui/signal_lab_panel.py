@@ -62,27 +62,21 @@ class SignalLabPanel(QWidget):
         # 信号源 1 控制
         group1 = QGroupBox("🌊 信号源 1 (正弦波)")
         vbox1 = QVBoxLayout(group1)
-        self.freq1_slider, self.freq1_label = self._create_slider(
-            vbox1, "频率 (Hz)", 1, 100, 10
-        )
+        self.freq1_slider, self.freq1_label = self._create_slider(vbox1, "频率 (Hz)", 1, 100, 10)
         self.amp1_slider, self.amp1_label = self._create_slider(vbox1, "振幅", 0, 10, 5)
         control_layout.addWidget(group1)
 
         # 信号源 2 控制
         group2 = QGroupBox("🌊 信号源 2 (正弦波)")
         vbox2 = QVBoxLayout(group2)
-        self.freq2_slider, self.freq2_label = self._create_slider(
-            vbox2, "频率 (Hz)", 1, 250, 50
-        )
+        self.freq2_slider, self.freq2_label = self._create_slider(vbox2, "频率 (Hz)", 1, 250, 50)
         self.amp2_slider, self.amp2_label = self._create_slider(vbox2, "振幅", 0, 10, 2)
         control_layout.addWidget(group2)
 
         # 噪声干扰控制
         group3 = QGroupBox("🌩️ 高斯白噪声干扰")
         vbox3 = QVBoxLayout(group3)
-        self.noise_slider, self.noise_label = self._create_slider(
-            vbox3, "噪声强度", 0, 20, 0
-        )
+        self.noise_slider, self.noise_label = self._create_slider(vbox3, "噪声强度", 0, 20, 0)
         control_layout.addWidget(group3)
 
         # 动态流水控制

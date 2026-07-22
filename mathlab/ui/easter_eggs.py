@@ -90,9 +90,7 @@ class RainbowOverlay(QWidget):
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)  # 圆润的边缘
             painter.setPen(pen)
 
-            rect = QRectF(
-                center.x() - radius, center.y() - radius, radius * 2, radius * 2
-            )
+            rect = QRectF(center.x() - radius, center.y() - radius, radius * 2, radius * 2)
             # 起始角度从 0 (三点钟方向) 开始，可以调整为 0 以形成彩虹拱门
             painter.drawArc(rect, 0 * 16, span_angle)
 
@@ -108,13 +106,7 @@ class EasterEggDetector:
 
     def _normalize_math_string(self, text: str) -> str:
         """极简归一化：去空格、去反斜杠、全小写，剥离大括号"""
-        t = (
-            text.lower()
-            .replace(" ", "")
-            .replace("\\", "")
-            .replace("{", "")
-            .replace("}", "")
-        )
+        t = text.lower().replace(" ", "").replace("\\", "").replace("{", "").replace("}", "")
         return t
 
     def check_and_trigger(self, raw_input: str):
@@ -122,11 +114,7 @@ class EasterEggDetector:
 
         # 1. 欧拉公式彩蛋 $e^{i\pi} + 1 = 0$
         # 兼容输入：e^(i\pi)+1=0, e^i\pi+1=0, e**(ipi)+1=0
-        if (
-            "e^ipi+1=0" in normalized
-            or "e**(ipi)+1=0" in normalized
-            or "e^i*pi+1=0" in normalized
-        ):
+        if "e^ipi+1=0" in normalized or "e**(ipi)+1=0" in normalized or "e^i*pi+1=0" in normalized:
             RainbowOverlay(self.main_window)
             return True
 

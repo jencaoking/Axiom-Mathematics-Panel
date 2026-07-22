@@ -32,9 +32,7 @@ class EditorBackend(QObject):
     @Slot(str)
     def execute_code(self, code):
         if not get_jupyter_sandbox:
-            self.execution_finished.emit(
-                {"status": "error", "traceback": ["Jupyter 沙盒未就绪"]}
-            )
+            self.execution_finished.emit({"status": "error", "traceback": ["Jupyter 沙盒未就绪"]})
             return
 
         from mathlab.core.async_workers import TaskManager
@@ -52,9 +50,7 @@ class EditorBackend(QObject):
                 error_msg = "\n".join(result.get("traceback", []))
                 self.error_occurred.emit(code, error_msg)
             else:
-                self.parent_widget.web_view.page().runJavaScript(
-                    "setEditorErrors('[]');"
-                )
+                self.parent_widget.web_view.page().runJavaScript("setEditorErrors('[]');")
                 self.success_occurred.emit()
 
             self.execution_finished.emit(result)
@@ -85,9 +81,7 @@ class EditorBackend(QObject):
     def _parse_sandbox_output(self, raw_output):
         """解析沙箱的标准输出"""
         # 查找 IPC 魔法包裹的数据
-        echarts_match = re.search(
-            r"__ECHARTS_IPC_START__(.*?)__ECHARTS_IPC_END__", raw_output, re.DOTALL
-        )
+        echarts_match = re.search(r"__ECHARTS_IPC_START__(.*?)__ECHARTS_IPC_END__", raw_output, re.DOTALL)
 
         if echarts_match:
             json_str = echarts_match.group(1).strip()
@@ -113,10 +107,7 @@ class EditorBackend(QObject):
         接收来自 Monaco 的补全请求。
         开启一个无头线程进行快速推理，确保 GUI 绝对不卡顿。
         """
-        if (
-            not hasattr(self.parent_widget, "ai_manager")
-            or not self.parent_widget.ai_manager
-        ):
+        if not hasattr(self.parent_widget, "ai_manager") or not self.parent_widget.ai_manager:
             return
 
         # 使用后台线程避免阻塞 PyQt 事件循环
@@ -134,9 +125,7 @@ class EditorBackend(QObject):
 
         # FIM (Fill-In-the-Middle) 行业标准 Prompt 结构
         # 针对 DeepSeek 模型的特殊控制符。如果你用的是其他模型，可能需要调整。
-        prompt = (
-            f"<｜fim\u2581begin｜>{prefix}<｜fim\u2581hole｜>{suffix}<｜fim\u2581end｜>"
-        )
+        prompt = f"<｜fim\u2581begin｜>{prefix}<｜fim\u2581hole｜>{suffix}<｜fim\u2581end｜>"
 
         try:
             # 这里直接使用同步请求，配置高 Temperature 获取多样性，限制输出长度追求极速
@@ -151,11 +140,7 @@ class EditorBackend(QObject):
             suggestion = response.choices[0].message.content if response.choices else ""
 
             # 清理可能残留的 markdown 标记
-            suggestion = (
-                suggestion.replace("```python\n", "")
-                .replace("\n```", "")
-                .replace("```", "")
-            )
+            suggestion = suggestion.replace("```python\n", "").replace("\n```", "").replace("```", "")
 
             # 构造 JS 回调，将数据灌回 Monaco 渲染成灰色幽灵文本
             escaped_suggestion = json.dumps(suggestion)
@@ -201,9 +186,7 @@ class AutocompleteTextEdit(QWidget):
     def setPlainText(self, text):
         self._cached_code = text
         escaped_text = json.dumps(text)
-        self.web_view.page().runJavaScript(
-            f"if (window.mathEditor) {{ window.mathEditor.setCode({escaped_text}); }}"
-        )
+        self.web_view.page().runJavaScript(f"if (window.mathEditor) {{ window.mathEditor.setCode({escaped_text}); }}")
 
     def set_code(self, text):
         self.setPlainText(text)
@@ -227,9 +210,7 @@ class AutocompleteTextEdit(QWidget):
         self.channel.registerObject("backend", self.backend)
         self.web_view.page().setWebChannel(self.channel)
 
-        html_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "resources", "monaco.html")
-        )
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resources", "monaco.html"))
         self.web_view.setUrl(QUrl.fromLocalFile(html_path))
 
         # --- 新增：智能修复悬浮按钮 ---
@@ -316,9 +297,7 @@ class AutocompleteTextEdit(QWidget):
 
         # 每次清空并全量替换能避免因为正则截断导致的流式乱码问题
         escaped_code = json.dumps(display_text)
-        self.web_view.page().runJavaScript(
-            f"window.mathEditor.editor.setValue({escaped_code});"
-        )
+        self.web_view.page().runJavaScript(f"window.mathEditor.editor.setValue({escaped_code});")
 
     def _on_ai_finish(self):
         self.fix_btn.setText("✨ AI 自动修复")
@@ -327,9 +306,7 @@ class AutocompleteTextEdit(QWidget):
 
         # 修复完成后，自动帮你按下 Ctrl+Enter 验证代码
         # JS 层可以派发一个按键事件，或者我们直接在后端再调一次 execute_code
-        self.web_view.page().runJavaScript(
-            "getEditorContent();", self.backend.execute_code
-        )
+        self.web_view.page().runJavaScript("getEditorContent();", self.backend.execute_code)
 
     def _on_ai_error(self, err_msg):
         self.fix_btn.setText("✨ AI 自动修复")

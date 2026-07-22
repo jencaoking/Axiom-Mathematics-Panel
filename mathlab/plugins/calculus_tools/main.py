@@ -48,25 +48,17 @@ class CalculusPanelWidget(QWidget):
 
         # ── 标题 ──
         title = QLabel(t("plugins.calculus_tools") or "Calculus Tools")
-        title.setStyleSheet(
-            "font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;"
-        )
+        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff; margin-bottom: 6px;")
         layout.addWidget(title)
 
         # ── 操作模式选择 ──
         mode_group = QGroupBox(t("calculus.mode") or "Mode")
         mode_layout = QVBoxLayout(mode_group)
         self.combo_mode = QComboBox()
-        self.combo_mode.addItem(
-            t("calculus.derivative") or "Derivative / Tangent", "derivative"
-        )
-        self.combo_mode.addItem(
-            t("calculus.definite_integral") or "Definite Integral", "integral"
-        )
+        self.combo_mode.addItem(t("calculus.derivative") or "Derivative / Tangent", "derivative")
+        self.combo_mode.addItem(t("calculus.definite_integral") or "Definite Integral", "integral")
         self.combo_mode.addItem(t("calculus.limit") or "Limit", "limit")
-        self.combo_mode.addItem(
-            t("calculus.taylor_series") or "Taylor Series", "taylor"
-        )
+        self.combo_mode.addItem(t("calculus.taylor_series") or "Taylor Series", "taylor")
         self.combo_mode.currentIndexChanged.connect(self._on_mode_changed)
         mode_layout.addWidget(self.combo_mode)
         layout.addWidget(mode_group)
@@ -124,9 +116,7 @@ class CalculusPanelWidget(QWidget):
         self.text_result = QTextEdit()
         self.text_result.setReadOnly(True)
         self.text_result.setMaximumHeight(120)
-        self.text_result.setStyleSheet(
-            "background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #333;"
-        )
+        self.text_result.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #333;")
         result_layout.addWidget(self.text_result)
         layout.addWidget(result_group)
 
@@ -188,23 +178,15 @@ class CalculusPanelWidget(QWidget):
         mode = self.combo_mode.currentData()
 
         if mode == "derivative":
-            self.param_layout.addRow(
-                t("calculus.eval_point") or "x₀ =", self.spin_deriv_x
-            )
+            self.param_layout.addRow(t("calculus.eval_point") or "x₀ =", self.spin_deriv_x)
         elif mode == "integral":
             self.param_layout.addRow("a =", self.spin_int_a)
             self.param_layout.addRow("b =", self.spin_int_b)
         elif mode == "limit":
-            self.param_layout.addRow(
-                t("calculus.limit_point") or "x →", self.spin_limit_point
-            )
+            self.param_layout.addRow(t("calculus.limit_point") or "x →", self.spin_limit_point)
         elif mode == "taylor":
-            self.param_layout.addRow(
-                t("calculus.expand_point") or "x₀ =", self.spin_taylor_point
-            )
-            self.param_layout.addRow(
-                t("calculus.order") or "Order n =", self.spin_taylor_order
-            )
+            self.param_layout.addRow(t("calculus.expand_point") or "x₀ =", self.spin_taylor_point)
+            self.param_layout.addRow(t("calculus.order") or "Order n =", self.spin_taylor_order)
 
     # ──────────────────────────────────────────────────────────────
     # 核心引擎访问器 (安全获取)
@@ -223,9 +205,7 @@ class CalculusPanelWidget(QWidget):
     def _on_compute(self):
         expr_str = self.input_expr.text().strip()
         if not expr_str:
-            self._show_error(
-                t("calculus.empty_expr") or "Please enter a function expression."
-            )
+            self._show_error(t("calculus.empty_expr") or "Please enter a function expression.")
             return
 
         cas = self._get_cas()
@@ -264,15 +244,9 @@ class CalculusPanelWidget(QWidget):
         except Exception:
             slope = float("nan")
 
-        text = (
-            f"f'(x) = {result.get('result', '')}\n"
-            f"f'({x0}) = {slope:.6f}\n"
-            f"LaTeX: {result.get('latex', '')}"
-        )
+        text = f"f'(x) = {result.get('result', '')}\n" f"f'({x0}) = {slope:.6f}\n" f"LaTeX: {result.get('latex', '')}"
         self.text_result.setPlainText(text)
-        self.api.print_to_console(
-            f"[Calculus] f'(x) = {result.get('result', '')}, f'({x0}) ≈ {slope:.6f}"
-        )
+        self.api.print_to_console(f"[Calculus] f'(x) = {result.get('result', '')}, f'({x0}) ≈ {slope:.6f}")
 
     def _compute_integral(self, cas, expr_str: str):
         a = self.spin_int_a.value()
@@ -297,14 +271,9 @@ class CalculusPanelWidget(QWidget):
             self._show_error(result.get("error", "Limit computation failed."))
             return
 
-        text = (
-            f"lim(x→{point}) f(x) = {result.get('result', '')}\n"
-            f"LaTeX: {result.get('latex', '')}"
-        )
+        text = f"lim(x→{point}) f(x) = {result.get('result', '')}\n" f"LaTeX: {result.get('latex', '')}"
         self.text_result.setPlainText(text)
-        self.api.print_to_console(
-            f"[Calculus] lim(x→{point}) = {result.get('result', '')}"
-        )
+        self.api.print_to_console(f"[Calculus] lim(x→{point}) = {result.get('result', '')}")
 
     def _compute_taylor(self, cas, expr_str: str):
         """使用 sympy.series 计算泰勒展开"""
@@ -321,15 +290,9 @@ class CalculusPanelWidget(QWidget):
             taylor = series(expr, x_sym, x0, n + 1).removeO()
             from sympy import latex as sympy_latex
 
-            text = (
-                f"Taylor(f, x₀={x0}, n={n}):\n"
-                f"  {taylor}\n"
-                f"LaTeX: {sympy_latex(taylor)}"
-            )
+            text = f"Taylor(f, x₀={x0}, n={n}):\n" f"  {taylor}\n" f"LaTeX: {sympy_latex(taylor)}"
             self.text_result.setPlainText(text)
-            self.api.print_to_console(
-                f"[Calculus] Taylor expansion (n={n}) at x₀={x0}: {taylor}"
-            )
+            self.api.print_to_console(f"[Calculus] Taylor expansion (n={n}) at x₀={x0}: {taylor}")
         except Exception as e:
             self._show_error(f"Taylor expansion failed: {e}")
 
@@ -339,9 +302,7 @@ class CalculusPanelWidget(QWidget):
     def _on_plot(self):
         expr_str = self.input_expr.text().strip()
         if not expr_str:
-            self._show_error(
-                t("calculus.empty_expr") or "Please enter a function expression."
-            )
+            self._show_error(t("calculus.empty_expr") or "Please enter a function expression.")
             return
 
         engine = self._get_engine()
@@ -409,9 +370,7 @@ class CalculusPanelWidget(QWidget):
         point_id = engine.add_point(x0, y0, name="P")
         self._plotted_ids.append(point_id)
 
-        self.api.print_to_console(
-            f"[Calculus] Plotted f(x) and tangent at x={x0}, slope={slope:.4f}", "info"
-        )
+        self.api.print_to_console(f"[Calculus] Plotted f(x) and tangent at x={x0}, slope={slope:.4f}", "info")
 
     def _plot_integral(self, engine, expr_str: str):
         """绘制原函数 + 积分区域标记"""
@@ -449,9 +408,7 @@ class CalculusPanelWidget(QWidget):
         except Exception:
             pass
 
-        self.api.print_to_console(
-            f"[Calculus] Plotted f(x) with integral bounds [{a}, {b}]", "info"
-        )
+        self.api.print_to_console(f"[Calculus] Plotted f(x) with integral bounds [{a}, {b}]", "info")
 
     def _plot_limit(self, engine, expr_str: str):
         """绘制函数并标记极限点"""
@@ -509,9 +466,7 @@ class CalculusPanelWidget(QWidget):
         except Exception as e:
             self.api.print_to_console(f"[Calculus] Taylor plot warning: {e}", "error")
 
-        self.api.print_to_console(
-            f"[Calculus] Plotted f(x) and Taylor polynomial (n={n}) at x₀={x0}", "info"
-        )
+        self.api.print_to_console(f"[Calculus] Plotted f(x) and Taylor polynomial (n={n}) at x₀={x0}", "info")
 
     # ──────────────────────────────────────────────────────────────
     # 清理
@@ -547,9 +502,7 @@ class CalculusToolsPlugin(MathLabPlugin):
     name = "Calculus Tools"
     version = "1.0.0"
     author = "MathLab Team"
-    description = (
-        "Derivative/tangent, definite integral, limit, and Taylor series visualization."
-    )
+    description = "Derivative/tangent, definite integral, limit, and Taylor series visualization."
 
     def __init__(self):
         self.api = None
@@ -558,9 +511,7 @@ class CalculusToolsPlugin(MathLabPlugin):
     def on_activate(self, api: MathLabAPI):
         self.api = api
         self.widget = CalculusPanelWidget(api)
-        api.add_sidebar_panel(
-            t("plugins.calculus_tools") or "Calculus Tools", self.widget
-        )
+        api.add_sidebar_panel(t("plugins.calculus_tools") or "Calculus Tools", self.widget)
 
         # 注册命令
         api.register_command(
@@ -588,9 +539,7 @@ class CalculusToolsPlugin(MathLabPlugin):
             category="微积分",
         )
 
-        api.print_to_console(
-            "[Calculus Tools] Plugin activated.", color_or_level="info"
-        )
+        api.print_to_console("[Calculus Tools] Plugin activated.", color_or_level="info")
 
     def _quick_action(self, mode: str):
         """命令面板快捷入口：切换到对应模式并聚焦输入框"""

@@ -123,9 +123,7 @@ class PythonConsole(QDockWidget):
         </div>
         """
         self.output_area.append(html)
-        self.output_area.verticalScrollBar().setValue(
-            self.output_area.verticalScrollBar().maximum()
-        )
+        self.output_area.verticalScrollBar().setValue(self.output_area.verticalScrollBar().maximum())
 
     def append_agent_observation(self, obs_text, is_error=False):
         """渲染本地沙箱的运行反馈 (成功绿 / 报错红)，支持 Markdown"""
@@ -145,9 +143,7 @@ class PythonConsole(QDockWidget):
         </div>
         """
         self.output_area.append(html)
-        self.output_area.verticalScrollBar().setValue(
-            self.output_area.verticalScrollBar().maximum()
-        )
+        self.output_area.verticalScrollBar().setValue(self.output_area.verticalScrollBar().maximum())
 
     def on_execute(self):
         command = self.input_line.text().strip()
@@ -226,15 +222,9 @@ class PythonConsole(QDockWidget):
                     prefix = current_text[last_word_start:cursor_pos]
                     completion = names[0]
                     if completion.startswith(prefix):
-                        new_text = (
-                            current_text[:last_word_start]
-                            + completion
-                            + current_text[cursor_pos:]
-                        )
+                        new_text = current_text[:last_word_start] + completion + current_text[cursor_pos:]
                         self.input_line.setText(new_text)
-                        self.input_line.setCursorPosition(
-                            last_word_start + len(completion)
-                        )
+                        self.input_line.setCursorPosition(last_word_start + len(completion))
                 elif len(names) > 1:
                     self.append_output("\n" + "\n".join(names) + "\n")
                     self.append_prompt()
@@ -246,9 +236,7 @@ class PythonConsole(QDockWidget):
                     completions = self.get_completions(last_word)
 
                     if len(completions) == 1:
-                        self.input_line.setText(
-                            current_text[: -len(last_word)] + completions[0]
-                        )
+                        self.input_line.setText(current_text[: -len(last_word)] + completions[0])
                     elif len(completions) > 1:
                         self.append_output("\n".join(completions) + "\n")
                         self.append_prompt()
@@ -316,13 +304,9 @@ class PythonConsole(QDockWidget):
             # 1. 定义成功后的 UI 更新回调
             def on_success(result):
                 if isinstance(result, dict) and result.get("error"):
-                    self.display_system_message(
-                        f"[注入失败] {var_name}: {result['error']}", level="error"
-                    )
+                    self.display_system_message(f"[注入失败] {var_name}: {result['error']}", level="error")
                 else:
-                    self.display_system_message(
-                        f"已异步注入变量: {var_name} = {value_expr}"
-                    )
+                    self.display_system_message(f"已异步注入变量: {var_name} = {value_expr}")
 
             # 2. 定义失败后的 UI 更新回调
             def on_error(err_msg):
@@ -336,9 +320,7 @@ class PythonConsole(QDockWidget):
                 code=script,  # 传递给 execute 的参数
             )
         else:
-            self.display_system_message(
-                f"已注入变量(仅提示): {var_name} = {value_expr}"
-            )
+            self.display_system_message(f"已注入变量(仅提示): {var_name} = {value_expr}")
 
     def insert_text_at_cursor(self, text: str) -> None:
         """将文本插入到输入框当前光标位置，焦点自动移到输入框。
@@ -352,9 +334,7 @@ class PythonConsole(QDockWidget):
 
     def display_system_message(self, message: str, level: str = "info") -> None:
         """向终端显示系统信息，支持错误 AI 拦截"""
-        color = {"info": "#475569", "warn": "#f59e0b", "error": "#dc2626"}.get(
-            level, "#475569"
-        )
+        color = {"info": "#475569", "warn": "#f59e0b", "error": "#dc2626"}.get(level, "#475569")
 
         if level == "error":
             safe_msg = message.replace("<", "&lt;").replace(">", "&gt;")
@@ -372,12 +352,8 @@ class PythonConsole(QDockWidget):
             self.output_area.append(html_msg)
             self.output_area.append("<br>")
         else:
-            safe_msg = (
-                message.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
-            )
-            self.output_area.append(
-                f'<span style="color: {color};">{safe_msg}</span><br>'
-            )
+            safe_msg = message.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+            self.output_area.append(f'<span style="color: {color};">{safe_msg}</span><br>')
             self.output_area.append("<br>")
 
     def on_anchor_clicked(self, url):

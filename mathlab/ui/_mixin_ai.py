@@ -39,9 +39,7 @@ class AIMixin:
         self.student_model = self.student_model_manager.get_model("default")
 
         # 1. 初始化联邦路由大脑，注入学生模型
-        self.agent_registry = AgentRegistry(
-            self.ai_manager, student_model=self.student_model
-        )
+        self.agent_registry = AgentRegistry(self.ai_manager, student_model=self.student_model)
 
         # 2. 注册所有领域专家（支持模型多样性和资源限制）
         # 教研组长：启用并行执行，使用默认模型，注入学生模型实现自适应教学
@@ -106,9 +104,7 @@ class AIMixin:
         self.agent_bridge.thought_emitted.connect(self.console.append_agent_thought)
 
         # 观察 -> 打印到终端
-        self.agent_bridge.observation_emitted.connect(
-            self.console.append_agent_observation
-        )
+        self.agent_bridge.observation_emitted.connect(self.console.append_agent_observation)
 
         # 代码 -> 注入 Monaco 编辑器
         self.agent_bridge.code_generated.connect(self._stream_code_to_editor)
@@ -149,24 +145,18 @@ class AIMixin:
 
     def _setup_echarts_integration(self):
         # 绑定刚刚解析出的信号
-        self.ai_tools_panel.code_editor.backend.echarts_data_ready.connect(
-            self._show_echarts_panel
-        )
+        self.ai_tools_panel.code_editor.backend.echarts_data_ready.connect(self._show_echarts_panel)
 
     def _show_echarts_panel(self, chart_options_dict):
         """唤醒 ECharts 插件面板并渲染"""
         import json
 
         if not hasattr(self, "plugin_manager"):
-            self.console.append_agent_observation(
-                "⚠️ 未找到插件管理器！", is_error=True
-            )
+            self.console.append_agent_observation("⚠️ 未找到插件管理器！", is_error=True)
             return
         echarts_plugin = self.plugin_manager.active_plugins.get("ECharts Data Viewer")
         if not echarts_plugin:
-            self.console.append_agent_observation(
-                "⚠️ 未找到 ECharts 插件实例！", is_error=True
-            )
+            self.console.append_agent_observation("⚠️ 未找到 ECharts 插件实例！", is_error=True)
             return
 
         web_view = getattr(echarts_plugin, "web_view", None)
@@ -177,9 +167,7 @@ class AIMixin:
         js_command = f"if(window.updateChartOptions) {{ window.updateChartOptions({json_payload}); }} else if(window.renderChart) {{ window.renderChart('{json_payload}'); }}"
         web_view.page().runJavaScript(js_command)
 
-        self.console.append_agent_observation(
-            "✨ 3D/2D 交互图表已在 ECharts 面板渲染就绪！", is_error=False
-        )
+        self.console.append_agent_observation("✨ 3D/2D 交互图表已在 ECharts 面板渲染就绪！", is_error=False)
 
     def _trigger_global_ai_task(self, user_prompt):
         """当用户在顶部搜索框按下回车时触发"""
@@ -187,9 +175,7 @@ class AIMixin:
             self.omni_bar.input_field.clear()
 
         if hasattr(self.console, "output_area"):
-            self.console.output_area.append(
-                f"<hr><b style='color:#64B5F6'>👤 用户:</b> {user_prompt}<br>"
-            )
+            self.console.output_area.append(f"<hr><b style='color:#64B5F6'>👤 用户:</b> {user_prompt}<br>")
 
         # 唤醒 AI 专属光标，飞入视野
         from PySide6.QtCore import QPointF
@@ -205,9 +191,7 @@ class AIMixin:
         import json
 
         escaped_code = json.dumps(code)
-        self.ai_tools_panel.code_editor.web_view.page().runJavaScript(
-            f"window.editor.setValue({escaped_code});"
-        )
+        self.ai_tools_panel.code_editor.web_view.page().runJavaScript(f"window.editor.setValue({escaped_code});")
 
         # 光标小幅抖动，模拟正在打字
         if hasattr(self, "ai_cursor"):
@@ -224,15 +208,11 @@ class AIMixin:
     def _on_agent_task_finished(self, success, final_content):
         """Agent 彻底跑完任务 (包含自愈和 RAG 沉淀) 后的 UI 善后"""
         if success:
-            self.console.append_agent_observation(
-                "🎉 任务完美执行并渲染！", is_error=False
-            )
+            self.console.append_agent_observation("🎉 任务完美执行并渲染！", is_error=False)
             # 触发底层执行，刷新所有的画布和 C# 引擎联动
             self.ai_tools_panel.code_editor.backend.execute_code(final_content)
         else:
-            self.console.append_agent_observation(
-                "⚠️ 尝试多次失败，请手动干预。", is_error=True
-            )
+            self.console.append_agent_observation("⚠️ 尝试多次失败，请手动干预。", is_error=True)
 
         # 持久化保存学生认知画像（自适应学习）
         if hasattr(self, "student_model_manager"):
@@ -333,11 +313,7 @@ class AIMixin:
             x = action_data.get("x")
             y = action_data.get("y")
             z = action_data.get("z")
-            if (
-                point_id
-                and (x is not None or y is not None or z is not None)
-                and engine
-            ):
+            if point_id and (x is not None or y is not None or z is not None) and engine:
                 kwargs = {}
                 if x is not None:
                     kwargs["x"] = x
@@ -371,9 +347,7 @@ class AIMixin:
                         )
 
                 def on_error(err_msg):
-                    self.console.display_system_message(
-                        f"求解失败: {err_msg}", level="error"
-                    )
+                    self.console.display_system_message(f"求解失败: {err_msg}", level="error")
 
                 TaskManager().submit(
                     fn=self.cas_provider.solve_equation,
@@ -391,9 +365,7 @@ class AIMixin:
             except Exception as e:
                 logger.warning(f"执行几何绘图命令失败: {cmd} - {e}")
 
-    def on_ai_fit_requested(
-        self, points: list, model_type: str, params: dict = None
-    ) -> None:
+    def on_ai_fit_requested(self, points: list, model_type: str, params: dict = None) -> None:
         if not points:
             return
 
@@ -408,12 +380,8 @@ class AIMixin:
 
         self.fit_worker = AIFitWorker(self.ai_manager, points, model_type, **params)
         self.active_workers.add(self.fit_worker)
-        self.fit_worker.finished.connect(
-            lambda res, w=self.fit_worker: self.on_ai_worker_finished(res, w)
-        )
-        self.fit_worker.error.connect(
-            lambda msg, w=self.fit_worker: self.on_ai_worker_error(msg, w)
-        )
+        self.fit_worker.finished.connect(lambda res, w=self.fit_worker: self.on_ai_worker_finished(res, w))
+        self.fit_worker.error.connect(lambda msg, w=self.fit_worker: self.on_ai_worker_error(msg, w))
         self.fit_worker.start()
 
     def on_ai_worker_finished(self, result: dict, worker):
@@ -445,12 +413,8 @@ class AIMixin:
 
         self.cluster_worker = AIClusterWorker(self.ai_manager, points, method, params)
         self.active_workers.add(self.cluster_worker)
-        self.cluster_worker.finished.connect(
-            lambda res, w=self.cluster_worker: self.on_ai_worker_finished(res, w)
-        )
-        self.cluster_worker.error.connect(
-            lambda msg, w=self.cluster_worker: self.on_ai_worker_error(msg, w)
-        )
+        self.cluster_worker.finished.connect(lambda res, w=self.cluster_worker: self.on_ai_worker_finished(res, w))
+        self.cluster_worker.error.connect(lambda msg, w=self.cluster_worker: self.on_ai_worker_error(msg, w))
         self.cluster_worker.start()
 
     def on_ai_recognize_requested(self, image_data: list) -> None:
@@ -462,12 +426,8 @@ class AIMixin:
 
         self.recognize_worker = AIRecognizeWorker(self.ai_manager, image_data)
         self.active_workers.add(self.recognize_worker)
-        self.recognize_worker.finished.connect(
-            lambda res, w=self.recognize_worker: self.on_ai_worker_finished(res, w)
-        )
-        self.recognize_worker.error.connect(
-            lambda msg, w=self.recognize_worker: self.on_ai_worker_error(msg, w)
-        )
+        self.recognize_worker.finished.connect(lambda res, w=self.recognize_worker: self.on_ai_worker_finished(res, w))
+        self.recognize_worker.error.connect(lambda msg, w=self.recognize_worker: self.on_ai_worker_error(msg, w))
         self.recognize_worker.start()
 
     def on_ai_worker_error(self, error_msg: str, worker=None):
@@ -479,10 +439,7 @@ class AIMixin:
         self.statusBar().showMessage(f"后台运算出错: {error_msg}", 5000)
 
     def on_ai_generate_points(self, n: int) -> None:
-        if (
-            self.generate_points_worker is not None
-            and self.generate_points_worker.isRunning()
-        ):
+        if self.generate_points_worker is not None and self.generate_points_worker.isRunning():
             return
 
         self.ai_tools_panel.set_loading_state(True)
@@ -493,9 +450,7 @@ class AIMixin:
         )
         self.active_workers.add(self.generate_points_worker)
         self.generate_points_worker.finished.connect(
-            lambda res, w=self.generate_points_worker: self.on_generate_points_worker_finished(
-                res, w
-            )
+            lambda res, w=self.generate_points_worker: self.on_generate_points_worker_finished(res, w)
         )
         self.generate_points_worker.error.connect(
             lambda msg, w=self.generate_points_worker: self.on_ai_worker_error(msg, w)
@@ -520,9 +475,7 @@ class AIMixin:
             self.ai_dock.setVisible(True)
             self.ai_dock.raise_()
 
-        user_prompt = prompt_manager.build(
-            "code_explainer", full_code=full_code, selected_code=selected_code
-        )
+        user_prompt = prompt_manager.build("code_explainer", full_code=full_code, selected_code=selected_code)
 
         if hasattr(self, "ai_panel"):
             self.ai_panel.chat_input.setText(user_prompt)

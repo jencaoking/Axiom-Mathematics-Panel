@@ -102,9 +102,7 @@ class CrashReportDialog(QDialog):
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
         self.details_text.setText(tb_str)
-        self.details_text.setStyleSheet(
-            "font-family: Consolas; font-size: 11px; background: #f4f4f4;"
-        )
+        self.details_text.setStyleSheet("font-family: Consolas; font-size: 11px; background: #f4f4f4;")
         self.details_text.setVisible(False)
 
         # 3. 操作按钮区
@@ -118,9 +116,7 @@ class CrashReportDialog(QDialog):
         self.copy_btn.clicked.connect(self._copy_to_clipboard)
 
         self.restart_btn = QPushButton("重启软件")
-        self.restart_btn.setStyleSheet(
-            "background-color: #3498DB; color: white; padding: 5px 15px;"
-        )
+        self.restart_btn.setStyleSheet("background-color: #3498DB; color: white; padding: 5px 15px;")
         self.restart_btn.clicked.connect(self.accept)  # 连接重启或关闭
 
         btn_layout.addWidget(self.toggle_btn)
@@ -173,9 +169,7 @@ class AutoSaver(QObject):
         self.main_window = main_window
 
         # 设定自动保存路径
-        self.autosave_file = os.path.join(
-            tempfile.gettempdir(), "mathlab_autosave.json"
-        )
+        self.autosave_file = os.path.join(tempfile.gettempdir(), "mathlab_autosave.json")
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._perform_autosave)
@@ -184,13 +178,8 @@ class AutoSaver(QObject):
     def _perform_autosave(self):
         """静默执行状态快照"""
         try:
-            if (
-                hasattr(self.main_window, "project_manager")
-                and self.main_window.project_manager
-            ):
-                workspace_data = (
-                    self.main_window.project_manager.serialize_current_state()
-                )
+            if hasattr(self.main_window, "project_manager") and self.main_window.project_manager:
+                workspace_data = self.main_window.project_manager.serialize_current_state()
                 with open(self.autosave_file, "w", encoding="utf-8") as f:
                     json.dump(workspace_data, f)
         except Exception as e:
@@ -211,15 +200,9 @@ class AutoSaver(QObject):
                     with open(self.autosave_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
 
-                    self.main_window.project_manager.objects = data.get(
-                        "objects", {}
-                    ).copy()
-                    self.main_window.project_manager.console_history = data.get(
-                        "console_history", []
-                    ).copy()
-                    self.main_window.project_manager.settings = data.get(
-                        "settings", {}
-                    ).copy()
+                    self.main_window.project_manager.objects = data.get("objects", {}).copy()
+                    self.main_window.project_manager.console_history = data.get("console_history", []).copy()
+                    self.main_window.project_manager.settings = data.get("settings", {}).copy()
 
                     # 在画布上重构所有的对象
                     for (

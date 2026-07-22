@@ -154,9 +154,7 @@ def solve_line_line(l1: GeoLine, l2: GeoLine):
 
 
 class GeoIntersection(GeoPoint):
-    def __init__(
-        self, name: str, shape1: GeoEntity, shape2: GeoEntity, root_index: int = 0
-    ):
+    def __init__(self, name: str, shape1: GeoEntity, shape2: GeoEntity, root_index: int = 0):
         super().__init__(name, parents=[shape1, shape2])
         shape1.add_child(self)
         shape2.add_child(self)

@@ -21,7 +21,7 @@ from PySide6.QtSvg import QSvgRenderer
 def render_expression(expr):
     try:
         return sympy_latex(expr)
-    except:
+    except Exception:
         return str(expr)
 
 
@@ -67,9 +67,7 @@ def export_canvas_to_latex(objects_data):
     latex_parts.append(r"\usepackage{pgfplots}")
     latex_parts.append(r"\pgfplotsset{compat=1.18}")
     latex_parts.append(r"\begin{document}")
-    latex_parts.append(
-        r"\begin{tikzpicture}[scale=0.5, every node/.style={font=\sffamily}]"
-    )
+    latex_parts.append(r"\begin{tikzpicture}[scale=0.5, every node/.style={font=\sffamily}]")
 
     def escape_latex(text):
         special_chars = {
@@ -111,9 +109,7 @@ def export_canvas_to_latex(objects_data):
             points = coords.get("points", [])
             if points:
                 path = " -- ".join([f"({p[0]}, {p[1]})" for p in points])
-                latex_parts.append(
-                    rf"\draw[thick, purple, fill=purple!20] {path} -- cycle;"
-                )
+                latex_parts.append(rf"\draw[thick, purple, fill=purple!20] {path} -- cycle;")
 
     latex_parts.append(r"\end{tikzpicture}")
     latex_parts.append(r"\end{document}")
@@ -137,14 +133,10 @@ def generate_latex_svg(latex_str, color="#0b1c30", font_size=12):
     latex_str = latex_str.strip("$")
 
     fig = plt.figure(figsize=(0.01, 0.01))
-    fig.text(
-        0, 0, f"${latex_str}$", fontsize=font_size, color=color, ha="left", va="center"
-    )
+    fig.text(0, 0, f"${latex_str}$", fontsize=font_size, color=color, ha="left", va="center")
 
     buf = io.BytesIO()
-    fig.savefig(
-        buf, format="svg", transparent=True, bbox_inches="tight", pad_inches=0.0
-    )
+    fig.savefig(buf, format="svg", transparent=True, bbox_inches="tight", pad_inches=0.0)
     plt.close(fig)
 
     return QByteArray(buf.getvalue())

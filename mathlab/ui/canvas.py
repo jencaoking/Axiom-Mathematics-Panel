@@ -204,10 +204,7 @@ class GeometryPointItem(QGraphicsEllipseItem):
 
     def itemChange(self, change, value):
         # 拦截拖拽时产生的新坐标分配
-        if (
-            change == QGraphicsItem.GraphicsItemChange.ItemPositionChange
-            and self.scene()
-        ):
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             view = self.canvas
             if view:
                 scale_factor = view.transform().m11()
@@ -234,9 +231,7 @@ class GeometryPointItem(QGraphicsEllipseItem):
                         text_item.setPos(snapped_pos.x() + 8, snapped_pos.y() - 12)
 
                 # 触发向上传递的坐标更新信号
-                self.canvas.object_moved.emit(
-                    self.obj_id, snapped_pos.x(), snapped_pos.y()
-                )
+                self.canvas.object_moved.emit(self.obj_id, snapped_pos.x(), snapped_pos.y())
 
                 return snapped_pos
 
@@ -474,11 +469,7 @@ class GeometryCanvas(QGraphicsView):
             return
 
         # 多边形：右键完成绘制
-        if (
-            event.button() == Qt.RightButton
-            and self.current_tool == "polygon"
-            and len(self.drawing_points) >= 3
-        ):
+        if event.button() == Qt.RightButton and self.current_tool == "polygon" and len(self.drawing_points) >= 3:
             self.add_polygon()
             return
 
@@ -523,12 +514,8 @@ class GeometryCanvas(QGraphicsView):
             delta_pos = current_pos - self._last_pan_pos
             delta_time = current_time - self._last_pan_time
 
-            self.horizontalScrollBar().setValue(
-                int(self.horizontalScrollBar().value() - delta_pos.x())
-            )
-            self.verticalScrollBar().setValue(
-                int(self.verticalScrollBar().value() - delta_pos.y())
-            )
+            self.horizontalScrollBar().setValue(int(self.horizontalScrollBar().value() - delta_pos.x()))
+            self.verticalScrollBar().setValue(int(self.verticalScrollBar().value() - delta_pos.y()))
 
             if delta_time > 0:
                 # 计算真实的物理速度 (像素/秒)
@@ -569,10 +556,7 @@ class GeometryCanvas(QGraphicsView):
                 self._velocity_x = 0.0
                 self._velocity_y = 0.0
 
-            if (
-                abs(self._velocity_x) > self._stop_threshold
-                or abs(self._velocity_y) > self._stop_threshold
-            ):
+            if abs(self._velocity_x) > self._stop_threshold or abs(self._velocity_y) > self._stop_threshold:
                 self._inertia_timer.start()
 
             event.accept()
@@ -581,20 +565,13 @@ class GeometryCanvas(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def _apply_inertia(self):
-        self.horizontalScrollBar().setValue(
-            int(self.horizontalScrollBar().value() - self._velocity_x)
-        )
-        self.verticalScrollBar().setValue(
-            int(self.verticalScrollBar().value() - self._velocity_y)
-        )
+        self.horizontalScrollBar().setValue(int(self.horizontalScrollBar().value() - self._velocity_x))
+        self.verticalScrollBar().setValue(int(self.verticalScrollBar().value() - self._velocity_y))
 
         self._velocity_x *= self._friction
         self._velocity_y *= self._friction
 
-        if (
-            abs(self._velocity_x) < self._stop_threshold
-            and abs(self._velocity_y) < self._stop_threshold
-        ):
+        if abs(self._velocity_x) < self._stop_threshold and abs(self._velocity_y) < self._stop_threshold:
             self._inertia_timer.stop()
             self._velocity_x = 0.0
             self._velocity_y = 0.0
@@ -665,9 +642,7 @@ class GeometryCanvas(QGraphicsView):
         if self.preview_item is not None:
             self.scene_obj.removeItem(self.preview_item)
 
-        self.preview_item = QGraphicsLineItem(
-            p1[0], p1[1], scene_pos.x(), scene_pos.y()
-        )
+        self.preview_item = QGraphicsLineItem(p1[0], p1[1], scene_pos.x(), scene_pos.y())
         self.preview_item.setPen(QPen(QColor("#4b41e1"), 2, Qt.DashLine))
         self.scene_obj.addItem(self.preview_item)
 
@@ -683,9 +658,7 @@ class GeometryCanvas(QGraphicsView):
         if self.preview_item is not None:
             self.scene_obj.removeItem(self.preview_item)
 
-        self.preview_item = QGraphicsEllipseItem(
-            cx - radius, cy - radius, radius * 2, radius * 2
-        )
+        self.preview_item = QGraphicsEllipseItem(cx - radius, cy - radius, radius * 2, radius * 2)
         self.preview_item.setPen(QPen(QColor("#006058"), 2, Qt.DashLine))
         self.preview_item.setBrush(QBrush(Qt.NoBrush))
         self.scene_obj.addItem(self.preview_item)
@@ -828,9 +801,7 @@ class GeometryCanvas(QGraphicsView):
             "PolarPlot",
             "Locus",
         ]:
-            points = obj_data.get("points_data", []) or obj_data.get(
-                "coordinates", {}
-            ).get("points", [])
+            points = obj_data.get("points_data", []) or obj_data.get("coordinates", {}).get("points", [])
 
             if not points:
                 return
@@ -863,9 +834,7 @@ class GeometryCanvas(QGraphicsView):
                 )
                 curve_item.setOpacity(0.6)
             else:
-                curve_item = self.scene_obj.addPath(
-                    path, QPen(color, 2), QBrush(Qt.NoBrush)
-                )
+                curve_item = self.scene_obj.addPath(path, QPen(color, 2), QBrush(Qt.NoBrush))
             curve_item.setFlags(QGraphicsItem.ItemIsSelectable)
 
             self.object_map[obj_id] = {"curve": curve_item}
@@ -944,9 +913,7 @@ class GeometryCanvas(QGraphicsView):
                 obj_info["polygon"].setOpacity(0.6)
             else:
                 obj_info["polygon"].setPen(QPen(QColor("#9333ea"), 2))
-                obj_info["polygon"].setBrush(
-                    QBrush(QColor("#9333ea"), Qt.Dense4Pattern)
-                )
+                obj_info["polygon"].setBrush(QBrush(QColor("#9333ea"), Qt.Dense4Pattern))
                 obj_info["polygon"].setOpacity(1.0)
 
         # 新增：更新曲线对象
@@ -1214,13 +1181,9 @@ class GeometryCanvas(QGraphicsView):
         if hasattr(engine, "get_all_objects"):
             for obj in engine.get_all_objects():
                 if obj.name == p1_name and obj.type == "Point":
-                    start_pos = QPointF(
-                        obj.coordinates.get("x", 0), obj.coordinates.get("y", 0)
-                    )
+                    start_pos = QPointF(obj.coordinates.get("x", 0), obj.coordinates.get("y", 0))
                 if obj.name == p2_name and obj.type == "Point":
-                    end_pos = QPointF(
-                        obj.coordinates.get("x", 0), obj.coordinates.get("y", 0)
-                    )
+                    end_pos = QPointF(obj.coordinates.get("x", 0), obj.coordinates.get("y", 0))
 
         if not start_pos or not end_pos:
             return self._process_next_command(engine)
@@ -1232,17 +1195,13 @@ class GeometryCanvas(QGraphicsView):
             self.ai_cursor.move_anim.finished.disconnect(on_ready_to_draw)
 
             # 创建一条临时的虚线，表示正在画
-            temp_line = self.scene_obj.addLine(
-                start_pos.x(), start_pos.y(), start_pos.x(), start_pos.y()
-            )
+            temp_line = self.scene_obj.addLine(start_pos.x(), start_pos.y(), start_pos.x(), start_pos.y())
             temp_line.setPen(QPen(QColor(0, 191, 255), 2.0, Qt.PenStyle.DashLine))
 
             # 绑定实时重绘事件：光标在哪，线就拉到哪
             def update_temp_line():
                 cur_pos = self.ai_cursor.scenePos()
-                temp_line.setLine(
-                    start_pos.x(), start_pos.y(), cur_pos.x(), cur_pos.y()
-                )
+                temp_line.setLine(start_pos.x(), start_pos.y(), cur_pos.x(), cur_pos.y())
 
             self.ai_cursor.cursorPosChanged.connect(update_temp_line)
 

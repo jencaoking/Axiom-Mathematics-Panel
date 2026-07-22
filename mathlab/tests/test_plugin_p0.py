@@ -68,15 +68,11 @@ class MockGeometryEngine:
 
     def add_point(self, x=0, y=0, z=0, name=None):
         obj_id = self._generate_id()
-        self.objects[obj_id] = MockGeoObject(
-            obj_id, name or "P", "Point", {"x": x, "y": y, "z": z}
-        )
+        self.objects[obj_id] = MockGeoObject(obj_id, name or "P", "Point", {"x": x, "y": y, "z": z})
         self._notify_calls.append(("object_added", obj_id))
         return obj_id
 
-    def add_function_plot(
-        self, expression, x_range=(-10, 10), num_points=500, name=None
-    ):
+    def add_function_plot(self, expression, x_range=(-10, 10), num_points=500, name=None):
         obj_id = self._generate_id()
         self.objects[obj_id] = MockGeoObject(
             obj_id,
@@ -767,12 +763,8 @@ class TestI18nCompleteness:
             "cmd_stop",
         ]
         for key in required_keys:
-            assert (
-                key in zh_translations["animation"]
-            ), f"Missing zh key: animation.{key}"
-            assert (
-                key in en_translations["animation"]
-            ), f"Missing en key: animation.{key}"
+            assert key in zh_translations["animation"], f"Missing zh key: animation.{key}"
+            assert key in en_translations["animation"], f"Missing en key: animation.{key}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -789,9 +781,7 @@ class TestPluginLoading:
 
         assert issubclass(
             CalculusToolsPlugin,
-            __import__(
-                "mathlab.core.plugin_base", fromlist=["MathLabPlugin"]
-            ).MathLabPlugin,
+            __import__("mathlab.core.plugin_base", fromlist=["MathLabPlugin"]).MathLabPlugin,
         )
 
     def test_animation_plugin_importable(self):
@@ -800,9 +790,7 @@ class TestPluginLoading:
 
         assert issubclass(
             AnimationStudioPlugin,
-            __import__(
-                "mathlab.core.plugin_base", fromlist=["MathLabPlugin"]
-            ).MathLabPlugin,
+            __import__("mathlab.core.plugin_base", fromlist=["MathLabPlugin"]).MathLabPlugin,
         )
 
     def test_calculus_plugin_has_init_py(self):

@@ -98,9 +98,7 @@ class FractalGPUExplorer(QWidget):
             # 将屏幕像素位移换算为复平面位移
             # (注意 Y 轴的翻转)
             self.offset_x -= (dx / self.width()) * self.zoom
-            self.offset_y += (
-                (dy / self.height()) * self.zoom * (self.height() / self.width())
-            )
+            self.offset_y += (dy / self.height()) * self.zoom * (self.height() / self.width())
 
             self.last_mouse_pos = current_pos
             self._send_state_to_gpu()

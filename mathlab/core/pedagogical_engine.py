@@ -105,16 +105,11 @@ class PedagogicalPromptBuilder:
     # UDL 三原则的中文指导
     UDL_PRINCIPLES = {
         "representation": (
-            "多元表达：同一概念用至少两种方式呈现（如公式+图形、文字+数值）。"
-            "提供信息的不同感知方式，降低认知负荷。"
+            "多元表达：同一概念用至少两种方式呈现（如公式+图形、文字+数值）。" "提供信息的不同感知方式，降低认知负荷。"
         ),
-        "engagement": (
-            "多元参与：提供探索性任务而非纯听讲。"
-            "设置适度挑战，连接学生已有经验，维持学习动机。"
-        ),
+        "engagement": ("多元参与：提供探索性任务而非纯听讲。" "设置适度挑战，连接学生已有经验，维持学习动机。"),
         "expression": (
-            "多元表达方式：允许学生用画图、公式、文字等多种方式回答。"
-            "不要限定唯一的解题路径，鼓励创造性表达。"
+            "多元表达方式：允许学生用画图、公式、文字等多种方式回答。" "不要限定唯一的解题路径，鼓励创造性表达。"
         ),
     }
 
@@ -218,9 +213,7 @@ class PedagogicalPromptBuilder:
             current_level = self.student.cognitive_level
 
         comfort, stretch = (
-            self.student.get_zpd_zone()
-            if self.student
-            else (CognitiveLevel.UNDERSTAND, CognitiveLevel.APPLY)
+            self.student.get_zpd_zone() if self.student else (CognitiveLevel.UNDERSTAND, CognitiveLevel.APPLY)
         )
 
         return f"""【Bloom 认知层级梯度约束】
@@ -329,9 +322,7 @@ class TeachingQualityEvaluator:
     3. 教学设计 (Pedagogical Design)：是否遵循教育原则
     """
 
-    def __init__(
-        self, student_model: Optional[StudentModel] = None, pass_threshold: float = 0.6
-    ):
+    def __init__(self, student_model: Optional[StudentModel] = None, pass_threshold: float = 0.6):
         self.student = student_model
         self.pass_threshold = pass_threshold
         self._prompt_builder = PedagogicalPromptBuilder(student_model)
@@ -353,20 +344,12 @@ class TeachingQualityEvaluator:
             各维度的评估报告字典
         """
         reports = {}
-        reports[QualityDimension.CONTENT_UNDERSTANDING] = (
-            self._evaluate_content_understanding(content, user_prompt)
-        )
-        reports[QualityDimension.CONTEXT_COHERENCE] = self._evaluate_context_coherence(
-            content, plan
-        )
-        reports[QualityDimension.PEDAGOGICAL_DESIGN] = (
-            self._evaluate_pedagogical_design(content, user_prompt)
-        )
+        reports[QualityDimension.CONTENT_UNDERSTANDING] = self._evaluate_content_understanding(content, user_prompt)
+        reports[QualityDimension.CONTEXT_COHERENCE] = self._evaluate_context_coherence(content, plan)
+        reports[QualityDimension.PEDAGOGICAL_DESIGN] = self._evaluate_pedagogical_design(content, user_prompt)
         return reports
 
-    def _evaluate_content_understanding(
-        self, content: str, user_prompt: str
-    ) -> QualityReport:
+    def _evaluate_content_understanding(self, content: str, user_prompt: str) -> QualityReport:
         """评估内容理解维度：生成内容是否准确回应了用户问题。"""
         issues = []
         suggestions = []
@@ -383,9 +366,7 @@ class TeachingQualityEvaluator:
             suggestions.append("添加 LaTeX 公式或 Python 代码来展示数学原理")
 
         # 检查 3：是否包含解释性文字
-        has_explanation = bool(
-            re.search(r"因为|所以|由于|因此|这意味着|原理是|解释", content)
-        )
+        has_explanation = bool(re.search(r"因为|所以|由于|因此|这意味着|原理是|解释", content))
         if not has_explanation:
             issues.append("缺少解释性文字，学生可能无法理解为什么这样做")
             suggestions.append("在代码/公式后添加'为什么'的解释")
@@ -413,9 +394,7 @@ class TeachingQualityEvaluator:
             suggestions=suggestions,
         )
 
-    def _evaluate_context_coherence(
-        self, content: str, plan: Optional[dict]
-    ) -> QualityReport:
+    def _evaluate_context_coherence(self, content: str, plan: Optional[dict]) -> QualityReport:
         """评估上下文连贯性维度：教学叙事是否一致且逻辑流畅。"""
         issues = []
         suggestions = []
@@ -431,29 +410,20 @@ class TeachingQualityEvaluator:
 
             if levels:
                 # 检查是否大致递增（允许个别持平）
-                increases = sum(
-                    1 for i in range(1, len(levels)) if levels[i] >= levels[i - 1]
-                )
+                increases = sum(1 for i in range(1, len(levels)) if levels[i] >= levels[i - 1])
                 ratio = increases / max(1, len(levels) - 1)
                 if ratio < 0.6:
-                    issues.append(
-                        f"认知层级梯度不合理（递增率{ratio:.0%}），"
-                        f"步骤间难度跳跃过大"
-                    )
+                    issues.append(f"认知层级梯度不合理（递增率{ratio:.0%}），" f"步骤间难度跳跃过大")
                     suggestions.append("调整步骤顺序，确保认知层级大致递增")
 
                 # 检查是否跨越太多层级
                 level_span = max(levels) - min(levels)
                 if level_span > 4:
-                    issues.append(
-                        f"认知层级跨度过大（{level_span}层），" f"学生可能无法跟上"
-                    )
+                    issues.append(f"认知层级跨度过大（{level_span}层），" f"学生可能无法跟上")
                     suggestions.append("增加中间过渡步骤，减小层级跨度")
 
         # 检查内容中的逻辑连接词
-        connectives = re.findall(
-            r"首先|其次|然后|接着|最后|因此|所以|综上|接下来", content
-        )
+        connectives = re.findall(r"首先|其次|然后|接着|最后|因此|所以|综上|接下来", content)
         if len(connectives) < 2 and len(content) > 200:
             issues.append("缺少逻辑连接词，叙事连贯性不足")
             suggestions.append("使用'首先/其次/最后'等连接词增强逻辑流畅度")
@@ -469,9 +439,7 @@ class TeachingQualityEvaluator:
             suggestions=suggestions,
         )
 
-    def _evaluate_pedagogical_design(
-        self, content: str, user_prompt: str
-    ) -> QualityReport:
+    def _evaluate_pedagogical_design(self, content: str, user_prompt: str) -> QualityReport:
         """评估教学设计维度：是否遵循教育原则。"""
         issues = []
         suggestions = []
@@ -495,9 +463,7 @@ class TeachingQualityEvaluator:
         has_visual = bool(re.search(r"画图|绘制|draw\(|plot\(|画板", content))
         representation_count = sum([has_formula, has_code, has_visual])
         if representation_count < 2 and len(content) > 200:
-            issues.append(
-                f"表达方式单一（仅{representation_count}种），不符合UDL多元表达原则"
-            )
+            issues.append(f"表达方式单一（仅{representation_count}种），不符合UDL多元表达原则")
             suggestions.append("用至少两种方式呈现核心概念（公式+图形/代码+文字）")
 
         score = 1.0 - len(issues) * 0.3
@@ -528,9 +494,7 @@ class TeachingQualityEvaluator:
             ),
         ]
 
-    def get_overall_score(
-        self, reports: Dict[QualityDimension, QualityReport]
-    ) -> float:
+    def get_overall_score(self, reports: Dict[QualityDimension, QualityReport]) -> float:
         """计算总体质量评分（加权平均）。"""
         weights = {
             QualityDimension.CONTENT_UNDERSTANDING: 0.4,
@@ -540,9 +504,7 @@ class TeachingQualityEvaluator:
         total = sum(weights[dim] * reports[dim].score for dim in reports)
         return round(total, 2)
 
-    def build_improvement_feedback(
-        self, reports: Dict[QualityDimension, QualityReport]
-    ) -> str:
+    def build_improvement_feedback(self, reports: Dict[QualityDimension, QualityReport]) -> str:
         """根据评估报告生成改进反馈 Prompt。
 
         当质量评估不通过时，将此反馈注入到 LLM 的对话历史中，

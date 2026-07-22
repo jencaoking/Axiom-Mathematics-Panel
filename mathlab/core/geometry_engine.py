@@ -35,9 +35,7 @@ from mathlab.core.models import *  # noqa: F401, F403
 try:
     from mathlab.core.cs_geometry_engine import cs_geometry
 except Exception as e:
-    print(
-        f"Warning: C# geometry engine fallback triggered in geometry_engine.py. Error: {e}"
-    )
+    print(f"Warning: C# geometry engine fallback triggered in geometry_engine.py. Error: {e}")
     cs_geometry = None
 
 
@@ -65,9 +63,7 @@ class GeometryEngine(QObject):
         带严格逻辑校验的执行器预检。
         如果存在非法引用或逻辑冲突，立即中断并抛出明确的语义错误 ValueError。
         """
-        simulated_names = set(
-            obj.name for obj in self.objects.values() if hasattr(obj, "name")
-        )
+        simulated_names = set(obj.name for obj in self.objects.values() if hasattr(obj, "name"))
 
         for cmd in commands:
             op = cmd.get("cmd")
@@ -80,15 +76,11 @@ class GeometryEngine(QObject):
             elif op == "add_segment":
                 p1, p2 = cmd.get("p1"), cmd.get("p2")
                 if p1 not in simulated_names:
-                    raise ValueError(
-                        f"无法画线：画板上根本不存在名为 '{p1}' 的点。请先添加该点，或检查名称拼写。"
-                    )
+                    raise ValueError(f"无法画线：画板上根本不存在名为 '{p1}' 的点。请先添加该点，或检查名称拼写。")
                 if p2 not in simulated_names:
                     raise ValueError(f"无法画线：画板上根本不存在名为 '{p2}' 的点。")
                 if p1 == p2:
-                    raise ValueError(
-                        f"无法画线：起点 '{p1}' 和终点 '{p2}' 是同一个点。"
-                    )
+                    raise ValueError(f"无法画线：起点 '{p1}' 和终点 '{p2}' 是同一个点。")
 
             elif op == "add_circle":
                 center = cmd.get("center")
@@ -96,14 +88,10 @@ class GeometryEngine(QObject):
                 if center not in simulated_names:
                     raise ValueError(f"无法画圆：找不到指定的圆心点 '{center}'。")
                 if radius <= 0:
-                    raise ValueError(
-                        f"无法画圆：半径必须大于 0，当前给定半径为 {radius}。"
-                    )
+                    raise ValueError(f"无法画圆：半径必须大于 0，当前给定半径为 {radius}。")
 
             elif op not in ["add_point", "add_segment", "add_circle", "add_polygon"]:
-                raise ValueError(
-                    f"引擎不支持的操作指令：'{op}'，请严格使用工具说明书里的枚举值。"
-                )
+                raise ValueError(f"引擎不支持的操作指令：'{op}'，请严格使用工具说明书里的枚举值。")
 
     def begin_draft(self):
         self.is_draft_mode = True
@@ -358,9 +346,7 @@ class GeometryEngine(QObject):
         self._notify("object_added", conic.serialize())
         return obj_id
 
-    def add_function_plot(
-        self, expression, x_range=(-10, 10), num_points=500, name=None
-    ):
+    def add_function_plot(self, expression, x_range=(-10, 10), num_points=500, name=None):
         """添加显函数绘图 y=f(x)"""
         obj_id = self._generate_id()
         if name is None:
@@ -387,9 +373,7 @@ class GeometryEngine(QObject):
         self._notify("object_added", impl_plot.serialize())
         return obj_id
 
-    def add_polar_plot(
-        self, expression, theta_range=(0, 2 * np.pi), num_points=500, name=None
-    ):
+    def add_polar_plot(self, expression, theta_range=(0, 2 * np.pi), num_points=500, name=None):
         """添加极坐标绘图 r=f(θ)"""
         obj_id = self._generate_id()
         if name is None:
@@ -440,9 +424,7 @@ class GeometryEngine(QObject):
                 self._name_set.discard(dep_obj.name)
                 # 同步递减计数器，保持名称状态一致
                 if hasattr(dep_obj, "type") and dep_obj.type in self.name_counter:
-                    self.name_counter[dep_obj.type] = max(
-                        0, self.name_counter[dep_obj.type] - 1
-                    )
+                    self.name_counter[dep_obj.type] = max(0, self.name_counter[dep_obj.type] - 1)
                 self.dependencies.remove_node(dep_id)
                 self._notify("object_removed", dep_id)
                 del self.objects[dep_id]
@@ -528,9 +510,7 @@ class GeometryEngine(QObject):
                             safe_id = point.id.replace("-", "_")
                             allowed_symbols[f"x_{safe_id}"] = symbols(f"x_{safe_id}")
                             allowed_symbols[f"y_{safe_id}"] = symbols(f"y_{safe_id}")
-                            allowed_symbols[f"z_{safe_id}"] = symbols(
-                                f"z_{safe_id}"
-                            )  # 3. 允许用户输入含 z 的约束方程
+                            allowed_symbols[f"z_{safe_id}"] = symbols(f"z_{safe_id}")  # 3. 允许用户输入含 z 的约束方程
                         eq = parse_expr(
                             constraint,
                             local_dict=allowed_symbols,
@@ -564,9 +544,7 @@ class GeometryEngine(QObject):
                     # 求值失败时残差记为 0，避免优化器被异常打断
                     import logging
 
-                    logging.getLogger(__name__).warning(
-                        f"Constraint evaluation failed: {e}"
-                    )
+                    logging.getLogger(__name__).warning(f"Constraint evaluation failed: {e}")
                     result.append(0.0)
 
             return np.array(result, dtype=float)
@@ -584,9 +562,7 @@ class GeometryEngine(QObject):
             n_eq = len(equations)
             n_var = len(variables)
             method = "lm" if n_eq >= n_var else "trf"
-            result_obj = least_squares(
-                objective, np.array(initial_guess), method=method
-            )
+            result_obj = least_squares(objective, np.array(initial_guess), method=method)
             # least_squares 返回的 OptimizeResult 没有 .success 字段，
             # 使用 .status 判断：< 0 表示失败
             if result_obj.status < 0:
@@ -635,9 +611,7 @@ class GeometryEngine(QObject):
 
     def serialize_all(self):
         return {
-            "objects": {
-                obj_id: obj.serialize() for obj_id, obj in self.objects.items()
-            },
+            "objects": {obj_id: obj.serialize() for obj_id, obj in self.objects.items()},
             "name_counter": dict(self.name_counter),
         }
 

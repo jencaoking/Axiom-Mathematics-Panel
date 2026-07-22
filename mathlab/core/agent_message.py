@@ -97,11 +97,7 @@ class AgentMessage:
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "msg_type": self.msg_type.value,
-            "content": (
-                self.content
-                if isinstance(self.content, (str, int, float, dict, list))
-                else str(self.content)
-            ),
+            "content": (self.content if isinstance(self.content, (str, int, float, dict, list)) else str(self.content)),
             "metadata": self.metadata,
             "priority": self.priority.value,
             "timestamp": self.timestamp,
@@ -222,9 +218,7 @@ class MessageHistory:
     def get_conversation(self, conversation_id: str) -> List[AgentMessage]:
         """获取某个会话的所有消息（按时间排序）。"""
         with self._lock:
-            return [
-                msg for msg in self._history if msg.conversation_id == conversation_id
-            ]
+            return [msg for msg in self._history if msg.conversation_id == conversation_id]
 
     def clear(self):
         """清空历史记录。"""
@@ -329,9 +323,7 @@ class MessageBus:
                 handler(message)
                 delivered = True
             except Exception as e:
-                logger.error(
-                    f"消息处理器异常 (msg={message.id}, type={message.msg_type.value}): {e}"
-                )
+                logger.error(f"消息处理器异常 (msg={message.id}, type={message.msg_type.value}): {e}")
 
         if not delivered and message.receiver_id != "broadcast":
             logger.warning(
@@ -351,9 +343,7 @@ class MessageBus:
             return {
                 "total_messages": self._message_counter,
                 "active_subscribers": len(self._subscribers),
-                "type_subscribers": {
-                    t.value: len(hs) for t, hs in self._type_subscribers.items()
-                },
+                "type_subscribers": {t.value: len(hs) for t, hs in self._type_subscribers.items()},
                 "history_size": len(self._history),
             }
 
@@ -417,11 +407,7 @@ class MessageRouter:
         message: AgentMessage,
     ):
         """处理任务请求消息：调用 Agent 的 solve_problem。"""
-        task_prompt = (
-            message.content
-            if isinstance(message.content, str)
-            else str(message.content)
-        )
+        task_prompt = message.content if isinstance(message.content, str) else str(message.content)
 
         # 收集执行结果
         result_container = {
@@ -483,7 +469,9 @@ class MessageRouter:
         if "capability" in query.lower() or "能力" in query:
             response_content = getattr(agent_instance, "system_prompt", "N/A")
         elif "status" in query.lower() or "状态" in query:
-            response_content = f"Agent '{agent_id}' 在线，模型: {getattr(agent_instance, '_get_effective_model', lambda: 'unknown')()}"
+            response_content = (
+                f"Agent '{agent_id}' 在线，模型: {getattr(agent_instance, '_get_effective_model', lambda: 'unknown')()}"
+            )
         else:
             response_content = f"查询已收到: {query}"
 

@@ -30,9 +30,7 @@ class AICursorItem(QGraphicsObject):
 
         # 核心动画控制器
         self.move_anim = QPropertyAnimation(self, b"cursorPos")
-        self.move_anim.setEasingCurve(
-            QEasingCurve.Type.InOutQuad
-        )  # 模拟人类手臂运动的缓动曲线
+        self.move_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)  # 模拟人类手臂运动的缓动曲线
 
         # 独立的隐藏计时器
         self._hide_timer = QTimer(self)
@@ -69,9 +67,7 @@ class AICursorItem(QGraphicsObject):
             self.setPos(pos)
         self.cursorPosChanged.emit()
 
-    cursorPos = Property(
-        QPointF, get_cursor_pos, set_cursor_pos, notify=cursorPosChanged
-    )
+    cursorPos = Property(QPointF, get_cursor_pos, set_cursor_pos, notify=cursorPosChanged)
 
     def move_to(self, target_pos: QPointF, duration_ms: int = 600):
         """控制光标飞向目标点"""

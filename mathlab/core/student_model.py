@@ -118,9 +118,7 @@ class StudentModel:
                 "knowledge_point": knowledge_point,
                 "prompt": prompt_text[:200],  # 截断防止过长
                 "success": success,
-                "cognitive_demand": (
-                    cognitive_demand.value if cognitive_demand else None
-                ),
+                "cognitive_demand": (cognitive_demand.value if cognitive_demand else None),
             }
             self.interaction_history.append(entry)
 
@@ -171,23 +169,15 @@ class StudentModel:
         """根据互动结果动态调整学生的 Bloom 认知层级。"""
         if success is True:
             # 成功完成高认知需求任务 -> 提升层级
-            if (
-                demand.value >= self.cognitive_level.value
-                and self.cognitive_level.value < 6
-            ):
+            if demand.value >= self.cognitive_level.value and self.cognitive_level.value < 6:
                 self.cognitive_level = CognitiveLevel(self.cognitive_level.value + 1)
         elif success is False:
             # 高认知需求任务失败 -> 可能需要降级巩固
-            if (
-                demand.value > self.cognitive_level.value
-                and self.cognitive_level.value > 1
-            ):
+            if demand.value > self.cognitive_level.value and self.cognitive_level.value > 1:
                 # 不直接降级，而是标记为薄弱（通过 weakness_areas 处理）
                 pass
 
-    def _update_engagement(
-        self, interaction_type: InteractionType, success: Optional[bool]
-    ):
+    def _update_engagement(self, interaction_type: InteractionType, success: Optional[bool]):
         """更新参与度评分。"""
         if success is True:
             self.correct_count += 1
@@ -228,9 +218,7 @@ class StudentModel:
 
     def _refresh_weakness_areas(self):
         """刷新薄弱知识点列表。"""
-        self.weakness_areas = [
-            kp for kp, mastery in self.knowledge_mastery.items() if mastery < 0.4
-        ]
+        self.weakness_areas = [kp for kp, mastery in self.knowledge_mastery.items() if mastery < 0.4]
         # 按掌握度升序排列（最薄弱的在前）
         self.weakness_areas.sort(key=lambda kp: self.knowledge_mastery.get(kp, 0))
 
@@ -261,9 +249,7 @@ class StudentModel:
         """返回学生画像摘要，供注入到 AI Prompt 中。"""
         comfort, stretch = self.get_zpd_zone()
         avg_mastery = (
-            sum(self.knowledge_mastery.values()) / len(self.knowledge_mastery)
-            if self.knowledge_mastery
-            else 0.0
+            sum(self.knowledge_mastery.values()) / len(self.knowledge_mastery) if self.knowledge_mastery else 0.0
         )
 
         style_map = {
@@ -283,9 +269,7 @@ class StudentModel:
             "engagement": f"{self.engagement_score:.0%}",
             "total_interactions": self.total_interactions,
             "accuracy": (
-                f"{self.correct_count / self.total_interactions:.0%}"
-                if self.total_interactions > 0
-                else "N/A"
+                f"{self.correct_count / self.total_interactions:.0%}" if self.total_interactions > 0 else "N/A"
             ),
             "top_mastered": self._get_top_mastered(5),
         }
@@ -294,9 +278,7 @@ class StudentModel:
         """返回掌握度最高的 n 个知识点。"""
         if not self.knowledge_mastery:
             return []
-        sorted_kp = sorted(
-            self.knowledge_mastery.items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_kp = sorted(self.knowledge_mastery.items(), key=lambda x: x[1], reverse=True)
         return [{"point": kp, "mastery": f"{m:.0%}"} for kp, m in sorted_kp[:n]]
 
     def to_dict(self) -> Dict:
@@ -318,12 +300,8 @@ class StudentModel:
         """从字典反序列化。"""
         model = cls(student_id=data.get("student_id", "default"))
         model.knowledge_mastery = data.get("knowledge_mastery", {})
-        model.cognitive_level = CognitiveLevel(
-            data.get("cognitive_level", CognitiveLevel.UNDERSTAND.value)
-        )
-        model.learning_style = LearningStyle(
-            data.get("learning_style", LearningStyle.BALANCED.value)
-        )
+        model.cognitive_level = CognitiveLevel(data.get("cognitive_level", CognitiveLevel.UNDERSTAND.value))
+        model.learning_style = LearningStyle(data.get("learning_style", LearningStyle.BALANCED.value))
         model.interaction_history = data.get("interaction_history", [])
         model.weakness_areas = data.get("weakness_areas", [])
         model.engagement_score = data.get("engagement_score", 0.5)
@@ -380,9 +358,7 @@ class AdaptiveEngine:
         # 掌握度概览
         mastery_hint = ""
         if profile["top_mastered"]:
-            mastered_str = ", ".join(
-                f"{m['point']}({m['mastery']})" for m in profile["top_mastered"]
-            )
+            mastered_str = ", ".join(f"{m['point']}({m['mastery']})" for m in profile["top_mastered"])
             mastery_hint = f"\n📊 已熟练掌握的知识点：{mastered_str}"
 
         adaptive_prompt = f"""【自适应教学策略 — 基于学生认知画像】
@@ -458,9 +434,7 @@ class AdaptiveEngine:
                 "\n  引导学生从多角度审视问题，培养数学创造力。"
             )
 
-    def classify_interaction(
-        self, user_prompt: str, success: bool = None
-    ) -> InteractionType:
+    def classify_interaction(self, user_prompt: str, success: bool = None) -> InteractionType:
         """从用户输入文本分类互动类型。"""
         prompt_lower = user_prompt.lower()
 
@@ -547,9 +521,7 @@ class StudentModelManager:
 
     def __init__(self, storage_dir: str = None):
         if storage_dir is None:
-            storage_dir = os.path.join(
-                os.path.expanduser("~"), ".mathlab", "student_profiles"
-            )
+            storage_dir = os.path.join(os.path.expanduser("~"), ".mathlab", "student_profiles")
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
         self._models: Dict[str, StudentModel] = {}

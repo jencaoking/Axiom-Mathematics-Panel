@@ -23,9 +23,7 @@ try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastMath
 except Exception as e:
-    print(
-        f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}"
-    )
+    print(f"Warning: Failed to load MathLab.CSharpEngine DLL. Make sure it is built. Error: {e}")
     FastMath = None
 
 
@@ -114,9 +112,7 @@ class CsNumEngine:
         c_b_flat = self._to_double_array_flat(vec_b)
 
         try:
-            res_dict = self._engine.SolveLinearSystemFlat(
-                c_A_flat, rows, cols, c_b_flat
-            )
+            res_dict = self._engine.SolveLinearSystemFlat(c_A_flat, rows, cols, c_b_flat)
 
             # 极速提取：利用 list() 一次性取出一维结果
             x_np = np.array(list(res_dict["x"]), dtype=float)

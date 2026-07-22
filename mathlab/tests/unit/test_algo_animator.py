@@ -10,9 +10,7 @@ import pytest
 from mathlab.core.algo_animator import NX_AVAILABLE
 
 # Skip marker for graph algorithms that require networkx
-requires_networkx = pytest.mark.skipif(
-    not NX_AVAILABLE, reason="networkx not installed"
-)
+requires_networkx = pytest.mark.skipif(not NX_AVAILABLE, reason="networkx not installed")
 
 
 class TestAlgoAnimator:

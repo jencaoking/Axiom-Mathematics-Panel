@@ -25,9 +25,7 @@ try:
     clr.AddReference("MathLab.CSharpEngine")
     from MathLab.CSharpEngine import FastGeometry
 except Exception as e:
-    print(
-        f"Warning: Failed to load MathLab.CSharpEngine DLL or .NET runtime. Error: {e}"
-    )
+    print(f"Warning: Failed to load MathLab.CSharpEngine DLL or .NET runtime. Error: {e}")
     FastGeometry = None
 
 

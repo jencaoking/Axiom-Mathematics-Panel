@@ -58,9 +58,7 @@ class JupyterSandbox:
             from mathlab.utils.config_manager import get_config
 
             jupyter_cfg = get_config("jupyter", {})
-            self._memory_limit_mb = jupyter_cfg.get(
-                "memory_limit_mb", self._MEMORY_LIMIT_MB
-            )
+            self._memory_limit_mb = jupyter_cfg.get("memory_limit_mb", self._MEMORY_LIMIT_MB)
         except Exception:
             self._memory_limit_mb = self._MEMORY_LIMIT_MB
 
@@ -124,9 +122,7 @@ class JupyterSandbox:
 
         except queue.Empty:
             status = "timeout"
-            error_traceback.append(
-                f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。"
-            )
+            error_traceback.append(f"执行超时 (超过 {timeout} 秒被强制中断)。已防止陷入死循环。")
             # 发生严重超时（死循环）时，直接强杀并重启内核
             self.restart_kernel()
 
@@ -306,11 +302,7 @@ class JupyterManager:
                     stderr=subprocess.STDOUT,
                     env=env,
                     # Windows 下隐藏控制台窗口
-                    creationflags=(
-                        getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                        if sys.platform == "win32"
-                        else 0
-                    ),
+                    creationflags=(getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0),
                 )
             except FileNotFoundError:
                 logger.error("无法找到 jupyter 命令，请确认 jupyterlab 已安装。")
@@ -350,9 +342,7 @@ class JupyterManager:
         while time.time() < deadline:
             # 检查进程是否已退出
             if self._process is not None and self._process.poll() is not None:
-                logger.error(
-                    "JupyterLab 进程意外退出，退出码: %s", self._process.poll()
-                )
+                logger.error("JupyterLab 进程意外退出，退出码: %s", self._process.poll())
                 # 读取错误输出
                 try:
                     output = self._process.stdout.read(4096)
@@ -367,9 +357,7 @@ class JupyterManager:
 
             try:
                 req = urllib.request.Request(check_url)
-                with urllib.request.urlopen(
-                    req, timeout=2
-                ) as resp:  # nosec B310 - 已验证仅访问本地地址
+                with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310 - 已验证仅访问本地地址
                     if resp.status == 200:
                         return True
             except (urllib.error.URLError, ConnectionError, OSError):

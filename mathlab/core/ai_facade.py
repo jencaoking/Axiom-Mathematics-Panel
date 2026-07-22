@@ -92,9 +92,7 @@ class AIFacade:
         self.student_model = student_model
         # [修复] 初始化时检查 agent_registry，提前发现问题
         if agent_registry is None:
-            logger.warning(
-                "AIFacade 初始化时 agent_registry 为 None，复杂推理任务将不可用"
-            )
+            logger.warning("AIFacade 初始化时 agent_registry 为 None，复杂推理任务将不可用")
 
     def classify_intent(self, user_prompt: str) -> AITaskType:
         """根据用户输入分类任务类型。

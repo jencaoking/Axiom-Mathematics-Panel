@@ -175,9 +175,7 @@ class TestRankAndCondition:
     def test_identity_condition_number(self, num_engine):
         """单位矩阵条件数应为 1"""
         identity_2x2 = [[1, 0], [0, 1]]
-        assert (
-            pytest.approx(num_engine.condition_number(identity_2x2), abs=1e-10) == 1.0
-        )
+        assert pytest.approx(num_engine.condition_number(identity_2x2), abs=1e-10) == 1.0
 
 
 # ─────────────────────────────────────────────────────────────
@@ -258,17 +256,13 @@ class TestNumericalDoubleIntegral:
     @pytest.mark.unit
     def test_unit_square_area(self, num_engine):
         """∫₀¹∫₀¹ 1 dy dx = 1 (单位正方形面积)"""
-        result = num_engine.numerical_double_integral(
-            lambda y, x: 1.0, 0, 1, lambda x: 0, lambda x: 1
-        )
+        result = num_engine.numerical_double_integral(lambda y, x: 1.0, 0, 1, lambda x: 0, lambda x: 1)
         assert pytest.approx(result["integral"], rel=1e-8) == 1.0
 
     @pytest.mark.unit
     def test_bilinear_function(self, num_engine):
         """∫₀¹∫₀¹ (x + y) dy dx = 1"""
-        result = num_engine.numerical_double_integral(
-            lambda y, x: x + y, 0, 1, lambda x: 0, lambda x: 1
-        )
+        result = num_engine.numerical_double_integral(lambda y, x: x + y, 0, 1, lambda x: 0, lambda x: 1)
         assert pytest.approx(result["integral"], rel=1e-8) == 1.0
 
 

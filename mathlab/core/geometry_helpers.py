@@ -31,9 +31,7 @@ class MagnetSnapper:
             return raw_logical_pos
 
         # 2. 动态计算当前的逻辑阈值 (物理阈值 / 缩放系数)
-        logical_threshold = (
-            self.threshold_px / scale_factor if scale_factor > 0 else 0.001
-        )
+        logical_threshold = self.threshold_px / scale_factor if scale_factor > 0 else 0.001
 
         snapped_x = raw_logical_pos.x()
         snapped_y = raw_logical_pos.y()

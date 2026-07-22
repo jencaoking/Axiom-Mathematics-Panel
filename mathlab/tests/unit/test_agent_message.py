@@ -100,9 +100,7 @@ class TestAgentMessage:
         assert msg.receiver_id == "broadcast"
 
     def test_reply_to_chain(self):
-        original = AgentMessage.create_task_request(
-            sender_id="A", receiver_id="B", task_prompt="任务"
-        )
+        original = AgentMessage.create_task_request(sender_id="A", receiver_id="B", task_prompt="任务")
         reply = AgentMessage.create_task_result(
             sender_id="B",
             receiver_id="A",
@@ -296,11 +294,7 @@ class TestMessageHistory:
                 AgentMessage(
                     sender_id=f"Agent-{i % 3}",
                     receiver_id=f"Receiver-{i % 2}",
-                    msg_type=(
-                        MessageType.NOTIFICATION
-                        if i % 2 == 0
-                        else MessageType.TASK_REQUEST
-                    ),
+                    msg_type=(MessageType.NOTIFICATION if i % 2 == 0 else MessageType.TASK_REQUEST),
                     content=f"msg-{i}",
                     conversation_id=f"conv-{i % 2}",
                 )
@@ -393,9 +387,7 @@ class TestMessageRouter:
                 self.solved = False
                 self.last_prompt = ""
 
-            def solve_problem(
-                self, prompt, on_finish_cb=None, on_geom_cb=None, **kwargs
-            ):
+            def solve_problem(self, prompt, on_finish_cb=None, on_geom_cb=None, **kwargs):
                 self.solved = True
                 self.last_prompt = prompt
                 if on_finish_cb:

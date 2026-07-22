@@ -12,9 +12,7 @@ try:
 except ImportError:
     nx = None
     NX_AVAILABLE = False
-    print(
-        "[Warning] NetworkX is not installed. Graph algorithms (BFS/DFS/Dijkstra) will be disabled."
-    )
+    print("[Warning] NetworkX is not installed. Graph algorithms (BFS/DFS/Dijkstra) will be disabled.")
 
 
 class AlgoAnimator:
@@ -35,9 +33,7 @@ class AlgoAnimator:
             if "arr" not in params:
                 params["arr"] = sorted([random.randint(1, 100) for _ in range(10)])
             if "target" not in params:
-                params["target"] = params["arr"][
-                    random.randint(0, len(params["arr"]) - 1)
-                ]
+                params["target"] = params["arr"][random.randint(0, len(params["arr"]) - 1)]
         elif algorithm_name in ("bfs", "dfs"):
             if "graph" not in params:
                 # [P0修复 Bug2] 调用前检查 nx 是否可用
@@ -60,14 +56,10 @@ class AlgoAnimator:
                         graph[u][v]["weight"] = random.randint(1, 10)
         elif algorithm_name == "convex_hull":
             if "points" not in params:
-                params["points"] = [
-                    (random.randint(0, 100), random.randint(0, 100)) for _ in range(12)
-                ]
+                params["points"] = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(12)]
         elif algorithm_name == "kmeans":
             if "points" not in params:
-                params["points"] = [
-                    (random.randint(0, 100), random.randint(0, 100)) for _ in range(15)
-                ]
+                params["points"] = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(15)]
 
         self.params = params
 
@@ -130,9 +122,7 @@ class AlgoAnimator:
                     "comparing": [j, j + 1],
                     "swapping": [],
                     "sorted": list(range(n - i, n)),
-                    "description": t(
-                        "algo_vis.desc.bubble.comparing", arr[j], arr[j + 1]
-                    ),
+                    "description": t("algo_vis.desc.bubble.comparing", arr[j], arr[j + 1]),
                 }
 
                 if arr[j] > arr[j + 1]:
@@ -144,9 +134,7 @@ class AlgoAnimator:
                         "comparing": [],
                         "swapping": [j, j + 1],
                         "sorted": list(range(n - i, n)),
-                        "description": t(
-                            "algo_vis.desc.bubble.swapped", arr[j + 1], arr[j]
-                        ),
+                        "description": t("algo_vis.desc.bubble.swapped", arr[j + 1], arr[j]),
                     }
 
             if not swapped:
@@ -210,9 +198,7 @@ class AlgoAnimator:
                         "sorted": [],
                         "pivot": high,
                         "partition": (low, high),
-                        "description": t(
-                            "algo_vis.desc.quick.comparing_pivot", arr[j], pivot
-                        ),
+                        "description": t("algo_vis.desc.quick.comparing_pivot", arr[j], pivot),
                     }
 
                     if arr[j] <= pivot:
@@ -227,9 +213,7 @@ class AlgoAnimator:
                                 "sorted": [],
                                 "pivot": high,
                                 "partition": (low, high),
-                                "description": t(
-                                    "algo_vis.desc.quick.swapped", arr[j], arr[i]
-                                ),
+                                "description": t("algo_vis.desc.quick.swapped", arr[j], arr[i]),
                             }
 
                 arr[i + 1], arr[high] = arr[high], arr[i + 1]
@@ -494,11 +478,7 @@ class AlgoAnimator:
         _nodes = list(graph.nodes())
         _edges = [(u, v, graph[u][v]["weight"]) for u, v in graph.edges()]
         adj_list = {
-            n: [
-                (neighbor, graph[n][neighbor]["weight"])
-                for neighbor in graph.neighbors(n)
-            ]
-            for n in graph.nodes()
+            n: [(neighbor, graph[n][neighbor]["weight"]) for neighbor in graph.neighbors(n)] for n in graph.nodes()
         }
 
         distances = {n: float("inf") for n in graph.nodes()}
@@ -548,9 +528,7 @@ class AlgoAnimator:
                         "distances": distances.copy(),
                         "visited": visited.copy(),
                         "current": v,
-                        "description": t(
-                            "algo_vis.desc.dijkstra.updated", v, distances[v]
-                        ),
+                        "description": t("algo_vis.desc.dijkstra.updated", v, distances[v]),
                     }
 
         yield {
@@ -565,9 +543,7 @@ class AlgoAnimator:
 
     def convex_hull_generator(self, points=None):
         if points is None:
-            points = [
-                (random.randint(0, 100), random.randint(0, 100)) for _ in range(12)
-            ]
+            points = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(12)]
 
         points = sorted(points)
 
@@ -636,9 +612,7 @@ class AlgoAnimator:
 
     def kmeans_generator(self, points=None, k=3):
         if points is None:
-            points = [
-                (random.randint(0, 100), random.randint(0, 100)) for _ in range(15)
-            ]
+            points = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(15)]
 
         if k > len(points):
             yield {
@@ -666,10 +640,7 @@ class AlgoAnimator:
             clusters = [[] for _ in range(k)]
 
             for point in points:
-                distances = [
-                    ((point[0] - c[0]) ** 2 + (point[1] - c[1]) ** 2) ** 0.5
-                    for c in centers
-                ]
+                distances = [((point[0] - c[0]) ** 2 + (point[1] - c[1]) ** 2) ** 0.5 for c in centers]
                 cluster_idx = distances.index(min(distances))
                 clusters[cluster_idx].append(point)
 
@@ -681,9 +652,7 @@ class AlgoAnimator:
                     "current_point": point,
                     "assigned_cluster": cluster_idx,
                     "iteration": iteration,
-                    "description": t(
-                        "algo_vis.desc.kmeans.assigning", point, cluster_idx
-                    ),
+                    "description": t("algo_vis.desc.kmeans.assigning", point, cluster_idx),
                 }
 
             new_centers = []
@@ -695,9 +664,7 @@ class AlgoAnimator:
                     )
                 else:
                     new_center = centers[i]
-                    new_centers.append(
-                        new_center
-                    )  # 先 append，再 yield，与非空分支一致
+                    new_centers.append(new_center)  # 先 append，再 yield，与非空分支一致
                     yield {
                         "type": "clustering",
                         "points": points.copy(),
@@ -705,9 +672,7 @@ class AlgoAnimator:
                         "clusters": [list(c) for c in clusters],
                         "updated_center": i,
                         "iteration": iteration,
-                        "description": t(
-                            "algo_vis.desc.kmeans.empty_cluster", i, new_center
-                        ),
+                        "description": t("algo_vis.desc.kmeans.empty_cluster", i, new_center),
                     }
                     continue
                 new_centers.append(new_center)
@@ -719,14 +684,11 @@ class AlgoAnimator:
                     "clusters": [list(c) for c in clusters],
                     "updated_center": i,
                     "iteration": iteration,
-                    "description": t(
-                        "algo_vis.desc.kmeans.updating_center", i, new_center
-                    ),
+                    "description": t("algo_vis.desc.kmeans.updating_center", i, new_center),
                 }
 
             max_distance = max(
-                ((c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2) ** 0.5
-                for c1, c2 in zip(new_centers, centers)
+                ((c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2) ** 0.5 for c1, c2 in zip(new_centers, centers)
             )
             if max_distance < 1e-6:
                 break

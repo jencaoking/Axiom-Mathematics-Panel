@@ -74,11 +74,7 @@ class ProjectManager:
             if file_manager is not None:
                 try:
                     object_types = list(
-                        set(
-                            obj.get("type")
-                            for obj in self.objects.values()
-                            if obj.get("type") is not None
-                        )
+                        set(obj.get("type") for obj in self.objects.values() if obj.get("type") is not None)
                     )
                     file_manager.index.add_entry(
                         file_path,
@@ -101,11 +97,7 @@ class ProjectManager:
 
     def _deep_update(self, target, source):
         for key, value in source.items():
-            if (
-                isinstance(value, dict)
-                and key in target
-                and isinstance(target[key], dict)
-            ):
+            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
                 self._deep_update(target[key], value)
             else:
                 target[key] = value
@@ -121,9 +113,7 @@ class ProjectManager:
             self._update_modified()
 
     def add_console_entry(self, entry):
-        self.console_history.append(
-            {"timestamp": datetime.now().isoformat(), "entry": entry}
-        )
+        self.console_history.append({"timestamp": datetime.now().isoformat(), "entry": entry})
         if len(self.console_history) > 1000:
             self.console_history = self.console_history[-1000:]
 
@@ -190,9 +180,7 @@ class ProjectManager:
                     y1 = coords.get("y1", 0)
                     x2 = coords.get("x2", 0)
                     y2 = coords.get("y2", 0)
-                    prefix = (
-                        r"\overline{" + name + "}" if obj_type == "Segment" else name
-                    )
+                    prefix = r"\overline{" + name + "}" if obj_type == "Segment" else name
                     line = rf"\({prefix}: ({x1},\ {y1}) \to ({x2},\ {y2})\)"
 
             elif obj_type == "Polygon":

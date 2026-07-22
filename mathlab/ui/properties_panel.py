@@ -174,9 +174,7 @@ class PropertiesPanel(QDockWidget):
         self._scroll_area = QScrollArea()
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll_area.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         container = QWidget()
         container.setObjectName("properties_container")
@@ -263,9 +261,7 @@ class PropertiesPanel(QDockWidget):
         self._color_dots: list[_ColorDot] = []
         for hex_col in self.COLORS:
             dot = _ColorDot(hex_col)
-            dot.clicked.connect(
-                lambda checked=False, c=hex_col: self._on_color_clicked(c)
-            )
+            dot.clicked.connect(lambda checked=False, c=hex_col: self._on_color_clicked(c))
             self._color_dots.append(dot)
             color_row.addWidget(dot)
         color_row.addStretch()
@@ -280,12 +276,8 @@ class PropertiesPanel(QDockWidget):
         opacity_row.addWidget(self._opacity_label)
 
         self._opacity_value_label = QLabel("100%")
-        self._opacity_value_label.setStyleSheet(
-            "font-size: 12px; color: #737686; min-width: 36px;"
-        )
-        self._opacity_value_label.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
+        self._opacity_value_label.setStyleSheet("font-size: 12px; color: #737686; min-width: 36px;")
+        self._opacity_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self._opacity_slider = QSlider(Qt.Orientation.Horizontal)
         self._opacity_slider.setRange(0, 100)
@@ -306,12 +298,8 @@ class PropertiesPanel(QDockWidget):
         stroke_row.addWidget(self._stroke_label)
 
         self._stroke_value_label = QLabel("2px")
-        self._stroke_value_label.setStyleSheet(
-            "font-size: 12px; color: #737686; min-width: 36px;"
-        )
-        self._stroke_value_label.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
+        self._stroke_value_label.setStyleSheet("font-size: 12px; color: #737686; min-width: 36px;")
+        self._stroke_value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self._stroke_slider = QSlider(Qt.Orientation.Horizontal)
         self._stroke_slider.setRange(1, 10)
@@ -433,12 +421,10 @@ class PropertiesPanel(QDockWidget):
         value_active = self._value_btn.isChecked()
 
         self._name_btn.setStyleSheet(
-            (active_style if name_active else inactive_style)
-            + f"QPushButton {{ {left_radius} }}"
+            (active_style if name_active else inactive_style) + f"QPushButton {{ {left_radius} }}"
         )
         self._value_btn.setStyleSheet(
-            (active_style if value_active else inactive_style)
-            + f"QPushButton {{ {right_radius} }}"
+            (active_style if value_active else inactive_style) + f"QPushButton {{ {right_radius} }}"
         )
 
     # ──────────────────────────────────────────────────────────────────
@@ -581,10 +567,7 @@ class PropertiesPanel(QDockWidget):
             cy_str = f"{abs(cy):.2f}"
             x_eq_sign = "-" if cx >= 0 else "+"
             y_eq_sign = "-" if cy >= 0 else "+"
-            return (
-                f"(x {x_eq_sign} {cx_str})\u00b2 + "
-                f"(y {y_eq_sign} {cy_str})\u00b2 = {r:.2f}\u00b2"
-            )
+            return f"(x {x_eq_sign} {cx_str})\u00b2 + " f"(y {y_eq_sign} {cy_str})\u00b2 = {r:.2f}\u00b2"
 
         elif obj_type == "Segment":
             x1 = coords.get("x1", 0.0)

@@ -184,16 +184,10 @@ class JupyterPanel(QWidget):
 
         # 配置 WebEngine 安全策略（允许本地 localhost 的混合内容）
         settings = self._browser.page().settings()
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
-        )
+        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True
-        )
-        settings.setAttribute(
-            QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True
-        )
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
 
         # 允许 Jupyter 内部右键菜单正常工作
         self._browser.setContextMenuPolicy(Qt.NoContextMenu)
@@ -211,10 +205,7 @@ class JupyterPanel(QWidget):
             "（PySide6 6.x 版本需要单独安装 WebEngine）"
         )
         lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet(
-            "color: #F0B429; font-size: 14px; padding: 40px;"
-            "background: #1A1A2E; border-radius: 8px;"
-        )
+        lbl.setStyleSheet("color: #F0B429; font-size: 14px; padding: 40px;" "background: #1A1A2E; border-radius: 8px;")
         layout.addWidget(lbl)
 
     # ── 公开 API ─────────────────────────────────────────────────────────────
@@ -328,9 +319,7 @@ class JupyterPanel(QWidget):
 
         try:
             req = urllib.request.Request(api_url)
-            with urllib.request.urlopen(
-                req, timeout=3
-            ) as resp:  # nosec B310 - 已验证仅访问本地地址
+            with urllib.request.urlopen(req, timeout=3) as resp:  # nosec B310 - 已验证仅访问本地地址
                 if resp.status == 200:
                     return (
                         f"服务器 HTTP 正常，但页面加载失败\n"

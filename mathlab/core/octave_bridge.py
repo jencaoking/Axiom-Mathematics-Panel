@@ -132,13 +132,9 @@ class OctaveBridge:
             "ifft": lambda x: self.engine.ifft_transform(x),
             "conv": self.engine.convolve,
             # ── 统计回归 (路由到 NumEngine) ───────────────────────────
-            "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)[
-                "coefficients"
-            ],
+            "polyfit": lambda x, y, n: self.engine.polynomial_fit(x, y, deg=n)["coefficients"],
             "polyval": np.polyval,
-            "__smart_mul__": lambda a, b: (
-                (a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b)
-            ),
+            "__smart_mul__": lambda a, b: ((a * b) if np.isscalar(a) or np.isscalar(b) else (a @ b)),
             # ── ✨ UI 联动：绘图函数（发射 Qt 信号）───────────────────────
             "plot": self._builtin_plot,
             "scatter": self._builtin_scatter,
@@ -171,9 +167,7 @@ class OctaveBridge:
             rows = inner.split(";")
             formatted_rows = []
             for row in rows:
-                elements = [
-                    e.strip() for e in row.replace(",", " ").split() if e.strip()
-                ]
+                elements = [e.strip() for e in row.replace(",", " ").split() if e.strip()]
                 formatted_rows.append("[" + ", ".join(elements) + "]")
 
             if not has_semicolon and len(formatted_rows) == 1:
@@ -234,9 +228,7 @@ class OctaveBridge:
         code = re.sub(r"(^|[^A-Za-z0-9_\]\)])('[^']*')", protect_string, code)
         code = re.sub(
             r'("[^"]*")',
-            lambda m: protect_string(
-                re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))
-            ),
+            lambda m: protect_string(re.match(r"(^|\s|)(" + re.escape(m.group(1)) + ")", m.group(1))),
             code,
         )
 
@@ -341,9 +333,7 @@ class OctaveBridge:
                 exec(compiled, self.env, self.env)
                 # 启发式：如果是简单赋值 "VAR = ..."，返回该变量
                 stripped = python_code.strip()
-                if "=" in stripped and not any(
-                    op in stripped.split("=")[0] for op in ["<", ">", "!", "="]
-                ):
+                if "=" in stripped and not any(op in stripped.split("=")[0] for op in ["<", ">", "!", "="]):
                     var_name = stripped.split("=")[0].strip()
                     if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", var_name):
                         return self.env.get(var_name)
@@ -357,10 +347,7 @@ class OctaveBridge:
                 )
         except Exception as exc:
             raise OctaveBridgeError(
-                f"执行失败。\n"
-                f"  原始代码:   {code!r}\n"
-                f"  翻译后代码: {python_code!r}\n"
-                f"  错误信息:   {exc}"
+                f"执行失败。\n" f"  原始代码:   {code!r}\n" f"  翻译后代码: {python_code!r}\n" f"  错误信息:   {exc}"
             )
 
     def reset(self) -> None:
@@ -437,9 +424,7 @@ class OctaveBridge:
             y = self._to_list(args[1])
 
         if len(x) != len(y):
-            raise OctaveBridgeError(
-                f"plot 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
-            )
+            raise OctaveBridgeError(f"plot 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。")
 
         return self._emit_plot(
             {
@@ -469,9 +454,7 @@ class OctaveBridge:
             y = self._to_list(args[1])
 
         if len(x) != len(y):
-            raise OctaveBridgeError(
-                f"scatter 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。"
-            )
+            raise OctaveBridgeError(f"scatter 数据维度不匹配: x={len(x)} 个点, y={len(y)} 个点。")
 
         return self._emit_plot(
             {

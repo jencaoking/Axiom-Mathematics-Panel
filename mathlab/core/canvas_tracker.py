@@ -132,9 +132,7 @@ class CanvasShadowTracker(QObject):
                     len1 = math.hypot(v1x, v1y)
                     len2 = math.hypot(v2x, v2y)
                     if len1 > 0.01 and len2 > 0.01 and abs(dot) < 0.01:
-                        insights.append(
-                            f"Segment {a[0]}{b[0]} is perpendicular to {c[0]}{d[0]}"
-                        )
+                        insights.append(f"Segment {a[0]}{b[0]} is perpendicular to {c[0]}{d[0]}")
 
         # ── 3. 检测等边三角形 ──
         if len(pt_list) >= 3:
@@ -145,9 +143,7 @@ class CanvasShadowTracker(QObject):
                 d_bc = math.hypot(c[1] - b[1], c[2] - b[2])
                 d_ca = math.hypot(a[1] - c[1], a[2] - c[2])
                 if d_ab > 0.01 and abs(d_ab - d_bc) < 0.05 and abs(d_bc - d_ca) < 0.05:
-                    insights.append(
-                        f"Points {a[0]}, {b[0]}, {c[0]} form an equilateral triangle"
-                    )
+                    insights.append(f"Points {a[0]}, {b[0]}, {c[0]} form an equilateral triangle")
 
         # ── 4. 检测直角三角形（勾股定理） ──
         if len(pt_list) >= 3:
@@ -162,9 +158,7 @@ class CanvasShadowTracker(QObject):
                 if sides[0] > 0.01:
                     # 检查 a² + b² ≈ c²
                     if abs(sides[0] ** 2 + sides[1] ** 2 - sides[2] ** 2) < 0.1:
-                        insights.append(
-                            f"Points {a[0]}, {b[0]}, {c[0]} form a right triangle"
-                        )
+                        insights.append(f"Points {a[0]}, {b[0]}, {c[0]} form a right triangle")
 
         # ── 5. 检测等距点对 ──
         if len(pt_list) >= 2:

@@ -12,9 +12,7 @@ class MatrixPanelWidget(QWidget):
         layout = QVBoxLayout(self)
 
         self.label = QLabel("矩阵工具插件面板")
-        self.label.setStyleSheet(
-            "font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #ffffff;"
-        )
+        self.label.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #ffffff;")
         layout.addWidget(self.label)
 
         self.btn_inject = QPushButton("注入 3x3 单位矩阵 (I3)")

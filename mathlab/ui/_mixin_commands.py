@@ -344,15 +344,9 @@ class CommandsMixin:
                 "模板",
             )
         )  # noqa: E272,E241
-        reg(
-            C("tpl.diff", "插入模板: 导数", lambda: _insert("diff(f, x)"), "模板")
-        )  # noqa: E272,E241
-        reg(
-            C("tpl.limit", "插入模板: 极限", lambda: _insert("limit(f, x, 0)"), "模板")
-        )  # noqa: E272,E241
-        reg(
-            C("tpl.solve", "插入模板: 方程求解", lambda: _insert("solve(f, x)"), "模板")
-        )  # noqa: E272,E241
+        reg(C("tpl.diff", "插入模板: 导数", lambda: _insert("diff(f, x)"), "模板"))  # noqa: E272,E241
+        reg(C("tpl.limit", "插入模板: 极限", lambda: _insert("limit(f, x, 0)"), "模板"))  # noqa: E272,E241
+        reg(C("tpl.solve", "插入模板: 方程求解", lambda: _insert("solve(f, x)"), "模板"))  # noqa: E272,E241
         reg(
             C(
                 "tpl.matrix",

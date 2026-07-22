@@ -61,9 +61,7 @@ class ComplexPanel(QWidget):
 
     def _render_task(self, x_min, x_max, y_min, y_max, width, height, max_iter):
         """此方法在子线程 (QThreadPool) 中执行，吃满 CPU 进行高强度复数计算"""
-        rgb_matrix = cs_complex.generate_smooth_mandelbrot(
-            x_min, x_max, y_min, y_max, width, height, max_iter=max_iter
-        )
+        rgb_matrix = cs_complex.generate_smooth_mandelbrot(x_min, x_max, y_min, y_max, width, height, max_iter=max_iter)
         return rgb_matrix, width, height
 
     def _on_render_success(self, result):
@@ -74,9 +72,7 @@ class ComplexPanel(QWidget):
         # 终极魔法：NumPy RGB 矩阵直接封送为 QImage
         # 注意：必须保持 numpy array 的引用，否则 QImage 可能会崩溃。
         # 我们这里把 rgb_matrix 绑定到 _current_qimage 对象上。
-        self._current_qimage = QImage(
-            rgb_matrix.data, width, height, bytes_per_line, QImage.Format_RGB888
-        )
+        self._current_qimage = QImage(rgb_matrix.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self._current_qimage.ndarray = rgb_matrix  # 强引用，防 GC
 
         self.image_label.setPixmap(QPixmap.fromImage(self._current_qimage))

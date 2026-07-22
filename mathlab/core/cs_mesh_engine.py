@@ -31,9 +31,7 @@ class CsMeshEngine:
             raise RuntimeError("C# Engine DLL is not loaded.")
         self._engine = FastMesh3D()
 
-    def get_ripple_mesh_data(
-        self, x_range, y_range, x_seg=150, y_seg=150, time_val=0.0, freq=2.0
-    ):
+    def get_ripple_mesh_data(self, x_range, y_range, x_seg=150, y_seg=150, time_val=0.0, freq=2.0):
         """
         生成一维展平的顶点列表，供前端 WebGL 消费
         """

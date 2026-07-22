@@ -39,9 +39,7 @@ class AlgebraItemWidget(QFrame):
             """)
             self.editor.returnPressed.connect(self._on_enter_pressed)
         else:
-            self.editor.setStyleSheet(
-                "QLineEdit { background: transparent; color: #858585; border: none; }"
-            )
+            self.editor.setStyleSheet("QLineEdit { background: transparent; color: #858585; border: none; }")
 
         layout.addWidget(self.lbl_name)
         layout.addWidget(self.editor)
@@ -80,9 +78,7 @@ class GeoGebraAlgebraPanel(QWidget):
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet(
-            "QScrollArea { border: none; background-color: #1e1e1e; }"
-        )
+        self.scroll_area.setStyleSheet("QScrollArea { border: none; background-color: #1e1e1e; }")
 
         self.list_container = QWidget()
         self.list_container.setStyleSheet("background-color: #1e1e1e;")
@@ -104,9 +100,7 @@ class GeoGebraAlgebraPanel(QWidget):
                 self.item_widgets[entity_id].update_text_silently(text)
             else:
                 is_editable = not entity.parents
-                item_widget = AlgebraItemWidget(
-                    entity_id, entity.name, is_editable, text
-                )
+                item_widget = AlgebraItemWidget(entity_id, entity.name, is_editable, text)
 
                 item_widget.value_changed_by_user.connect(self.user_edit_requested.emit)
 

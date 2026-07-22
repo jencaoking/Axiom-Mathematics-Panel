@@ -3,9 +3,7 @@ import json
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
 
-SETTINGS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json"
-)
+SETTINGS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json")
 
 
 def load_settings() -> dict:

@@ -13,11 +13,7 @@ class LatexChatWidget(QWebEngineView):
         super().__init__(parent)
 
         # 加载刚才写好的 HTML 引擎
-        html_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__), "..", "resources", "chat_renderer.html"
-            )
-        )
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "resources", "chat_renderer.html"))
         self.setUrl(QUrl.fromLocalFile(html_path))
 
         # 维护一份纯净的聊天记录结构，用于整体重绘防撕裂
@@ -80,9 +76,7 @@ class LatexChatWidget(QWebEngineView):
 
         # 组装注入脚本，让前端解析刚才塞入的 data-raw 属性
         # [BUG修复] 转义反引号和 ${} 防止 JS 注入
-        safe_html = (
-            full_html.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
-        )
+        safe_html = full_html.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
         js_code = f"""
         (function() {{
             let rawHtml = `{safe_html}`;

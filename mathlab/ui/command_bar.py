@@ -97,9 +97,7 @@ class CommandPalette(QWidget):
     """
 
     def __init__(self, command_manager: CommandManager, parent: QWidget = None):
-        super().__init__(
-            parent, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-        )
+        super().__init__(parent, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setFixedSize(620, 440)
 
@@ -147,9 +145,7 @@ class CommandPalette(QWidget):
         # 分隔线
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet(
-            "background:#3a3b4e; min-height:1px; max-height:1px; border:none;"
-        )
+        sep.setStyleSheet("background:#3a3b4e; min-height:1px; max-height:1px; border:none;")
         frame_layout.addWidget(sep)
 
         # ── 结果列表 ───────────────────────────────────────────
@@ -307,9 +303,7 @@ class CommandPalette(QWidget):
 
         # 图标占位（可后期换成真实图标）
         icon_lbl = QLabel("›")
-        icon_lbl.setStyleSheet(
-            "background: transparent; color: #5a5c78; font-size: 14px; min-width:16px;"
-        )
+        icon_lbl.setStyleSheet("background: transparent; color: #5a5c78; font-size: 14px; min-width:16px;")
         icon_lbl.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_lbl)
 
@@ -317,16 +311,12 @@ class CommandPalette(QWidget):
         text_col = QVBoxLayout()
         text_col.setSpacing(1)
         title_lbl = QLabel(cmd.title)
-        title_lbl.setStyleSheet(
-            "background: transparent; color: #e8eaf0; font-size: 13px;"
-        )
+        title_lbl.setStyleSheet("background: transparent; color: #e8eaf0; font-size: 13px;")
         text_col.addWidget(title_lbl)
 
         if cmd.description:
             desc_lbl = QLabel(cmd.description)
-            desc_lbl.setStyleSheet(
-                "background: transparent; color: #6b6d84; font-size: 11px;"
-            )
+            desc_lbl.setStyleSheet("background: transparent; color: #6b6d84; font-size: 11px;")
             text_col.addWidget(desc_lbl)
 
         layout.addLayout(text_col)
@@ -427,8 +417,7 @@ class CommandBar(QToolBar):
         from mathlab.utils.i18n_manager import get_i18n
 
         self.command_edit.setPlaceholderText(
-            get_i18n().t("command_bar.placeholder")
-            or "Enter command (Ctrl+Shift+P to open Command Palette)"
+            get_i18n().t("command_bar.placeholder") or "Enter command (Ctrl+Shift+P to open Command Palette)"
         )
         self.command_edit.setStyleSheet("""
             QLineEdit {

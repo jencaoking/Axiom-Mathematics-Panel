@@ -56,10 +56,7 @@ class ChatMemoryManager:
         self.history = system_msgs + non_system_msgs
 
         # 2. 按字符数裁剪（优先删除最老的普通消息，保留 system 和 tool 消息）
-        while (
-            sum(len(str(m.get("content", ""))) for m in self.history) > self.max_chars
-            and len(self.history) > 2
-        ):
+        while sum(len(str(m.get("content", ""))) for m in self.history) > self.max_chars and len(self.history) > 2:
             # 找到第一个可以删除的消息（非 system、非 tool）
             deleted = False
             for i, msg in enumerate(self.history):

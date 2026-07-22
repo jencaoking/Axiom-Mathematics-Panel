@@ -28,9 +28,7 @@ class ThreeJSBridge(QObject):
     @Slot(int)
     def on_mesh_ready(self, vertex_count: int):
         """当 Three.js 网格构建完毕时，JS 会回调此方法"""
-        self.api.print_to_console(
-            f"[3D Engine ✅] 网格渲染完成，共 {vertex_count:,} 个顶点。", "info"
-        )
+        self.api.print_to_console(f"[3D Engine ✅] 网格渲染完成，共 {vertex_count:,} 个顶点。", "info")
         self.on_render_complete.emit(vertex_count)
 
     # 👇 新增：接收 Three.js 中鼠标拖拽点的实时坐标
@@ -49,8 +47,6 @@ class ThreeJSBridge(QObject):
                 # 因为引擎的 update_point 内部会自动触发下游物体的更新
                 updated_obj = self.api.geometry_engine.get_object(obj_id)
                 if updated_obj:
-                    self.api.geometry_engine._notify(
-                        "object_updated", updated_obj.serialize()
-                    )
+                    self.api.geometry_engine._notify("object_updated", updated_obj.serialize())
         finally:
             self._is_syncing_from_js = False

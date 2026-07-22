@@ -132,14 +132,9 @@ class PythonREPL:
             return []
         try:
             # 沙箱模式下传入空命名空间，仅提供基础补全
-            interpreter = jedi.Interpreter(
-                code_str, namespaces=[{"__builtins__": __builtins__}]
-            )
+            interpreter = jedi.Interpreter(code_str, namespaces=[{"__builtins__": __builtins__}])
             completions = interpreter.complete(line, column)
-            return [
-                {"name": c.name, "type": c.type, "description": c.description}
-                for c in completions
-            ]
+            return [{"name": c.name, "type": c.type, "description": c.description} for c in completions]
         except Exception as e:
             logger.debug("Jedi 代码补全异常: %s", e)
             return []

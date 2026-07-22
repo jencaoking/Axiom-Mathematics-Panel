@@ -83,9 +83,7 @@ class Ellipse(GeometricObject):
                 "a": self.a,
                 "b": self.b,
                 "rotation": self.rotation,
-                "points": self._generate_ellipse_points(
-                    cx, cy, self.a, self.b, self.rotation
-                ),
+                "points": self._generate_ellipse_points(cx, cy, self.a, self.b, self.rotation),
             }
 
     def to_latex(self):
@@ -114,9 +112,7 @@ class Ellipse(GeometricObject):
         data["b"] = self.b
         data["rotation"] = self.rotation
         if "coordinates" in data and "points" in data["coordinates"]:
-            data["coordinates"] = {
-                k: v for k, v in data["coordinates"].items() if k != "points"
-            }
+            data["coordinates"] = {k: v for k, v in data["coordinates"].items() if k != "points"}
         return data
 
 
@@ -167,9 +163,7 @@ class Hyperbola(GeometricObject):
         data["b"] = self.b
         data["rotation"] = self.rotation
         if "coordinates" in data and "points" in data["coordinates"]:
-            data["coordinates"] = {
-                k: v for k, v in data["coordinates"].items() if k != "points"
-            }
+            data["coordinates"] = {k: v for k, v in data["coordinates"].items() if k != "points"}
         return data
 
 
@@ -209,9 +203,7 @@ class Parabola(GeometricObject):
         data["p"] = self.p
         data["direction"] = self.direction
         if "coordinates" in data and "points" in data["coordinates"]:
-            data["coordinates"] = {
-                k: v for k, v in data["coordinates"].items() if k != "points"
-            }
+            data["coordinates"] = {k: v for k, v in data["coordinates"].items() if k != "points"}
         return data
 
 
@@ -295,9 +287,7 @@ class ConicSection(GeometricObject):
                 # 避免重复点（当 y1 ≈ y2 时）
                 distinct = in_range2 & (np.abs(y2 - y1) > 1e-6)
                 if np.any(distinct):
-                    points += list(
-                        zip(x_valid[distinct].tolist(), y2[distinct].tolist())
-                    )
+                    points += list(zip(x_valid[distinct].tolist(), y2[distinct].tolist()))
 
             self.points_data = points
             self.coordinates = {"points": points}

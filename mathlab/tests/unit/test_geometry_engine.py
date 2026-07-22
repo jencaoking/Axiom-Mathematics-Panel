@@ -213,27 +213,21 @@ class TestFunctionPlots:
 
     @pytest.mark.unit
     def test_sine_function(self, engine):
-        func_id = engine.add_function_plot(
-            "sin(x)", x_range=(-6.28, 6.28), num_points=300
-        )
+        func_id = engine.add_function_plot("sin(x)", x_range=(-6.28, 6.28), num_points=300)
         func = engine.get_object(func_id)
         assert func is not None
         assert len(func.points_data) > 0
 
     @pytest.mark.unit
     def test_implicit_plot(self, engine):
-        impl_id = engine.add_implicit_plot(
-            "x**2 + y**2 - 1", x_range=(-2, 2), y_range=(-2, 2)
-        )
+        impl_id = engine.add_implicit_plot("x**2 + y**2 - 1", x_range=(-2, 2), y_range=(-2, 2))
         impl = engine.get_object(impl_id)
         assert impl is not None
         assert len(impl.points_data) > 0
 
     @pytest.mark.unit
     def test_polar_plot(self, engine):
-        polar_id = engine.add_polar_plot(
-            "2*cos(theta)", theta_range=(0, 2 * np.pi), num_points=300
-        )
+        polar_id = engine.add_polar_plot("2*cos(theta)", theta_range=(0, 2 * np.pi), num_points=300)
         polar = engine.get_object(polar_id)
         assert polar is not None
         assert len(polar.points_data) > 0
