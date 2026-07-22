@@ -748,7 +748,7 @@ class ResourceConfig:
 
 class BaseMathAgent:
     def __init__(self, ai_manager, model="deepseek-chat", model_override=None,
-                 resource_config=None, student_model=None):
+                 resource_config=None, student_model=None, agent_id=None):
         self.ai_manager = ai_manager
         self.model = model
         # 模型多样性：允许每个 Agent 使用不同的模型
@@ -766,7 +766,49 @@ class BaseMathAgent:
         if student_model is not None:
             from mathlab.core.student_model import AdaptiveEngine
             self._adaptive_engine = AdaptiveEngine(student_model)
+        # 结构化通信协议：Agent ID 和消息总线
+        self.agent_id = agent_id or self.__class__.__name__
+        self._message_bus = None
+        self._conversation_id = None
         self.system_prompt = "你是一个资深的数学科研助手与高级 Python 程序员。\n请通过 Thought, Action, Observation 闭环结构的计算过程解决问题。"  # noqa: E501
+
+    def set_message_bus(self, message_bus):
+        """绑定消息总线实例（由 AgentRegistry 在注册时调用）。"""
+        self._message_bus = message_bus
+
+    def send_message(
+        self,
+        receiver_id: str,
+        msg_type,
+        content,
+        **metadata,
+    ) -> Optional[str]:
+        """通过消息总线发送结构化消息。
+
+        Args:
+            receiver_id: 接收方 Agent ID（"broadcast" 表示广播）
+            msg_type: MessageType 枚举值
+            content: 消息内容
+            **metadata: 元数据（如 step_num, cognitive_level 等）
+
+        Returns:
+            消息 ID（如果发送成功），None 如果消息总线未绑定
+        """
+        if self._message_bus is None:
+            logger.debug(f"Agent '{self.agent_id}' 消息总线未绑定，跳过消息发送")
+            return None
+
+        from mathlab.core.agent_message import AgentMessage
+        msg = AgentMessage(
+            sender_id=self.agent_id,
+            receiver_id=receiver_id,
+            msg_type=msg_type,
+            content=content,
+            metadata=metadata,
+            conversation_id=self._conversation_id,
+        )
+        self._message_bus.publish(msg)
+        return msg.id
 
     def _get_effective_model(self):
         """获取当前 Agent 实际使用的模型：优先 model_override，其次 ai_manager.current_model"""
@@ -1136,6 +1178,21 @@ class PlannerAgent(BaseMathAgent):
                 on_finish_cb(False, "未配置 API Key")
             return {"status": "failed", "error": "未配置 API Key"}
 
+        # 生成会话 ID，关联本轮对话的所有 Agent 间消息
+        import uuid as _uuid
+        self._conversation_id = str(_uuid.uuid4())[:8]
+
+        # 通过消息总线广播教学任务开始
+        if self._message_bus:
+            from mathlab.core.agent_message import MessageType
+            self.send_message(
+                receiver_id="broadcast",
+                msg_type=MessageType.NOTIFICATION,
+                content=f"教学任务启动: {user_prompt[:50]}",
+                conversation_id=self._conversation_id,
+                topic="数学教学",
+            )
+
         # ========== 阶段 1: 拆解教学大纲 ==========
         if on_thought_cb:
             on_thought_cb("🧠 教研组长正在分析问题，制定教学大纲...")
@@ -1226,6 +1283,19 @@ class PlannerAgent(BaseMathAgent):
                 if hint:
                     on_thought_cb(f"  💡 提示：{hint}")
 
+            # 通过消息总线发送任务请求消息
+            if self._message_bus:
+                from mathlab.core.agent_message import MessageType
+                self.send_message(
+                    receiver_id=agent_key,
+                    msg_type=MessageType.TASK_REQUEST,
+                    content=sub_prompt,
+                    step_num=num,
+                    cognitive_level=cognitive_level,
+                    topic=topic,
+                    conversation_id=self._conversation_id,
+                )
+
             if sub_info is None:
                 if on_thought_cb:
                     on_thought_cb(f"  ⚠️ 子 Agent「{agent_key}」未注册，正在自行执行...")
@@ -1291,6 +1361,18 @@ class PlannerAgent(BaseMathAgent):
             except Exception as e:
                 if on_thought_cb:
                     on_thought_cb(f"  ❌ 子 Agent「{agent_name}」执行异常: {e}")
+
+            # 通过消息总线发送任务进度消息
+            if self._message_bus:
+                from mathlab.core.agent_message import MessageType
+                self.send_message(
+                    receiver_id="broadcast",
+                    msg_type=MessageType.TASK_PROGRESS,
+                    content=f"步骤 {num} 完成: {title} ({'成功' if step_result['success'] else '失败'})",
+                    step_num=num,
+                    success=step_result["success"],
+                    conversation_id=self._conversation_id,
+                )
 
             return (num, step_result["success"], step_result["code"],
                     step_result["geom"])

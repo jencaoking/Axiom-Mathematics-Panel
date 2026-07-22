@@ -98,6 +98,11 @@ class AgentRegistry:
         self.student_model = student_model  # 学生认知模型（自适应学习）
         self.agents = {}  # 存放所有已注册的专家 Agent
         self._execution_timeout = 300  # [修复] 整体执行超时时间（秒）
+        # 结构化通信协议：消息总线与路由器
+        from mathlab.core.agent_message import get_message_bus, get_message_router
+        self.message_bus = get_message_bus()
+        self.message_router = get_message_router()
+        self.message_router.agent_registry = self
 
     def register_agent(self, name, description, agent_instance):
         """注册一个专家 Agent 及其能力描述"""
@@ -105,6 +110,14 @@ class AgentRegistry:
             logger.warning(f"⚠️ 专家 {name} 已存在，正在被覆盖注册！")
 
         self.agents[name] = {"description": description, "instance": agent_instance}
+
+        # 注册到消息总线，为 Agent 创建消息邮箱
+        self.message_router.register_agent(name, agent_instance)
+
+        # 绑定消息总线到 Agent 实例，使其可以主动发送消息
+        if hasattr(agent_instance, "set_message_bus"):
+            agent_instance.set_message_bus(self.message_bus)
+            agent_instance.agent_id = name
 
         # 修复 Bug 2: 尝试打通动态注册系统与静态名片表 (_AGENT_PROFILES)
         matched_key = None
@@ -132,6 +145,9 @@ class AgentRegistry:
                 instance.cleanup()
             except Exception as e:
                 logger.warning(f"清理 Agent {name} 资源时出错: {e}")
+
+        # 从消息总线注销
+        self.message_bus.unsubscribe(name)
 
         del self.agents[name]
         # 从静态名片表中移除（仅限动态添加的）
