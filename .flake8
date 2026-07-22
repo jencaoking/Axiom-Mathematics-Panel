@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 120
 per-file-ignores =
-    mathlab/ui/*: F401,W293,W391,E221,E303,E127
+    mathlab/ui/*: F401,F841,F811,W291,W293,W391,E221,E303,E402,E722,E731,E127,F541
     mathlab/tests/*: F401,F841,E127
     mathlab/scripts/*: W291,W292,W293

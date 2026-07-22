@@ -20,6 +20,7 @@ from .function_explorer_panel import FunctionExplorerPanel
 from .animations import fade_in, fade_out
 from .math_console import MathConsole
 from .notebook_panel import NotebookPanel
+from .command_bar import CommandPalette
 
 # Soft dependencies
 try:

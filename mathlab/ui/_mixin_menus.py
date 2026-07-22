@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QToolBar,
     QPushButton,
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt, QSize
 
 from .signal_lab_panel import SignalLabPanel
