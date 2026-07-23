@@ -31,10 +31,26 @@ class I18nManager:
         self._lookup_cache: dict = {}  # {(lang, key): raw_value} — 翻译键查找缓存
 
         self._load_translations()
+        self._restore_language_from_config()
 
     # ------------------------------------------------------------------
     # Translation loading
     # ------------------------------------------------------------------
+    def _restore_language_from_config(self):
+        """从配置文件恢复用户上次保存的语言设置。
+
+        避免重启后语言回到默认值的问题。
+        """
+        try:
+            from mathlab.utils.config_manager import get_config
+
+            saved_lang = get_config("language")
+            if saved_lang and saved_lang in SUPPORTED_LANGUAGES:
+                self.current_language = saved_lang
+                print(f"[I18n] Restored language from config: {saved_lang}")
+        except Exception as e:
+            print(f"[I18n] Failed to restore language from config: {e}")
+
     def _load_translations(self):
         # 🚨 动态判断运行环境
         if getattr(sys, "frozen", False):
@@ -74,8 +90,21 @@ class I18nManager:
             return True
         self.current_language = lang_code
         self._lookup_cache.clear()  # 语言切换时清空缓存
+        self._save_language_to_config(lang_code)
         self._notify_listeners(lang_code)
         return True
+
+    def _save_language_to_config(self, lang_code: str):
+        """将语言设置保存到配置文件，确保重启后生效。"""
+        try:
+            from mathlab.utils.config_manager import get_config, save_config
+
+            config = get_config()
+            config["language"] = lang_code
+            save_config(config)
+            print(f"[I18n] Language saved to config: {lang_code}")
+        except Exception as e:
+            print(f"[I18n] Failed to save language to config: {e}")
 
     def get_language(self) -> str:
         return self.current_language

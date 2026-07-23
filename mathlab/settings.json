@@ -1,3 +1,21 @@
 {
-    "theme": "light"
+  "ipc": {
+    "server_port": 45678,
+    "client_port": 45679
+  },
+  "ai_api_key": "",
+  "ai_base_url": "https://api.deepseek.com/v1",
+  "ai_model": "deepseek-chat",
+  "sandbox": {
+    "timeout": 30,
+    "memory_limit_mb": 256
+  },
+  "jupyter": {
+    "port_start": 8888,
+    "port_end": 8999,
+    "start_timeout": 30,
+    "memory_limit_mb": 512
+  },
+  "theme": "light",
+  "language": "en"
 }
