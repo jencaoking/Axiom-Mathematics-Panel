@@ -14,12 +14,13 @@ jupyter_datas += collect_data_files('notebook')
 jupyter_datas += collect_data_files('ipykernel')
 
 # ── 1. 动态收集本地依赖的静态资源 (极其关键) ───────────────────────────────────
+# 注意：路径相对于项目根目录（build_spec.spec 所在位置）
 app_datas = [
-    ('locale', 'locale'),           # 多语言文件
-    ('ui/styles.qss', 'ui'),         # 全局样式
-    ('ui/icons', 'ui/icons'),       # SVG 图标
-    ('docs', 'docs'),               # 文档
-    ('resources', 'resources'),     # 资源文件
+    ('mathlab/locale', 'mathlab/locale'),           # 多语言文件
+    ('mathlab/ui/styles.qss', 'mathlab/ui'),         # 全局样式
+    ('mathlab/ui/icons', 'mathlab/ui/icons'),       # SVG 图标
+    ('mathlab/docs', 'mathlab/docs'),               # 文档
+    ('mathlab/resources', 'mathlab/resources'),     # 资源文件
 ] + jupyter_datas
 
 # 动态遍历 plugins 目录，把所有 Web 前端工程都打包进去
@@ -55,7 +56,7 @@ EXCLUDES = [
     'matplotlib.backends.backend_wx',
     'matplotlib.backends.backend_wxagg',
 
-    # PySide6 未使用模块
+    # PySide6 未使用模块（保留 WebEngine 相关模块）
     'PySide6.Qt3DAnimation',
     'PySide6.Qt3DCore',
     'PySide6.Qt3DExtras',
@@ -120,10 +121,7 @@ EXCLUDES = [
     'sklearn.manifold',
     'sklearn.decomposition',
 
-    # 其他无关库
-    'IPython',
-    'jupyter',
-    'notebook',
+    # 其他无关库（保留 IPython/jupyter/notebook，这些在 hiddenimports 中需要）
     'nbformat',
     'sphinx',
     'docutils',

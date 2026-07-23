@@ -6,13 +6,23 @@ import traceback
 # PyInstaller打包后路径处理
 if getattr(sys, "frozen", False):
     # exe运行模式
-    application_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
-    _CRASH_LOG_DIR = os.path.dirname(sys.executable)
+    # ONEDIR模式下：sys.executable 是 dist/MathLab/MathLab.exe
+    # 资源文件被打包到 dist/MathLab/mathlab/ 下
+    exe_dir = os.path.dirname(sys.executable)
+    application_path = os.path.join(exe_dir, "mathlab")
+    _CRASH_LOG_DIR = exe_dir
 
     # 修复 QtWebEngineProcess 找不到 PySide6 内部 DLL 的系统错误弹窗
-    pyside_dir = os.path.join(getattr(sys, "_MEIPASS", ""), "PySide6")
-    os.environ["PATH"] = pyside_dir + os.pathsep + os.environ.get("PATH", "")
-    os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(pyside_dir, "QtWebEngineProcess.exe")
+    # 在 ONEDIR 模式下，PySide6 在 exe_dir 下（与 exe 同级）
+    pyside_dir = os.path.join(exe_dir, "PySide6")
+    if os.path.exists(pyside_dir):
+        os.environ["PATH"] = pyside_dir + os.pathsep + os.environ.get("PATH", "")
+        os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(pyside_dir, "QtWebEngineProcess.exe")
+    # _MEIPASS 仅在 ONEFILE 模式下存在
+    elif hasattr(sys, "_MEIPASS"):
+        pyside_dir = os.path.join(sys._MEIPASS, "PySide6")
+        os.environ["PATH"] = pyside_dir + os.pathsep + os.environ.get("PATH", "")
+        os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(pyside_dir, "QtWebEngineProcess.exe")
 else:
     # 开发模式
     application_path = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +30,26 @@ else:
 
 mathlab_dir = application_path
 sys.path.insert(0, application_path)
+
+
+def _show_error_dialog(message):
+    """在 GUI 线程中显示错误对话框（console=False 时用户唯一能看到错误的方式）"""
+    try:
+        from PySide6.QtWidgets import QMessageBox, QApplication
+
+        # 确保有 QApplication 实例
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setWindowTitle("MathLab 启动失败")
+        msg_box.setText(message)
+        msg_box.exec()
+    except Exception:
+        # 如果 Qt 也失败了，就只能写日志了
+        pass
 
 
 def _write_crash_log(exc_type, exc_value, exc_tb):
@@ -39,6 +69,14 @@ def _write_crash_log(exc_type, exc_value, exc_tb):
         f.write(tb_str)
     # 同时打印到 stderr（开发模式可见）
     print(tb_str, file=sys.stderr)
+
+    # 在 GUI 模式下显示错误对话框
+    _show_error_dialog(
+        f"MathLab 启动失败！\n\n"
+        f"错误信息: {exc_value}\n\n"
+        f"详细日志已保存到:\n{crash_file}\n\n"
+        f"请检查日志文件以获取更多信息。"
+    )
 
 
 # ── 第一步：最早期初始化全局日志系统 ──────────────────────────────────────────
