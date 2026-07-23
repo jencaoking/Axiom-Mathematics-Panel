@@ -35,7 +35,7 @@ sys.path.insert(0, application_path)
 def _show_error_dialog(message):
     """在 GUI 线程中显示错误对话框（console=False 时用户唯一能看到错误的方式）"""
     try:
-        from PySide6.QtWidgets import QMessageBox, QApplication
+        from PySide6.QtWidgets import QApplication, QMessageBox
 
         # 确保有 QApplication 实例
         app = QApplication.instance()
