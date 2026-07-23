@@ -216,9 +216,9 @@ if __name__ == "__main__":
         if sys.argv[1] == "-m" and len(sys.argv) >= 3 and sys.argv[2] == "jupyter":
             # 调整 sys.argv 为 jupyter 期望的格式
             sys.argv = ["jupyter"] + sys.argv[3:]
-            from jupyterlab.labapp import main
+            from jupyterlab.labapp import main as jupyter_main
 
-            main()
+            jupyter_main()
             sys.exit(0)
         # 拦截 Jupyter kernel 的启动 (-m ipykernel_launcher)
         if sys.argv[1] == "-m" and len(sys.argv) >= 3 and sys.argv[2] == "ipykernel_launcher":

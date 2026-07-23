@@ -180,11 +180,7 @@ class GeometryPointItem(QGraphicsEllipseItem):
                 logical_threshold = 5.0 / scale_factor if scale_factor > 0 else 0.01
 
                 # 性能优化：从缓存的点图元集合中提取，避免遍历全部场景对象
-                other_points = [
-                    item.scenePos()
-                    for item in self.canvas._point_item_set
-                    if item != self
-                ]
+                other_points = [item.scenePos() for item in self.canvas._point_item_set if item != self]
 
                 # 调用绘制
                 manager.draw_guides(
@@ -210,11 +206,7 @@ class GeometryPointItem(QGraphicsEllipseItem):
                 scale_factor = view.transform().m11()
 
                 # 性能优化：从缓存的点图元集合中提取，避免遍历全部场景对象
-                other_points = [
-                    item.scenePos()
-                    for item in self.canvas._point_item_set
-                    if item != self
-                ]
+                other_points = [item.scenePos() for item in self.canvas._point_item_set if item != self]
 
                 # 送入引擎，计算最终修饰过的吸附坐标
                 snapped_pos = snapper.snap(

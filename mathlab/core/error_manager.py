@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import sys
-import tempfile
 import traceback
 
 from PySide6.QtCore import QObject, QTimer
@@ -192,9 +191,7 @@ class AutoSaver(QObject):
             if os.path.exists(self.autosave_file):
                 file_size = os.path.getsize(self.autosave_file)
                 if file_size > self._MAX_AUTOSAVE_SIZE:
-                    logger.warning(
-                        f"自动保存文件过大 ({file_size/1024/1024:.1f}MB)，已清理"
-                    )
+                    logger.warning(f"自动保存文件过大 ({file_size / 1024 / 1024:.1f}MB)，已清理")
                     os.remove(self.autosave_file)
 
             if hasattr(self.main_window, "project_manager") and self.main_window.project_manager:

@@ -691,7 +691,9 @@ class PreferencesDialog(QDialog):
         self.ai_provider_combo.currentIndexChanged.connect(self._on_ai_provider_changed)
 
         self.ai_base_url_input = QLineEdit()
-        self.ai_base_url_input.setPlaceholderText(t("preferences.ai_base_url_placeholder") or "例如: https://api.deepseek.com/v1")
+        self.ai_base_url_input.setPlaceholderText(
+            t("preferences.ai_base_url_placeholder") or "例如: https://api.deepseek.com/v1"
+        )
         self.ai_base_url_input.setStyleSheet(
             "min-height: 32px; padding: 0 10px; border: 1px solid #c3c6d7; " "border-radius: 4px; background: white;"
         )
@@ -716,7 +718,10 @@ class PreferencesDialog(QDialog):
 
         section_layout.addLayout(form)
 
-        tip_label = QLabel(t("preferences.ai_lab_tip") or "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。")
+        tip_label = QLabel(
+            t("preferences.ai_lab_tip")
+            or "💡 提示: 数据请求将直接从您的本地网络发送至服务商，MathLab 不会收集您的 API Key。"
+        )
         tip_label.setStyleSheet("color: gray; font-size: 11px;")
         section_layout.addWidget(tip_label)
 
