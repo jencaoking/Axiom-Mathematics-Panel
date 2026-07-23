@@ -48,6 +48,20 @@ try:
 
     setup_logger()
     logger = get_logger(__name__)
+
+    # ── 启动时清理旧缓存文件（避免占用 C 盘）───────────────────────────────
+    from mathlab.utils.logger import cleanup_old_logs, cleanup_temp_files
+
+    # 清理 7 天前的旧日志
+    old_logs_deleted = cleanup_old_logs(max_age_days=7)
+    if old_logs_deleted > 0:
+        logger.info(f"已清理 {old_logs_deleted} 个过期日志文件")
+
+    # 清理系统临时目录下的 mathlab 相关临时文件
+    temp_files_deleted = cleanup_temp_files()
+    if temp_files_deleted > 0:
+        logger.info(f"已清理 {temp_files_deleted} 个临时文件")
+
     logger.info("日志系统初始化完毕，开始加载 MathLab 模块...")
 except Exception:
     # 日志系统本身崩溃时，写崩溃日志并退出
@@ -62,6 +76,24 @@ install_error_handler()
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QFont, QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
+
+# ── 配置 QtWebEngine 缓存（避免占用 C 盘 AppData）───────────────────────────
+try:
+    from PySide6.QtWebEngineCore import QWebEngineProfile
+
+    # 设置 WebEngine 缓存路径到程序目录下的 webcache/ 文件夹
+    web_cache_dir = os.path.join(mathlab_dir, "webcache")
+    os.makedirs(web_cache_dir, exist_ok=True)
+
+    # 获取默认配置文件并设置缓存路径
+    profile = QWebEngineProfile.defaultProfile()
+    profile.setCachePath(web_cache_dir)
+    profile.setPersistentStoragePath(web_cache_dir)
+    # 设置 HTTP 缓存大小限制为 50MB
+    profile.setHttpCacheMaximumSize(50 * 1024 * 1024)
+    logger.info(f"QtWebEngine 缓存路径已设置: {web_cache_dir}")
+except ImportError:
+    pass
 
 from mathlab.ui.main_window import MainWindow  # noqa: E402
 from mathlab.utils.version import __version__  # noqa: E402

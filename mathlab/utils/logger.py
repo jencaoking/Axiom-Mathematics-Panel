@@ -14,6 +14,7 @@
 import logging
 import os
 import sys
+import tempfile
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
@@ -123,6 +124,66 @@ def setup_logger(
     logger.info(separator)
 
     return logger
+
+
+def cleanup_old_logs(log_dir: str = LOG_DIR, max_age_days: int = 7) -> int:
+    """
+    清理指定天数之前的旧日志文件。
+
+    参数:
+        log_dir: 日志目录
+        max_age_days: 保留的最大天数（超过此天数的文件将被删除）
+
+    返回:
+        被删除的文件数量
+    """
+    deleted_count = 0
+    if not os.path.exists(log_dir):
+        return deleted_count
+
+    import time
+
+    now = time.time()
+    max_age_seconds = max_age_days * 24 * 60 * 60
+
+    for filename in os.listdir(log_dir):
+        filepath = os.path.join(log_dir, filename)
+        if os.path.isfile(filepath):
+            file_age = now - os.path.getmtime(filepath)
+            if file_age > max_age_seconds:
+                try:
+                    os.remove(filepath)
+                    deleted_count += 1
+                except OSError:
+                    pass
+    return deleted_count
+
+
+def cleanup_temp_files(prefix: str = "mathlab") -> int:
+    """
+    清理系统临时目录下的 mathlab 相关临时文件。
+
+    返回:
+        被删除的文件数量
+    """
+    deleted_count = 0
+    temp_dir = tempfile.gettempdir()
+
+    for filename in os.listdir(temp_dir):
+        if filename.startswith(prefix):
+            filepath = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(filepath):
+                    os.remove(filepath)
+                    deleted_count += 1
+                elif os.path.isdir(filepath):
+                    import shutil
+
+                    shutil.rmtree(filepath, ignore_errors=True)
+                    deleted_count += 1
+            except OSError:
+                pass
+    return deleted_count
 
 
 def get_logger(module_name: str = None) -> logging.Logger:

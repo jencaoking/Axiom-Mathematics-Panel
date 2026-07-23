@@ -165,12 +165,21 @@ def install_error_handler():
 
 
 class AutoSaver(QObject):
+    # 自动保存文件最大大小（10MB），超过则清理
+    _MAX_AUTOSAVE_SIZE = 10 * 1024 * 1024
+
     def __init__(self, main_window, interval_ms=30000):
         super().__init__(main_window)
         self.main_window = main_window
 
-        # 设定自动保存路径
-        self.autosave_file = os.path.join(tempfile.gettempdir(), "mathlab_autosave.json")
+        # 设定自动保存路径：优先使用程序目录下的 autosave/ 文件夹
+        # 避免占用 C 盘临时目录
+        import mathlab.main as main_module
+
+        app_dir = os.path.dirname(os.path.abspath(main_module.__file__))
+        autosave_dir = os.path.join(app_dir, "autosave")
+        os.makedirs(autosave_dir, exist_ok=True)
+        self.autosave_file = os.path.join(autosave_dir, "mathlab_autosave.json")
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._perform_autosave)
@@ -179,6 +188,15 @@ class AutoSaver(QObject):
     def _perform_autosave(self):
         """静默执行状态快照"""
         try:
+            # 检查文件大小，如果超过限制则先清理
+            if os.path.exists(self.autosave_file):
+                file_size = os.path.getsize(self.autosave_file)
+                if file_size > self._MAX_AUTOSAVE_SIZE:
+                    logger.warning(
+                        f"自动保存文件过大 ({file_size/1024/1024:.1f}MB)，已清理"
+                    )
+                    os.remove(self.autosave_file)
+
             if hasattr(self.main_window, "project_manager") and self.main_window.project_manager:
                 workspace_data = self.main_window.project_manager.serialize_current_state()
                 with open(self.autosave_file, "w", encoding="utf-8") as f:
