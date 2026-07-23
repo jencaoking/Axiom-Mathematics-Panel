@@ -70,6 +70,7 @@ def _lazy_import_torch():
 
     return torch, nn
 
+
 # --- 1. 引入严格的生成状态机 ---
 
 
